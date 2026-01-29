@@ -35,7 +35,7 @@ Build a front-end-only app that lets design teams create and present interactive
 24. [x] Toolbar includes a **Clear All** button; clicking it wipes the entire board state (all nodes + edges), returning to an empty canvas state
 25. [x] Toolbar includes a **Grid toggle** icon button; toggling hides/shows the grid
 26. [x] **Whiteboard mode**: when enabled, the grid is hidden and nodes can be moved freely (no snapping-to-grid behavior)
-27. [ ] All node types (Step, Decision, Note) support **4-direction handles** (Top/Right/Bottom/Left)
+27. [x] All node types (Step, Decision, Note) support **4-direction handles** (Top/Right/Bottom/Left)
 28. [ ] Connection handles on nodes remain **hidden until hover**; when the user starts a connection drag, handles on nearby nodes (near the cursor) become visible
 29. [ ] Users can **multi-select** nodes and edges:
     - Click a node/edge to toggle its selection

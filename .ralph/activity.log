@@ -292,3 +292,18 @@ EOF
 [07:16:55] 🟢 TOKENS: 28378 / 80000 (35%) [read:104KB write:0KB assist:3KB shell:0KB]
 [07:17:28] 🟢 TOKENS: 28407 / 80000 (35%) [read:104KB write:0KB assist:3KB shell:0KB]
 [07:17:30] 🟢 SHELL pnpm build → exit 0
+[07:17:41] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+feat: implement grid toggle and whiteboard mode
+
+- Added grid visibility toggle button to toolbar (⊞)
+- When grid is shown, snap-to-grid is enabled (15x15 grid)
+- When grid is hidden, whiteboard mode is enabled (no snapping)
+- Button shows active state when grid is visible
+- Success criteria 25-26 completed
+EOF
+)" → exit 0
+[07:17:45] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/components/nodes/StepNode.tsx (57 lines, ~5.5KB)
+[07:17:45] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/components/nodes/NoteNode.tsx (53 lines, ~5.1KB)
+[07:17:49] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/components/nodes/DecisionNode.tsx (66 lines, ~6.4KB)
+[07:18:00] 🟢 TOKENS: 32888 / 80000 (41%) [read:121KB write:0KB assist:4KB shell:0KB]
+[07:18:12] 🟢 SHELL pnpm build → exit 0

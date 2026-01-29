@@ -1,5 +1,5 @@
 import { memo, useState, useCallback } from 'react'
-import { NodeProps } from 'reactflow'
+import { Handle, Position, NodeProps } from 'reactflow'
 import './NodeStyles.css'
 
 function NoteNode({ data, id }: NodeProps) {
@@ -31,6 +31,12 @@ function NoteNode({ data, id }: NodeProps) {
 
   return (
     <div className="custom-node note-node">
+      {/* Target handles on all 4 sides for incoming edges */}
+      <Handle type="target" position={Position.Top} id="target-top" />
+      <Handle type="target" position={Position.Right} id="target-right" />
+      <Handle type="target" position={Position.Bottom} id="target-bottom" />
+      <Handle type="target" position={Position.Left} id="target-left" />
+      
       {isEditing ? (
         <textarea
           value={label}
@@ -45,6 +51,12 @@ function NoteNode({ data, id }: NodeProps) {
           {label}
         </div>
       )}
+      
+      {/* Source handles on all 4 sides for outgoing edges */}
+      <Handle type="source" position={Position.Top} id="source-top" />
+      <Handle type="source" position={Position.Right} id="source-right" />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" />
+      <Handle type="source" position={Position.Left} id="source-left" />
     </div>
   )
 }

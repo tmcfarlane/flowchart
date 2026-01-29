@@ -32,7 +32,12 @@ function StepNode({ data, id }: NodeProps) {
 
   return (
     <div className="custom-node step-node">
-      <Handle type="target" position={Position.Top} />
+      {/* Target handles on all 4 sides for incoming edges */}
+      <Handle type="target" position={Position.Top} id="target-top" />
+      <Handle type="target" position={Position.Right} id="target-right" />
+      <Handle type="target" position={Position.Bottom} id="target-bottom" />
+      <Handle type="target" position={Position.Left} id="target-left" />
+      
       {isEditing ? (
         <input
           type="text"
@@ -48,7 +53,12 @@ function StepNode({ data, id }: NodeProps) {
           {label}
         </div>
       )}
-      <Handle type="source" position={Position.Bottom} />
+      
+      {/* Source handles on all 4 sides for outgoing edges */}
+      <Handle type="source" position={Position.Top} id="source-top" />
+      <Handle type="source" position={Position.Right} id="source-right" />
+      <Handle type="source" position={Position.Bottom} id="source-bottom" />
+      <Handle type="source" position={Position.Left} id="source-left" />
     </div>
   )
 }
