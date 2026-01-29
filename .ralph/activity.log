@@ -307,3 +307,16 @@ EOF
 [07:17:49] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/components/nodes/DecisionNode.tsx (66 lines, ~6.4KB)
 [07:18:00] 🟢 TOKENS: 32888 / 80000 (41%) [read:121KB write:0KB assist:4KB shell:0KB]
 [07:18:12] 🟢 SHELL pnpm build → exit 0
+[07:18:22] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+feat: add 4-direction handles to all node types
+
+- Step nodes now have 4 target and 4 source handles (all sides)
+- Note nodes now have 4 target and 4 source handles (all sides)
+- Decision nodes already had 4-direction handles
+- Each handle has unique ID for proper edge connections
+- Success criterion 27 completed
+EOF
+)" → exit 0
+[07:18:27] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/components/nodes/NodeStyles.css (98 lines, ~9.5KB)
+[07:18:33] 🟢 TOKENS: 35478 / 80000 (44%) [read:130KB write:0KB assist:4KB shell:0KB]
+[07:18:39] 🟢 SHELL pnpm build → exit 0

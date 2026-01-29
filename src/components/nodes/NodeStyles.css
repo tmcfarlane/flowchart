@@ -90,8 +90,26 @@
   height: 10px;
   background: #667eea;
   border: 2px solid white;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Show handles when hovering over the node */
+.custom-node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+/* Show handles when connecting (dragging a connection) */
+.react-flow__handle-connecting {
+  opacity: 1;
+}
+
+/* Show all handles when any handle is being hovered or connected */
+.react-flow.connecting .react-flow__handle {
+  opacity: 1;
 }
 
 .react-flow__handle:hover {
   background: #764ba2;
+  opacity: 1;
 }
