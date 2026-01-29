@@ -23,8 +23,10 @@ import DecisionNode from './components/nodes/DecisionNode'
 import NoteNode from './components/nodes/NoteNode'
 import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
+import AIChat from './components/AIChat'
 
 export type EdgeStyle = 'default' | 'animated' | 'step' | 'smoothstep'
+export type SidebarMode = 'none' | 'explorer' | 'ai'
 
 const nodeTypes = {
   step: StepNode,
@@ -56,7 +58,7 @@ function App() {
   const [previewMode, setPreviewMode] = useState(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
-  const [showExplorer, setShowExplorer] = useState(false)
+  const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
 
   // Handle node changes (dragging, selection, etc.)
   const onNodesChange = useCallback(
@@ -161,8 +163,19 @@ function App() {
 
   // Toggle Explorer sidebar
   const toggleExplorer = useCallback(() => {
-    setShowExplorer((prev) => !prev)
+    setSidebarMode((prev) => (prev === 'explorer' ? 'none' : 'explorer'))
   }, [])
+
+  // Toggle AI Chat sidebar
+  const toggleAI = useCallback(() => {
+    setSidebarMode((prev) => (prev === 'ai' ? 'none' : 'ai'))
+  }, [])
+
+  // Update flow from AI (future enhancement for direct modifications)
+  const updateFlowFromAI = useCallback((newNodes: Node[], newEdges: Edge[]) => {
+    setNodes(newNodes)
+    setEdges(newEdges)
+  }, [setNodes, setEdges])
 
   if (previewMode) {
     return (
@@ -183,7 +196,8 @@ function App() {
         onChangeEdgeStyle={changeEdgeStyle}
         currentEdgeStyle={defaultEdgeStyle}
         onToggleExplorer={toggleExplorer}
-        showExplorer={showExplorer}
+        onToggleAI={toggleAI}
+        sidebarMode={sidebarMode}
       />
       <ReactFlow
         nodes={nodes}
@@ -199,12 +213,20 @@ function App() {
         <Background />
         <Controls />
       </ReactFlow>
-      {showExplorer && (
+      {sidebarMode === 'explorer' && (
         <Explorer
           nodes={nodes}
           edges={edges}
           onUpdateNodeLabel={updateNodeLabel}
-          onClose={toggleExplorer}
+          onClose={() => setSidebarMode('none')}
+        />
+      )}
+      {sidebarMode === 'ai' && (
+        <AIChat
+          nodes={nodes}
+          edges={edges}
+          onUpdateFlow={updateFlowFromAI}
+          onClose={() => setSidebarMode('none')}
         />
       )}
     </div>

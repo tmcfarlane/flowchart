@@ -1,5 +1,5 @@
 import './Toolbar.css'
-import { EdgeStyle } from '../App'
+import { EdgeStyle, SidebarMode } from '../App'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
@@ -8,10 +8,11 @@ interface ToolbarProps {
   onChangeEdgeStyle: (style: EdgeStyle) => void
   currentEdgeStyle: EdgeStyle
   onToggleExplorer: () => void
-  showExplorer: boolean
+  onToggleAI: () => void
+  sidebarMode: SidebarMode
 }
 
-function Toolbar({ onAddNode, onDeleteSelected, onTogglePreview, onChangeEdgeStyle, currentEdgeStyle, onToggleExplorer, showExplorer }: ToolbarProps) {
+function Toolbar({ onAddNode, onDeleteSelected, onTogglePreview, onChangeEdgeStyle, currentEdgeStyle, onToggleExplorer, onToggleAI, sidebarMode }: ToolbarProps) {
   return (
     <div className="toolbar">
       <div className="toolbar-section">
@@ -64,11 +65,18 @@ function Toolbar({ onAddNode, onDeleteSelected, onTogglePreview, onChangeEdgeSty
           🗑 Delete
         </button>
         <button
-          className={`toolbar-button explorer ${showExplorer ? 'active' : ''}`}
+          className={`toolbar-button explorer ${sidebarMode === 'explorer' ? 'active' : ''}`}
           onClick={onToggleExplorer}
           title="Toggle Explorer Sidebar"
         >
           📋 Explorer
+        </button>
+        <button
+          className={`toolbar-button ai ${sidebarMode === 'ai' ? 'active' : ''}`}
+          onClick={onToggleAI}
+          title="Toggle AI Assistant"
+        >
+          🤖 AI
         </button>
         <button
           className="toolbar-button preview"

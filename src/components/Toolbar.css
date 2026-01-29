@@ -66,6 +66,20 @@
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+.toolbar-button.ai {
+  background: #845ef7;
+  color: white;
+}
+
+.toolbar-button.ai:hover {
+  background: #7950f2;
+}
+
+.toolbar-button.ai.active {
+  background: #6741d9;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 .toolbar-button.preview {
   background: #51cf66;
   color: white;
