@@ -1,9 +1,8 @@
 /// <reference types="vite/client" />
 
+// No frontend environment variables needed - AI calls are proxied through /api/chat
 interface ImportMetaEnv {
-  readonly VITE_AZURE_DEPLOYMENT_NAME: string
-  readonly VITE_AZURE_RESOURCE_NAME: string
-  readonly VITE_AZURE_API_KEY: string
+  // Add any frontend-specific env vars here if needed
 }
 
 interface ImportMeta {

@@ -38,18 +38,6 @@ function AIChat({ nodes, edges, onClose }: AIChatProps) {
   const sendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
 
-    // Check for Azure OpenAI configuration
-    const deploymentName = import.meta.env.VITE_AZURE_DEPLOYMENT_NAME
-    const resourceName = import.meta.env.VITE_AZURE_RESOURCE_NAME
-    const apiKey = import.meta.env.VITE_AZURE_API_KEY
-
-    if (!deploymentName || !resourceName || !apiKey) {
-      setError(
-        'Azure OpenAI configuration missing. Please set VITE_AZURE_DEPLOYMENT_NAME, VITE_AZURE_RESOURCE_NAME, and VITE_AZURE_API_KEY in your .env file.'
-      )
-      return
-    }
-
     const userMessage: Message = { role: 'user', content: inputValue }
     setMessages((prev) => [...prev, userMessage])
     setInputValue('')
@@ -72,42 +60,32 @@ function AIChat({ nodes, edges, onClose }: AIChatProps) {
         })),
       }
 
-      const systemMessage = `You are a flowchart assistant. The user has the following flowchart:
-${JSON.stringify(flowContext, null, 2)}
-
-Help them modify or understand their flowchart. If they ask you to make changes, explain what you would do clearly. You cannot directly modify the flowchart, but you can provide clear instructions.`
-
-      // Call Azure OpenAI API
-      const endpoint = `https://${resourceName}.openai.azure.com/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`
-
-      const response = await fetch(endpoint, {
+      // Call our serverless function proxy at /api/chat
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': apiKey,
         },
         body: JSON.stringify({
           messages: [
-            { role: 'system', content: systemMessage },
             ...messages.slice(-5), // Include last 5 messages for context
             userMessage,
           ],
-          max_tokens: 800,
-          temperature: 0.7,
+          flowContext,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(
-          errorData.error?.message || `API request failed with status ${response.status}`
+          errorData.error || `API request failed with status ${response.status}`
         )
       }
 
       const data = await response.json()
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.choices[0]?.message?.content || 'No response received.',
+        content: data.message || 'No response received.',
       }
 
       setMessages((prev) => [...prev, assistantMessage])
