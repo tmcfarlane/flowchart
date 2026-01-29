@@ -117,3 +117,24 @@ EOF
 [05:55:41] 🟢 TOKENS: 17308 / 80000 (21%) [read:61KB write:0KB assist:3KB shell:0KB]
 [05:55:42] 🟢 SHELL pnpm build → exit 0
 [05:55:54] 🟢 SHELL pnpm build → exit 0
+[05:56:06] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+ralph: implement AI chat interface with Azure OpenAI integration
+
+Completed criteria 14 and 15:
+- Created AIChat component with chat interface
+- Integrated Azure OpenAI API for flowchart assistance
+- AI button toggles between Explorer and AI modes
+- Environment variables for Azure config (VITE_AZURE_DEPLOYMENT_NAME, VITE_AZURE_RESOURCE_NAME, VITE_AZURE_API_KEY)
+- Added .env.example template
+- Created vite-env.d.ts for proper TypeScript support
+- Chat UI with message history, loading states, and error handling
+- Context-aware: AI receives current flowchart state
+- Beautiful animated chat interface with gradient styling
+- All tests passing and build successful
+
+EOF
+)" && git status → exit 0
+[05:56:09] 🟢 READ /Users/tmcfarlane/repo/flowchart/RALPH_TASK.md (48 lines, ~4.6KB)
+[05:56:12] 🟢 TOKENS: 18618 / 80000 (23%) [read:65KB write:0KB assist:3KB shell:0KB]
+[05:56:14] 🟢 SHELL pnpm test --run → exit 0
+[05:56:21] 🟢 READ /Users/tmcfarlane/repo/flowchart/.ralph/progress.md (47 lines, ~4.5KB)
