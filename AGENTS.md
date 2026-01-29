@@ -1,3 +1,58 @@
+# Agent Instructions (FlowChart Designer)
+
+This repository is a Vite + React + TypeScript flowchart editor using React Flow, with a minimal Vercel Serverless Function at `api/chat.ts` to proxy AI requests. Follow the task contract in `RALPH_TASK.md` for what to build and how to report progress.
+
+## Source of truth: `RALPH_TASK.md`
+
+- **Primary spec**: Treat `RALPH_TASK.md` as the single source of truth for requirements, progress, and the next work item.
+- **Work order**: Always work on the next incomplete Success Criterion (marked `[ ]`) before starting anything else.
+- **Progress tracking**: When a criterion is completed, change its checkbox from `[ ]` to `[x]`.
+
+## `RALPH_TASK.md` formatting rules (must follow)
+
+When editing `RALPH_TASK.md`, you must preserve its structure and style:
+
+- **Keep the existing sections** in the same order:
+  - YAML frontmatter (`--- ... ---`)
+  - `# Task: ...`
+  - `## Success Criteria` (numbered checklist)
+  - `## Context` (bulleted list)
+  - A `---` separator
+  - `## Ralph Instructions` block at the end
+- **Only add to “Success Criteria” and “Context”**:
+  - Add new acceptance criteria as additional numbered checklist items (do not renumber existing items unless the file is clearly inconsistent).
+  - Add new context as additional bullets; keep entries concise and actionable.
+- **Do not reformat**:
+  - Keep checklist syntax exactly (`[ ]` / `[x]`).
+  - Keep headings and separators consistent (including the `---` divider before the final instructions).
+
+### Example: allowed edits to `RALPH_TASK.md`
+
+✅ Add a new acceptance criterion (append a new numbered item) and a new context bullet (append a new bullet), without touching the final instructions block:
+
+```md
+## Success Criteria
+
+...
+35. [ ] New feature is implemented and documented
+
+## Context
+
+...
+- New feature notes / constraints go here
+```
+
+✅ Mark a completed criterion:
+
+```md
+35. [x] New feature is implemented and documented
+```
+
+### Full example: `RALPH_TASK.md` (current shape)
+
+Use this as the canonical template for structure and formatting. The specific criteria and context will evolve, but the **shape** must remain the same.
+
+```md
 ---
 task: FlowChart Designer (Vite + React + TypeScript)
 test_command: "pnpm test"
@@ -70,3 +125,28 @@ Build a front-end-only app that lets design teams create and present interactive
 4. Commit your changes frequently
 5. When ALL criteria are [x], output: `<ralph>COMPLETE</ralph>`
 6. If stuck on the same issue 3+ times, output: `<ralph>GUTTER</ralph>`
+```
+
+## Non-negotiable: the ending “Ralph Instructions” block must remain
+
+- **Never remove, move, or modify the final `## Ralph Instructions` section.**
+- **It must remain at the end of `RALPH_TASK.md`.**
+- The block that must be preserved verbatim is:
+
+```md
+## Ralph Instructions
+
+1. Work on the next incomplete criterion (marked [ ])
+2. Check off completed criteria (change [ ] to [x])
+3. Run tests after changes
+4. Commit your changes frequently
+5. When ALL criteria are [x], output: `<ralph>COMPLETE</ralph>`
+6. If stuck on the same issue 3+ times, output: `<ralph>GUTTER</ralph>`
+```
+
+## Testing and changes
+
+- Prefer small, incremental changes that map directly to a single Success Criterion.
+- Run the test command listed in `RALPH_TASK.md` (currently `pnpm test`) after substantive changes.
+- Keep the Vercel function as a minimal AI proxy; do not ship secrets to the browser.
+
