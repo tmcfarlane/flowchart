@@ -337,3 +337,20 @@ EOF
 [07:20:14] 🟢 TOKENS: 46873 / 80000 (58%) [read:173KB write:0KB assist:6KB shell:0KB]
 [07:20:37] 🟢 SHELL pnpm build → exit 0
 [07:20:44] 🟢 TOKENS: 46952 / 80000 (58%) [read:173KB write:0KB assist:6KB shell:0KB]
+[07:20:50] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+feat: implement multi-select, delete, copy/paste, and zoom controls
+
+- Multi-selection via click or drag box (React Flow default behavior)
+- Selected nodes show border, selected edges show thicker stroke
+- Floating selection toolbar appears when items are selected
+- Delete button in selection toolbar removes all selected items
+- Copy/paste functionality with proper ID remapping
+- Pasted items offset by 50px from originals
+- Zoom in/out buttons in main toolbar
+- Success criteria 29-32 completed
+EOF
+)" → exit 0
+[07:20:57] 🟢 SHELL pnpm add @reactflow/node-resizer → exit 0
+[07:21:16] 🟢 TOKENS: 47014 / 80000 (58%) [read:173KB write:0KB assist:7KB shell:0KB]
+[07:21:42] 🟢 SHELL pnpm build → exit 0
+[07:21:47] 🟢 TOKENS: 47043 / 80000 (58%) [read:173KB write:0KB assist:7KB shell:0KB]

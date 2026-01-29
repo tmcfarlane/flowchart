@@ -1,5 +1,7 @@
 import { memo, useState, useCallback } from 'react'
 import { Handle, Position, NodeProps } from 'reactflow'
+import { NodeResizer } from '@reactflow/node-resizer'
+import '@reactflow/node-resizer/dist/style.css'
 import './NodeStyles.css'
 
 function DecisionNode({ data, id }: NodeProps) {
@@ -31,6 +33,7 @@ function DecisionNode({ data, id }: NodeProps) {
 
   return (
     <div className="custom-node decision-node">
+      <NodeResizer minWidth={120} minHeight={120} />
       {/* Target handles on all 4 sides for incoming edges */}
       <Handle type="target" position={Position.Top} id="target-top" />
       <Handle type="target" position={Position.Right} id="target-right" />

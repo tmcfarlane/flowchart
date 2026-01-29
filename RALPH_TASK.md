@@ -44,8 +44,8 @@ Build a front-end-only app that lets design teams create and present interactive
 30. [x] Users can **delete multiple** selected nodes/edges at once via a **trash icon** shown near the current selection
 31. [x] Users can **copy and paste** selected nodes/edges via **copy** and **paste** icons shown near the current selection
 32. [x] Users can **zoom in/out** via **zoom in** and **zoom out** icon buttons
-33. [ ] Nodes are resizable via visible resize handles/corners
-34. [ ] Resizing a node updates its dimensions in React Flow state and persists during the session
+33. [x] Nodes are resizable via visible resize handles/corners
+34. [x] Resizing a node updates its dimensions in React Flow state and persists during the session
 35. [ ] All tests pass
 
 ## Context
