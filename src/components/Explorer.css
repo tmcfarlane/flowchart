@@ -1,0 +1,159 @@
+.explorer-sidebar {
+  position: fixed;
+  right: 0;
+  top: 64px; /* Below toolbar */
+  bottom: 0;
+  width: 320px;
+  background: white;
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  z-index: 5;
+}
+
+.explorer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.explorer-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.explorer-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.explorer-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.explorer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.explorer-section {
+  margin-bottom: 30px;
+}
+
+.explorer-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.explorer-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.explorer-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.explorer-item:hover {
+  background: #e9ecef;
+  border-color: #dee2e6;
+}
+
+.node-type-badge {
+  padding: 4px 8px;
+  background: #667eea;
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.explorer-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.explorer-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.edge-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.edge-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  font-size: 13px;
+}
+
+.edge-source,
+.edge-target {
+  color: #495057;
+  font-weight: 500;
+}
+
+.edge-arrow {
+  color: #adb5bd;
+  font-weight: bold;
+}
+
+.edge-style-badge {
+  padding: 2px 6px;
+  background: #e9ecef;
+  color: #495057;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.explorer-empty {
+  padding: 20px;
+  text-align: center;
+  color: #adb5bd;
+  font-size: 14px;
+  font-style: italic;
+}

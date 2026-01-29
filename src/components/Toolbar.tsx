@@ -7,9 +7,11 @@ interface ToolbarProps {
   onTogglePreview: () => void
   onChangeEdgeStyle: (style: EdgeStyle) => void
   currentEdgeStyle: EdgeStyle
+  onToggleExplorer: () => void
+  showExplorer: boolean
 }
 
-function Toolbar({ onAddNode, onDeleteSelected, onTogglePreview, onChangeEdgeStyle, currentEdgeStyle }: ToolbarProps) {
+function Toolbar({ onAddNode, onDeleteSelected, onTogglePreview, onChangeEdgeStyle, currentEdgeStyle, onToggleExplorer, showExplorer }: ToolbarProps) {
   return (
     <div className="toolbar">
       <div className="toolbar-section">
@@ -60,6 +62,13 @@ function Toolbar({ onAddNode, onDeleteSelected, onTogglePreview, onChangeEdgeSty
           title="Delete Selected (or press Delete key)"
         >
           🗑 Delete
+        </button>
+        <button
+          className={`toolbar-button explorer ${showExplorer ? 'active' : ''}`}
+          onClick={onToggleExplorer}
+          title="Toggle Explorer Sidebar"
+        >
+          📋 Explorer
         </button>
         <button
           className="toolbar-button preview"

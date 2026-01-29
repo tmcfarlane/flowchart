@@ -52,6 +52,20 @@
   background: #ff5252;
 }
 
+.toolbar-button.explorer {
+  background: #4dabf7;
+  color: white;
+}
+
+.toolbar-button.explorer:hover {
+  background: #339af0;
+}
+
+.toolbar-button.explorer.active {
+  background: #1c7ed6;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 .toolbar-button.preview {
   background: #51cf66;
   color: white;

@@ -20,7 +20,7 @@ Build a front-end-only app that lets design teams create and present interactive
 10. [x] Next/Previous navigates through nodes in a deterministic order
 11. [x] Preview highlights the active node and centers it in view
 12. [x] Exiting preview returns to the editor with state preserved
-13. [ ] Right sidebar: Explorer view lists nodes + edges + any associated text; node names are editable here
+13. [x] Right sidebar: Explorer view lists nodes + edges + any associated text; node names are editable here
 14. [ ] "AI" button opens a right sidebar chat interface (replaces Explorer) for generating/updating flows via LLM
 15. [ ] Azure OpenAI config is read from env vars (Vite-safe): `VITE_AZURE_DEPLOYMENT_NAME`, `VITE_AZURE_RESOURCE_NAME`, `VITE_AZURE_API_KEY`
 16. [ ] All tests pass

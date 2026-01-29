@@ -22,6 +22,7 @@ import StepNode from './components/nodes/StepNode'
 import DecisionNode from './components/nodes/DecisionNode'
 import NoteNode from './components/nodes/NoteNode'
 import PreviewMode from './components/PreviewMode'
+import Explorer from './components/Explorer'
 
 export type EdgeStyle = 'default' | 'animated' | 'step' | 'smoothstep'
 
@@ -55,6 +56,7 @@ function App() {
   const [previewMode, setPreviewMode] = useState(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
+  const [showExplorer, setShowExplorer] = useState(false)
 
   // Handle node changes (dragging, selection, etc.)
   const onNodesChange = useCallback(
@@ -157,6 +159,11 @@ function App() {
     }
   }, [edges, setEdges])
 
+  // Toggle Explorer sidebar
+  const toggleExplorer = useCallback(() => {
+    setShowExplorer((prev) => !prev)
+  }, [])
+
   if (previewMode) {
     return (
       <PreviewMode
@@ -175,6 +182,8 @@ function App() {
         onTogglePreview={togglePreview}
         onChangeEdgeStyle={changeEdgeStyle}
         currentEdgeStyle={defaultEdgeStyle}
+        onToggleExplorer={toggleExplorer}
+        showExplorer={showExplorer}
       />
       <ReactFlow
         nodes={nodes}
@@ -190,6 +199,14 @@ function App() {
         <Background />
         <Controls />
       </ReactFlow>
+      {showExplorer && (
+        <Explorer
+          nodes={nodes}
+          edges={edges}
+          onUpdateNodeLabel={updateNodeLabel}
+          onClose={toggleExplorer}
+        />
+      )}
     </div>
   )
 }
