@@ -5,12 +5,28 @@ interface ChatMessage {
   content: string
 }
 
+interface FlowNode {
+  id: string
+  type: string
+  label: string
+  position: { x: number; y: number }
+}
+
+interface FlowEdge {
+  id: string
+  source: string
+  target: string
+}
+
+interface FlowContext {
+  nodes: FlowNode[]
+  edges: FlowEdge[]
+}
+
 interface ChatRequest {
   messages: ChatMessage[]
-  flowContext?: {
-    nodes: Array<{ id: string; type: string; label: string; position: { x: number; y: number } }>
-    edges: Array<{ id: string; source: string; target: string }>
-  }
+  flowContext?: FlowContext
+  requestStructuredUpdate?: boolean
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -20,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { messages, flowContext } = req.body as ChatRequest
+    const { messages, flowContext, requestStructuredUpdate } = req.body as ChatRequest
 
     // Validate request
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -41,8 +57,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Build system message with flow context if provided
     let systemMessage = 'You are a flowchart assistant helping users create and modify flowcharts.'
-    if (flowContext) {
-      systemMessage += `\n\nThe user has the following flowchart:\n${JSON.stringify(flowContext, null, 2)}\n\nHelp them modify or understand their flowchart. If they ask you to make changes, explain what you would do clearly. You cannot directly modify the flowchart, but you can provide clear instructions.`
+    if (flowContext && requestStructuredUpdate) {
+      systemMessage += `\n\nThe user has the following flowchart:\n${JSON.stringify(flowContext, null, 2)}\n\nWhen the user asks you to make changes to their flowchart, respond with a JSON object containing the updated flow. The JSON should have this structure:
+{
+  "explanation": "A brief natural language description of what you changed and why",
+  "nodes": [
+    { "id": "1", "type": "step", "label": "Node label", "position": { "x": 250, "y": 100 } }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "1", "target": "2" }
+  ]
+}
+
+Node types can be: "step", "decision", or "note".
+Always include ALL nodes and edges in your response (both existing and new ones).
+Make sure to provide a clear explanation in natural language before the JSON.
+Format your response as: First explain what you're doing, then provide the JSON wrapped in a code block like this:
+\`\`\`json
+{...}
+\`\`\``
+    } else if (flowContext) {
+      systemMessage += `\n\nThe user has the following flowchart:\n${JSON.stringify(flowContext, null, 2)}\n\nHelp them modify or understand their flowchart. If they ask you to make changes, explain what you would do clearly.`
     }
 
     // Call Azure OpenAI API

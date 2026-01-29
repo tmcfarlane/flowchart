@@ -27,9 +27,9 @@ Build a front-end-only app that lets design teams create and present interactive
 16. [x] Server-side env vars are used (NOT `VITE_*`): `AZURE_DEPLOYMENT_NAME`, `AZURE_RESOURCE_NAME`, `AZURE_API_KEY` (or AI Gateway equivalents)
 17. [x] Frontend calls `/api/chat` and never calls Azure OpenAI (or AI Gateway) directly
 18. [x] `/api/chat` supports basic chat with the model and returns an assistant reply (200 on success, useful error on failure)
-19. [ ] AI chat suggestions can be applied to the canvas via an **"Apply Changes"** button shown in the chat UI when applicable
-20. [ ] When "Apply Changes" is clicked, the current flow (nodes + edges) is updated to match the AI-proposed changes (can include adds, deletes, and modifications)
-21. [ ] The app sends the current flow structure to the LLM and receives a structured response back (graph-shaped data), but **the UI never displays raw JSON** to the user
+19. [x] AI chat suggestions can be applied to the canvas via an **"Apply Changes"** button shown in the chat UI when applicable
+20. [x] When "Apply Changes" is clicked, the current flow (nodes + edges) is updated to match the AI-proposed changes (can include adds, deletes, and modifications)
+21. [x] The app sends the current flow structure to the LLM and receives a structured response back (graph-shaped data), but **the UI never displays raw JSON** to the user
 22. [ ] Toolbar includes **Undo** and **Redo** icon buttons; Undo/Redo work for create/modify/delete actions on nodes and edges (including notes)
 23. [ ] Undo history tracks up to **10** prior actions; repeated Undo steps backwards through history; Redo steps forward until a new action occurs (which clears the redo stack)
 24. [ ] Toolbar includes a **Clear All** button; clicking it wipes the entire board state (all nodes + edges), returning to an empty canvas state

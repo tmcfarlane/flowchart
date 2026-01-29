@@ -1,10 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Node, Edge } from 'reactflow'
+import { Node, Edge, MarkerType } from 'reactflow'
 import './AIChat.css'
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
   content: string
+  flowUpdate?: {
+    explanation: string
+    nodes: Array<{
+      id: string
+      type: string
+      label: string
+      position: { x: number; y: number }
+    }>
+    edges: Array<{
+      id: string
+      source: string
+      target: string
+    }>
+  }
 }
 
 interface AIChatProps {
@@ -14,8 +28,7 @@ interface AIChatProps {
   onClose: () => void
 }
 
-function AIChat({ nodes, edges, onClose }: AIChatProps) {
-  // Note: onUpdateFlow is available for future AI-driven modifications
+function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -35,10 +48,69 @@ function AIChat({ nodes, edges, onClose }: AIChatProps) {
     scrollToBottom()
   }, [messages])
 
+  // Parse flow update from assistant message if present
+  const parseFlowUpdate = (content: string) => {
+    try {
+      // Look for JSON code block in the message
+      const jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/)
+      if (!jsonMatch) return null
+
+      const jsonStr = jsonMatch[1]
+      const parsed = JSON.parse(jsonStr)
+
+      // Validate the structure
+      if (parsed.nodes && Array.isArray(parsed.nodes) && parsed.edges && Array.isArray(parsed.edges)) {
+        return {
+          explanation: parsed.explanation || 'Flow updated',
+          nodes: parsed.nodes,
+          edges: parsed.edges,
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse flow update:', e)
+    }
+    return null
+  }
+
+  // Apply flow changes to the canvas
+  const applyFlowChanges = useCallback((flowUpdate: NonNullable<Message['flowUpdate']>) => {
+    // Convert the AI's flow format to React Flow format
+    const newNodes: Node[] = flowUpdate.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: { 
+        label: node.label,
+        onLabelChange: (_nodeId: string, _label: string) => {
+          // This will be handled by the parent component
+        }
+      },
+    }))
+
+    const newEdges: Edge[] = flowUpdate.edges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: 'default',
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+      },
+    }))
+
+    onUpdateFlow(newNodes, newEdges)
+  }, [onUpdateFlow])
+
   const sendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
 
     const userMessage: Message = { role: 'user', content: inputValue }
+    
+    // Detect if user is asking for modifications
+    const modificationKeywords = ['add', 'create', 'modify', 'change', 'update', 'delete', 'remove', 'connect', 'link']
+    const isRequestingModification = modificationKeywords.some(keyword => 
+      inputValue.toLowerCase().includes(keyword)
+    )
+    
     setMessages((prev) => [...prev, userMessage])
     setInputValue('')
     setIsLoading(true)
@@ -72,6 +144,7 @@ function AIChat({ nodes, edges, onClose }: AIChatProps) {
             userMessage,
           ],
           flowContext,
+          requestStructuredUpdate: isRequestingModification,
         }),
       })
 
@@ -83,9 +156,21 @@ function AIChat({ nodes, edges, onClose }: AIChatProps) {
       }
 
       const data = await response.json()
+      const content = data.message || 'No response received.'
+      
+      // Check if the response contains a flow update
+      const flowUpdate = parseFlowUpdate(content)
+      
+      // Extract just the explanation part (text before the JSON block)
+      let displayContent = content
+      if (flowUpdate) {
+        displayContent = content.replace(/```json\s*\n[\s\S]*?\n```/, '').trim()
+      }
+      
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.message || 'No response received.',
+        content: displayContent,
+        flowUpdate: flowUpdate || undefined,
       }
 
       setMessages((prev) => [...prev, assistantMessage])
@@ -116,11 +201,23 @@ function AIChat({ nodes, edges, onClose }: AIChatProps) {
 
       <div className="ai-chat-messages">
         {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`ai-chat-message ${message.role === 'user' ? 'user' : 'assistant'}`}
-          >
-            <div className="message-content">{message.content}</div>
+          <div key={index}>
+            <div
+              className={`ai-chat-message ${message.role === 'user' ? 'user' : 'assistant'}`}
+            >
+              <div className="message-content">{message.content}</div>
+            </div>
+            {message.flowUpdate && (
+              <div className="ai-chat-apply-container">
+                <button
+                  className="ai-chat-apply-button"
+                  onClick={() => applyFlowChanges(message.flowUpdate!)}
+                  title="Apply these changes to your flowchart"
+                >
+                  Apply Changes
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {isLoading && (

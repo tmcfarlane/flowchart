@@ -173,9 +173,17 @@ function App() {
 
   // Update flow from AI (future enhancement for direct modifications)
   const updateFlowFromAI = useCallback((newNodes: Node[], newEdges: Edge[]) => {
-    setNodes(newNodes)
+    // Ensure all nodes have the onLabelChange callback
+    const nodesWithCallbacks = newNodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        onLabelChange: updateNodeLabel,
+      },
+    }))
+    setNodes(nodesWithCallbacks)
     setEdges(newEdges)
-  }, [setNodes, setEdges])
+  }, [setNodes, setEdges, updateNodeLabel])
 
   if (previewMode) {
     return (
