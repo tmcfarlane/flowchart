@@ -279,3 +279,16 @@ EOF
 )" → exit 0
 [07:16:24] 🟢 TOKENS: 28303 / 80000 (35%) [read:104KB write:0KB assist:3KB shell:0KB]
 [07:16:33] 🟢 SHELL pnpm build → exit 0
+[07:16:42] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+feat: add Clear All button to wipe entire board
+
+- Added clearAll function that removes all nodes and edges
+- Clear All button in toolbar with orange styling
+- Returns canvas to empty state
+- Action is tracked in undo history
+- Success criterion 24 completed
+EOF
+)" → exit 0
+[07:16:55] 🟢 TOKENS: 28378 / 80000 (35%) [read:104KB write:0KB assist:3KB shell:0KB]
+[07:17:28] 🟢 TOKENS: 28407 / 80000 (35%) [read:104KB write:0KB assist:3KB shell:0KB]
+[07:17:30] 🟢 SHELL pnpm build → exit 0

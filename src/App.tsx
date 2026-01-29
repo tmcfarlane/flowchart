@@ -64,6 +64,7 @@ function App() {
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
+  const [showGrid, setShowGrid] = useState(true)
 
   // Undo/Redo history management
   const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: [] }])
@@ -226,6 +227,11 @@ function App() {
     setEdges([])
   }, [setNodes, setEdges])
 
+  // Toggle grid visibility
+  const toggleGrid = useCallback(() => {
+    setShowGrid((prev) => !prev)
+  }, [])
+
   // Toggle preview mode
   const togglePreview = useCallback(() => {
     setPreviewMode((prev) => !prev)
@@ -310,6 +316,8 @@ function App() {
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
         onClearAll={clearAll}
+        onToggleGrid={toggleGrid}
+        showGrid={showGrid}
       />
       <ReactFlow
         nodes={nodes}
@@ -321,8 +329,10 @@ function App() {
         nodeTypes={nodeTypes}
         fitView
         deleteKeyCode="Delete"
+        snapToGrid={showGrid}
+        snapGrid={[15, 15]}
       >
-        <Background />
+        {showGrid && <Background />}
         <Controls />
       </ReactFlow>
       {sidebarMode === 'explorer' && (

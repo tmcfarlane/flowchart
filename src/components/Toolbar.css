@@ -145,3 +145,8 @@
   transform: none;
   box-shadow: none;
 }
+
+.toolbar-button.icon-button.active {
+  background: #667eea;
+  color: white;
+}

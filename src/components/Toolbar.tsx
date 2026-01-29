@@ -15,6 +15,8 @@ interface ToolbarProps {
   canUndo: boolean
   canRedo: boolean
   onClearAll: () => void
+  onToggleGrid: () => void
+  showGrid: boolean
 }
 
 function Toolbar({ 
@@ -30,7 +32,9 @@ function Toolbar({
   onRedo,
   canUndo,
   canRedo,
-  onClearAll
+  onClearAll,
+  onToggleGrid,
+  showGrid
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -60,6 +64,13 @@ function Toolbar({
           title="Clear All Nodes and Edges"
         >
           Clear All
+        </button>
+        <button
+          className={`toolbar-button icon-button ${showGrid ? 'active' : ''}`}
+          onClick={onToggleGrid}
+          title="Toggle Grid"
+        >
+          ⊞
         </button>
       </div>
       <div className="toolbar-section">
