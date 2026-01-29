@@ -220,6 +220,12 @@ function App() {
     setEdges((eds) => eds.filter((edge) => !edge.selected))
   }, [setNodes, setEdges])
 
+  // Clear all nodes and edges
+  const clearAll = useCallback(() => {
+    setNodes([])
+    setEdges([])
+  }, [setNodes, setEdges])
+
   // Toggle preview mode
   const togglePreview = useCallback(() => {
     setPreviewMode((prev) => !prev)
@@ -303,6 +309,7 @@ function App() {
         onRedo={redo}
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
+        onClearAll={clearAll}
       />
       <ReactFlow
         nodes={nodes}

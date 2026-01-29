@@ -90,6 +90,15 @@
   background: #40c057;
 }
 
+.toolbar-button.clear {
+  background: #ff922b;
+  color: white;
+}
+
+.toolbar-button.clear:hover {
+  background: #fd7e14;
+}
+
 .toolbar-label {
   font-size: 14px;
   font-weight: 500;

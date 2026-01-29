@@ -14,6 +14,7 @@ interface ToolbarProps {
   onRedo: () => void
   canUndo: boolean
   canRedo: boolean
+  onClearAll: () => void
 }
 
 function Toolbar({ 
@@ -28,7 +29,8 @@ function Toolbar({
   onUndo,
   onRedo,
   canUndo,
-  canRedo
+  canRedo,
+  onClearAll
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -51,6 +53,13 @@ function Toolbar({
           title="Redo (Ctrl+Y)"
         >
           ↷
+        </button>
+        <button
+          className="toolbar-button clear"
+          onClick={onClearAll}
+          title="Clear All Nodes and Edges"
+        >
+          Clear All
         </button>
       </div>
       <div className="toolbar-section">

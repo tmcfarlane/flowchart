@@ -32,7 +32,7 @@ Build a front-end-only app that lets design teams create and present interactive
 21. [x] The app sends the current flow structure to the LLM and receives a structured response back (graph-shaped data), but **the UI never displays raw JSON** to the user
 22. [x] Toolbar includes **Undo** and **Redo** icon buttons; Undo/Redo work for create/modify/delete actions on nodes and edges (including notes)
 23. [x] Undo history tracks up to **10** prior actions; repeated Undo steps backwards through history; Redo steps forward until a new action occurs (which clears the redo stack)
-24. [ ] Toolbar includes a **Clear All** button; clicking it wipes the entire board state (all nodes + edges), returning to an empty canvas state
+24. [x] Toolbar includes a **Clear All** button; clicking it wipes the entire board state (all nodes + edges), returning to an empty canvas state
 25. [ ] Toolbar includes a **Grid toggle** icon button; toggling hides/shows the grid
 26. [ ] **Whiteboard mode**: when enabled, the grid is hidden and nodes can be moved freely (no snapping-to-grid behavior)
 27. [ ] All node types (Step, Decision, Note) support **4-direction handles** (Top/Right/Bottom/Left)

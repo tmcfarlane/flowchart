@@ -265,3 +265,17 @@ EOF
 [07:15:38] 🟢 SHELL pnpm build → exit 0
 [07:15:47] 🟢 SHELL pnpm build → exit 0
 [07:15:54] 🟢 TOKENS: 28261 / 80000 (35%) [read:104KB write:0KB assist:3KB shell:0KB]
+[07:16:00] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+feat: implement undo/redo functionality with 10-action history
+
+- Added history state management tracking up to 10 actions
+- Implemented undo/redo handlers with proper state restoration
+- Added undo/redo icon buttons to toolbar (↶ ↷)
+- Buttons disabled when no undo/redo available
+- History automatically saves after 500ms of inactivity
+- New actions clear redo stack as expected
+- Success criteria 22-23 completed
+EOF
+)" → exit 0
+[07:16:24] 🟢 TOKENS: 28303 / 80000 (35%) [read:104KB write:0KB assist:3KB shell:0KB]
+[07:16:33] 🟢 SHELL pnpm build → exit 0
