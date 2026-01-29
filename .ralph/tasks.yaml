@@ -1,0 +1,100 @@
+# Ralph Task Cache
+# Auto-generated from RALPH_TASK.md
+# DO NOT EDIT - regenerated on task file change
+
+source_file: RALPH_TASK.md
+source_mtime: 1769693084
+generated_at: 2026-01-29T13:25:52Z
+
+tasks:
+  - id: "line_12"
+    line_number: 12
+    status: completed
+    parallel_group: 999999
+    description: App loads to a blank canvas with a toolbar and 1 starter node
+    indent_level: 0
+    raw_marker: 1.
+  - id: "line_13"
+    line_number: 13
+    status: completed
+    parallel_group: 999999
+    description: Users can add nodes of at least 3 types (e.g., Step, Decision, Note)
+    indent_level: 0
+    raw_marker: 2.
+  - id: "line_14"
+    line_number: 14
+    status: completed
+    parallel_group: 999999
+    description: Users can drag nodes to reposition them and changes persist in local state
+    indent_level: 0
+    raw_marker: 3.
+  - id: "line_15"
+    line_number: 15
+    status: completed
+    parallel_group: 999999
+    description: Users can connect nodes by dragging handles; edges render correctly
+    indent_level: 0
+    raw_marker: 4.
+  - id: "line_16"
+    line_number: 16
+    status: completed
+    parallel_group: 999999
+    description: Users can edit node text/label
+    indent_level: 0
+    raw_marker: 5.
+  - id: "line_17"
+    line_number: 17
+    status: completed
+    parallel_group: 999999
+    description: Users can delete selected nodes/edges
+    indent_level: 0
+    raw_marker: 6.
+  - id: "line_18"
+    line_number: 18
+    status: completed
+    parallel_group: 999999
+    description: Users can reconnect edges by changing connection points
+    indent_level: 0
+    raw_marker: 7.
+  - id: "line_19"
+    line_number: 19
+    status: completed
+    parallel_group: 999999
+    description: \"Preview\" button enters full-screen presentation mode
+    indent_level: 0
+    raw_marker: 8.
+  - id: "line_20"
+    line_number: 20
+    status: completed
+    parallel_group: 999999
+    description: Preview mode shows only the flow + \"Next\" and \"Previous\" buttons
+    indent_level: 0
+    raw_marker: 9.
+  - id: "line_21"
+    line_number: 21
+    status: completed
+    parallel_group: 999999
+    description: Next/Previous navigates through nodes in a deterministic order
+    indent_level: 0
+    raw_marker: 10.
+  - id: "line_22"
+    line_number: 22
+    status: completed
+    parallel_group: 999999
+    description: Preview highlights the active node and centers it in view
+    indent_level: 0
+    raw_marker: 11.
+  - id: "line_23"
+    line_number: 23
+    status: completed
+    parallel_group: 999999
+    description: Exiting preview returns to the editor with state preserved
+    indent_level: 0
+    raw_marker: 12.
+  - id: "line_24"
+    line_number: 24
+    status: completed
+    parallel_group: 999999
+    description: All tests pass
+    indent_level: 0
+    raw_marker: 13.
