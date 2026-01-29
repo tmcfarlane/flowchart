@@ -116,3 +116,23 @@
   outline: 2px solid white;
   outline-offset: 2px;
 }
+
+.toolbar-button.icon-button {
+  padding: 8px 12px;
+  font-size: 20px;
+  line-height: 1;
+  min-width: 40px;
+}
+
+.toolbar-button.icon-button:disabled {
+  background: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.toolbar-button.icon-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}

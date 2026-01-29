@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import ReactFlow, {
   Node,
   Edge,
@@ -27,6 +27,11 @@ import AIChat from './components/AIChat'
 
 export type EdgeStyle = 'default' | 'animated' | 'step' | 'smoothstep'
 export type SidebarMode = 'none' | 'explorer' | 'ai'
+
+interface HistoryState {
+  nodes: Node[]
+  edges: Edge[]
+}
 
 const nodeTypes = {
   step: StepNode,
@@ -59,6 +64,94 @@ function App() {
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
+
+  // Undo/Redo history management
+  const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: [] }])
+  const [historyIndex, setHistoryIndex] = useState(0)
+  const isRestoringHistory = useRef(false)
+  const MAX_HISTORY = 10
+
+  // Save current state to history
+  const saveToHistory = useCallback(() => {
+    if (isRestoringHistory.current) return
+
+    setHistory((prev) => {
+      // Remove any future states if we're not at the end
+      const newHistory = prev.slice(0, historyIndex + 1)
+      // Add new state
+      newHistory.push({ nodes: [...nodes], edges: [...edges] })
+      // Keep only last MAX_HISTORY states
+      if (newHistory.length > MAX_HISTORY) {
+        newHistory.shift()
+        setHistoryIndex(MAX_HISTORY - 1)
+        return newHistory
+      }
+      setHistoryIndex(newHistory.length - 1)
+      return newHistory
+    })
+  }, [nodes, edges, historyIndex])
+
+  // Undo handler
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      const state = history[newIndex]
+      isRestoringHistory.current = true
+      setNodes(state.nodes)
+      setEdges(state.edges)
+      setHistoryIndex(newIndex)
+      setTimeout(() => {
+        isRestoringHistory.current = false
+      }, 0)
+    }
+  }, [historyIndex, history, setNodes, setEdges])
+
+  // Redo handler
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      const state = history[newIndex]
+      isRestoringHistory.current = true
+      setNodes(state.nodes)
+      setEdges(state.edges)
+      setHistoryIndex(newIndex)
+      setTimeout(() => {
+        isRestoringHistory.current = false
+      }, 0)
+    }
+  }, [historyIndex, history, setNodes, setEdges])
+
+  // Track when to save history - save after changes stabilize
+  const lastChangeTime = useRef<number>(0)
+  const saveTimeoutRef = useRef<number>()
+
+  useEffect(() => {
+    if (isRestoringHistory.current) return
+
+    // Debounce history saves to avoid saving too frequently
+    lastChangeTime.current = Date.now()
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      const currentState = history[historyIndex]
+      const hasChanged = 
+        JSON.stringify(currentState?.nodes) !== JSON.stringify(nodes) ||
+        JSON.stringify(currentState?.edges) !== JSON.stringify(edges)
+
+      if (hasChanged) {
+        saveToHistory()
+      }
+    }, 500) // Save after 500ms of no changes
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [nodes, edges, history, historyIndex, saveToHistory])
 
   // Handle node changes (dragging, selection, etc.)
   const onNodesChange = useCallback(
@@ -206,6 +299,10 @@ function App() {
         onToggleExplorer={toggleExplorer}
         onToggleAI={toggleAI}
         sidebarMode={sidebarMode}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={historyIndex > 0}
+        canRedo={historyIndex < history.length - 1}
       />
       <ReactFlow
         nodes={nodes}

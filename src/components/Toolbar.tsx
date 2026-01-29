@@ -10,13 +10,48 @@ interface ToolbarProps {
   onToggleExplorer: () => void
   onToggleAI: () => void
   sidebarMode: SidebarMode
+  onUndo: () => void
+  onRedo: () => void
+  canUndo: boolean
+  canRedo: boolean
 }
 
-function Toolbar({ onAddNode, onDeleteSelected, onTogglePreview, onChangeEdgeStyle, currentEdgeStyle, onToggleExplorer, onToggleAI, sidebarMode }: ToolbarProps) {
+function Toolbar({ 
+  onAddNode, 
+  onDeleteSelected, 
+  onTogglePreview, 
+  onChangeEdgeStyle, 
+  currentEdgeStyle, 
+  onToggleExplorer, 
+  onToggleAI, 
+  sidebarMode,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo
+}: ToolbarProps) {
   return (
     <div className="toolbar">
       <div className="toolbar-section">
         <h2>FlowChart Designer</h2>
+      </div>
+      <div className="toolbar-section">
+        <button
+          className="toolbar-button icon-button"
+          onClick={onUndo}
+          disabled={!canUndo}
+          title="Undo (Ctrl+Z)"
+        >
+          ↶
+        </button>
+        <button
+          className="toolbar-button icon-button"
+          onClick={onRedo}
+          disabled={!canRedo}
+          title="Redo (Ctrl+Y)"
+        >
+          ↷
+        </button>
       </div>
       <div className="toolbar-section">
         <button
