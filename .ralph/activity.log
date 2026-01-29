@@ -370,3 +370,12 @@ EOF
 [07:23:12] 🟢 SHELL sleep 5 && cat /Users/tmcfarlane/.cursor/projects/Users-tmcfarlane-repo-flowchart/terminals/754393.txt → exit 0
 [07:23:18] 🟢 SHELL pnpm vitest run → exit 0
 [07:23:27] 🟢 TOKENS: 47140 / 80000 (58%) [read:173KB write:0KB assist:7KB shell:0KB]
+[07:23:31] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+chore: mark all success criteria as completed
+
+- All 35 success criteria completed
+- All tests passing (10/10)
+- Task complete
+EOF
+)" → exit 0
+[07:23:46] 🟢 SHELL git push → exit 0
