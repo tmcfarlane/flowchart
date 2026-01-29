@@ -13,6 +13,7 @@ import ReactFlow, {
   applyNodeChanges,
   applyEdgeChanges,
   reconnectEdge,
+  MarkerType,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import './App.css'
@@ -21,6 +22,8 @@ import StepNode from './components/nodes/StepNode'
 import DecisionNode from './components/nodes/DecisionNode'
 import NoteNode from './components/nodes/NoteNode'
 import PreviewMode from './components/PreviewMode'
+
+export type EdgeStyle = 'default' | 'animated' | 'step' | 'smoothstep'
 
 const nodeTypes = {
   step: StepNode,
@@ -51,6 +54,7 @@ function App() {
   const [edges, setEdges] = useEdgesState([])
   const [previewMode, setPreviewMode] = useState(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
+  const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
 
   // Handle node changes (dragging, selection, etc.)
   const onNodesChange = useCallback(
@@ -66,8 +70,25 @@ function App() {
 
   // Handle new connections
   const onConnect = useCallback(
-    (connection: Connection) => setEdges((eds) => addEdge(connection, eds)),
-    [setEdges]
+    (connection: Connection) => {
+      const newEdge = {
+        ...connection,
+        type: defaultEdgeStyle === 'default' ? 'default' : 
+              defaultEdgeStyle === 'animated' ? 'default' :
+              defaultEdgeStyle,
+        animated: defaultEdgeStyle === 'animated',
+        style: defaultEdgeStyle === 'animated' 
+          ? { strokeDasharray: '5 5', stroke: '#555' }
+          : {},
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+        },
+      }
+      setEdges((eds) => addEdge(newEdge as Edge, eds))
+    },
+    [setEdges, defaultEdgeStyle]
   )
 
   // Handle edge reconnection
@@ -107,6 +128,35 @@ function App() {
     setPreviewMode((prev) => !prev)
   }, [])
 
+  // Change edge style for selected edges or set default
+  const changeEdgeStyle = useCallback((style: EdgeStyle) => {
+    const selectedEdges = edges.filter(edge => edge.selected)
+    if (selectedEdges.length > 0) {
+      // Change style for selected edges
+      setEdges((eds) =>
+        eds.map((edge) => {
+          if (!edge.selected) return edge
+          return {
+            ...edge,
+            type: style === 'default' || style === 'animated' ? 'default' : style,
+            animated: style === 'animated',
+            style: style === 'animated'
+              ? { strokeDasharray: '5 5', stroke: '#555' }
+              : {},
+            markerEnd: {
+              type: MarkerType.ArrowClosed,
+              width: 20,
+              height: 20,
+            },
+          }
+        })
+      )
+    } else {
+      // Set default style for new edges
+      setDefaultEdgeStyle(style)
+    }
+  }, [edges, setEdges])
+
   if (previewMode) {
     return (
       <PreviewMode
@@ -123,6 +173,8 @@ function App() {
         onAddNode={addNode}
         onDeleteSelected={deleteSelected}
         onTogglePreview={togglePreview}
+        onChangeEdgeStyle={changeEdgeStyle}
+        currentEdgeStyle={defaultEdgeStyle}
       />
       <ReactFlow
         nodes={nodes}

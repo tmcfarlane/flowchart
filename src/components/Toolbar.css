@@ -61,3 +61,30 @@
 .toolbar-button.preview:hover {
   background: #40c057;
 }
+
+.toolbar-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.toolbar-select {
+  padding: 8px 12px;
+  background: white;
+  color: #667eea;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.toolbar-select:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.toolbar-select:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}

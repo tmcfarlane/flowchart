@@ -11,10 +11,10 @@ Build a front-end-only app that lets design teams create and present interactive
 1. [x] App loads to a blank canvas with a toolbar and 1 starter node
 2. [x] Users can add nodes of at least 3 types (e.g., Step, Decision, Note)
 3. [x] Users can drag nodes to reposition them and changes persist in local state
-4. [ ] Users can connect nodes by dragging handles; edges support style options (animated dashed arrow + at least 2 other styles)
+4. [x] Users can connect nodes by dragging handles; edges support style options (animated dashed arrow + at least 2 other styles)
 5. [x] Users can edit node text/label
 6. [x] Users can delete selected nodes/edges
-7. [ ] Decision nodes use a default 4-direction handle layout (Top/Right/Bottom/Left), and incoming edges connect to the nearest side
+7. [x] Decision nodes use a default 4-direction handle layout (Top/Right/Bottom/Left), and incoming edges connect to the nearest side
 8. [x] "Preview" button enters full-screen presentation mode
 9. [x] Preview mode shows only the flow + "Next" and "Previous" buttons
 10. [x] Next/Previous navigates through nodes in a deterministic order
