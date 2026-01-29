@@ -56,8 +56,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       body: JSON.stringify({
         messages: [{ role: 'system', content: systemMessage }, ...messages],
-        max_tokens: 800,
-        temperature: 0.7,
+        // Newer Azure OpenAI chat models require `max_completion_tokens`
+        // (and may reject `max_tokens`).
+        max_completion_tokens: 800,
       }),
     })
 
