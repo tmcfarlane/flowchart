@@ -9,19 +9,19 @@ Build a front-end-only app that lets design teams create and present interactive
 
 ## Success Criteria
 
-1. [ ] App loads to a blank canvas with a toolbar and 1 starter node
-2. [ ] Users can add nodes of at least 3 types (e.g., Step, Decision, Note)
-3. [ ] Users can drag nodes to reposition them and changes persist in local state
-4. [ ] Users can connect nodes by dragging handles; edges render correctly
-5. [ ] Users can edit node text/label
-6. [ ] Users can delete selected nodes/edges
-7. [ ] Users can reconnect edges by changing connection points
-8. [ ] “Preview” button enters full-screen presentation mode
-9. [ ] Preview mode shows only the flow + “Next” and “Previous” buttons
-10. [ ] Next/Previous navigates through nodes in a deterministic order
-11. [ ] Preview highlights the active node and centers it in view
-12. [ ] Exiting preview returns to the editor with state preserved
-13. [ ] All tests pass
+1. [x] App loads to a blank canvas with a toolbar and 1 starter node
+2. [x] Users can add nodes of at least 3 types (e.g., Step, Decision, Note)
+3. [x] Users can drag nodes to reposition them and changes persist in local state
+4. [x] Users can connect nodes by dragging handles; edges render correctly
+5. [x] Users can edit node text/label
+6. [x] Users can delete selected nodes/edges
+7. [x] Users can reconnect edges by changing connection points
+8. [x] "Preview" button enters full-screen presentation mode
+9. [x] Preview mode shows only the flow + "Next" and "Previous" buttons
+10. [x] Next/Previous navigates through nodes in a deterministic order
+11. [x] Preview highlights the active node and centers it in view
+12. [x] Exiting preview returns to the editor with state preserved
+13. [x] All tests pass
 
 ## Context
 

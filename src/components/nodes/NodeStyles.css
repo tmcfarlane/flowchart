@@ -1,0 +1,97 @@
+.custom-node {
+  padding: 16px 20px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #ddd;
+  min-width: 120px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.custom-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.custom-node.selected {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.step-node {
+  border-color: #51cf66;
+  background: linear-gradient(135deg, #d4f4dd 0%, #ffffff 100%);
+}
+
+.decision-node {
+  border-color: #ffa94d;
+  background: linear-gradient(135deg, #fff4e6 0%, #ffffff 100%);
+  transform: rotate(45deg);
+  min-width: 140px;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.decision-node .node-label,
+.decision-node .node-input {
+  transform: rotate(-45deg);
+}
+
+.note-node {
+  border-color: #ffd43b;
+  background: linear-gradient(135deg, #fff9db 0%, #ffffff 100%);
+  border-style: dashed;
+  min-width: 150px;
+}
+
+.node-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+  word-wrap: break-word;
+  max-width: 200px;
+}
+
+.node-label:hover {
+  color: #667eea;
+}
+
+.node-input,
+.node-textarea {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  border: 2px solid #667eea;
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: white;
+  width: 100%;
+  min-width: 100px;
+}
+
+.node-textarea {
+  min-height: 60px;
+  resize: none;
+  font-family: inherit;
+}
+
+.node-input:focus,
+.node-textarea:focus {
+  outline: none;
+  border-color: #764ba2;
+}
+
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background: #667eea;
+  border: 2px solid white;
+}
+
+.react-flow__handle:hover {
+  background: #764ba2;
+}
