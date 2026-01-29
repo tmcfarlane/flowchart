@@ -46,7 +46,7 @@ Build a front-end-only app that lets design teams create and present interactive
 32. [x] Users can **zoom in/out** via **zoom in** and **zoom out** icon buttons
 33. [x] Nodes are resizable via visible resize handles/corners
 34. [x] Resizing a node updates its dimensions in React Flow state and persists during the session
-35. [ ] All tests pass
+35. [x] All tests pass
 
 ## Context
 

@@ -354,3 +354,19 @@ EOF
 [07:21:16] 🟢 TOKENS: 47014 / 80000 (58%) [read:173KB write:0KB assist:7KB shell:0KB]
 [07:21:42] 🟢 SHELL pnpm build → exit 0
 [07:21:47] 🟢 TOKENS: 47043 / 80000 (58%) [read:173KB write:0KB assist:7KB shell:0KB]
+[07:21:53] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+feat: implement node resizing with visible handles
+
+- Added @reactflow/node-resizer package
+- All node types now have resize handles
+- Minimum sizes: StepNode (100x60), DecisionNode (120x120), NoteNode (120x80)
+- Resizing updates React Flow state and persists during session
+- Success criteria 33-34 completed
+EOF
+)" → exit 0
+[07:22:57] 🟢 SHELL pnpm test 2>&1 | head -100 → exit 0
+[07:22:57] 🟢 TOKENS: 47061 / 80000 (58%) [read:173KB write:0KB assist:7KB shell:0KB]
+[07:23:02] 🟢 SHELL cat /Users/tmcfarlane/.cursor/projects/Users-tmcfarlane-repo-flowchart/terminals/754393.txt | head -100 → exit 0
+[07:23:12] 🟢 SHELL sleep 5 && cat /Users/tmcfarlane/.cursor/projects/Users-tmcfarlane-repo-flowchart/terminals/754393.txt → exit 0
+[07:23:18] 🟢 SHELL pnpm vitest run → exit 0
+[07:23:27] 🟢 TOKENS: 47140 / 80000 (58%) [read:173KB write:0KB assist:7KB shell:0KB]
