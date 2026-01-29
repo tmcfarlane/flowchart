@@ -198,3 +198,32 @@ Ralph Session Started: Thu Jan 29 06:01:35 PST 2026
 [06:03:14] 🟢 SHELL git status → exit 0
 [06:03:14] 🟢 SHELL git diff --stat → exit 0
 [06:03:14] 🟢 SHELL git log --oneline -5 → exit 0
+[06:03:21] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+ralph: implement Vercel serverless function proxy for AI chat
+
+Completed criteria 15-19:
+- Created /api/chat serverless function to proxy Azure OpenAI requests
+- Moved environment variables to server-side (AZURE_DEPLOYMENT_NAME, AZURE_RESOURCE_NAME, AZURE_API_KEY)
+- Removed VITE_* prefix from env vars to prevent shipping secrets to browser
+- Updated AIChat component to call /api/chat instead of Azure directly
+- Added @vercel/node dependency for TypeScript types
+- Created vercel.json configuration for Vercel deployment
+- Updated .env.example to reflect server-side env vars
+- Cleaned up vite-env.d.ts (removed unused VITE_* definitions)
+- All 10 tests passing
+- Build successful
+
+The AI chat now properly proxies requests through a serverless function,
+ensuring API keys never reach the browser.
+
+EOF
+)" && git status → exit 0
+[06:03:36] 🟢 READ /Users/tmcfarlane/repo/flowchart/RALPH_TASK.md (53 lines, ~5.1KB)
+[06:03:40] 🟢 TOKENS: 16528 / 80000 (20%) [read:59KB write:0KB assist:2KB shell:0KB]
+[06:03:41] 🟢 SHELL pnpm test --run → exit 0
+[06:03:45] 🟢 SHELL git add .ralph/progress.md RALPH_TASK.md && git commit -m "ralph: update progress - all 19 criteria complete" && git status → exit 0
+[06:03:57] 🟢 SHELL git add api/README.md && git commit -m "ralph: add API documentation for serverless function" && git status → exit 0
+[06:04:01] 🟢 SHELL grep -E '^\d+\. \[' /Users/tmcfarlane/repo/flowchart/RALPH_TASK.md | head -20 → exit 0
+[06:04:06] 🟢 SHELL pnpm build → exit 0
+[06:06:07] 🟢 TOKENS: 16604 / 80000 (20%) [read:59KB write:0KB assist:2KB shell:0KB]
+[06:06:07] 🟢 TOKENS: 16604 / 80000 (20%) [read:59KB write:0KB assist:2KB shell:0KB]
