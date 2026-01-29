@@ -17,6 +17,8 @@ interface ToolbarProps {
   onClearAll: () => void
   onToggleGrid: () => void
   showGrid: boolean
+  onZoomIn: () => void
+  onZoomOut: () => void
 }
 
 function Toolbar({ 
@@ -34,7 +36,9 @@ function Toolbar({
   canRedo,
   onClearAll,
   onToggleGrid,
-  showGrid
+  showGrid,
+  onZoomIn,
+  onZoomOut
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -71,6 +75,20 @@ function Toolbar({
           title="Toggle Grid"
         >
           ⊞
+        </button>
+        <button
+          className="toolbar-button icon-button"
+          onClick={onZoomIn}
+          title="Zoom In"
+        >
+          +
+        </button>
+        <button
+          className="toolbar-button icon-button"
+          onClick={onZoomOut}
+          title="Zoom Out"
+        >
+          −
         </button>
       </div>
       <div className="toolbar-section">

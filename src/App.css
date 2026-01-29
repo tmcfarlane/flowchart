@@ -17,6 +17,75 @@
   box-shadow: 0 0 0 2px #1a192b;
 }
 
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #667eea;
+  stroke-width: 3;
+}
+
+.selection-toolbar {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  z-index: 100;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.selection-toolbar-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #667eea;
+  margin-right: 8px;
+}
+
+.selection-toolbar-button {
+  padding: 8px 16px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.selection-toolbar-button:hover {
+  background: #5a67d8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.selection-toolbar-button.delete {
+  background: #ff6b6b;
+}
+
+.selection-toolbar-button.delete:hover {
+  background: #ff5252;
+}
+
 .react-flow__handle {
   width: 12px;
   height: 12px;

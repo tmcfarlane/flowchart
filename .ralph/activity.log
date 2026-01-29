@@ -320,3 +320,20 @@ EOF
 [07:18:27] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/components/nodes/NodeStyles.css (98 lines, ~9.5KB)
 [07:18:33] 🟢 TOKENS: 35478 / 80000 (44%) [read:130KB write:0KB assist:4KB shell:0KB]
 [07:18:39] 🟢 SHELL pnpm build → exit 0
+[07:18:49] 🟢 SHELL git add -A && git commit -m "$(cat <<'EOF'
+feat: hide connection handles until hover or connecting
+
+- Handles now start with opacity 0 (invisible)
+- Handles appear on node hover
+- All handles appear when connecting (dragging connections)
+- Smooth opacity transition for better UX
+- Success criterion 28 completed
+EOF
+)" → exit 0
+[07:19:01] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/App.css (25 lines, ~2.4KB)
+[07:19:10] 🟢 TOKENS: 36329 / 80000 (45%) [read:133KB write:0KB assist:5KB shell:0KB]
+[07:19:32] 🟢 READ /Users/tmcfarlane/repo/flowchart/src/App.tsx (413 lines, ~40.3KB)
+[07:19:44] 🟢 TOKENS: 46829 / 80000 (58%) [read:173KB write:0KB assist:6KB shell:0KB]
+[07:20:14] 🟢 TOKENS: 46873 / 80000 (58%) [read:173KB write:0KB assist:6KB shell:0KB]
+[07:20:37] 🟢 SHELL pnpm build → exit 0
+[07:20:44] 🟢 TOKENS: 46952 / 80000 (58%) [read:173KB write:0KB assist:6KB shell:0KB]

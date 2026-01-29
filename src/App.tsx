@@ -14,6 +14,8 @@ import ReactFlow, {
   applyEdgeChanges,
   reconnectEdge,
   MarkerType,
+  ReactFlowProvider,
+  useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import './App.css'
@@ -39,7 +41,8 @@ const nodeTypes = {
   note: NoteNode,
 }
 
-function App() {
+function FlowChartEditor() {
+  const reactFlowInstance = useReactFlow()
   // Update node label callback
   const updateNodeLabel = useCallback((nodeId: string, label: string) => {
     setNodes((nds) =>
@@ -65,6 +68,7 @@ function App() {
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
   const [showGrid, setShowGrid] = useState(true)
+  const [clipboard, setClipboard] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] })
 
   // Undo/Redo history management
   const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: [] }])
@@ -232,6 +236,69 @@ function App() {
     setShowGrid((prev) => !prev)
   }, [])
 
+  // Get selected nodes and edges
+  const getSelectedItems = useCallback(() => {
+    const selectedNodes = nodes.filter((node) => node.selected)
+    const selectedEdges = edges.filter((edge) => edge.selected)
+    return { selectedNodes, selectedEdges }
+  }, [nodes, edges])
+
+  // Copy selected nodes and edges
+  const copySelection = useCallback(() => {
+    const { selectedNodes, selectedEdges } = getSelectedItems()
+    setClipboard({ nodes: selectedNodes, edges: selectedEdges })
+  }, [getSelectedItems])
+
+  // Paste nodes and edges from clipboard
+  const pasteSelection = useCallback(() => {
+    if (clipboard.nodes.length === 0) return
+
+    // Create ID mapping for pasted nodes
+    const idMapping: Record<string, string> = {}
+    const pastedNodes: Node[] = clipboard.nodes.map((node) => {
+      const newId = (nodeIdCounter + parseInt(node.id)).toString()
+      idMapping[node.id] = newId
+      return {
+        ...node,
+        id: newId,
+        position: {
+          x: node.position.x + 50,
+          y: node.position.y + 50,
+        },
+        selected: false,
+        data: {
+          ...node.data,
+          onLabelChange: updateNodeLabel,
+        },
+      }
+    })
+
+    // Update edges to use new node IDs
+    const pastedEdges: Edge[] = clipboard.edges
+      .filter((edge) => idMapping[edge.source] && idMapping[edge.target])
+      .map((edge) => ({
+        ...edge,
+        id: `e${idMapping[edge.source]}-${idMapping[edge.target]}`,
+        source: idMapping[edge.source],
+        target: idMapping[edge.target],
+        selected: false,
+      }))
+
+    setNodes((nds) => [...nds, ...pastedNodes])
+    setEdges((eds) => [...eds, ...pastedEdges])
+    setNodeIdCounter((id) => id + clipboard.nodes.length)
+  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel])
+
+  // Zoom in
+  const zoomIn = useCallback(() => {
+    reactFlowInstance.zoomIn()
+  }, [reactFlowInstance])
+
+  // Zoom out
+  const zoomOut = useCallback(() => {
+    reactFlowInstance.zoomOut()
+  }, [reactFlowInstance])
+
   // Toggle preview mode
   const togglePreview = useCallback(() => {
     setPreviewMode((prev) => !prev)
@@ -318,6 +385,8 @@ function App() {
         onClearAll={clearAll}
         onToggleGrid={toggleGrid}
         showGrid={showGrid}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
       />
       <ReactFlow
         nodes={nodes}
@@ -335,6 +404,42 @@ function App() {
         {showGrid && <Background />}
         <Controls />
       </ReactFlow>
+      {(() => {
+        const { selectedNodes, selectedEdges } = getSelectedItems()
+        const totalSelected = selectedNodes.length + selectedEdges.length
+        if (totalSelected > 0) {
+          return (
+            <div className="selection-toolbar">
+              <span className="selection-toolbar-text">
+                {totalSelected} item{totalSelected !== 1 ? 's' : ''} selected
+              </span>
+              <button
+                className="selection-toolbar-button delete"
+                onClick={deleteSelected}
+                title="Delete selected items"
+              >
+                🗑 Delete
+              </button>
+              <button
+                className="selection-toolbar-button"
+                onClick={copySelection}
+                title="Copy selected items"
+              >
+                📋 Copy
+              </button>
+              <button
+                className="selection-toolbar-button"
+                onClick={pasteSelection}
+                title="Paste copied items"
+                disabled={clipboard.nodes.length === 0}
+              >
+                📄 Paste
+              </button>
+            </div>
+          )
+        }
+        return null
+      })()}
       {sidebarMode === 'explorer' && (
         <Explorer
           nodes={nodes}
@@ -352,6 +457,14 @@ function App() {
         />
       )}
     </div>
+  )
+}
+
+function App() {
+  return (
+    <ReactFlowProvider>
+      <FlowChartEditor />
+    </ReactFlowProvider>
   )
 }
 
