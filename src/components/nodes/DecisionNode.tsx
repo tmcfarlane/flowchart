@@ -32,36 +32,43 @@ function DecisionNode({ data, id }: NodeProps) {
   )
 
   return (
-    <div className="custom-node decision-node">
-      <NodeResizer minWidth={120} minHeight={120} />
-      {/* Target handles on all 4 sides for incoming edges */}
-      <Handle type="target" position={Position.Top} id="target-top" />
-      <Handle type="target" position={Position.Right} id="target-right" />
-      <Handle type="target" position={Position.Bottom} id="target-bottom" />
-      <Handle type="target" position={Position.Left} id="target-left" />
-      
-      {isEditing ? (
-        <input
-          type="text"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          autoFocus
-          className="node-input"
-        />
-      ) : (
-        <div className="node-label" onDoubleClick={handleDoubleClick}>
-          {label}
+    <>
+      <div className="custom-node decision-node">
+        <NodeResizer minWidth={120} minHeight={120} />
+        {/* Rotation handle - appears above the node */}
+        <div className="rotation-handle">
+          <div className="rotation-circle" />
         </div>
-      )}
-      
-      {/* Source handles on all 4 sides for outgoing edges */}
-      <Handle type="source" position={Position.Top} id="source-top" />
-      <Handle type="source" position={Position.Right} id="source-right" />
-      <Handle type="source" position={Position.Bottom} id="source-bottom" />
-      <Handle type="source" position={Position.Left} id="source-left" />
-    </div>
+
+        {/* Target handles on all 4 sides for incoming edges */}
+        <Handle type="target" position={Position.Top} id="target-top" />
+        <Handle type="target" position={Position.Right} id="target-right" />
+        <Handle type="target" position={Position.Bottom} id="target-bottom" />
+        <Handle type="target" position={Position.Left} id="target-left" />
+
+        {isEditing ? (
+          <input
+            type="text"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            autoFocus
+            className="node-input"
+          />
+        ) : (
+          <div className="node-label" onDoubleClick={handleDoubleClick}>
+            {label}
+          </div>
+        )}
+
+        {/* Source handles on all 4 sides for outgoing edges */}
+        <Handle type="source" position={Position.Top} id="source-top" />
+        <Handle type="source" position={Position.Right} id="source-right" />
+        <Handle type="source" position={Position.Bottom} id="source-bottom" />
+        <Handle type="source" position={Position.Left} id="source-left" />
+      </div>
+    </>
   )
 }
 
