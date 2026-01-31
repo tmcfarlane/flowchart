@@ -102,13 +102,14 @@
 .toolbar-label {
   font-size: 14px;
   font-weight: 500;
+  margin-right: 4px;
 }
 
 .toolbar-select {
   padding: 8px 12px;
   background: white;
   color: #667eea;
-  border: none;
+  border: 2px solid transparent;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
@@ -119,11 +120,13 @@
 
 .toolbar-select:hover {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .toolbar-select:focus {
-  outline: 2px solid white;
-  outline-offset: 2px;
+  outline: none;
+  border-color: white;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
 }
 
 .toolbar-button.icon-button {

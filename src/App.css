@@ -56,6 +56,28 @@
   }
 }
 
+/* Visual feedback when creating a connection */
+.react-flow.connecting {
+  cursor: crosshair;
+}
+
+.react-flow.connecting .react-flow__node {
+  cursor: pointer;
+}
+
+/* Style for the connection line being drawn */
+.react-flow__connection-path {
+  stroke: #667eea;
+  stroke-width: 2;
+  stroke-dasharray: 5;
+  animation: dashdraw 0.5s linear infinite;
+}
+
+.react-flow__connectionline {
+  stroke: #667eea;
+  stroke-width: 2;
+}
+
 .selection-toolbar {
   position: fixed;
   bottom: 80px;

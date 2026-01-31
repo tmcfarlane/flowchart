@@ -34,7 +34,7 @@ This task assumes all prior core functionality is already implemented.
 18. [x] Node interaction affordances are visually clear:
     - Hover states for nodes, handles, and edges
     - Clear selected, multi-selected, and active states
-19. [ ] Connection creation feels intentional:
+19. [x] Connection creation feels intentional:
     - Handles are hidden until hover
     - Nearby handles appear during drag
     - Edge style selection is discoverable and consistent
