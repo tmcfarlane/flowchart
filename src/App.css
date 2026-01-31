@@ -11,15 +11,49 @@
 
 .react-flow__node {
   cursor: grab;
+  transition: filter 0.2s ease;
+}
+
+.react-flow__node:hover {
+  filter: brightness(0.98);
 }
 
 .react-flow__node.selected {
-  /* Removed dark box-shadow - using subtle node-specific glows instead */
+  /* Selected state is handled by custom-node styles */
+  filter: brightness(1);
+}
+
+.react-flow__node.dragging {
+  cursor: grabbing;
+  filter: brightness(0.95);
+}
+
+/* Edge styling */
+.react-flow__edge-path {
+  stroke-width: 2;
+  transition: stroke-width 0.2s ease, stroke 0.2s ease;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3;
+  stroke: #667eea;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: #667eea;
   stroke-width: 3;
+  filter: drop-shadow(0 0 4px rgba(102, 126, 234, 0.4));
+}
+
+.react-flow__edge.animated .react-flow__edge-path {
+  animation: dashdraw 0.5s linear infinite;
+  stroke-dasharray: 5;
+}
+
+@keyframes dashdraw {
+  to {
+    stroke-dashoffset: -10;
+  }
 }
 
 .selection-toolbar {
@@ -91,4 +125,10 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.6);
 }
