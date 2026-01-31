@@ -226,3 +226,93 @@
   transform: translateY(0);
   box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
 }
+
+.ai-chat-proposed-flow {
+  margin-top: 10px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  animation: slideIn 0.2s ease;
+}
+
+.proposed-flow-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.proposed-flow-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #166534;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.proposed-flow-summary {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #bbf7d0;
+}
+
+.proposed-flow-count {
+  font-size: 12px;
+  color: #166534;
+  font-weight: 500;
+}
+
+.proposed-flow-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.proposed-flow-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.proposed-flow-button svg {
+  flex-shrink: 0;
+}
+
+.proposed-flow-button.insert {
+  background: #10b981;
+  color: white;
+}
+
+.proposed-flow-button.insert:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.proposed-flow-button.cancel {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.proposed-flow-button.cancel:hover {
+  background: #e5e7eb;
+}
+
+.proposed-flow-button.regenerate {
+  background: #3b82f6;
+  color: white;
+}
+
+.proposed-flow-button.regenerate:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}

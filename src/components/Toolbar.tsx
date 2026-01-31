@@ -19,6 +19,7 @@ interface ToolbarProps {
   showGrid: boolean
   onZoomIn: () => void
   onZoomOut: () => void
+  onFitView: () => void
 }
 
 function Toolbar({ 
@@ -38,7 +39,8 @@ function Toolbar({
   onToggleGrid,
   showGrid,
   onZoomIn,
-  onZoomOut
+  onZoomOut,
+  onFitView
 }: ToolbarProps) {
   return (
     <div className="toolbar">

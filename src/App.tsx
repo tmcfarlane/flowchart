@@ -296,12 +296,22 @@ function FlowChartEditor() {
 
   // Zoom in with smooth animation
   const zoomIn = useCallback(() => {
-    reactFlowInstance.zoomIn({ duration: 300 })
+    reactFlowInstance.zoomIn({ duration: 400 })
   }, [reactFlowInstance])
 
   // Zoom out with smooth animation
   const zoomOut = useCallback(() => {
-    reactFlowInstance.zoomOut({ duration: 300 })
+    reactFlowInstance.zoomOut({ duration: 400 })
+  }, [reactFlowInstance])
+
+  // Fit view to show all nodes with smooth animation
+  const fitToView = useCallback(() => {
+    reactFlowInstance.fitView({ 
+      padding: 0.2, 
+      duration: 600,
+      maxZoom: 1.2,
+      minZoom: 0.5,
+    })
   }, [reactFlowInstance])
 
   // Toggle preview mode
@@ -392,6 +402,7 @@ function FlowChartEditor() {
         showGrid={showGrid}
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
+        onFitView={fitToView}
       />
       <ReactFlow
         nodes={nodes}
@@ -402,16 +413,19 @@ function FlowChartEditor() {
         onReconnect={onReconnect}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.2, duration: 400 }}
+        fitViewOptions={{ padding: 0.2, duration: 600, maxZoom: 1.2 }}
         deleteKeyCode="Delete"
         snapToGrid={showGrid}
         snapGrid={[15, 15]}
         minZoom={0.1}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        panOnScroll={false}
+        panOnScroll={true}
+        panOnScrollSpeed={0.8}
         zoomOnDoubleClick={false}
         selectNodesOnDrag={false}
+        panOnDrag={[1, 2]}
+        zoomActivationKeyCode=""
       >
         {showGrid && <Background />}
         <Controls />
