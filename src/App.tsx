@@ -402,9 +402,16 @@ function FlowChartEditor() {
         onReconnect={onReconnect}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 0.2, duration: 400 }}
         deleteKeyCode="Delete"
         snapToGrid={showGrid}
         snapGrid={[15, 15]}
+        minZoom={0.1}
+        maxZoom={2}
+        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+        panOnScroll={false}
+        zoomOnDoubleClick={false}
+        selectNodesOnDrag={false}
       >
         {showGrid && <Background />}
         <Controls />
