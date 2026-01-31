@@ -3,8 +3,8 @@
 # DO NOT EDIT - regenerated on task file change
 
 source_file: RALPH_TASK.md
-source_mtime: 1769695390
-generated_at: 2026-01-29T14:06:07Z
+source_mtime: 1769700202
+generated_at: 2026-01-29T15:24:11Z
 
 tasks:
   - id: "line_12"
@@ -137,6 +137,118 @@ tasks:
     line_number: 30
     status: completed
     parallel_group: 999999
-    description: All tests pass
+    description: AI chat suggestions can be applied to the canvas via an **\"Apply Changes\"** button shown in the chat UI when applicable
     indent_level: 0
     raw_marker: 19.
+  - id: "line_31"
+    line_number: 31
+    status: completed
+    parallel_group: 999999
+    description: When \"Apply Changes\" is clicked, the current flow (nodes + edges) is updated to match the AI-proposed changes (can include adds, deletes, and modifications)
+    indent_level: 0
+    raw_marker: 20.
+  - id: "line_32"
+    line_number: 32
+    status: completed
+    parallel_group: 999999
+    description: The app sends the current flow structure to the LLM and receives a structured response back (graph-shaped data), but **the UI never displays raw JSON** to the user
+    indent_level: 0
+    raw_marker: 21.
+  - id: "line_33"
+    line_number: 33
+    status: completed
+    parallel_group: 999999
+    description: Toolbar includes **Undo** and **Redo** icon buttons; Undo/Redo work for create/modify/delete actions on nodes and edges (including notes)
+    indent_level: 0
+    raw_marker: 22.
+  - id: "line_34"
+    line_number: 34
+    status: completed
+    parallel_group: 999999
+    description: Undo history tracks up to **10** prior actions; repeated Undo steps backwards through history; Redo steps forward until a new action occurs (which clears the redo stack)
+    indent_level: 0
+    raw_marker: 23.
+  - id: "line_35"
+    line_number: 35
+    status: completed
+    parallel_group: 999999
+    description: Toolbar includes a **Clear All** button; clicking it wipes the entire board state (all nodes + edges), returning to an empty canvas state
+    indent_level: 0
+    raw_marker: 24.
+  - id: "line_36"
+    line_number: 36
+    status: completed
+    parallel_group: 999999
+    description: Toolbar includes a **Grid toggle** icon button; toggling hides/shows the grid
+    indent_level: 0
+    raw_marker: 25.
+  - id: "line_37"
+    line_number: 37
+    status: completed
+    parallel_group: 999999
+    description: **Whiteboard mode**: when enabled, the grid is hidden and nodes can be moved freely (no snapping-to-grid behavior)
+    indent_level: 0
+    raw_marker: 26.
+  - id: "line_38"
+    line_number: 38
+    status: completed
+    parallel_group: 999999
+    description: All node types (Step, Decision, Note) support **4-direction handles** (Top/Right/Bottom/Left)
+    indent_level: 0
+    raw_marker: 27.
+  - id: "line_39"
+    line_number: 39
+    status: completed
+    parallel_group: 999999
+    description: Connection handles on nodes remain **hidden until hover**; when the user starts a connection drag, handles on nearby nodes (near the cursor) become visible
+    indent_level: 0
+    raw_marker: 28.
+  - id: "line_40"
+    line_number: 40
+    status: completed
+    parallel_group: 999999
+    description: Users can **multi-select** nodes and edges:
+    indent_level: 0
+    raw_marker: 29.
+  - id: "line_44"
+    line_number: 44
+    status: completed
+    parallel_group: 999999
+    description: Users can **delete multiple** selected nodes/edges at once via a **trash icon** shown near the current selection
+    indent_level: 0
+    raw_marker: 30.
+  - id: "line_45"
+    line_number: 45
+    status: completed
+    parallel_group: 999999
+    description: Users can **copy and paste** selected nodes/edges via **copy** and **paste** icons shown near the current selection
+    indent_level: 0
+    raw_marker: 31.
+  - id: "line_46"
+    line_number: 46
+    status: completed
+    parallel_group: 999999
+    description: Users can **zoom in/out** via **zoom in** and **zoom out** icon buttons
+    indent_level: 0
+    raw_marker: 32.
+  - id: "line_47"
+    line_number: 47
+    status: completed
+    parallel_group: 999999
+    description: Nodes are resizable via visible resize handles/corners
+    indent_level: 0
+    raw_marker: 33.
+  - id: "line_48"
+    line_number: 48
+    status: completed
+    parallel_group: 999999
+    description: Resizing a node updates its dimensions in React Flow state and persists during the session
+    indent_level: 0
+    raw_marker: 34.
+  - id: "line_49"
+    line_number: 49
+    status: completed
+    parallel_group: 999999
+    description: All tests pass
+    indent_level: 0
+    raw_marker: 35.
