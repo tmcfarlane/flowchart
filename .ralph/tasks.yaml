@@ -3,8 +3,8 @@
 # DO NOT EDIT - regenerated on task file change
 
 source_file: RALPH_TASK.md
-source_mtime: 1769820630
-generated_at: 2026-01-31T00:50:46Z
+source_mtime: 1769820945
+generated_at: 2026-01-31T00:56:05Z
 
 tasks:
   - id: "line_14"
@@ -142,14 +142,14 @@ tasks:
     raw_marker: 19.
   - id: "line_41"
     line_number: 41
-    status: pending
+    status: completed
     parallel_group: 999999
     description: Toolbar and sidebar are visually polished:
     indent_level: 0
     raw_marker: 20.
   - id: "line_45"
     line_number: 45
-    status: pending
+    status: completed
     parallel_group: 999999
     description: Multi-select, delete, copy, paste affordances feel cohesive and predictable
     indent_level: 0

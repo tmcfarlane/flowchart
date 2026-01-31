@@ -294,14 +294,14 @@ function FlowChartEditor() {
     setNodeIdCounter((id) => id + clipboard.nodes.length)
   }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel])
 
-  // Zoom in
+  // Zoom in with smooth animation
   const zoomIn = useCallback(() => {
-    reactFlowInstance.zoomIn()
+    reactFlowInstance.zoomIn({ duration: 300 })
   }, [reactFlowInstance])
 
-  // Zoom out
+  // Zoom out with smooth animation
   const zoomOut = useCallback(() => {
-    reactFlowInstance.zoomOut()
+    reactFlowInstance.zoomOut({ duration: 300 })
   }, [reactFlowInstance])
 
   // Toggle preview mode

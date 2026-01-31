@@ -42,7 +42,7 @@ This task assumes all prior core functionality is already implemented.
     - Clear iconography
     - Consistent spacing and alignment
     - No visual clutter during common workflows
-21. [ ] Multi-select, delete, copy, paste affordances feel cohesive and predictable
+21. [x] Multi-select, delete, copy, paste affordances feel cohesive and predictable
 22. [ ] Zooming, panning, and centering interactions feel smooth and non-jarring
 
 ### AI Chat UX Polish

@@ -124,3 +124,9 @@ This is how Ralph maintains continuity across iterations.
 
 ### 2026-01-30 16:50:49
 **Session 2 started** (model: sonnet-4.5-thinking)
+
+### 2026-01-30 16:56:05
+**Session 2 ended** - 🔄 Context rotation (token limit reached)
+
+### 2026-01-30 16:56:07
+**Session 3 started** (model: sonnet-4.5-thinking)
