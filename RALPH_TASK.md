@@ -53,17 +53,17 @@ This task assumes all prior core functionality is already implemented.
     - **Cancel** (discard proposal)
     - **Regenerate** (request a new proposal)
 25. [x] No AI-generated raw JSON is ever displayed to the user
-26. [ ] Transition between Explorer ↔ AI sidebar feels smooth and intentional
+26. [x] Transition between Explorer ↔ AI sidebar feels smooth and intentional
 
 
 ### Verification
 
-27. [ ] Use `agent-browser` to visually verify:
+27. [x] Use `agent-browser` to visually verify:
     - Toolbar layout and icon clarity
     - Sidebar (Explorer + AI) layout
     - Node, edge, and selection styling
     - Resize, connect, multi-select, and preview interactions
-28. [ ] All tests pass
+28. [x] All tests pass
 
 ---
 
