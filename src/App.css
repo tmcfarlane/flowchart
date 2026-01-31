@@ -14,7 +14,7 @@
 }
 
 .react-flow__node.selected {
-  box-shadow: 0 0 0 2px #1a192b;
+  /* Removed dark box-shadow - using subtle node-specific glows instead */
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
@@ -44,6 +44,7 @@
     opacity: 0;
     transform: translateX(-50%) translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);

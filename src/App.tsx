@@ -58,6 +58,7 @@ function FlowChartEditor() {
       type: 'step',
       position: { x: 250, y: 100 },
       data: { label: 'Start', onLabelChange: updateNodeLabel },
+      style: { width: 180, height: 80 },
     },
   ]
 
@@ -135,14 +136,14 @@ function FlowChartEditor() {
 
     // Debounce history saves to avoid saving too frequently
     lastChangeTime.current = Date.now()
-    
+
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
     }
 
     saveTimeoutRef.current = setTimeout(() => {
       const currentState = history[historyIndex]
-      const hasChanged = 
+      const hasChanged =
         JSON.stringify(currentState?.nodes) !== JSON.stringify(nodes) ||
         JSON.stringify(currentState?.edges) !== JSON.stringify(edges)
 
@@ -175,11 +176,11 @@ function FlowChartEditor() {
     (connection: Connection) => {
       const newEdge = {
         ...connection,
-        type: defaultEdgeStyle === 'default' ? 'default' : 
-              defaultEdgeStyle === 'animated' ? 'default' :
-              defaultEdgeStyle,
+        type: defaultEdgeStyle === 'default' ? 'default' :
+          defaultEdgeStyle === 'animated' ? 'default' :
+            defaultEdgeStyle,
         animated: defaultEdgeStyle === 'animated',
-        style: defaultEdgeStyle === 'animated' 
+        style: defaultEdgeStyle === 'animated'
           ? { strokeDasharray: '5 5', stroke: '#555' }
           : {},
         markerEnd: {
@@ -208,9 +209,13 @@ function FlowChartEditor() {
         id: nodeIdCounter.toString(),
         type,
         position: { x: Math.random() * 300 + 100, y: Math.random() * 300 + 100 },
-        data: { 
+        data: {
           label: type === 'decision' ? 'Decision?' : type === 'note' ? 'Note' : 'Step',
           onLabelChange: updateNodeLabel,
+        },
+        style: {
+          width: type === 'decision' ? 160 : 180,
+          height: type === 'decision' ? 160 : 80
         },
       }
       setNodes((nds) => [...nds, newNode])
