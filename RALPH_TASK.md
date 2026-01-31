@@ -38,7 +38,7 @@ This task assumes all prior core functionality is already implemented.
     - Handles are hidden until hover
     - Nearby handles appear during drag
     - Edge style selection is discoverable and consistent
-20. [ ] Toolbar and sidebar are visually polished:
+20. [x] Toolbar and sidebar are visually polished:
     - Clear iconography
     - Consistent spacing and alignment
     - No visual clutter during common workflows

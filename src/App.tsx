@@ -422,23 +422,37 @@ function FlowChartEditor() {
                 className="selection-toolbar-button delete"
                 onClick={deleteSelected}
                 title="Delete selected items"
+                aria-label="Delete selected items"
               >
-                🗑 Delete
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M5 3V2h6v1h4v1H1V3h4zM3 5h10l-.5 9H3.5L3 5zm3 1v6h1V6H6zm3 0v6h1V6H9z"/>
+                </svg>
+                Delete
               </button>
               <button
-                className="selection-toolbar-button"
+                className="selection-toolbar-button copy"
                 onClick={copySelection}
                 title="Copy selected items"
+                aria-label="Copy selected items"
               >
-                📋 Copy
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M4 2h8v1H4V2zm0 2h8v8H4V4zm1 1v6h6V5H5z" fillRule="evenodd"/>
+                  <path d="M2 4v9h9v1H1V4h1z" opacity="0.6"/>
+                </svg>
+                Copy
               </button>
               <button
-                className="selection-toolbar-button"
+                className="selection-toolbar-button paste"
                 onClick={pasteSelection}
                 title="Paste copied items"
+                aria-label="Paste copied items"
                 disabled={clipboard.nodes.length === 0}
               >
-                📄 Paste
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M5 1h6v1h2v12H3V2h2V1zm1 1v1h4V2H6zM4 3v10h8V3H4z" fillRule="evenodd"/>
+                  <path d="M6 6h4v1H6V6zm0 2h4v1H6V8z"/>
+                </svg>
+                Paste
               </button>
             </div>
           )

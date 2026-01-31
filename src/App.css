@@ -80,25 +80,25 @@
 
 .selection-toolbar {
   position: fixed;
-  bottom: 80px;
+  bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
   background: white;
-  border: 2px solid #667eea;
-  border-radius: 12px;
-  padding: 12px 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(102, 126, 234, 0.1);
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
   z-index: 100;
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.2s ease;
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(20px);
+    transform: translateX(-50%) translateY(10px);
   }
 
   to {
@@ -108,31 +108,49 @@
 }
 
 .selection-toolbar-text {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #667eea;
-  margin-right: 8px;
+  color: #495057;
+  padding: 0 6px;
+  border-right: 1px solid #e9ecef;
+  margin-right: 4px;
 }
 
 .selection-toolbar-button {
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
   background: #667eea;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.selection-toolbar-button:hover {
+.selection-toolbar-button:hover:not(:disabled) {
   background: #5a67d8;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(102, 126, 234, 0.3);
+}
+
+.selection-toolbar-button:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.selection-toolbar-button:disabled {
+  background: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.selection-toolbar-button svg {
+  flex-shrink: 0;
 }
 
 .selection-toolbar-button.delete {
@@ -141,6 +159,22 @@
 
 .selection-toolbar-button.delete:hover {
   background: #ff5252;
+}
+
+.selection-toolbar-button.copy {
+  background: #4dabf7;
+}
+
+.selection-toolbar-button.copy:hover {
+  background: #339af0;
+}
+
+.selection-toolbar-button.paste {
+  background: #51cf66;
+}
+
+.selection-toolbar-button.paste:hover:not(:disabled) {
+  background: #40c057;
 }
 
 .react-flow__handle {
