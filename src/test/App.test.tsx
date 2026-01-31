@@ -10,9 +10,9 @@ describe('FlowChart Designer', () => {
 
   it('has a toolbar with add node buttons', () => {
     render(<App />)
-    expect(screen.getByText('+ Step')).toBeInTheDocument()
-    expect(screen.getByText('+ Decision')).toBeInTheDocument()
-    expect(screen.getByText('+ Note')).toBeInTheDocument()
+    expect(screen.getByLabelText('Add Step Node')).toBeInTheDocument()
+    expect(screen.getByLabelText('Add Decision Node')).toBeInTheDocument()
+    expect(screen.getByLabelText('Add Note')).toBeInTheDocument()
   })
 
   it('has delete and preview buttons', () => {
@@ -28,7 +28,7 @@ describe('FlowChart Designer', () => {
 
   it('can add a new step node', () => {
     render(<App />)
-    const addStepButton = screen.getByText('+ Step')
+    const addStepButton = screen.getByLabelText('Add Step Node')
     fireEvent.click(addStepButton)
     
     // After adding, we should have the original "Start" and a new "Step"
@@ -38,7 +38,7 @@ describe('FlowChart Designer', () => {
 
   it('can add a new decision node', () => {
     render(<App />)
-    const addDecisionButton = screen.getByText('+ Decision')
+    const addDecisionButton = screen.getByLabelText('Add Decision Node')
     fireEvent.click(addDecisionButton)
     
     expect(screen.getByText('Decision?')).toBeInTheDocument()
@@ -46,10 +46,12 @@ describe('FlowChart Designer', () => {
 
   it('can add a new note node', () => {
     render(<App />)
-    const addNoteButton = screen.getByText('+ Note')
+    const addNoteButton = screen.getByLabelText('Add Note')
     fireEvent.click(addNoteButton)
     
-    expect(screen.getByText('Note')).toBeInTheDocument()
+    // Look for the note node in the flow (not the button)
+    const noteNodes = screen.getAllByText('Note')
+    expect(noteNodes.length).toBeGreaterThan(1) // Button + added node
   })
 
   it('can enter preview mode', () => {

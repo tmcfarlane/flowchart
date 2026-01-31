@@ -2,17 +2,29 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
+  padding: 10px 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 10;
+  gap: 16px;
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  padding: 0 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.toolbar-section:first-child {
+  padding-left: 0;
+}
+
+.toolbar-section:last-child {
+  border-right: none;
+  padding-right: 0;
 }
 
 .toolbar h2 {
@@ -22,25 +34,43 @@
 }
 
 .toolbar-button {
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 14px;
   background: white;
   color: #667eea;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
 }
 
 .toolbar-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
 
 .toolbar-button:active {
   transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-button svg {
+  flex-shrink: 0;
+}
+
+.toolbar-button.add-node {
+  background: rgba(255, 255, 255, 0.95);
+  color: #667eea;
+}
+
+.toolbar-button.add-node:hover {
+  background: white;
 }
 
 .toolbar-button.delete {
@@ -100,45 +130,51 @@
 }
 
 .toolbar-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  margin-right: 4px;
+  margin-right: 6px;
+  white-space: nowrap;
 }
 
 .toolbar-select {
-  padding: 8px 12px;
+  padding: 7px 12px;
   background: white;
   color: #667eea;
   border: 2px solid transparent;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
 .toolbar-select:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
   border-color: rgba(255, 255, 255, 0.3);
 }
 
 .toolbar-select:focus {
   outline: none;
   border-color: white;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
 }
 
 .toolbar-button.icon-button {
-  padding: 8px 12px;
-  font-size: 20px;
+  padding: 7px 10px;
+  font-size: 16px;
   line-height: 1;
-  min-width: 40px;
+  min-width: 38px;
+}
+
+.toolbar-button.icon-button svg {
+  width: 16px;
+  height: 16px;
 }
 
 .toolbar-button.icon-button:disabled {
-  background: rgba(255, 255, 255, 0.3);
-  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.4);
+  color: rgba(102, 126, 234, 0.4);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -150,6 +186,7 @@
 }
 
 .toolbar-button.icon-button.active {
-  background: #667eea;
-  color: white;
+  background: rgba(255, 255, 255, 0.95);
+  color: #667eea;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
