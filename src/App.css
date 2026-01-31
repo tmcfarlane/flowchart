@@ -9,6 +9,11 @@
   flex: 1;
 }
 
+/* Smooth viewport transitions */
+.react-flow__viewport {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 .react-flow__node {
   cursor: grab;
   transition: filter 0.2s ease;

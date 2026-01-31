@@ -47,12 +47,12 @@ This task assumes all prior core functionality is already implemented.
 
 ### AI Chat UX Polish
 
-23. [ ] AI chat produces a **Proposed Flow** preview state
-24. [ ] Proposed Flow includes explicit actions:
+23. [x] AI chat produces a **Proposed Flow** preview state
+24. [x] Proposed Flow includes explicit actions:
     - **Insert** (apply changes)
     - **Cancel** (discard proposal)
     - **Regenerate** (request a new proposal)
-25. [ ] No AI-generated raw JSON is ever displayed to the user
+25. [x] No AI-generated raw JSON is ever displayed to the user
 26. [ ] Transition between Explorer ↔ AI sidebar feels smooth and intentional
 
 

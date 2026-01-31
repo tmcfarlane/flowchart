@@ -111,6 +111,16 @@ function Toolbar({
             <path d="M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
           </svg>
         </button>
+        <button
+          className="toolbar-button icon-button"
+          onClick={onFitView}
+          title="Fit View"
+          aria-label="Fit View"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 2h4v1H3v3H2V2zm10 0h4v4h-1V3h-3V2zM2 12v4h4v-1H3v-3H2zm14 0v4h-4v-1h3v-3h1z" fillRule="evenodd"/>
+          </svg>
+        </button>
       </div>
       <div className="toolbar-section">
         <button
