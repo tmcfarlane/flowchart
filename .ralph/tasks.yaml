@@ -3,252 +3,203 @@
 # DO NOT EDIT - regenerated on task file change
 
 source_file: RALPH_TASK.md
-source_mtime: 1769700202
-generated_at: 2026-01-29T15:24:11Z
+source_mtime: 1769820630
+generated_at: 2026-01-31T00:50:46Z
 
 tasks:
-  - id: "line_12"
-    line_number: 12
+  - id: "line_14"
+    line_number: 14
     status: completed
     parallel_group: 999999
     description: App loads to a blank canvas with a toolbar and 1 starter node
     indent_level: 0
     raw_marker: 1.
-  - id: "line_13"
-    line_number: 13
+  - id: "line_15"
+    line_number: 15
     status: completed
     parallel_group: 999999
-    description: Users can add nodes of at least 3 types (e.g., Step, Decision, Note)
+    description: Users can add nodes of at least 3 types (Step, Decision, Note)
     indent_level: 0
     raw_marker: 2.
-  - id: "line_14"
-    line_number: 14
+  - id: "line_16"
+    line_number: 16
     status: completed
     parallel_group: 999999
     description: Users can drag nodes to reposition them and changes persist in local state
     indent_level: 0
     raw_marker: 3.
-  - id: "line_15"
-    line_number: 15
+  - id: "line_17"
+    line_number: 17
     status: completed
     parallel_group: 999999
-    description: Users can connect nodes by dragging handles; edges support style options (animated dashed arrow + at least 2 other styles)
+    description: Users can connect nodes by dragging handles; edges support multiple styles
     indent_level: 0
     raw_marker: 4.
-  - id: "line_16"
-    line_number: 16
+  - id: "line_18"
+    line_number: 18
     status: completed
     parallel_group: 999999
     description: Users can edit node text/label
     indent_level: 0
     raw_marker: 5.
-  - id: "line_17"
-    line_number: 17
+  - id: "line_19"
+    line_number: 19
     status: completed
     parallel_group: 999999
     description: Users can delete selected nodes/edges
     indent_level: 0
     raw_marker: 6.
-  - id: "line_18"
-    line_number: 18
-    status: completed
-    parallel_group: 999999
-    description: Decision nodes use a default 4-direction handle layout (Top/Right/Bottom/Left), and incoming edges connect to the nearest side
-    indent_level: 0
-    raw_marker: 7.
-  - id: "line_19"
-    line_number: 19
-    status: completed
-    parallel_group: 999999
-    description: \"Preview\" button enters full-screen presentation mode
-    indent_level: 0
-    raw_marker: 8.
   - id: "line_20"
     line_number: 20
     status: completed
     parallel_group: 999999
-    description: Preview mode shows only the flow + \"Next\" and \"Previous\" buttons
+    description: Decision nodes use a default 4-direction handle layout; incoming edges snap to nearest side
     indent_level: 0
-    raw_marker: 9.
+    raw_marker: 7.
   - id: "line_21"
     line_number: 21
     status: completed
     parallel_group: 999999
-    description: Next/Previous navigates through nodes in a deterministic order
+    description: Preview mode enters full-screen presentation with Next / Previous navigation
     indent_level: 0
-    raw_marker: 10.
+    raw_marker: 8.
   - id: "line_22"
     line_number: 22
     status: completed
     parallel_group: 999999
-    description: Preview highlights the active node and centers it in view
+    description: Preview highlights the active node, centers it, and exits cleanly back to editor
     indent_level: 0
-    raw_marker: 11.
+    raw_marker: 9.
   - id: "line_23"
     line_number: 23
     status: completed
     parallel_group: 999999
-    description: Exiting preview returns to the editor with state preserved
+    description: Right sidebar supports Explorer and AI chat modes
     indent_level: 0
-    raw_marker: 12.
+    raw_marker: 10.
   - id: "line_24"
     line_number: 24
     status: completed
     parallel_group: 999999
-    description: Right sidebar: Explorer view lists nodes + edges + any associated text; node names are editable here
+    description: AI requests are proxied through `/api/chat` with server-side env vars only
     indent_level: 0
-    raw_marker: 13.
+    raw_marker: 11.
   - id: "line_25"
     line_number: 25
     status: completed
     parallel_group: 999999
-    description: \"AI\" button opens a right sidebar chat interface (replaces Explorer) for generating/updating flows via LLM
+    description: AI suggestions can be previewed and applied via an **Apply Changes** flow
     indent_level: 0
-    raw_marker: 14.
+    raw_marker: 12.
   - id: "line_26"
     line_number: 26
     status: completed
     parallel_group: 999999
-    description: AI requests are proxied through a Vercel Serverless Function (`/api/chat`) so no secrets are shipped to the browser
+    description: Undo / Redo works for nodes and edges (10-step history)
     indent_level: 0
-    raw_marker: 15.
+    raw_marker: 13.
   - id: "line_27"
     line_number: 27
     status: completed
     parallel_group: 999999
-    description: Server-side env vars are used (NOT `VITE_*`): `AZURE_DEPLOYMENT_NAME`, `AZURE_RESOURCE_NAME`, `AZURE_API_KEY` (or AI Gateway equivalents)
+    description: Clear All, Grid Toggle, Whiteboard Mode, Zoom In/Out are implemented
     indent_level: 0
-    raw_marker: 16.
+    raw_marker: 14.
   - id: "line_28"
     line_number: 28
     status: completed
     parallel_group: 999999
-    description: Frontend calls `/api/chat` and never calls Azure OpenAI (or AI Gateway) directly
+    description: Multi-select, delete, copy, and paste work for nodes and edges
     indent_level: 0
-    raw_marker: 17.
-  - id: "line_29"
-    line_number: 29
-    status: completed
-    parallel_group: 999999
-    description: `/api/chat` supports basic chat with the model and returns an assistant reply (200 on success, useful error on failure)
-    indent_level: 0
-    raw_marker: 18.
-  - id: "line_30"
-    line_number: 30
-    status: completed
-    parallel_group: 999999
-    description: AI chat suggestions can be applied to the canvas via an **\"Apply Changes\"** button shown in the chat UI when applicable
-    indent_level: 0
-    raw_marker: 19.
-  - id: "line_31"
-    line_number: 31
-    status: completed
-    parallel_group: 999999
-    description: When \"Apply Changes\" is clicked, the current flow (nodes + edges) is updated to match the AI-proposed changes (can include adds, deletes, and modifications)
-    indent_level: 0
-    raw_marker: 20.
+    raw_marker: 15.
   - id: "line_32"
     line_number: 32
     status: completed
     parallel_group: 999999
-    description: The app sends the current flow structure to the LLM and receives a structured response back (graph-shaped data), but **the UI never displays raw JSON** to the user
+    description: Nodes are **resizable** via visible resize handles/corners
     indent_level: 0
-    raw_marker: 21.
+    raw_marker: 16.
   - id: "line_33"
     line_number: 33
     status: completed
     parallel_group: 999999
-    description: Toolbar includes **Undo** and **Redo** icon buttons; Undo/Redo work for create/modify/delete actions on nodes and edges (including notes)
+    description: Resizing updates node dimensions in React Flow state and persists during the session
     indent_level: 0
-    raw_marker: 22.
+    raw_marker: 17.
   - id: "line_34"
     line_number: 34
     status: completed
     parallel_group: 999999
-    description: Undo history tracks up to **10** prior actions; repeated Undo steps backwards through history; Redo steps forward until a new action occurs (which clears the redo stack)
+    description: Node interaction affordances are visually clear:
     indent_level: 0
-    raw_marker: 23.
-  - id: "line_35"
-    line_number: 35
-    status: completed
-    parallel_group: 999999
-    description: Toolbar includes a **Clear All** button; clicking it wipes the entire board state (all nodes + edges), returning to an empty canvas state
-    indent_level: 0
-    raw_marker: 24.
-  - id: "line_36"
-    line_number: 36
-    status: completed
-    parallel_group: 999999
-    description: Toolbar includes a **Grid toggle** icon button; toggling hides/shows the grid
-    indent_level: 0
-    raw_marker: 25.
+    raw_marker: 18.
   - id: "line_37"
     line_number: 37
     status: completed
     parallel_group: 999999
-    description: **Whiteboard mode**: when enabled, the grid is hidden and nodes can be moved freely (no snapping-to-grid behavior)
+    description: Connection creation feels intentional:
     indent_level: 0
-    raw_marker: 26.
-  - id: "line_38"
-    line_number: 38
-    status: completed
+    raw_marker: 19.
+  - id: "line_41"
+    line_number: 41
+    status: pending
     parallel_group: 999999
-    description: All node types (Step, Decision, Note) support **4-direction handles** (Top/Right/Bottom/Left)
+    description: Toolbar and sidebar are visually polished:
     indent_level: 0
-    raw_marker: 27.
-  - id: "line_39"
-    line_number: 39
-    status: completed
-    parallel_group: 999999
-    description: Connection handles on nodes remain **hidden until hover**; when the user starts a connection drag, handles on nearby nodes (near the cursor) become visible
-    indent_level: 0
-    raw_marker: 28.
-  - id: "line_40"
-    line_number: 40
-    status: completed
-    parallel_group: 999999
-    description: Users can **multi-select** nodes and edges:
-    indent_level: 0
-    raw_marker: 29.
-  - id: "line_44"
-    line_number: 44
-    status: completed
-    parallel_group: 999999
-    description: Users can **delete multiple** selected nodes/edges at once via a **trash icon** shown near the current selection
-    indent_level: 0
-    raw_marker: 30.
+    raw_marker: 20.
   - id: "line_45"
     line_number: 45
-    status: completed
+    status: pending
     parallel_group: 999999
-    description: Users can **copy and paste** selected nodes/edges via **copy** and **paste** icons shown near the current selection
+    description: Multi-select, delete, copy, paste affordances feel cohesive and predictable
     indent_level: 0
-    raw_marker: 31.
+    raw_marker: 21.
   - id: "line_46"
     line_number: 46
-    status: completed
+    status: pending
     parallel_group: 999999
-    description: Users can **zoom in/out** via **zoom in** and **zoom out** icon buttons
+    description: Zooming, panning, and centering interactions feel smooth and non-jarring
     indent_level: 0
-    raw_marker: 32.
-  - id: "line_47"
-    line_number: 47
-    status: completed
+    raw_marker: 22.
+  - id: "line_50"
+    line_number: 50
+    status: pending
     parallel_group: 999999
-    description: Nodes are resizable via visible resize handles/corners
+    description: AI chat produces a **Proposed Flow** preview state
     indent_level: 0
-    raw_marker: 33.
-  - id: "line_48"
-    line_number: 48
-    status: completed
+    raw_marker: 23.
+  - id: "line_51"
+    line_number: 51
+    status: pending
     parallel_group: 999999
-    description: Resizing a node updates its dimensions in React Flow state and persists during the session
+    description: Proposed Flow includes explicit actions:
     indent_level: 0
-    raw_marker: 34.
-  - id: "line_49"
-    line_number: 49
-    status: completed
+    raw_marker: 24.
+  - id: "line_55"
+    line_number: 55
+    status: pending
+    parallel_group: 999999
+    description: No AI-generated raw JSON is ever displayed to the user
+    indent_level: 0
+    raw_marker: 25.
+  - id: "line_56"
+    line_number: 56
+    status: pending
+    parallel_group: 999999
+    description: Transition between Explorer ↔ AI sidebar feels smooth and intentional
+    indent_level: 0
+    raw_marker: 26.
+  - id: "line_61"
+    line_number: 61
+    status: pending
+    parallel_group: 999999
+    description: Use `agent-browser` to visually verify:
+    indent_level: 0
+    raw_marker: 27.
+  - id: "line_66"
+    line_number: 66
+    status: pending
     parallel_group: 999999
     description: All tests pass
     indent_level: 0
-    raw_marker: 35.
+    raw_marker: 28.
