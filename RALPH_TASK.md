@@ -29,8 +29,8 @@ This task assumes all prior core functionality is already implemented.
 
 ### UI Polish & Interaction (FOCUS OF THIS TASK)
 
-16. [ ] Nodes are **resizable** via visible resize handles/corners
-17. [ ] Resizing updates node dimensions in React Flow state and persists during the session
+16. [x] Nodes are **resizable** via visible resize handles/corners
+17. [x] Resizing updates node dimensions in React Flow state and persists during the session
 18. [ ] Node interaction affordances are visually clear:
     - Hover states for nodes, handles, and edges
     - Clear selected, multi-selected, and active states
