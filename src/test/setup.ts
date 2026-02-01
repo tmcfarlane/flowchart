@@ -1,6 +1,6 @@
+/// <reference types="@testing-library/jest-dom" />
 import '@testing-library/jest-dom'
 
-// Mock ResizeObserver for testing
 global.ResizeObserver = class ResizeObserver {
   observe() {}
   unobserve() {}

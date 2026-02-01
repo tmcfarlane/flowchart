@@ -15,9 +15,9 @@ describe('FlowChart Designer', () => {
     expect(screen.getByLabelText('Add Note')).toBeInTheDocument()
   })
 
-  it('has delete and preview buttons', () => {
+  it('has clear and preview buttons', () => {
     render(<App />)
-    expect(screen.getByRole('button', { name: /Delete/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Clear/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Preview/i })).toBeInTheDocument()
   })
 

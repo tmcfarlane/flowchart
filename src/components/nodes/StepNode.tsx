@@ -4,7 +4,7 @@ import { NodeResizer } from '@reactflow/node-resizer'
 import '@reactflow/node-resizer/dist/style.css'
 import './NodeStyles.css'
 
-function StepNode({ data, id }: NodeProps) {
+function StepNode({ data, id, selected }: NodeProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [label, setLabel] = useState(data.label)
 
@@ -14,7 +14,6 @@ function StepNode({ data, id }: NodeProps) {
 
   const handleBlur = useCallback(() => {
     setIsEditing(false)
-    // Update node data through React Flow's state management
     if (data.onLabelChange) {
       data.onLabelChange(id, label)
     }
@@ -34,14 +33,12 @@ function StepNode({ data, id }: NodeProps) {
 
   return (
     <>
-      <div className="custom-node step-node">
-        <NodeResizer minWidth={100} minHeight={60} />
-        {/* Rotation handle - appears above the node */}
-        <div className="rotation-handle">
-          <div className="rotation-circle" />
-        </div>
-
-        {/* Target handles on all 4 sides for incoming edges */}
+      <NodeResizer 
+        minWidth={100} 
+        minHeight={60} 
+        isVisible={selected}
+      />
+      <div className={`custom-node step-node ${selected ? 'selected' : ''}`}>
         <Handle type="target" position={Position.Top} id="target-top" />
         <Handle type="target" position={Position.Right} id="target-right" />
         <Handle type="target" position={Position.Bottom} id="target-bottom" />
@@ -63,7 +60,6 @@ function StepNode({ data, id }: NodeProps) {
           </div>
         )}
 
-        {/* Source handles on all 4 sides for outgoing edges */}
         <Handle type="source" position={Position.Top} id="source-top" />
         <Handle type="source" position={Position.Right} id="source-right" />
         <Handle type="source" position={Position.Bottom} id="source-bottom" />
