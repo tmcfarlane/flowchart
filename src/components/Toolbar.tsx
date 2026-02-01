@@ -16,6 +16,8 @@ interface ToolbarProps {
   onClearAll: () => void
   toolMode: ToolMode
   onSetToolMode: (mode: ToolMode) => void
+  darkMode: boolean
+  onToggleDarkMode: () => void
 }
 
 function Toolbar({ 
@@ -33,6 +35,8 @@ function Toolbar({
   onClearAll,
   toolMode,
   onSetToolMode,
+  darkMode,
+  onToggleDarkMode,
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -83,6 +87,39 @@ function Toolbar({
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 1.5A6.5 6.5 0 0 0 1.5 8h1A5.5 5.5 0 1 1 8 13.5V11L4.5 14 8 17v-2.5A6.5 6.5 0 0 0 8 1.5z"/>
           </svg>
+        </button>
+        <button
+          className={`toolbar-button icon-button dark-mode-toggle ${darkMode ? 'is-dark' : 'is-light'}`}
+          onClick={onToggleDarkMode}
+          title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          aria-label="Toggle Dark Mode"
+        >
+          {darkMode ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="5" fill="#FFD93D" stroke="#FFA726" strokeWidth="1"/>
+              <g stroke="#FFD93D" strokeWidth="2" strokeLinecap="round">
+                <line x1="12" y1="1" x2="12" y2="4"/>
+                <line x1="12" y1="20" x2="12" y2="23"/>
+                <line x1="1" y1="12" x2="4" y2="12"/>
+                <line x1="20" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+              </g>
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path 
+                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" 
+                fill="#5C6BC0" 
+                stroke="#3949AB" 
+                strokeWidth="1.5"
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+              />
+            </svg>
+          )}
         </button>
         <button
           className="toolbar-button clear"

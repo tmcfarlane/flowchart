@@ -372,3 +372,32 @@
   background: linear-gradient(to right, rgba(120, 252, 214, 0.25), rgba(0, 255, 182, 0.25));
   color: #78fcd6;
 }
+
+/* Dark mode toggle button */
+.toolbar-button.dark-mode-toggle {
+  transition: all 0.3s ease;
+}
+
+.toolbar-button.dark-mode-toggle.is-dark {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFE082 100%);
+  border: 1px solid #FFB300;
+  box-shadow: 0 0 12px rgba(255, 193, 7, 0.4), 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.toolbar-button.dark-mode-toggle.is-dark:hover {
+  background: linear-gradient(135deg, #FFECB3 0%, #FFD54F 100%);
+  box-shadow: 0 0 16px rgba(255, 193, 7, 0.5), 0 4px 12px rgba(255, 152, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.toolbar-button.dark-mode-toggle.is-light {
+  background: linear-gradient(135deg, #1A237E 0%, #303F9F 100%);
+  border: 1px solid #3949AB;
+  box-shadow: 0 0 12px rgba(63, 81, 181, 0.4), 0 2px 8px rgba(48, 63, 159, 0.3);
+}
+
+.toolbar-button.dark-mode-toggle.is-light:hover {
+  background: linear-gradient(135deg, #283593 0%, #3F51B5 100%);
+  box-shadow: 0 0 16px rgba(63, 81, 181, 0.5), 0 4px 12px rgba(48, 63, 159, 0.4);
+  transform: translateY(-1px);
+}

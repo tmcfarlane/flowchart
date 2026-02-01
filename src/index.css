@@ -12,6 +12,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+body.dark-mode {
+  background: #0f1211;
+  color: #e7eceb;
+}
+
+body.light-mode {
+  background: #ffffff;
+  color: #000000;
+}
+
 #root {
   width: 100vw;
   height: 100vh;

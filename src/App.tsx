@@ -20,6 +20,7 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
+import 'reactflow/dist/base.css'
 import './App.css'
 import Toolbar from './components/Toolbar'
 import StepNode from './components/nodes/StepNode'
@@ -76,6 +77,8 @@ function FlowChartEditor() {
   const showGrid = true
   const [toolMode, setToolMode] = useState<ToolMode>('select')
   const [clipboard, setClipboard] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] })
+  const [pasteCount, setPasteCount] = useState(0)
+  const [darkMode, setDarkMode] = useState(true)
 
   // Undo/Redo history management
   const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: [] }])
@@ -268,11 +271,14 @@ function FlowChartEditor() {
   const copySelection = useCallback(() => {
     const { selectedNodes, selectedEdges } = getSelectedItems()
     setClipboard({ nodes: selectedNodes, edges: selectedEdges })
+    setPasteCount(0)
   }, [getSelectedItems])
 
   // Paste nodes and edges from clipboard
   const pasteSelection = useCallback(() => {
     if (clipboard.nodes.length === 0) return
+
+    const offset = 50 * (pasteCount + 1)
 
     // Create ID mapping for pasted nodes
     const idMapping: Record<string, string> = {}
@@ -283,8 +289,8 @@ function FlowChartEditor() {
         ...node,
         id: newId,
         position: {
-          x: node.position.x + 50,
-          y: node.position.y + 50,
+          x: node.position.x + offset,
+          y: node.position.y + offset,
         },
         selected: false,
         data: {
@@ -308,7 +314,8 @@ function FlowChartEditor() {
     setNodes((nds) => [...nds, ...pastedNodes])
     setEdges((eds) => [...eds, ...pastedEdges])
     setNodeIdCounter((id) => id + clipboard.nodes.length)
-  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel])
+    setPasteCount((count) => count + 1)
+  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel, pasteCount])
 
   // Cut selected nodes and edges (copy + delete)
   const cutSelection = useCallback(() => {
@@ -399,6 +406,14 @@ function FlowChartEditor() {
     setSidebarMode((prev) => (prev === 'ai' ? 'none' : 'ai'))
   }, [])
 
+  const toggleDarkMode = useCallback(() => {
+    setDarkMode((prev) => !prev)
+  }, [])
+
+  useEffect(() => {
+    document.body.className = darkMode ? 'dark-mode' : 'light-mode'
+  }, [darkMode])
+
   // Update flow from AI (future enhancement for direct modifications)
   const updateFlowFromAI = useCallback((newNodes: Node[], newEdges: Edge[]) => {
     // Ensure all nodes have the onLabelChange callback
@@ -424,7 +439,7 @@ function FlowChartEditor() {
   }
 
   return (
-    <div className="app">
+    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       <Toolbar
         onAddNode={addNode}
         onTogglePreview={togglePreview}
@@ -440,6 +455,8 @@ function FlowChartEditor() {
         onClearAll={clearAll}
         toolMode={toolMode}
         onSetToolMode={setToolMode}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
       />
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
         <ReactFlow
@@ -468,7 +485,7 @@ function FlowChartEditor() {
           nodesDraggable={toolMode === 'select'}
           elementsSelectable={toolMode === 'select'}
           zoomActivationKeyCode=""
-          className={toolMode === 'hand' ? 'hand-mode' : ''}
+          className={`${darkMode ? 'react-flow-dark' : ''} ${toolMode === 'hand' ? 'hand-mode' : ''}`}
         >
           {showGrid && <Background />}
           <Controls />

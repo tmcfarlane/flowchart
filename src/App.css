@@ -5,6 +5,14 @@
   flex-direction: column;
 }
 
+.app.dark-mode {
+  background: #0f1211;
+}
+
+.app.light-mode {
+  background: #ffffff;
+}
+
 .react-flow-wrapper {
   flex: 1;
   position: relative;
@@ -196,4 +204,99 @@
 
 .react-flow.hand-mode:active .react-flow__node {
   cursor: grabbing;
+}
+
+.react-flow-dark {
+  background: #0f1211;
+}
+
+.react-flow-dark .react-flow__pane {
+  background: #0f1211;
+}
+
+.react-flow-dark .react-flow__controls {
+  background: rgba(39, 39, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow-dark .react-flow__controls button {
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #e7eceb;
+}
+
+.react-flow-dark .react-flow__controls button:hover {
+  background: rgba(120, 252, 214, 0.1);
+  color: #78fcd6;
+}
+
+.react-flow-dark .react-flow__controls button svg {
+  fill: currentColor;
+}
+
+.react-flow-dark .react-flow__background {
+  background: #0f1211;
+}
+
+.react-flow-dark .react-flow__background pattern circle {
+  fill: rgba(255, 255, 255, 0.08);
+}
+
+.react-flow-dark .react-flow__background pattern line {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.react-flow-dark .react-flow__edge-path {
+  stroke: #78fcd6;
+}
+
+.react-flow-dark .react-flow__edge.animated .react-flow__edge-path {
+  stroke: #78fcd6;
+}
+
+.react-flow-dark .react-flow__edge.selected .react-flow__edge-path {
+  stroke: #00ffb6;
+  filter: drop-shadow(0 0 8px rgba(120, 252, 214, 0.6));
+}
+
+.react-flow-dark .react-flow__connection-path {
+  stroke: #78fcd6;
+}
+
+.react-flow-dark .react-flow__connectionline {
+  stroke: #78fcd6;
+}
+
+.react-flow__pane {
+  background: #f8f9fa;
+}
+
+.react-flow__controls {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls button {
+  background: transparent;
+  border-bottom: 1px solid #e0e0e0;
+  color: #333;
+}
+
+.react-flow__controls button:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.react-flow__background {
+  background: #f8f9fa;
+}
+
+.react-flow__background pattern circle {
+  fill: rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__background pattern line {
+  stroke: rgba(0, 0, 0, 0.1);
 }
