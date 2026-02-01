@@ -1,21 +1,22 @@
 .toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  flex-wrap: wrap;
   padding: 10px 20px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 10;
-  gap: 16px;
+  gap: 12px;
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 8px;
+  padding: 4px 8px;
   border-right: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
 }
 
 .toolbar-section:first-child {
@@ -25,6 +26,74 @@
 .toolbar-section:last-child {
   border-right: none;
   padding-right: 0;
+}
+
+/* Hide section dividers when wrapping */
+@media (max-width: 900px) {
+  .toolbar-section {
+    border-right: none;
+  }
+}
+
+/* Smaller screens: more compact layout */
+@media (max-width: 768px) {
+  .toolbar {
+    padding: 8px 12px;
+    gap: 8px;
+  }
+  
+  .toolbar-section {
+    padding: 2px 4px;
+  }
+  
+  .toolbar h2 {
+    font-size: 16px;
+  }
+  
+  .toolbar-button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .toolbar-button.icon-button {
+    padding: 6px 8px;
+    min-width: 32px;
+  }
+  
+  .toolbar-select {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .toolbar-label {
+    font-size: 12px;
+  }
+}
+
+/* Very small screens: hide text labels on some buttons */
+@media (max-width: 600px) {
+  .toolbar h2 {
+    font-size: 14px;
+  }
+  
+  .toolbar-button svg {
+    margin-right: 0 !important;
+  }
+  
+  .toolbar-button.add-node,
+  .toolbar-button.explorer,
+  .toolbar-button.ai,
+  .toolbar-button.preview,
+  .toolbar-button.clear {
+    padding: 6px 8px;
+  }
+  
+  /* Hide text on smaller buttons, keep icons */
+  .toolbar-button.add-node span,
+  .toolbar-button.explorer span,
+  .toolbar-button.ai span {
+    display: none;
+  }
 }
 
 .toolbar h2 {

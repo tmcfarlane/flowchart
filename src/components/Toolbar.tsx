@@ -3,7 +3,6 @@ import { EdgeStyle, SidebarMode } from '../App'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
-  onDeleteSelected: () => void
   onTogglePreview: () => void
   onChangeEdgeStyle: (style: EdgeStyle) => void
   currentEdgeStyle: EdgeStyle
@@ -17,14 +16,10 @@ interface ToolbarProps {
   onClearAll: () => void
   onToggleGrid: () => void
   showGrid: boolean
-  onZoomIn: () => void
-  onZoomOut: () => void
-  onFitView: () => void
 }
 
 function Toolbar({ 
   onAddNode, 
-  onDeleteSelected, 
   onTogglePreview, 
   onChangeEdgeStyle, 
   currentEdgeStyle, 
@@ -38,9 +33,6 @@ function Toolbar({
   onClearAll,
   onToggleGrid,
   showGrid,
-  onZoomIn,
-  onZoomOut,
-  onFitView
 }: ToolbarProps) {
   return (
     <div className="toolbar">
@@ -91,36 +83,7 @@ function Toolbar({
             <path d="M1 1h5v5H1V1zm0 7h5v5H1V8zm7-7h5v5H8V1zm0 7h5v5H8V8z" fillRule="evenodd"/>
           </svg>
         </button>
-        <button
-          className="toolbar-button icon-button"
-          onClick={onZoomIn}
-          title="Zoom In"
-          aria-label="Zoom In"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </button>
-        <button
-          className="toolbar-button icon-button"
-          onClick={onZoomOut}
-          title="Zoom Out"
-          aria-label="Zoom Out"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-          </svg>
-        </button>
-        <button
-          className="toolbar-button icon-button"
-          onClick={onFitView}
-          title="Fit View"
-          aria-label="Fit View"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M2 2h4v1H3v3H2V2zm10 0h4v4h-1V3h-3V2zM2 12v4h4v-1H3v-3H2zm14 0v4h-4v-1h3v-3h1z" fillRule="evenodd"/>
-          </svg>
-        </button>
+
       </div>
       <div className="toolbar-section">
         <button
@@ -174,17 +137,6 @@ function Toolbar({
         </select>
       </div>
       <div className="toolbar-section">
-        <button
-          className="toolbar-button delete"
-          onClick={onDeleteSelected}
-          title="Delete Selected (or press Delete key)"
-          aria-label="Delete Selected"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <path d="M5 3V2h6v1h4v1H1V3h4zM3 5h10l-.5 9H3.5L3 5zm3 1v6h1V6H6zm3 0v6h1V6H9z"/>
-          </svg>
-          Delete
-        </button>
         <button
           className={`toolbar-button explorer ${sidebarMode === 'explorer' ? 'active' : ''}`}
           onClick={onToggleExplorer}

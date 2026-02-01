@@ -15,7 +15,6 @@ import ReactFlow, {
   reconnectEdge,
   MarkerType,
   ReactFlowProvider,
-  useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import './App.css'
@@ -42,7 +41,6 @@ const nodeTypes = {
 }
 
 function FlowChartEditor() {
-  const reactFlowInstance = useReactFlow()
   // Update node label callback
   const updateNodeLabel = useCallback((nodeId: string, label: string) => {
     setNodes((nds) =>
@@ -294,26 +292,6 @@ function FlowChartEditor() {
     setNodeIdCounter((id) => id + clipboard.nodes.length)
   }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel])
 
-  // Zoom in with smooth animation
-  const zoomIn = useCallback(() => {
-    reactFlowInstance.zoomIn({ duration: 400 })
-  }, [reactFlowInstance])
-
-  // Zoom out with smooth animation
-  const zoomOut = useCallback(() => {
-    reactFlowInstance.zoomOut({ duration: 400 })
-  }, [reactFlowInstance])
-
-  // Fit view to show all nodes with smooth animation
-  const fitToView = useCallback(() => {
-    reactFlowInstance.fitView({ 
-      padding: 0.2, 
-      duration: 600,
-      maxZoom: 1.2,
-      minZoom: 0.5,
-    })
-  }, [reactFlowInstance])
-
   // Toggle preview mode
   const togglePreview = useCallback(() => {
     setPreviewMode((prev) => !prev)
@@ -386,7 +364,6 @@ function FlowChartEditor() {
     <div className="app">
       <Toolbar
         onAddNode={addNode}
-        onDeleteSelected={deleteSelected}
         onTogglePreview={togglePreview}
         onChangeEdgeStyle={changeEdgeStyle}
         currentEdgeStyle={defaultEdgeStyle}
@@ -400,9 +377,6 @@ function FlowChartEditor() {
         onClearAll={clearAll}
         onToggleGrid={toggleGrid}
         showGrid={showGrid}
-        onZoomIn={zoomIn}
-        onZoomOut={zoomOut}
-        onFitView={fitToView}
       />
       <ReactFlow
         nodes={nodes}
