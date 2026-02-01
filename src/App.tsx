@@ -17,6 +17,7 @@ import ReactFlow, {
   reconnectEdge,
   MarkerType,
   ReactFlowProvider,
+  useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import './App.css'
@@ -44,6 +45,9 @@ const nodeTypes = {
 }
 
 function FlowChartEditor() {
+  const reactFlowWrapper = useRef<HTMLDivElement>(null)
+  const { screenToFlowPosition } = useReactFlow()
+
   // Update node label callback
   const updateNodeLabel = useCallback((nodeId: string, label: string) => {
     setNodes((nds) =>
@@ -207,10 +211,25 @@ function FlowChartEditor() {
   // Add a new node
   const addNode = useCallback(
     (type: 'step' | 'decision' | 'note') => {
+      // Calculate center of the current viewport
+      let position = { x: 200, y: 200 } // fallback
+      if (reactFlowWrapper.current) {
+        const rect = reactFlowWrapper.current.getBoundingClientRect()
+        position = screenToFlowPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        })
+        // Offset slightly so the node is centered (not top-left at center)
+        const nodeWidth = type === 'decision' ? 160 : 180
+        const nodeHeight = type === 'decision' ? 160 : 80
+        position.x -= nodeWidth / 2
+        position.y -= nodeHeight / 2
+      }
+
       const newNode: Node = {
         id: nodeIdCounter.toString(),
         type,
-        position: { x: Math.random() * 300 + 100, y: Math.random() * 300 + 100 },
+        position,
         data: {
           label: type === 'decision' ? 'Decision?' : type === 'note' ? 'Note' : 'Step',
           onLabelChange: updateNodeLabel,
@@ -223,7 +242,7 @@ function FlowChartEditor() {
       setNodes((nds) => [...nds, newNode])
       setNodeIdCounter((id) => id + 1)
     },
-    [nodeIdCounter, setNodes, updateNodeLabel]
+    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition]
   )
 
   // Delete selected nodes and edges
@@ -422,37 +441,39 @@ function FlowChartEditor() {
         toolMode={toolMode}
         onSetToolMode={setToolMode}
       />
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onReconnect={onReconnect}
-        nodeTypes={nodeTypes}
-        connectionMode={ConnectionMode.Loose}
-        fitView
-        fitViewOptions={{ padding: 0.2, duration: 600, maxZoom: 1.2 }}
-        deleteKeyCode="Delete"
-        snapToGrid={showGrid}
-        snapGrid={[15, 15]}
-        minZoom={0.1}
-        maxZoom={2}
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        panOnScroll={true}
-        panOnScrollSpeed={0.8}
-        zoomOnDoubleClick={false}
-        selectionOnDrag={toolMode === 'select'}
-        selectionMode={SelectionMode.Partial}
-        panOnDrag={toolMode === 'hand' ? true : [1, 2]}
-        nodesDraggable={toolMode === 'select'}
-        elementsSelectable={toolMode === 'select'}
-        zoomActivationKeyCode=""
-        className={toolMode === 'hand' ? 'hand-mode' : ''}
-      >
-        {showGrid && <Background />}
-        <Controls />
-      </ReactFlow>
+      <div ref={reactFlowWrapper} className="react-flow-wrapper">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onReconnect={onReconnect}
+          nodeTypes={nodeTypes}
+          connectionMode={ConnectionMode.Loose}
+          fitView
+          fitViewOptions={{ padding: 0.2, duration: 600, maxZoom: 1.2 }}
+          deleteKeyCode="Delete"
+          snapToGrid={showGrid}
+          snapGrid={[15, 15]}
+          minZoom={0.1}
+          maxZoom={2}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          panOnScroll={true}
+          panOnScrollSpeed={0.8}
+          zoomOnDoubleClick={false}
+          selectionOnDrag={toolMode === 'select'}
+          selectionMode={SelectionMode.Partial}
+          panOnDrag={toolMode === 'hand' ? true : [1, 2]}
+          nodesDraggable={toolMode === 'select'}
+          elementsSelectable={toolMode === 'select'}
+          zoomActivationKeyCode=""
+          className={toolMode === 'hand' ? 'hand-mode' : ''}
+        >
+          {showGrid && <Background />}
+          <Controls />
+        </ReactFlow>
+      </div>
       {(() => {
         const { selectedNodes, selectedEdges } = getSelectedItems()
         const totalSelected = selectedNodes.length + selectedEdges.length

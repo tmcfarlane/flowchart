@@ -5,6 +5,11 @@
   flex-direction: column;
 }
 
+.react-flow-wrapper {
+  flex: 1;
+  position: relative;
+}
+
 .react-flow {
   flex: 1;
 }
