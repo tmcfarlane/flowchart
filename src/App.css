@@ -176,3 +176,19 @@
 .selection-toolbar-button.paste:hover:not(:disabled) {
   background: #40c057;
 }
+
+.react-flow.hand-mode {
+  cursor: grab;
+}
+
+.react-flow.hand-mode:active {
+  cursor: grabbing;
+}
+
+.react-flow.hand-mode .react-flow__node {
+  cursor: grab;
+}
+
+.react-flow.hand-mode:active .react-flow__node {
+  cursor: grabbing;
+}

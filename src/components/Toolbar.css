@@ -1,21 +1,25 @@
+/* Zero Click Dev Design System - Toolbar Styles */
+/* Dark-first design with teal/cyan accents (#78fcd6, #00ffb6) */
+
 .toolbar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  padding: 10px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  padding: 12px 24px;
+  background: #0f1211;
+  color: #e7eceb;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 252, 214, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 10;
-  gap: 12px;
+  gap: 16px;
 }
 
 .toolbar-section {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 8px;
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
 }
 
@@ -28,6 +32,19 @@
   padding-right: 0;
 }
 
+/* Brand section styling */
+.toolbar-section.toolbar-brand {
+  padding-right: 16px;
+}
+
+.toolbar-section.toolbar-brand h2 {
+  background: linear-gradient(to right, #78fcd6, #00ffb6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(120, 252, 214, 0.3);
+}
+
 /* Hide section dividers when wrapping */
 @media (max-width: 900px) {
   .toolbar-section {
@@ -38,12 +55,12 @@
 /* Smaller screens: more compact layout */
 @media (max-width: 768px) {
   .toolbar {
-    padding: 8px 12px;
-    gap: 8px;
+    padding: 10px 16px;
+    gap: 10px;
   }
   
   .toolbar-section {
-    padding: 2px 4px;
+    padding: 2px 6px;
   }
   
   .toolbar h2 {
@@ -51,17 +68,17 @@
   }
   
   .toolbar-button {
-    padding: 6px 10px;
+    padding: 8px 12px;
     font-size: 12px;
   }
   
   .toolbar-button.icon-button {
-    padding: 6px 8px;
-    min-width: 32px;
+    padding: 8px;
+    min-width: 36px;
   }
   
   .toolbar-select {
-    padding: 6px 10px;
+    padding: 8px 12px;
     font-size: 12px;
   }
   
@@ -85,7 +102,7 @@
   .toolbar-button.ai,
   .toolbar-button.preview,
   .toolbar-button.clear {
-    padding: 6px 8px;
+    padding: 8px;
   }
   
   /* Hide text on smaller buttons, keep icons */
@@ -98,142 +115,198 @@
 
 .toolbar h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
+/* Base button style - Ghost/subtle style */
 .toolbar-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 7px 14px;
-  background: white;
-  color: #667eea;
-  border: none;
-  border-radius: 6px;
+  padding: 8px 16px;
+  background: rgba(120, 252, 214, 0.1);
+  color: #e7eceb;
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  box-shadow: none;
   white-space: nowrap;
 }
 
 .toolbar-button:hover {
+  background: rgba(120, 252, 214, 0.2);
+  border-color: rgba(120, 252, 214, 0.4);
+  color: #78fcd6;
   transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(120, 252, 214, 0.15);
 }
 
 .toolbar-button:active {
   transform: translateY(0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(120, 252, 214, 0.1);
 }
 
 .toolbar-button svg {
   flex-shrink: 0;
 }
 
+/* Add node buttons - Primary gradient style */
 .toolbar-button.add-node {
-  background: rgba(255, 255, 255, 0.95);
-  color: #667eea;
+  background: linear-gradient(to right, #78fcd6, #00ffb6);
+  color: #0f1211;
+  border: none;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(120, 252, 214, 0.25);
 }
 
 .toolbar-button.add-node:hover {
-  background: white;
+  background: linear-gradient(to right, #00ffb6, #78fcd6);
+  color: #0f1211;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(120, 252, 214, 0.4);
 }
 
+.toolbar-button.add-node:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(120, 252, 214, 0.25);
+}
+
+/* Delete button - Destructive style */
 .toolbar-button.delete {
-  background: #ff6b6b;
-  color: white;
+  background: rgba(255, 107, 107, 0.15);
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
 }
 
 .toolbar-button.delete:hover {
-  background: #ff5252;
+  background: rgba(255, 107, 107, 0.25);
+  border-color: rgba(255, 107, 107, 0.5);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
 }
 
+/* Explorer button */
 .toolbar-button.explorer {
-  background: #4dabf7;
-  color: white;
+  background: rgba(120, 252, 214, 0.1);
+  color: #e7eceb;
+  border-color: rgba(120, 252, 214, 0.2);
 }
 
 .toolbar-button.explorer:hover {
-  background: #339af0;
+  background: rgba(120, 252, 214, 0.2);
+  color: #78fcd6;
+  border-color: rgba(120, 252, 214, 0.4);
 }
 
 .toolbar-button.explorer.active {
-  background: #1c7ed6;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  background: rgba(120, 252, 214, 0.25);
+  color: #78fcd6;
+  border-color: rgba(120, 252, 214, 0.5);
+  box-shadow: 0 0 12px rgba(120, 252, 214, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+/* AI button */
 .toolbar-button.ai {
-  background: #845ef7;
-  color: white;
+  background: rgba(120, 252, 214, 0.1);
+  color: #e7eceb;
+  border-color: rgba(120, 252, 214, 0.2);
 }
 
 .toolbar-button.ai:hover {
-  background: #7950f2;
+  background: rgba(120, 252, 214, 0.2);
+  color: #78fcd6;
+  border-color: rgba(120, 252, 214, 0.4);
 }
 
 .toolbar-button.ai.active {
-  background: #6741d9;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  background: rgba(120, 252, 214, 0.25);
+  color: #78fcd6;
+  border-color: rgba(120, 252, 214, 0.5);
+  box-shadow: 0 0 12px rgba(120, 252, 214, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+/* Preview button - Primary solid style */
 .toolbar-button.preview {
-  background: #51cf66;
-  color: white;
+  background: #78fcd6;
+  color: #0f1211;
+  border: none;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(120, 252, 214, 0.25);
 }
 
 .toolbar-button.preview:hover {
-  background: #40c057;
+  background: #00ffb6;
+  box-shadow: 0 4px 16px rgba(120, 252, 214, 0.4);
 }
 
+/* Clear button - Warning style */
 .toolbar-button.clear {
-  background: #ff922b;
-  color: white;
+  background: rgba(255, 146, 43, 0.15);
+  color: #ff922b;
+  border-color: rgba(255, 146, 43, 0.3);
 }
 
 .toolbar-button.clear:hover {
-  background: #fd7e14;
+  background: rgba(255, 146, 43, 0.25);
+  border-color: rgba(255, 146, 43, 0.5);
+  box-shadow: 0 4px 12px rgba(255, 146, 43, 0.2);
 }
 
+/* Labels */
 .toolbar-label {
   font-size: 13px;
   font-weight: 500;
-  margin-right: 6px;
+  margin-right: 8px;
   white-space: nowrap;
+  color: rgba(231, 236, 235, 0.7);
 }
 
+/* Select dropdown */
 .toolbar-select {
-  padding: 7px 12px;
-  background: white;
-  color: #667eea;
-  border: 2px solid transparent;
-  border-radius: 6px;
+  padding: 8px 14px;
+  background: rgba(120, 252, 214, 0.1);
+  color: #e7eceb;
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
+  box-shadow: none;
+  transition: all 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%2378fcd6'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
 }
 
 .toolbar-select:hover {
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(120, 252, 214, 0.15);
+  border-color: rgba(120, 252, 214, 0.4);
 }
 
 .toolbar-select:focus {
   outline: none;
-  border-color: white;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 3px rgba(120, 252, 214, 0.2);
 }
 
+.toolbar-select option {
+  background: #0f1211;
+  color: #e7eceb;
+  padding: 8px;
+}
+
+/* Icon buttons (undo/redo) */
 .toolbar-button.icon-button {
-  padding: 7px 10px;
+  padding: 8px 12px;
   font-size: 16px;
   line-height: 1;
-  min-width: 38px;
+  min-width: 40px;
 }
 
 .toolbar-button.icon-button svg {
@@ -242,8 +315,9 @@
 }
 
 .toolbar-button.icon-button:disabled {
-  background: rgba(255, 255, 255, 0.4);
-  color: rgba(102, 126, 234, 0.4);
+  background: rgba(39, 39, 42, 0.5);
+  color: rgba(231, 236, 235, 0.3);
+  border-color: rgba(255, 255, 255, 0.05);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -252,10 +326,49 @@
 .toolbar-button.icon-button:disabled:hover {
   transform: none;
   box-shadow: none;
+  background: rgba(39, 39, 42, 0.5);
+  color: rgba(231, 236, 235, 0.3);
 }
 
 .toolbar-button.icon-button.active {
-  background: rgba(255, 255, 255, 0.95);
-  color: #667eea;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  background: rgba(120, 252, 214, 0.2);
+  color: #78fcd6;
+  border-color: rgba(120, 252, 214, 0.4);
+}
+
+/* Tool toggle section (select/hand tools) */
+.toolbar-section.tool-toggle {
+  background: rgba(39, 39, 42, 0.6);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toolbar-button.tool-btn {
+  background: transparent;
+  color: rgba(231, 236, 235, 0.6);
+  box-shadow: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.toolbar-button.tool-btn:hover {
+  background: rgba(120, 252, 214, 0.1);
+  color: #e7eceb;
+  transform: none;
+  box-shadow: none;
+}
+
+.toolbar-button.tool-btn.active {
+  background: linear-gradient(to right, rgba(120, 252, 214, 0.2), rgba(0, 255, 182, 0.2));
+  color: #78fcd6;
+  box-shadow: 0 0 8px rgba(120, 252, 214, 0.15);
+  border: 1px solid rgba(120, 252, 214, 0.3);
+}
+
+.toolbar-button.tool-btn.active:hover {
+  background: linear-gradient(to right, rgba(120, 252, 214, 0.25), rgba(0, 255, 182, 0.25));
+  color: #78fcd6;
 }

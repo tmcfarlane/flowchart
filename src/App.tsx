@@ -6,6 +6,7 @@ import ReactFlow, {
   Background,
   Connection,
   ConnectionMode,
+  SelectionMode,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -29,6 +30,7 @@ import AIChat from './components/AIChat'
 
 export type EdgeStyle = 'default' | 'animated' | 'step' | 'smoothstep'
 export type SidebarMode = 'none' | 'explorer' | 'ai'
+export type ToolMode = 'select' | 'hand'
 
 interface HistoryState {
   nodes: Node[]
@@ -67,7 +69,8 @@ function FlowChartEditor() {
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
-  const [showGrid, setShowGrid] = useState(true)
+  const showGrid = true
+  const [toolMode, setToolMode] = useState<ToolMode>('select')
   const [clipboard, setClipboard] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] })
 
   // Undo/Redo history management
@@ -235,11 +238,6 @@ function FlowChartEditor() {
     setEdges([])
   }, [setNodes, setEdges])
 
-  // Toggle grid visibility
-  const toggleGrid = useCallback(() => {
-    setShowGrid((prev) => !prev)
-  }, [])
-
   // Get selected nodes and edges
   const getSelectedItems = useCallback(() => {
     const selectedNodes = nodes.filter((node) => node.selected)
@@ -292,6 +290,51 @@ function FlowChartEditor() {
     setEdges((eds) => [...eds, ...pastedEdges])
     setNodeIdCounter((id) => id + clipboard.nodes.length)
   }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel])
+
+  // Cut selected nodes and edges (copy + delete)
+  const cutSelection = useCallback(() => {
+    copySelection()
+    deleteSelected()
+  }, [copySelection, deleteSelected])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return
+      }
+
+      const isMod = e.ctrlKey || e.metaKey
+
+      if (isMod && e.key === 'c') {
+        e.preventDefault()
+        copySelection()
+      } else if (isMod && e.key === 'v') {
+        e.preventDefault()
+        pasteSelection()
+      } else if (isMod && e.key === 'x') {
+        e.preventDefault()
+        cutSelection()
+      } else if (isMod && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+      } else if (isMod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault()
+        redo()
+      } else if (e.key === 'v' && !isMod) {
+        setToolMode('select')
+      } else if (e.key === 'h' && !isMod) {
+        setToolMode('hand')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [copySelection, pasteSelection, cutSelection, undo, redo])
 
   // Toggle preview mode
   const togglePreview = useCallback(() => {
@@ -376,8 +419,8 @@ function FlowChartEditor() {
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
         onClearAll={clearAll}
-        onToggleGrid={toggleGrid}
-        showGrid={showGrid}
+        toolMode={toolMode}
+        onSetToolMode={setToolMode}
       />
       <ReactFlow
         nodes={nodes}
@@ -399,9 +442,13 @@ function FlowChartEditor() {
         panOnScroll={true}
         panOnScrollSpeed={0.8}
         zoomOnDoubleClick={false}
-        selectNodesOnDrag={false}
-        panOnDrag={[1, 2]}
+        selectionOnDrag={toolMode === 'select'}
+        selectionMode={SelectionMode.Partial}
+        panOnDrag={toolMode === 'hand' ? true : [1, 2]}
+        nodesDraggable={toolMode === 'select'}
+        elementsSelectable={toolMode === 'select'}
         zoomActivationKeyCode=""
+        className={toolMode === 'hand' ? 'hand-mode' : ''}
       >
         {showGrid && <Background />}
         <Controls />

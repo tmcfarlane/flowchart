@@ -1,5 +1,5 @@
 import './Toolbar.css'
-import { EdgeStyle, SidebarMode } from '../App'
+import { EdgeStyle, SidebarMode, ToolMode } from '../App'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
@@ -14,8 +14,8 @@ interface ToolbarProps {
   canUndo: boolean
   canRedo: boolean
   onClearAll: () => void
-  onToggleGrid: () => void
-  showGrid: boolean
+  toolMode: ToolMode
+  onSetToolMode: (mode: ToolMode) => void
 }
 
 function Toolbar({ 
@@ -31,13 +31,35 @@ function Toolbar({
   canUndo,
   canRedo,
   onClearAll,
-  onToggleGrid,
-  showGrid,
+  toolMode,
+  onSetToolMode,
 }: ToolbarProps) {
   return (
     <div className="toolbar">
-      <div className="toolbar-section">
-        <h2>FlowChart Designer</h2>
+      <div className="toolbar-section toolbar-brand">
+        <h2>ZeroClickDev Board</h2>
+      </div>
+      <div className="toolbar-section tool-toggle">
+        <button
+          className={`toolbar-button icon-button tool-btn ${toolMode === 'select' ? 'active' : ''}`}
+          onClick={() => onSetToolMode('select')}
+          title="Selection Tool (V)"
+          aria-label="Selection Tool"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M2 1l10 8-4 1-2 4-1-5-3-8z"/>
+          </svg>
+        </button>
+        <button
+          className={`toolbar-button icon-button tool-btn ${toolMode === 'hand' ? 'active' : ''}`}
+          onClick={() => onSetToolMode('hand')}
+          title="Hand Tool (H) - Pan the canvas"
+          aria-label="Hand Tool"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 1v4M5 3v5M11 3v5M3 6v6c0 2 1 3 3 3h4c2 0 3-1 3-3V6M3 6c-1 0-1.5.5-1.5 1.5S2 9 3 9M13 6c1 0 1.5.5 1.5 1.5S14 9 13 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
       <div className="toolbar-section">
         <button
@@ -72,16 +94,6 @@ function Toolbar({
             <path d="M2 3h12v1H2V3zm1 2h10l-.5 9H3.5L3 5zm3 2v5h1V7H6zm3 0v5h1V7H9z"/>
           </svg>
           Clear
-        </button>
-        <button
-          className={`toolbar-button icon-button ${showGrid ? 'active' : ''}`}
-          onClick={onToggleGrid}
-          title="Toggle Grid"
-          aria-label="Toggle Grid"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M1 1h5v5H1V1zm0 7h5v5H1V8zm7-7h5v5H8V1zm0 7h5v5H8V8z" fillRule="evenodd"/>
-          </svg>
         </button>
 
       </div>
