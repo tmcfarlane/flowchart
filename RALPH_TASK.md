@@ -1,95 +1,87 @@
 ---
-
-task: UI Repo Optimization + Best Practices Sweep
+task: FlowChart Designer – UI Polish & Interaction Pass (Vite + React + TypeScript)
 test_command: "pnpm test"
 ---
 
-# Task: UI Repo Optimization + Best Practices Sweep
+# Task: FlowChart Designer – UI Polish & Interaction Pass
 
-Perform a production-minded optimization + best-practices pass on our UI repository without changing product behavior. Use `agent-browser` to visually verify key flows after changes.
+Perform a focused UI/UX polish pass on the existing FlowChart Designer to ensure interactions feel clear, consistent, and presentation-ready.
 
-## Requirements
-
-1. **No feature changes**: do not change UX/product behavior (only performance, reliability, maintainability, accessibility correctness).
-2. **Keep diffs clean**: prefer small, reviewable commits.
-3. **Use agent-browser** to visually verify the app still behaves correctly after each major change set.
-4. **All tests must pass** at the end.
-5. If a best-practice change requires a behavior change, **skip it** and document why in the PR notes.
-
-## Scope Areas
-
-* Performance: bundle size, route/component code-splitting, render hotspots, memoization where appropriate
-* Best practices: linting, TypeScript strictness, dead code, consistent patterns
-* Accessibility: keyboard navigation, focus states, aria labels, contrast regressions (no design changes unless fixing a bug)
-* Reliability: error boundaries, loading states, network retry/backoff where already intended
-* DX/Repo health: scripts, CI consistency, dependency hygiene
+This task assumes all prior core functionality is already implemented.
 
 ## Success Criteria
 
-1. [ ] **Baseline recorded**: capture before/after metrics in `docs/optimization-report.md`:
+1. [x] App loads to a blank canvas with a toolbar and 1 starter node
+2. [x] Users can add nodes of at least 3 types (Step, Decision, Note)
+3. [x] Users can drag nodes to reposition them and changes persist in local state
+4. [x] Users can connect nodes by dragging handles; edges support multiple styles
+5. [x] Users can edit node text/label
+6. [x] Users can delete selected nodes/edges
+7. [x] Decision nodes use a default 4-direction handle layout; incoming edges snap to nearest side
+8. [x] Preview mode enters full-screen presentation with Next / Previous navigation
+9. [x] Preview highlights the active node, centers it, and exits cleanly back to editor
+10. [x] Right sidebar supports Explorer and AI chat modes
+11. [x] AI requests are proxied through `/api/chat` with server-side env vars only
+12. [x] AI suggestions can be previewed and applied via an **Apply Changes** flow
+13. [x] Undo / Redo works for nodes and edges (10-step history)
+14. [x] Clear All, Grid Toggle, Whiteboard Mode, Zoom In/Out are implemented
+15. [x] Multi-select, delete, copy, and paste work for nodes and edges
 
-   * build size summary (from existing build output)
-   * key route load times (rough numbers are fine)
-   * any obvious React render hotspots observed
-2. [ ] **Bundle + dependency hygiene**:
+### UI Polish & Interaction (FOCUS OF THIS TASK)
 
-   * remove unused deps (or justify)
-   * ensure lockfile is consistent
-   * dedupe deps where safe
-3. [ ] **Build + tooling best practices**:
+16. [x] Nodes are **resizable** via visible resize handles/corners
+17. [x] Resizing updates node dimensions in React Flow state and persists during the session
+18. [x] Node interaction affordances are visually clear:
+    - Hover states for nodes, handles, and edges
+    - Clear selected, multi-selected, and active states
+19. [x] Connection creation feels intentional:
+    - Handles are hidden until hover
+    - Nearby handles appear during drag
+    - Edge style selection is discoverable and consistent
+20. [x] Toolbar and sidebar are visually polished:
+    - Clear iconography
+    - Consistent spacing and alignment
+    - No visual clutter during common workflows
+21. [x] Multi-select, delete, copy, paste affordances feel cohesive and predictable
+22. [x] Zooming, panning, and centering interactions feel smooth and non-jarring
 
-   * ensure eslint + prettier (or existing formatter) run clean
-   * fix the *highest-signal* lint rules (no noisy rule bikeshedding)
-   * ensure TypeScript is not hiding errors via `any`/`@ts-ignore` unless justified
-4. [ ] **Performance wins with zero UX change** (pick the best 2–4 that apply):
+### AI Chat UX Polish
 
-   * lazy-load heavy routes/components
-   * remove unnecessary re-renders (memo/useMemo/useCallback only when it measurably helps)
-   * optimize expensive lists (virtualization if already borderline, otherwise skip)
-   * reduce large asset impact (proper formats, compression, caching headers if applicable)
-5. [ ] **Accessibility pass**:
+23. [x] AI chat produces a **Proposed Flow** preview state
+24. [x] Proposed Flow includes explicit actions:
+    - **Insert** (apply changes)
+    - **Cancel** (discard proposal)
+    - **Regenerate** (request a new proposal)
+25. [x] No AI-generated raw JSON is ever displayed to the user
+26. [x] Transition between Explorer ↔ AI sidebar feels smooth and intentional
 
-   * fix missing labels/roles and keyboard traps
-   * ensure focus indicators exist (don’t remove outlines; enhance if needed)
-   * confirm dialogs/menus behave correctly with keyboard navigation
-6. [ ] **Stability pass**:
 
-   * add/verify error boundaries around risky sections
-   * ensure async flows have proper loading + error states (if missing)
-7. [ ] **agent-browser visual verification**:
+### Verification
 
-   * verify app loads
-   * verify primary navigation works
-   * verify the top 3 critical user flows (derive from existing app; document what you tested)
-   * verify no obvious layout breakages on common viewport sizes
-8. [ ] **All tests pass**
-9. [ ] **PR-ready summary**:
+27. [x] Use `agent-browser` to visually verify:
+    - Toolbar layout and icon clarity
+    - Sidebar (Explorer + AI) layout
+    - Node, edge, and selection styling
+    - Resize, connect, multi-select, and preview interactions
+28. [x] All tests pass
 
-   * update `docs/optimization-report.md` with what changed, why, and impact
-   * include “Skipped / not worth it” section to show good judgment
+---
 
-## Example Output
+## Context
 
-```
-- docs/optimization-report.md updated with baseline + results
-- Reduced main bundle by ~12% via route-level lazy loading
-- Removed 2 unused dependencies; lockfile normalized
-- Fixed 14 lint issues (no behavior changes)
-- Verified flows in agent-browser: Login -> Dashboard, Search -> Detail, Settings update
-- pnpm test: PASS
-```
+- Front-end only (no backend) **except** `/api/chat` Vercel Serverless Function
+- Vite + React + TypeScript
+- React Flow is the graph engine
+- This task is **UI/UX polish only** — no new core features
+- Focus on clarity, consistency, and design-tool-quality interactions
 
 ---
 
 ## Ralph Instructions
 
 1. Work on the next incomplete criterion (marked [ ])
-2. After each meaningful change set:
-
-   * run `pnpm test`
-   * run `pnpm lint` (or the repo’s lint command) if available
-   * use `agent-browser` to visually verify at least one critical flow
-3. Keep commits small and frequent (e.g., “chore: remove unused deps”, “perf: lazy-load route X”)
-4. If a change risks behavior/UX differences, revert and document it as skipped
+2. Check off completed criteria (change [ ] to [x])
+3. Run tests after changes
+4. Commit your changes frequently
 5. When ALL criteria are [x], output: `<ralph>COMPLETE</ralph>`
 6. If stuck on the same issue 3+ times, output: `<ralph>GUTTER</ralph>`
