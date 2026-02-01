@@ -9,11 +9,6 @@
   flex: 1;
 }
 
-/* Smooth viewport transitions */
-.react-flow__viewport {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 .react-flow__node {
   cursor: grab;
   transition: filter 0.2s ease;
@@ -180,16 +175,4 @@
 
 .selection-toolbar-button.paste:hover:not(:disabled) {
   background: #40c057;
-}
-
-.react-flow__handle {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.react-flow__handle:hover {
-  transform: scale(1.3);
-  box-shadow: 0 0 8px rgba(102, 126, 234, 0.6);
 }

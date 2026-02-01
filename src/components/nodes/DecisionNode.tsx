@@ -34,16 +34,21 @@ function DecisionNode({ data, id, selected }: NodeProps) {
   return (
     <>
       <NodeResizer 
-        minWidth={120} 
-        minHeight={120} 
+        minWidth={140} 
+        minHeight={140} 
         isVisible={selected}
         keepAspectRatio={true}
+        lineClassName="node-resize-line"
+        handleClassName="node-resize-handle"
       />
-      <div className={`custom-node decision-node ${selected ? 'selected' : ''}`}>
-        <Handle type="target" position={Position.Top} id="target-top" />
-        <Handle type="target" position={Position.Right} id="target-right" />
-        <Handle type="target" position={Position.Bottom} id="target-bottom" />
-        <Handle type="target" position={Position.Left} id="target-left" />
+      <div className={`decision-node ${selected ? 'selected' : ''}`}>
+        <div className="decision-border" />
+        <div className="decision-diamond" />
+        
+        <Handle type="source" position={Position.Top} id="top" />
+        <Handle type="source" position={Position.Right} id="right" />
+        <Handle type="source" position={Position.Bottom} id="bottom" />
+        <Handle type="source" position={Position.Left} id="left" />
 
         {isEditing ? (
           <input
@@ -60,11 +65,6 @@ function DecisionNode({ data, id, selected }: NodeProps) {
             {label}
           </div>
         )}
-
-        <Handle type="source" position={Position.Top} id="source-top" />
-        <Handle type="source" position={Position.Right} id="source-right" />
-        <Handle type="source" position={Position.Bottom} id="source-bottom" />
-        <Handle type="source" position={Position.Left} id="source-left" />
       </div>
     </>
   )

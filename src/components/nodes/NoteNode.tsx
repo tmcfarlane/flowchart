@@ -34,15 +34,17 @@ function NoteNode({ data, id, selected }: NodeProps) {
   return (
     <>
       <NodeResizer 
-        minWidth={120} 
-        minHeight={80} 
+        minWidth={140} 
+        minHeight={100} 
         isVisible={selected}
+        lineClassName="node-resize-line"
+        handleClassName="node-resize-handle"
       />
-      <div className={`custom-node note-node ${selected ? 'selected' : ''}`}>
-        <Handle type="target" position={Position.Top} id="target-top" />
-        <Handle type="target" position={Position.Right} id="target-right" />
-        <Handle type="target" position={Position.Bottom} id="target-bottom" />
-        <Handle type="target" position={Position.Left} id="target-left" />
+      <div className={`note-node ${selected ? 'selected' : ''}`}>
+        <Handle type="source" position={Position.Top} id="top" />
+        <Handle type="source" position={Position.Right} id="right" />
+        <Handle type="source" position={Position.Bottom} id="bottom" />
+        <Handle type="source" position={Position.Left} id="left" />
         
         {isEditing ? (
           <textarea
@@ -58,11 +60,6 @@ function NoteNode({ data, id, selected }: NodeProps) {
             {label}
           </div>
         )}
-        
-        <Handle type="source" position={Position.Top} id="source-top" />
-        <Handle type="source" position={Position.Right} id="source-right" />
-        <Handle type="source" position={Position.Bottom} id="source-bottom" />
-        <Handle type="source" position={Position.Left} id="source-left" />
       </div>
     </>
   )

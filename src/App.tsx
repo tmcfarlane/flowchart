@@ -5,6 +5,7 @@ import ReactFlow, {
   Controls,
   Background,
   Connection,
+  ConnectionMode,
   addEdge,
   useNodesState,
   useEdgesState,
@@ -386,6 +387,7 @@ function FlowChartEditor() {
         onConnect={onConnect}
         onReconnect={onReconnect}
         nodeTypes={nodeTypes}
+        connectionMode={ConnectionMode.Loose}
         fitView
         fitViewOptions={{ padding: 0.2, duration: 600, maxZoom: 1.2 }}
         deleteKeyCode="Delete"
