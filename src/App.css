@@ -16,6 +16,7 @@
 .react-flow-wrapper {
   flex: 1;
   position: relative;
+  height: 100%;
 }
 
 .react-flow {
@@ -170,6 +171,10 @@
   background: #ff6b6b;
 }
 
+.selection-toolbar-button.delete svg {
+  color: #9aa0a6;
+}
+
 .selection-toolbar-button.delete:hover {
   background: #ff5252;
 }
@@ -188,6 +193,122 @@
 
 .selection-toolbar-button.paste:hover:not(:disabled) {
   background: #40c057;
+}
+
+.app.dark-mode .selection-toolbar {
+  background: rgba(15, 18, 17, 0.95);
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(120, 252, 214, 0.1);
+}
+
+.app.dark-mode .selection-toolbar-text {
+  color: #e7eceb;
+  border-right-color: rgba(255, 255, 255, 0.1);
+}
+
+.app.dark-mode .selection-toolbar-button {
+  background: rgba(120, 252, 214, 0.15);
+  color: #e7eceb;
+  border: 1px solid rgba(120, 252, 214, 0.2);
+}
+
+.app.dark-mode .selection-toolbar-button:hover:not(:disabled) {
+  background: rgba(120, 252, 214, 0.25);
+  color: #78fcd6;
+  border-color: rgba(120, 252, 214, 0.4);
+}
+
+.app.dark-mode .selection-toolbar-button.delete {
+  background: rgba(255, 107, 107, 0.2);
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.app.dark-mode .selection-toolbar-button.delete svg {
+  color: rgba(231, 236, 235, 0.6);
+}
+
+.app.dark-mode .selection-toolbar-button.delete:hover {
+  background: rgba(255, 107, 107, 0.3);
+  border-color: rgba(255, 107, 107, 0.5);
+}
+
+.app.dark-mode .selection-toolbar-button.copy {
+  background: rgba(77, 171, 247, 0.2);
+  color: #4dabf7;
+  border-color: rgba(77, 171, 247, 0.3);
+}
+
+.app.dark-mode .selection-toolbar-button.copy:hover {
+  background: rgba(77, 171, 247, 0.3);
+  border-color: rgba(77, 171, 247, 0.5);
+}
+
+.app.dark-mode .selection-toolbar-button.paste {
+  background: rgba(81, 207, 102, 0.2);
+  color: #51cf66;
+  border-color: rgba(81, 207, 102, 0.3);
+}
+
+.app.dark-mode .selection-toolbar-button.paste:hover:not(:disabled) {
+  background: rgba(81, 207, 102, 0.3);
+  border-color: rgba(81, 207, 102, 0.5);
+}
+
+.app.dark-mode .selection-toolbar-button:disabled {
+  background: rgba(39, 39, 42, 0.5);
+  color: rgba(231, 236, 235, 0.3);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.selection-toolbar-select {
+  padding: 7px 28px 7px 12px;
+  background: #f8f9fa;
+  color: #495057;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%234b5563'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.selection-toolbar-select:hover {
+  border-color: #adb5bd;
+}
+
+.selection-toolbar-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+}
+
+.app.dark-mode .selection-toolbar-select {
+  background: rgba(120, 252, 214, 0.08);
+  color: #e7eceb;
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%2378fcd6'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.app.dark-mode .selection-toolbar-select:hover {
+  border-color: rgba(120, 252, 214, 0.4);
+  background: rgba(120, 252, 214, 0.12);
+}
+
+.app.dark-mode .selection-toolbar-select:focus {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 2px rgba(120, 252, 214, 0.2);
+}
+
+.app.dark-mode .selection-toolbar-select option {
+  background: #0f1211;
+  color: #e7eceb;
 }
 
 .react-flow.hand-mode {

@@ -269,3 +269,113 @@
 .note-node.selected:hover .react-flow__handle {
   opacity: 1;
 }
+
+/* ========================================
+   DARK MODE STYLES
+   ======================================== */
+
+/* Step Node - Dark Mode */
+.react-flow-dark .step-node {
+  background: linear-gradient(135deg, #1a2f23 0%, #0f1211 100%);
+  border-color: #78fcd6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 252, 214, 0.1);
+}
+
+.react-flow-dark .step-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(120, 252, 214, 0.15);
+  border-color: #00ffb6;
+}
+
+.react-flow-dark .step-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.2),
+              0 6px 16px rgba(0, 0, 0, 0.5),
+              0 0 30px rgba(120, 252, 214, 0.2);
+}
+
+/* Decision Node - Dark Mode */
+.react-flow-dark .decision-node .decision-diamond {
+  background: linear-gradient(135deg, #2a1f0a 0%, #0f1211 100%);
+}
+
+.react-flow-dark .decision-node .decision-border {
+  background: #ffa94d;
+  box-shadow: 0 0 20px rgba(255, 169, 77, 0.2);
+}
+
+.react-flow-dark .decision-node.selected .decision-border {
+  background: #78fcd6;
+  box-shadow: 0 0 30px rgba(120, 252, 214, 0.3);
+}
+
+/* Note Node - Dark Mode */
+.react-flow-dark .note-node {
+  background: linear-gradient(135deg, #2a2510 0%, #0f1211 100%);
+  border-color: #ffd43b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 212, 59, 0.1);
+}
+
+.react-flow-dark .note-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 212, 59, 0.15);
+  border-color: #fab005;
+}
+
+.react-flow-dark .note-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.2),
+              0 6px 16px rgba(0, 0, 0, 0.5),
+              0 0 30px rgba(120, 252, 214, 0.2);
+}
+
+/* Node Labels - Dark Mode */
+.react-flow-dark .node-label {
+  color: #e7eceb;
+}
+
+.react-flow-dark .node-label:hover {
+  color: #78fcd6;
+}
+
+/* Node Input/Textarea - Dark Mode */
+.react-flow-dark .node-input,
+.react-flow-dark .node-textarea {
+  background: #1a1d1c;
+  color: #e7eceb;
+  border-color: #78fcd6;
+}
+
+.react-flow-dark .node-input:focus,
+.react-flow-dark .node-textarea:focus {
+  border-color: #00ffb6;
+  box-shadow: 0 0 8px rgba(120, 252, 214, 0.3);
+}
+
+/* Handles - Dark Mode */
+.react-flow-dark .react-flow__handle {
+  background: #78fcd6;
+  border-color: #0f1211;
+}
+
+.react-flow-dark .react-flow__handle:hover {
+  background: #00ffb6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow-dark .react-flow__handle-connecting {
+  background: #00ffb6;
+  box-shadow: 0 0 0 3px rgba(120, 252, 214, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Resize Handles - Dark Mode */
+.react-flow-dark .node-resize-handle {
+  background: #0f1211 !important;
+  border-color: #78fcd6 !important;
+}
+
+.react-flow-dark .node-resize-handle:hover {
+  background: #78fcd6 !important;
+}
+
+.react-flow-dark .node-resize-line {
+  border-color: #78fcd6 !important;
+}

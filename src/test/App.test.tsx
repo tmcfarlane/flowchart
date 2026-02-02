@@ -5,7 +5,7 @@ import App from '../App'
 describe('FlowChart Designer', () => {
   it('renders the app with toolbar', () => {
     render(<App />)
-    expect(screen.getByText('FlowChart Designer')).toBeInTheDocument()
+    expect(screen.getByLabelText('Selection Tool')).toBeInTheDocument()
   })
 
   it('has a toolbar with add node buttons', () => {
@@ -17,8 +17,8 @@ describe('FlowChart Designer', () => {
 
   it('has clear and preview buttons', () => {
     render(<App />)
-    expect(screen.getByRole('button', { name: /Clear/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Preview/i })).toBeInTheDocument()
+    expect(screen.getByLabelText('Clear All')).toBeInTheDocument()
+    expect(screen.getByLabelText('Enter Preview Mode')).toBeInTheDocument()
   })
 
   it('renders the starter node', () => {
@@ -30,7 +30,7 @@ describe('FlowChart Designer', () => {
     render(<App />)
     const addStepButton = screen.getByLabelText('Add Step Node')
     fireEvent.click(addStepButton)
-    
+
     // After adding, we should have the original "Start" and a new "Step"
     const stepNodes = screen.getAllByText(/Step|Start/)
     expect(stepNodes.length).toBeGreaterThan(1)
@@ -40,7 +40,7 @@ describe('FlowChart Designer', () => {
     render(<App />)
     const addDecisionButton = screen.getByLabelText('Add Decision Node')
     fireEvent.click(addDecisionButton)
-    
+
     expect(screen.getByText('Decision?')).toBeInTheDocument()
   })
 
@@ -48,42 +48,85 @@ describe('FlowChart Designer', () => {
     render(<App />)
     const addNoteButton = screen.getByLabelText('Add Note')
     fireEvent.click(addNoteButton)
-    
-    // Look for the note node in the flow (not the button)
-    const noteNodes = screen.getAllByText('Note')
-    expect(noteNodes.length).toBeGreaterThan(1) // Button + added node
+
+    expect(screen.getByText('Note')).toBeInTheDocument()
   })
 
   it('can enter preview mode', () => {
     render(<App />)
-    const previewButton = screen.getByText(/Preview/i)
+    const previewButton = screen.getByLabelText('Enter Preview Mode')
     fireEvent.click(previewButton)
-    
+
     expect(screen.getByText('Presentation Mode')).toBeInTheDocument()
     expect(screen.getByText(/Exit/i)).toBeInTheDocument()
   })
 
   it('shows navigation buttons in preview mode', () => {
     render(<App />)
-    const previewButton = screen.getByText(/Preview/i)
+    const previewButton = screen.getByLabelText('Enter Preview Mode')
     fireEvent.click(previewButton)
-    
+
     expect(screen.getByText(/Previous/i)).toBeInTheDocument()
     expect(screen.getByText(/Next/i)).toBeInTheDocument()
   })
 
   it('can exit preview mode', () => {
     render(<App />)
-    
+
     // Enter preview mode
-    const previewButton = screen.getByText(/Preview/i)
+    const previewButton = screen.getByLabelText('Enter Preview Mode')
     fireEvent.click(previewButton)
     expect(screen.getByText('Presentation Mode')).toBeInTheDocument()
-    
+
     // Exit preview mode
     const exitButton = screen.getByText(/Exit/i)
     fireEvent.click(exitButton)
     expect(screen.queryByText('Presentation Mode')).not.toBeInTheDocument()
-    expect(screen.getByText('FlowChart Designer')).toBeInTheDocument()
+    expect(screen.getByLabelText('Selection Tool')).toBeInTheDocument()
+  })
+
+  it('shows confirmation modal when clicking Clear All and can cancel', () => {
+    render(<App />)
+
+    // Verify the starter node exists
+    expect(screen.getByText('Start')).toBeInTheDocument()
+
+    // Click Clear All button
+    const clearAllButton = screen.getByLabelText('Clear All')
+    fireEvent.click(clearAllButton)
+
+    // Modal should appear
+    expect(screen.getByText('Clear the entire board?')).toBeInTheDocument()
+    expect(screen.getByText('This cannot be undone.')).toBeInTheDocument()
+
+    // Click Cancel
+    const cancelButton = screen.getByText('Cancel')
+    fireEvent.click(cancelButton)
+
+    // Modal should close and starter node should still exist
+    expect(screen.queryByText('Clear the entire board?')).not.toBeInTheDocument()
+    expect(screen.getByText('Start')).toBeInTheDocument()
+  })
+
+  it('clears the board when confirming Clear All', () => {
+    render(<App />)
+
+    // Verify the starter node exists
+    expect(screen.getByText('Start')).toBeInTheDocument()
+
+    // Click Clear All button
+    const clearAllButton = screen.getByLabelText('Clear All')
+    fireEvent.click(clearAllButton)
+
+    // Modal should appear
+    expect(screen.getByText('Clear the entire board?')).toBeInTheDocument()
+
+    // Click Clear board
+    const confirmButton = screen.getByText('Clear board')
+    fireEvent.click(confirmButton)
+
+    // Modal should close and starter node should be removed
+    expect(screen.queryByText('Clear the entire board?')).not.toBeInTheDocument()
+    expect(screen.queryByText('Start')).not.toBeInTheDocument()
   })
 })

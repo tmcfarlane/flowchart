@@ -14,7 +14,9 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onClose }: ExplorerProps) {
   }
 
   return (
-    <div className="explorer-sidebar">
+    <>
+      <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="explorer-sidebar">
       <div className="explorer-header">
         <h3>Explorer</h3>
         <button className="explorer-close" onClick={onClose} title="Close sidebar">
@@ -70,7 +72,8 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onClose }: ExplorerProps) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

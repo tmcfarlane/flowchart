@@ -191,7 +191,9 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
   }
 
   return (
-    <div className="ai-chat-sidebar">
+    <>
+      <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />
+      <div className="ai-chat-sidebar">
       <div className="ai-chat-header">
         <h3>AI Assistant</h3>
         <button className="ai-chat-close" onClick={onClose} title="Close AI Chat">
@@ -302,7 +304,8 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
           {isLoading ? '...' : 'Send'}
         </button>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
 

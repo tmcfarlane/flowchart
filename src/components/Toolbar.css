@@ -1,403 +1,317 @@
-/* Zero Click Dev Design System - Toolbar Styles */
-/* Dark-first design with teal/cyan accents (#78fcd6, #00ffb6) */
-
-.toolbar {
+.floating-toolbar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  padding: 12px 24px;
-  background: #0f1211;
-  color: #e7eceb;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 252, 214, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 10;
-  gap: 16px;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 50px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  backdrop-filter: blur(8px);
 }
 
-.toolbar-section {
+.app.dark-mode .floating-toolbar {
+  background: rgba(30, 33, 32, 0.95);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 40px rgba(120, 252, 214, 0.08);
+  border: 1px solid rgba(120, 252, 214, 0.12);
+}
+
+.toolbar-group {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  flex-shrink: 0;
+  gap: 2px;
 }
 
-.toolbar-section:first-child {
-  padding-left: 0;
+.toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 0 6px;
 }
 
-.toolbar-section:last-child {
-  border-right: none;
-  padding-right: 0;
+.app.dark-mode .toolbar-separator {
+  background: rgba(255, 255, 255, 0.12);
 }
 
-/* Brand section styling */
-.toolbar-section.toolbar-brand {
-  padding-right: 16px;
-}
-
-.toolbar-section.toolbar-brand h2 {
-  background: linear-gradient(to right, #78fcd6, #00ffb6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 30px rgba(120, 252, 214, 0.3);
-}
-
-/* Hide section dividers when wrapping */
-@media (max-width: 900px) {
-  .toolbar-section {
-    border-right: none;
-  }
-}
-
-/* Smaller screens: more compact layout */
-@media (max-width: 768px) {
-  .toolbar {
-    padding: 10px 16px;
-    gap: 10px;
-  }
-  
-  .toolbar-section {
-    padding: 2px 6px;
-  }
-  
-  .toolbar h2 {
-    font-size: 16px;
-  }
-  
-  .toolbar-button {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-  
-  .toolbar-button.icon-button {
-    padding: 8px;
-    min-width: 36px;
-  }
-  
-  .toolbar-select {
-    padding: 8px 12px;
-    font-size: 12px;
-  }
-  
-  .toolbar-label {
-    font-size: 12px;
-  }
-}
-
-/* Very small screens: hide text labels on some buttons */
-@media (max-width: 600px) {
-  .toolbar h2 {
-    font-size: 14px;
-  }
-  
-  .toolbar-button svg {
-    margin-right: 0 !important;
-  }
-  
-  .toolbar-button.add-node,
-  .toolbar-button.explorer,
-  .toolbar-button.ai,
-  .toolbar-button.preview,
-  .toolbar-button.clear {
-    padding: 8px;
-  }
-  
-  /* Hide text on smaller buttons, keep icons */
-  .toolbar-button.add-node span,
-  .toolbar-button.explorer span,
-  .toolbar-button.ai span {
-    display: none;
-  }
-}
-
-.toolbar h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-}
-
-/* Base button style - Ghost/subtle style */
 .toolbar-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
-  background: rgba(120, 252, 214, 0.1);
-  color: #e7eceb;
-  border: 1px solid rgba(120, 252, 214, 0.2);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  color: #4b5563;
+  border: none;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  box-shadow: none;
-  white-space: nowrap;
+  transition: all 0.15s ease;
 }
 
 .toolbar-button:hover {
-  background: rgba(120, 252, 214, 0.2);
-  border-color: rgba(120, 252, 214, 0.4);
-  color: #78fcd6;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(120, 252, 214, 0.15);
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
 }
 
 .toolbar-button:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(120, 252, 214, 0.1);
+  transform: scale(0.95);
 }
 
 .toolbar-button svg {
   flex-shrink: 0;
 }
 
-/* Add node buttons - Primary gradient style */
-.toolbar-button.add-node {
-  background: linear-gradient(to right, #78fcd6, #00ffb6);
-  color: #0f1211;
-  border: none;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(120, 252, 214, 0.25);
+.toolbar-button:disabled {
+  color: rgba(0, 0, 0, 0.25);
+  cursor: not-allowed;
 }
 
-.toolbar-button.add-node:hover {
-  background: linear-gradient(to right, #00ffb6, #78fcd6);
-  color: #0f1211;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(120, 252, 214, 0.4);
+.toolbar-button:disabled:hover {
+  background: transparent;
+  color: rgba(0, 0, 0, 0.25);
 }
 
-.toolbar-button.add-node:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(120, 252, 214, 0.25);
-}
-
-/* Delete button - Destructive style */
-.toolbar-button.delete {
-  background: rgba(255, 107, 107, 0.15);
-  color: #ff6b6b;
-  border-color: rgba(255, 107, 107, 0.3);
-}
-
-.toolbar-button.delete:hover {
-  background: rgba(255, 107, 107, 0.25);
-  border-color: rgba(255, 107, 107, 0.5);
-  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.2);
-}
-
-/* Explorer button */
-.toolbar-button.explorer {
-  background: rgba(120, 252, 214, 0.1);
-  color: #e7eceb;
-  border-color: rgba(120, 252, 214, 0.2);
-}
-
-.toolbar-button.explorer:hover {
-  background: rgba(120, 252, 214, 0.2);
-  color: #78fcd6;
-  border-color: rgba(120, 252, 214, 0.4);
-}
-
-.toolbar-button.explorer.active {
-  background: rgba(120, 252, 214, 0.25);
-  color: #78fcd6;
-  border-color: rgba(120, 252, 214, 0.5);
-  box-shadow: 0 0 12px rgba(120, 252, 214, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* AI button */
-.toolbar-button.ai {
-  background: rgba(120, 252, 214, 0.1);
-  color: #e7eceb;
-  border-color: rgba(120, 252, 214, 0.2);
-}
-
-.toolbar-button.ai:hover {
-  background: rgba(120, 252, 214, 0.2);
-  color: #78fcd6;
-  border-color: rgba(120, 252, 214, 0.4);
-}
-
-.toolbar-button.ai.active {
-  background: rgba(120, 252, 214, 0.25);
-  color: #78fcd6;
-  border-color: rgba(120, 252, 214, 0.5);
-  box-shadow: 0 0 12px rgba(120, 252, 214, 0.2), inset 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-/* Preview button - Primary solid style */
-.toolbar-button.preview {
-  background: #78fcd6;
-  color: #0f1211;
-  border: none;
-  font-weight: 600;
-  box-shadow: 0 2px 8px rgba(120, 252, 214, 0.25);
-}
-
-.toolbar-button.preview:hover {
-  background: #00ffb6;
-  box-shadow: 0 4px 16px rgba(120, 252, 214, 0.4);
-}
-
-/* Clear button - Warning style */
-.toolbar-button.clear {
-  background: rgba(255, 146, 43, 0.15);
-  color: #ff922b;
-  border-color: rgba(255, 146, 43, 0.3);
-}
-
-.toolbar-button.clear:hover {
-  background: rgba(255, 146, 43, 0.25);
-  border-color: rgba(255, 146, 43, 0.5);
-  box-shadow: 0 4px 12px rgba(255, 146, 43, 0.2);
-}
-
-/* Labels */
-.toolbar-label {
-  font-size: 13px;
-  font-weight: 500;
-  margin-right: 8px;
-  white-space: nowrap;
+.app.dark-mode .toolbar-button {
   color: rgba(231, 236, 235, 0.7);
 }
 
-/* Select dropdown */
-.toolbar-select {
-  padding: 8px 14px;
+.app.dark-mode .toolbar-button:hover {
   background: rgba(120, 252, 214, 0.1);
   color: #e7eceb;
-  border: 1px solid rgba(120, 252, 214, 0.2);
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: none;
-  transition: all 0.3s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%2378fcd6'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 32px;
 }
 
-.toolbar-select:hover {
-  background-color: rgba(120, 252, 214, 0.15);
-  border-color: rgba(120, 252, 214, 0.4);
+.app.dark-mode .toolbar-button:disabled {
+  color: rgba(231, 236, 235, 0.25);
 }
 
-.toolbar-select:focus {
-  outline: none;
-  border-color: #78fcd6;
-  box-shadow: 0 0 0 3px rgba(120, 252, 214, 0.2);
-}
-
-.toolbar-select option {
-  background: #0f1211;
-  color: #e7eceb;
-  padding: 8px;
-}
-
-/* Icon buttons (undo/redo) */
-.toolbar-button.icon-button {
-  padding: 8px 12px;
-  font-size: 16px;
-  line-height: 1;
-  min-width: 40px;
-}
-
-.toolbar-button.icon-button svg {
-  width: 16px;
-  height: 16px;
-}
-
-.toolbar-button.icon-button:disabled {
-  background: rgba(39, 39, 42, 0.5);
-  color: rgba(231, 236, 235, 0.3);
-  border-color: rgba(255, 255, 255, 0.05);
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-.toolbar-button.icon-button:disabled:hover {
-  transform: none;
-  box-shadow: none;
-  background: rgba(39, 39, 42, 0.5);
-  color: rgba(231, 236, 235, 0.3);
-}
-
-.toolbar-button.icon-button.active {
-  background: rgba(120, 252, 214, 0.2);
-  color: #78fcd6;
-  border-color: rgba(120, 252, 214, 0.4);
-}
-
-/* Tool toggle section (select/hand tools) */
-.toolbar-section.tool-toggle {
-  background: rgba(39, 39, 42, 0.6);
-  border-radius: 10px;
-  padding: 4px;
-  gap: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.toolbar-button.tool-btn {
+.app.dark-mode .toolbar-button:disabled:hover {
   background: transparent;
-  color: rgba(231, 236, 235, 0.6);
-  box-shadow: none;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
+  color: rgba(231, 236, 235, 0.25);
 }
 
-.toolbar-button.tool-btn:hover {
-  background: rgba(120, 252, 214, 0.1);
-  color: #e7eceb;
-  transform: none;
-  box-shadow: none;
+.toolbar-button.active {
+  background: rgba(139, 92, 246, 0.12);
+  color: #8b5cf6;
 }
 
-.toolbar-button.tool-btn.active {
-  background: linear-gradient(to right, rgba(120, 252, 214, 0.2), rgba(0, 255, 182, 0.2));
-  color: #78fcd6;
-  box-shadow: 0 0 8px rgba(120, 252, 214, 0.15);
-  border: 1px solid rgba(120, 252, 214, 0.3);
+.toolbar-button.active:hover {
+  background: rgba(139, 92, 246, 0.18);
 }
 
-.toolbar-button.tool-btn.active:hover {
-  background: linear-gradient(to right, rgba(120, 252, 214, 0.25), rgba(0, 255, 182, 0.25));
+.app.dark-mode .toolbar-button.active {
+  background: rgba(120, 252, 214, 0.15);
   color: #78fcd6;
 }
 
-/* Dark mode toggle button */
-.toolbar-button.dark-mode-toggle {
-  transition: all 0.3s ease;
+.app.dark-mode .toolbar-button.active:hover {
+  background: rgba(120, 252, 214, 0.22);
+}
+
+.toolbar-button.add-node {
+  color: #059669;
+}
+
+.toolbar-button.add-node:hover {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.app.dark-mode .toolbar-button.add-node {
+  color: #78fcd6;
+}
+
+.app.dark-mode .toolbar-button.add-node:hover {
+  background: rgba(120, 252, 214, 0.15);
+  color: #00ffb6;
+}
+
+
+
+.toolbar-button.preview {
+  color: #059669;
+}
+
+.toolbar-button.preview:hover {
+  background: rgba(5, 150, 105, 0.1);
+  color: #047857;
+}
+
+.app.dark-mode .toolbar-button.preview {
+  color: #78fcd6;
+}
+
+.app.dark-mode .toolbar-button.preview:hover {
+  background: rgba(120, 252, 214, 0.15);
+  color: #00ffb6;
 }
 
 .toolbar-button.dark-mode-toggle.is-dark {
-  background: linear-gradient(135deg, #FFF8E1 0%, #FFE082 100%);
-  border: 1px solid #FFB300;
-  box-shadow: 0 0 12px rgba(255, 193, 7, 0.4), 0 2px 8px rgba(255, 152, 0, 0.3);
+  color: #fbbf24;
 }
 
 .toolbar-button.dark-mode-toggle.is-dark:hover {
-  background: linear-gradient(135deg, #FFECB3 0%, #FFD54F 100%);
-  box-shadow: 0 0 16px rgba(255, 193, 7, 0.5), 0 4px 12px rgba(255, 152, 0, 0.4);
-  transform: translateY(-1px);
+  background: rgba(251, 191, 36, 0.12);
+  color: #f59e0b;
 }
 
 .toolbar-button.dark-mode-toggle.is-light {
-  background: linear-gradient(135deg, #1A237E 0%, #303F9F 100%);
-  border: 1px solid #3949AB;
-  box-shadow: 0 0 12px rgba(63, 81, 181, 0.4), 0 2px 8px rgba(48, 63, 159, 0.3);
+  color: #6b7280;
 }
 
 .toolbar-button.dark-mode-toggle.is-light:hover {
-  background: linear-gradient(135deg, #283593 0%, #3F51B5 100%);
-  box-shadow: 0 0 16px rgba(63, 81, 181, 0.5), 0 4px 12px rgba(48, 63, 159, 0.4);
-  transform: translateY(-1px);
+  background: rgba(0, 0, 0, 0.06);
+  color: #4b5563;
+}
+
+@media (max-width: 600px) {
+  .floating-toolbar {
+    padding: 6px 10px;
+    gap: 2px;
+  }
+
+  .toolbar-button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .toolbar-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .toolbar-separator {
+    height: 20px;
+    margin: 0 4px;
+  }
+}
+
+/* Confirmation Modal */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.app.dark-mode .confirm-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.confirm-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.2s ease-out;
+}
+
+.app.dark-mode .confirm-dialog {
+  background: rgba(30, 33, 32, 0.98);
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 60px rgba(120, 252, 214, 0.1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.confirm-title {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.app.dark-mode .confirm-title {
+  color: #e7eceb;
+}
+
+.confirm-body {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.app.dark-mode .confirm-body {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.confirm-button {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+  outline: none;
+}
+
+.confirm-button:active {
+  transform: scale(0.97);
+}
+
+.confirm-cancel {
+  background: rgba(0, 0, 0, 0.06);
+  color: #4b5563;
+}
+
+.confirm-cancel:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: #1f2937;
+}
+
+.app.dark-mode .confirm-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(231, 236, 235, 0.8);
+}
+
+.app.dark-mode .confirm-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #e7eceb;
+}
+
+.confirm-delete {
+  background: #dc2626;
+  color: white;
+}
+
+.confirm-delete:hover {
+  background: #b91c1c;
+}
+
+.app.dark-mode .confirm-delete {
+  background: #ef4444;
+  color: white;
+}
+
+.app.dark-mode .confirm-delete:hover {
+  background: #dc2626;
 }

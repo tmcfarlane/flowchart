@@ -1,11 +1,10 @@
+import { useState, useEffect } from 'react'
 import './Toolbar.css'
-import { EdgeStyle, SidebarMode, ToolMode } from '../App'
+import { SidebarMode, ToolMode } from '../App'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
   onTogglePreview: () => void
-  onChangeEdgeStyle: (style: EdgeStyle) => void
-  currentEdgeStyle: EdgeStyle
   onToggleExplorer: () => void
   onToggleAI: () => void
   sidebarMode: SidebarMode
@@ -20,13 +19,11 @@ interface ToolbarProps {
   onToggleDarkMode: () => void
 }
 
-function Toolbar({ 
-  onAddNode, 
-  onTogglePreview, 
-  onChangeEdgeStyle, 
-  currentEdgeStyle, 
-  onToggleExplorer, 
-  onToggleAI, 
+function Toolbar({
+  onAddNode,
+  onTogglePreview,
+  onToggleExplorer,
+  onToggleAI,
   sidebarMode,
   onUndo,
   onRedo,
@@ -38,192 +35,232 @@ function Toolbar({
   darkMode,
   onToggleDarkMode,
 }: ToolbarProps) {
-  return (
-    <div className="toolbar">
-      <div className="toolbar-section toolbar-brand">
-        <h2>ZeroClickDev Board</h2>
-      </div>
-      <div className="toolbar-section tool-toggle">
-        <button
-          className={`toolbar-button icon-button tool-btn ${toolMode === 'select' ? 'active' : ''}`}
-          onClick={() => onSetToolMode('select')}
-          title="Selection Tool (V)"
-          aria-label="Selection Tool"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M2 1l10 8-4 1-2 4-1-5-3-8z"/>
-          </svg>
-        </button>
-        <button
-          className={`toolbar-button icon-button tool-btn ${toolMode === 'hand' ? 'active' : ''}`}
-          onClick={() => onSetToolMode('hand')}
-          title="Hand Tool (H) - Pan the canvas"
-          aria-label="Hand Tool"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 1v4M5 3v5M11 3v5M3 6v6c0 2 1 3 3 3h4c2 0 3-1 3-3V6M3 6c-1 0-1.5.5-1.5 1.5S2 9 3 9M13 6c1 0 1.5.5 1.5 1.5S14 9 13 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-          </svg>
-        </button>
-      </div>
-      <div className="toolbar-section">
-        <button
-          className="toolbar-button icon-button"
-          onClick={onUndo}
-          disabled={!canUndo}
-          title="Undo (Ctrl+Z)"
-          aria-label="Undo"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 1.5A6.5 6.5 0 0 1 14.5 8h-1A5.5 5.5 0 1 0 8 13.5V11l3.5 3L8 17v-2.5A6.5 6.5 0 0 1 8 1.5z"/>
-          </svg>
-        </button>
-        <button
-          className="toolbar-button icon-button"
-          onClick={onRedo}
-          disabled={!canRedo}
-          title="Redo (Ctrl+Y)"
-          aria-label="Redo"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 1.5A6.5 6.5 0 0 0 1.5 8h1A5.5 5.5 0 1 1 8 13.5V11L4.5 14 8 17v-2.5A6.5 6.5 0 0 0 8 1.5z"/>
-          </svg>
-        </button>
-        <button
-          className={`toolbar-button icon-button dark-mode-toggle ${darkMode ? 'is-dark' : 'is-light'}`}
-          onClick={onToggleDarkMode}
-          title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          aria-label="Toggle Dark Mode"
-        >
-          {darkMode ? (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="5" fill="#FFD93D" stroke="#FFA726" strokeWidth="1"/>
-              <g stroke="#FFD93D" strokeWidth="2" strokeLinecap="round">
-                <line x1="12" y1="1" x2="12" y2="4"/>
-                <line x1="12" y1="20" x2="12" y2="23"/>
-                <line x1="1" y1="12" x2="4" y2="12"/>
-                <line x1="20" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
-                <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
-                <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
-                <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
-              </g>
-            </svg>
-          ) : (
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path 
-                d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" 
-                fill="#5C6BC0" 
-                stroke="#3949AB" 
-                strokeWidth="1.5"
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              />
-            </svg>
-          )}
-        </button>
-        <button
-          className="toolbar-button clear"
-          onClick={onClearAll}
-          title="Clear All Nodes and Edges"
-          aria-label="Clear All"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <path d="M2 3h12v1H2V3zm1 2h10l-.5 9H3.5L3 5zm3 2v5h1V7H6zm3 0v5h1V7H9z"/>
-          </svg>
-          Clear
-        </button>
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
 
+  const handleClearClick = () => {
+    setIsClearConfirmOpen(true)
+  }
+
+  const handleCancelClear = () => {
+    setIsClearConfirmOpen(false)
+  }
+
+  const handleConfirmClear = () => {
+    setIsClearConfirmOpen(false)
+    onClearAll()
+  }
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isClearConfirmOpen) {
+        setIsClearConfirmOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isClearConfirmOpen])
+
+  return (
+    <>
+      <div className="floating-toolbar">
+        <div className="toolbar-group">
+          <button
+            className={`toolbar-button ${toolMode === 'select' ? 'active' : ''}`}
+            onClick={() => onSetToolMode('select')}
+            title="Select Tool (V)"
+            aria-label="Selection Tool"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 1l10 8-4 1-2 4-1-5-3-8z" />
+            </svg>
+          </button>
+          <button
+            className={`toolbar-button ${toolMode === 'hand' ? 'active' : ''}`}
+            onClick={() => onSetToolMode('hand')}
+            title="Hand Tool (H) - Pan canvas"
+            aria-label="Hand Tool"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 1v4M5 3v5M11 3v5M3 6v6c0 2 1 3 3 3h4c2 0 3-1 3-3V6M3 6c-1 0-1.5.5-1.5 1.5S2 9 3 9M13 6c1 0 1.5.5 1.5 1.5S14 9 13 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="toolbar-separator" />
+
+        <div className="toolbar-group">
+          <button
+            className="toolbar-button add-node"
+            onClick={() => onAddNode('step')}
+            title="Add Step Node (S)"
+            aria-label="Add Step Node"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
+          </button>
+          <button
+            className="toolbar-button add-node"
+            onClick={() => onAddNode('decision')}
+            title="Add Decision Node (D)"
+            aria-label="Add Decision Node"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8 2L14 8L8 14L2 8Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
+          </button>
+          <button
+            className="toolbar-button add-node"
+            onClick={() => onAddNode('note')}
+            title="Add Note (N)"
+            aria-label="Add Note"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M3 2h10v9l-3 3H3V2z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <path d="M10 11v3l3-3h-3z" fill="currentColor" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="toolbar-separator" />
+
+        <div className="toolbar-group">
+          <button
+            className="toolbar-button"
+            onClick={onUndo}
+            disabled={!canUndo}
+            title="Undo (Ctrl+Z)"
+            aria-label="Undo"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M4 8l4-4v2.5c4 0 6 2 6 5.5-1-2-3-3-6-3V11L4 8z" />
+            </svg>
+          </button>
+          <button
+            className="toolbar-button"
+            onClick={onRedo}
+            disabled={!canRedo}
+            title="Redo (Ctrl+Y)"
+            aria-label="Redo"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M12 8l-4-4v2.5c-4 0-6 2-6 5.5 1-2 3-3 6-3V11l4-3z" />
+            </svg>
+          </button>
+          <button
+            className="toolbar-button clear"
+            onClick={handleClearClick}
+            title="Clear All"
+            aria-label="Clear All"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 3h12v1H2V3zm1 2h10l-.5 9H3.5L3 5zm3 2v5h1V7H6zm3 0v5h1V7H9z" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="toolbar-separator" />
+
+        <div className="toolbar-group">
+          <button
+            className={`toolbar-button dark-mode-toggle ${darkMode ? 'is-dark' : 'is-light'}`}
+            onClick={onToggleDarkMode}
+            title={darkMode ? "Light Mode" : "Dark Mode"}
+            aria-label="Toggle Dark Mode"
+          >
+            {darkMode ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="5" fill="#FFD93D" stroke="#FFA726" strokeWidth="1" />
+                <g stroke="#FFD93D" strokeWidth="2" strokeLinecap="round">
+                  <line x1="12" y1="1" x2="12" y2="4" />
+                  <line x1="12" y1="20" x2="12" y2="23" />
+                  <line x1="1" y1="12" x2="4" y2="12" />
+                  <line x1="20" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="4.22" x2="6.34" y2="6.34" />
+                  <line x1="17.66" y1="17.66" x2="19.78" y2="19.78" />
+                  <line x1="4.22" y1="19.78" x2="6.34" y2="17.66" />
+                  <line x1="17.66" y1="6.34" x2="19.78" y2="4.22" />
+                </g>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                  fill="#E9E9E9"
+                  stroke="#757575"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )}
+          </button>
+          <button
+            className={`toolbar-button ${sidebarMode === 'explorer' ? 'active' : ''}`}
+            onClick={onToggleExplorer}
+            title="Explorer Panel"
+            aria-label="Toggle Explorer"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
+            </svg>
+          </button>
+          <button
+            className={`toolbar-button ${sidebarMode === 'ai' ? 'active' : ''}`}
+            onClick={onToggleAI}
+            title="AI Assistant"
+            aria-label="Toggle AI Assistant"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <circle cx="5" cy="6" r="1" />
+              <circle cx="11" cy="6" r="1" />
+              <path d="M8 2a6 6 0 0 0-6 6c0 2.2 1.2 4.1 3 5.2V15l2-1 2 1v-1.8c1.8-1.1 3-3 3-5.2a6 6 0 0 0-6-6z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <path d="M5.5 9.5c.5.5 1.5 1 2.5 1s2-.5 2.5-1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            </svg>
+          </button>
+          <button
+            className="toolbar-button preview"
+            onClick={onTogglePreview}
+            title="Preview Mode"
+            aria-label="Enter Preview Mode"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M3 4l8 4-8 4V4z" />
+            </svg>
+          </button>
+        </div>
       </div>
-      <div className="toolbar-section">
-        <button
-          className="toolbar-button add-node"
-          onClick={() => onAddNode('step')}
-          title="Add Step Node"
-          aria-label="Add Step Node"
+
+      {isClearConfirmOpen && (
+        <div
+          className="confirm-overlay"
+          onClick={handleCancelClear}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="clear-confirm-title"
         >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-          </svg>
-          Step
-        </button>
-        <button
-          className="toolbar-button add-node"
-          onClick={() => onAddNode('decision')}
-          title="Add Decision Node"
-          aria-label="Add Decision Node"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <path d="M8 2L14 8L8 14L2 8Z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-          </svg>
-          Decision
-        </button>
-        <button
-          className="toolbar-button add-node"
-          onClick={() => onAddNode('note')}
-          title="Add Note"
-          aria-label="Add Note"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <path d="M3 2h10v9l-3 3H3V2z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-            <path d="M10 11v3l3-3h-3z" fill="currentColor"/>
-          </svg>
-          Note
-        </button>
-      </div>
-      <div className="toolbar-section">
-        <label htmlFor="edge-style" className="toolbar-label">Edge Style:</label>
-        <select
-          id="edge-style"
-          className="toolbar-select"
-          value={currentEdgeStyle}
-          onChange={(e) => onChangeEdgeStyle(e.target.value as EdgeStyle)}
-          title="Select edge style (applies to new edges or selected edges)"
-        >
-          <option value="animated">Animated Dashed</option>
-          <option value="default">Default</option>
-          <option value="step">Step</option>
-          <option value="smoothstep">Smooth Step</option>
-        </select>
-      </div>
-      <div className="toolbar-section">
-        <button
-          className={`toolbar-button explorer ${sidebarMode === 'explorer' ? 'active' : ''}`}
-          onClick={onToggleExplorer}
-          title="Toggle Explorer Sidebar"
-          aria-label="Toggle Explorer"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z"/>
-          </svg>
-          Explorer
-        </button>
-        <button
-          className={`toolbar-button ai ${sidebarMode === 'ai' ? 'active' : ''}`}
-          onClick={onToggleAI}
-          title="Toggle AI Assistant"
-          aria-label="Toggle AI Assistant"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <circle cx="5" cy="6" r="1"/>
-            <circle cx="11" cy="6" r="1"/>
-            <path d="M8 2a6 6 0 0 0-6 6c0 2.2 1.2 4.1 3 5.2V15l2-1 2 1v-1.8c1.8-1.1 3-3 3-5.2a6 6 0 0 0-6-6z" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-            <path d="M5.5 9.5c.5.5 1.5 1 2.5 1s2-.5 2.5-1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-          </svg>
-          AI
-        </button>
-        <button
-          className="toolbar-button preview"
-          onClick={onTogglePreview}
-          title="Enter Preview Mode"
-          aria-label="Enter Preview Mode"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-            <path d="M3 4l8 4-8 4V4z"/>
-          </svg>
-          Preview
-        </button>
-      </div>
-    </div>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2 id="clear-confirm-title" className="confirm-title">Clear the entire board?</h2>
+            <p className="confirm-body">This cannot be undone.</p>
+            <div className="confirm-actions">
+              <button
+                className="confirm-button confirm-cancel"
+                onClick={handleCancelClear}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-button confirm-delete"
+                onClick={handleConfirmClear}
+              >
+                Clear board
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
