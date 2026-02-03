@@ -180,7 +180,7 @@ function FlowChartEditor() {
         position.y -= nodeHeight / 2
       }
 
-      const size = { width: 180, height: 80 }
+      const size = { width: 140, height: 140 }
       const adjustedPosition = findAvailablePosition(position, size, nodes)
 
       const newNode: Node = {
@@ -305,7 +305,7 @@ function FlowChartEditor() {
 
   const getEdgeStyleProps = useCallback((style: EdgeStyle) => {
     return {
-      type: style === 'step' ? 'step' : 'default',
+      type: style === 'step' ? 'smoothstep' : 'default',
       animated: style === 'animated',
       style: style === 'animated'
         ? { strokeDasharray: '5 5', stroke: darkMode ? '#78fcd6' : '#555' }
@@ -515,7 +515,7 @@ function FlowChartEditor() {
 
   const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
     if (edge.animated) return 'animated'
-    if (edge.type === 'step') return 'step'
+    if (edge.type === 'step' || edge.type === 'smoothstep') return 'step'
     return 'default'
   }, [])
 

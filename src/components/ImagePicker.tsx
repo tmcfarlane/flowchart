@@ -48,10 +48,41 @@ interface SelectedAsset {
   isUploaded: boolean
 }
 
+// List of popular Azure service icon names (partial matches work)
+const POPULAR_SERVICES = [
+  'App-Services',
+  'Function-Apps',
+  'Key-Vaults',
+  'Storage-Accounts',
+  'Virtual-Machine',
+  'SQL-Database',
+  'Azure-Cosmos-DB',
+  'Kubernetes-Services',
+  'API-Management-Services',
+  'Application-Insights',
+  'Load-Balancers',
+  'Virtual-Networks',
+  'Azure-Service-Bus',
+  'Logic-Apps',
+  'Application-Gateways',
+  'Event-Hubs',
+  'Cache-Redis',
+  'Entra-ID',
+  'Container-Instances',
+  'Front-Door',
+]
+
+// Check if an asset is a popular service
+function isPopularService(assetName: string): boolean {
+  return POPULAR_SERVICES.some((service) =>
+    assetName.toLowerCase().includes(service.toLowerCase().replace(/-/g, '-'))
+  )
+}
+
 function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   const [activeTab, setActiveTab] = useState<Tab>('library')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedFolder, setSelectedFolder] = useState<string>('all')
+  const [selectedFolder, setSelectedFolder] = useState<string>('popular')
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null)
   const [editableLabel, setEditableLabel] = useState('')
@@ -85,13 +116,24 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
     const uniqueFolders = Array.from(new Set(svgAssets.map((a) => a.folder)))
     // Sort alphabetically by formatted display name
     uniqueFolders.sort((a, b) => formatFolderName(a).localeCompare(formatFolderName(b)))
-    return ['all', ...uniqueFolders]
+    // 'popular' at top, then 'all', then sorted categories
+    return ['popular', 'all', ...uniqueFolders]
   }, [svgAssets])
 
   const filteredAssets = useMemo(() => {
     let assets = svgAssets
 
-    if (selectedFolder !== 'all') {
+    if (selectedFolder === 'popular') {
+      // Filter to popular services and deduplicate by name
+      const popularAssets = assets.filter((a) => isPopularService(a.name))
+      // Deduplicate by name (keep the first occurrence)
+      const seenNames = new Set<string>()
+      assets = popularAssets.filter((a) => {
+        if (seenNames.has(a.name)) return false
+        seenNames.add(a.name)
+        return true
+      })
+    } else if (selectedFolder !== 'all') {
       assets = assets.filter((a) => a.folder === selectedFolder)
     }
 
@@ -165,7 +207,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   const handleClose = () => {
     setActiveTab('library')
     setSearchQuery('')
-    setSelectedFolder('all')
+    setSelectedFolder('popular')
     setUploadedImage(null)
     setSelectedAsset(null)
     setEditableLabel('')
@@ -231,19 +273,14 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
           </div>
 
           <div className="preview-content">
-            <div className="preview-image-container">
-              <img src={selectedAsset.imageUrl} alt={selectedAsset.label} className="preview-image" />
+            <div className="preview-card">
+              <div className="preview-card-icon">
+                <img src={selectedAsset.imageUrl} alt={selectedAsset.label} />
+              </div>
+              <span className="preview-card-label">{editableLabel || selectedAsset.label}</span>
             </div>
 
             <div className="preview-details">
-              {selectedAsset.asset && (
-                <div className="preview-category">
-                  <span className="preview-category-badge">
-                    {formatFolderName(selectedAsset.asset.folder)}
-                  </span>
-                </div>
-              )}
-
               <label className="preview-label-title">Label</label>
               <input
                 type="text"
@@ -342,7 +379,12 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                     type="button"
                   >
                     <span className="library-dropdown-text">
-                      {selectedFolder === 'all' ? 'All Categories' : formatFolderName(selectedFolder)}
+                      {selectedFolder === 'popular' && (
+                        <svg className="library-dropdown-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                      )}
+                      {selectedFolder === 'popular' ? 'Most Popular' : selectedFolder === 'all' ? 'All Categories' : formatFolderName(selectedFolder)}
                     </span>
                     <svg
                       className={`library-dropdown-arrow ${isDropdownOpen ? 'open' : ''}`}
@@ -360,10 +402,17 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                       {folders.map((folder) => (
                         <button
                           key={folder}
-                          className={`library-dropdown-item ${selectedFolder === folder ? 'selected' : ''}`}
+                          className={`library-dropdown-item ${selectedFolder === folder ? 'selected' : ''} ${folder === 'popular' ? 'popular-item' : ''}`}
                           onClick={() => handleFolderSelect(folder)}
                         >
-                          {folder === 'all' ? 'All Categories' : formatFolderName(folder)}
+                          <span className="library-dropdown-item-label">
+                            {folder === 'popular' && (
+                              <svg className="library-dropdown-star" width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                            )}
+                            {folder === 'popular' ? 'Most Popular' : folder === 'all' ? 'All Categories' : formatFolderName(folder)}
+                          </span>
                           {selectedFolder === folder && (
                             <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
                               <path d="M11.854 4.146a.5.5 0 010 .708l-5.5 5.5a.5.5 0 01-.708 0l-2.5-2.5a.5.5 0 11.708-.708L6 9.293l5.146-5.147a.5.5 0 01.708 0z" />
