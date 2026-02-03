@@ -115,6 +115,7 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
       target: edge.target,
       sourceHandle: edge.sourceHandle,
       targetHandle: edge.targetHandle,
+      label: edge.label,
       type: 'smoothstep',
       animated: Boolean(edge.animated),
       style: {
@@ -127,6 +128,18 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
         height: 24,
         color: strokeColor,
       },
+      labelStyle: {
+        fill: darkMode ? '#e7eceb' : '#333',
+        fontWeight: 600,
+        fontSize: 14,
+      },
+      labelBgStyle: {
+        fill: darkMode ? 'rgba(15, 18, 17, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+        stroke: darkMode ? 'rgba(120, 252, 214, 0.3)' : 'rgba(0, 0, 0, 0.1)',
+        strokeWidth: 1,
+      },
+      labelBgPadding: [8, 6] as [number, number],
+      labelBgBorderRadius: 4,
     }))
   }, [edges, visibleNodeIds, darkMode])
 
