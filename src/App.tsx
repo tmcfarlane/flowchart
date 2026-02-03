@@ -76,7 +76,7 @@ const nodeTypes = {
 
 function FlowChartEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const { screenToFlowPosition } = useReactFlow()
+  const { screenToFlowPosition, zoomIn, zoomOut } = useReactFlow()
 
   const getNodeDimensions = useCallback((nodeType?: string, style?: Node['style']) => {
     const width = typeof style?.width === 'number' ? style.width : undefined
@@ -530,6 +530,32 @@ function FlowChartEditor() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [copySelection, pasteSelection, cutSelection, undo, redo])
+
+  // Control + Scroll to Zoom
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      const wrapper = reactFlowWrapper.current
+      if (!wrapper || !wrapper.contains(e.target as Node)) {
+        return
+      }
+
+      if (e.ctrlKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        
+        if (e.deltaY < 0) {
+          zoomIn({ duration: 100 })
+        } else if (e.deltaY > 0) {
+          zoomOut({ duration: 100 })
+        }
+      }
+    }
+
+    document.addEventListener('wheel', handleWheel, { passive: false, capture: true })
+    return () => {
+      document.removeEventListener('wheel', handleWheel, { capture: true })
+    }
+  }, [zoomIn, zoomOut])
 
   // Toggle preview mode
   const togglePreview = useCallback(() => {
