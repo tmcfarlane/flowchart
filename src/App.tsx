@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import ReactFlow, {
-  Node,
+  Node as FlowNode,
   Edge,
   Controls,
   Background,
@@ -63,7 +63,7 @@ export interface BaseFlow {
 }
 
 interface HistoryState {
-  nodes: Node[]
+  nodes: FlowNode[]
   edges: Edge[]
 }
 
@@ -78,7 +78,7 @@ function FlowChartEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const { screenToFlowPosition, zoomIn, zoomOut } = useReactFlow()
 
-  const getNodeDimensions = useCallback((nodeType?: string, style?: Node['style']) => {
+  const getNodeDimensions = useCallback((nodeType?: string, style?: FlowNode['style']) => {
     const width = typeof style?.width === 'number' ? style.width : undefined
     const height = typeof style?.height === 'number' ? style.height : undefined
 
@@ -96,7 +96,7 @@ function FlowChartEditor() {
   const findAvailablePosition = useCallback((
     startPosition: { x: number; y: number },
     size: { width: number; height: number },
-    occupiedNodes: Node[]
+    occupiedNodes: FlowNode[]
   ) => {
     const step = 24
     let position = { ...startPosition }
@@ -144,7 +144,7 @@ function FlowChartEditor() {
     )
   }, [])
 
-  const initialNodes: Node[] = [
+  const initialNodes: FlowNode[] = [
     {
       id: '1',
       type: 'step',
@@ -172,7 +172,7 @@ function FlowChartEditor() {
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
   const showGrid = true
   const [toolMode, setToolMode] = useState<ToolMode>('select')
-  const [clipboard, setClipboard] = useState<{ nodes: Node[]; edges: Edge[] }>({ nodes: [], edges: [] })
+  const [clipboard, setClipboard] = useState<{ nodes: FlowNode[]; edges: Edge[] }>({ nodes: [], edges: [] })
   const [pasteCount, setPasteCount] = useState(0)
   const [darkMode, setDarkMode] = useState(true)
 
@@ -194,7 +194,7 @@ function FlowChartEditor() {
       const size = { width: 140, height: 140 }
       const adjustedPosition = findAvailablePosition(position, size, nodes)
 
-      const newNode: Node = {
+      const newNode: FlowNode = {
         id: nodeIdCounter.toString(),
         type: 'image',
         position: adjustedPosition,
@@ -382,7 +382,7 @@ function FlowChartEditor() {
       const size = getNodeDimensions(type)
       const adjustedPosition = findAvailablePosition(position, size, nodes)
 
-      const newNode: Node = {
+      const newNode: FlowNode = {
         id: nodeIdCounter.toString(),
         type,
         position: adjustedPosition,
@@ -436,7 +436,7 @@ function FlowChartEditor() {
     // Create ID mapping for pasted nodes
     const idMapping: Record<string, string> = {}
     const occupiedNodes = [...nodes]
-    const pastedNodes: Node[] = clipboard.nodes.map((node) => {
+    const pastedNodes: FlowNode[] = clipboard.nodes.map((node) => {
       const newId = (nodeIdCounter + parseInt(node.id)).toString()
       idMapping[node.id] = newId
 
@@ -542,7 +542,7 @@ function FlowChartEditor() {
       if (e.ctrlKey) {
         e.preventDefault()
         e.stopPropagation()
-        
+
         if (e.deltaY < 0) {
           zoomIn({ duration: 100 })
         } else if (e.deltaY > 0) {
@@ -618,7 +618,7 @@ function FlowChartEditor() {
   }, [darkMode])
 
   const applyBaseFlow = useCallback((flow: BaseFlow) => {
-    const nodesWithCallbacks: Node[] = flow.nodes.map((node) => ({
+    const nodesWithCallbacks: FlowNode[] = flow.nodes.map((node) => ({
       id: node.id,
       type: node.type,
       position: node.position,
