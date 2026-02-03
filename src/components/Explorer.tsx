@@ -7,11 +7,12 @@ interface ExplorerProps {
   nodes: Node[]
   edges: Edge[]
   onUpdateNodeLabel: (nodeId: string, label: string) => void
+  onUpdateEdgeLabel: (edgeId: string, label: string) => void
   onApplyFlow: (flow: BaseFlow) => void
   onClose: () => void
 }
 
-function Explorer({ nodes, edges, onUpdateNodeLabel, onApplyFlow, onClose }: ExplorerProps) {
+function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onApplyFlow, onClose }: ExplorerProps) {
   const [viewMode, setViewMode] = useState<'visual' | 'json'>('visual')
   const [baseText, setBaseText] = useState('')
   const [baseError, setBaseError] = useState<string | null>(null)
@@ -49,6 +50,7 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onApplyFlow, onClose }: Exp
       style: getEdgeStyleFromEdge(edge),
       sourceHandle: typeof edge.sourceHandle === 'string' ? (edge.sourceHandle as HandlePosition) : undefined,
       targetHandle: typeof edge.targetHandle === 'string' ? (edge.targetHandle as HandlePosition) : undefined,
+      label: typeof edge.label === 'string' ? edge.label : undefined,
     }))
 
     return { nodes: baseNodes, edges: baseEdges }
@@ -93,6 +95,7 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onApplyFlow, onClose }: Exp
       style: isEdgeStyle(edge.style) ? edge.style : undefined,
       sourceHandle: isHandlePosition(edge.sourceHandle) ? edge.sourceHandle : undefined,
       targetHandle: isHandlePosition(edge.targetHandle) ? edge.targetHandle : undefined,
+      label: typeof edge.label === 'string' ? edge.label : undefined,
     }
   }
 
@@ -200,10 +203,19 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onApplyFlow, onClose }: Exp
                           <span className="edge-arrow">→</span>
                           <span className="edge-target">{targetNode?.data.label || edge.target}</span>
                         </div>
-                        {edge.animated && <span className="edge-style-badge">animated</span>}
-                        {edge.type && edge.type !== 'default' && (
-                          <span className="edge-style-badge">{edge.type}</span>
-                        )}
+                        <input
+                          type="text"
+                          className="explorer-edge-label-input"
+                          value={typeof edge.label === 'string' ? edge.label : ''}
+                          onChange={(e) => onUpdateEdgeLabel(edge.id, e.target.value)}
+                          placeholder="Add label..."
+                        />
+                        <div className="edge-badges">
+                          {edge.animated && <span className="edge-style-badge">animated</span>}
+                          {edge.type && edge.type !== 'default' && (
+                            <span className="edge-style-badge">{edge.type}</span>
+                          )}
+                        </div>
                       </div>
                     )
                   })}

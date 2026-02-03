@@ -1,4 +1,4 @@
-import { memo, useState, useCallback } from 'react'
+import { memo, useState, useCallback, useEffect } from 'react'
 import { Handle, Position, NodeProps } from 'reactflow'
 import { NodeResizer } from '@reactflow/node-resizer'
 import '@reactflow/node-resizer/dist/style.css'
@@ -7,6 +7,13 @@ import './NodeStyles.css'
 function StepNode({ data, id, selected }: NodeProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [label, setLabel] = useState(data.label)
+
+  // Sync local state when data.label changes externally (e.g., from Explorer)
+  useEffect(() => {
+    if (!isEditing) {
+      setLabel(data.label)
+    }
+  }, [data.label, isEditing])
 
   const handleDoubleClick = useCallback(() => {
     setIsEditing(true)
@@ -33,9 +40,9 @@ function StepNode({ data, id, selected }: NodeProps) {
 
   return (
     <>
-      <NodeResizer 
-        minWidth={140} 
-        minHeight={80} 
+      <NodeResizer
+        minWidth={140}
+        minHeight={80}
         isVisible={selected}
         lineClassName="node-resize-line"
         handleClassName="node-resize-handle"

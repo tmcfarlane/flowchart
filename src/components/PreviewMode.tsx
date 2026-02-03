@@ -1,10 +1,20 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import ReactFlow, { Node, Edge, Background } from 'reactflow'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import ReactFlow, {
+  Node,
+  Edge,
+  Background,
+  BackgroundVariant,
+  useReactFlow,
+  ReactFlowProvider,
+  MarkerType,
+  ConnectionMode,
+} from 'reactflow'
 import 'reactflow/dist/style.css'
 import './PreviewMode.css'
 import StepNode from './nodes/StepNode'
 import DecisionNode from './nodes/DecisionNode'
 import NoteNode from './nodes/NoteNode'
+import ImageNode from './nodes/ImageNode'
 
 interface PreviewModeProps {
   nodes: Node[]
@@ -17,11 +27,24 @@ const nodeTypes = {
   step: StepNode,
   decision: DecisionNode,
   note: NoteNode,
+  image: ImageNode,
 }
 
-function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
-  const [currentStep, setCurrentStep] = useState(0)
+const defaultEdgeOptions = {
+  style: { strokeWidth: 2 },
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    width: 20,
+    height: 20,
+  },
+}
 
+function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
+  const [currentStep, setCurrentStep] = useState(0)
+  const { fitView } = useReactFlow()
+  const fitViewTimeoutRef = useRef<number>()
+
+  // Find the start node (node with no incoming edges)
   const startNodeId = useMemo(() => {
     if (nodes.length === 0) return undefined
     const incomingTargets = new Set(edges.map((edge) => edge.target))
@@ -29,31 +52,41 @@ function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
     return startNode ? startNode.id : nodes[0].id
   }, [edges, nodes])
 
-  const orderedEdges = useMemo(() => {
+  // Breadth-first traversal to get ordered list of nodes
+  const orderedNodeIds = useMemo(() => {
     if (!startNodeId) return []
 
-    const visited = new Set<string>([startNodeId])
+    const visited = new Set<string>()
     const queue: string[] = [startNodeId]
-    const result: Edge[] = []
+    const result: string[] = []
 
     while (queue.length > 0) {
       const current = queue.shift()
-      if (!current) break
+      if (!current || visited.has(current)) continue
 
+      visited.add(current)
+      result.push(current)
+
+      // Find all outgoing edges and add target nodes to queue
       const outgoingEdges = edges.filter((edge) => edge.source === current)
       outgoingEdges.forEach((edge) => {
         if (!visited.has(edge.target)) {
-          result.push(edge)
-          visited.add(edge.target)
           queue.push(edge.target)
         }
       })
     }
 
-    return result
-  }, [edges, startNodeId])
+    // Include any disconnected nodes at the end
+    nodes.forEach((node) => {
+      if (!visited.has(node.id)) {
+        result.push(node.id)
+      }
+    })
 
-  const totalSteps = nodes.length > 0 ? orderedEdges.length + 1 : 0
+    return result
+  }, [edges, nodes, startNodeId])
+
+  const totalSteps = orderedNodeIds.length
 
   useEffect(() => {
     if (currentStep >= totalSteps && totalSteps > 0) {
@@ -61,25 +94,46 @@ function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
     }
   }, [currentStep, totalSteps])
 
-  const visibleEdges = orderedEdges.slice(0, currentStep)
+  // Get visible node IDs based on current step (all nodes up to and including current)
   const visibleNodeIds = useMemo(() => {
-    const ids = new Set<string>()
-    if (startNodeId) {
-      ids.add(startNodeId)
-    }
-    visibleEdges.forEach((edge) => {
-      ids.add(edge.source)
-      ids.add(edge.target)
-    })
-    return ids
-  }, [startNodeId, visibleEdges])
+    return new Set(orderedNodeIds.slice(0, currentStep + 1))
+  }, [orderedNodeIds, currentStep])
 
-  const activeNodeId = useMemo(() => {
-    if (!startNodeId) return undefined
-    if (currentStep === 0) return startNodeId
-    return orderedEdges[currentStep - 1]?.target
-  }, [currentStep, orderedEdges, startNodeId])
+  // Get visible edges - only show edges where both source and target are visible
+  const visibleEdges = useMemo((): Edge[] => {
+    // Filter edges to only those connecting visible nodes
+    const filtered = edges.filter(
+      (edge) => visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target)
+    )
 
+    const strokeColor = darkMode ? '#78fcd6' : '#555'
+
+    // Style all edges for presentation visibility
+    return filtered.map((edge): Edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      type: 'smoothstep',
+      animated: Boolean(edge.animated),
+      style: {
+        stroke: strokeColor,
+        strokeWidth: 3,
+      },
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 24,
+        height: 24,
+        color: strokeColor,
+      },
+    }))
+  }, [edges, visibleNodeIds, darkMode])
+
+  // The active (most recently revealed) node
+  const activeNodeId = orderedNodeIds[currentStep]
+
+  // Create highlighted nodes with proper styling
   const highlightedNodes = useMemo(() => {
     return nodes
       .filter((node) => visibleNodeIds.has(node.id))
@@ -92,9 +146,37 @@ function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
         style: {
           ...node.style,
           opacity: activeNodeId === node.id ? 1 : 0.55,
+          transition: 'opacity 0.3s ease',
         },
       }))
   }, [activeNodeId, nodes, visibleNodeIds])
+
+  // Fit view to visible nodes when step changes
+  useEffect(() => {
+    if (fitViewTimeoutRef.current) {
+      clearTimeout(fitViewTimeoutRef.current)
+    }
+
+    // Small delay to allow nodes to render
+    fitViewTimeoutRef.current = setTimeout(() => {
+      if (highlightedNodes.length > 0) {
+        const visibleIds = highlightedNodes.map((n) => n.id)
+        fitView({
+          padding: 0.3,
+          duration: 500,
+          maxZoom: 1.5,
+          minZoom: 0.3,
+          nodes: visibleIds.map((id) => ({ id })),
+        })
+      }
+    }, 50)
+
+    return () => {
+      if (fitViewTimeoutRef.current) {
+        clearTimeout(fitViewTimeoutRef.current)
+      }
+    }
+  }, [currentStep, highlightedNodes, fitView])
 
   // Handle navigation
   const handleNext = useCallback(() => {
@@ -109,7 +191,8 @@ function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault()
         handleNext()
       } else if (e.key === 'ArrowLeft') {
         handlePrevious()
@@ -137,14 +220,24 @@ function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
         nodes={highlightedNodes}
         edges={visibleEdges}
         nodeTypes={nodeTypes}
+        defaultEdgeOptions={defaultEdgeOptions}
+        connectionMode={ConnectionMode.Loose}
         fitView
+        fitViewOptions={{ padding: 0.3 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
         zoomOnScroll={false}
         panOnDrag={false}
+        proOptions={{ hideAttribution: true }}
+        className={darkMode ? 'react-flow-dark' : ''}
       >
-        <Background />
+        <Background
+          variant={BackgroundVariant.Dots}
+          size={1}
+          gap={18}
+          color={darkMode ? 'rgba(231, 236, 235, 0.18)' : 'rgba(15, 18, 17, 0.12)'}
+        />
       </ReactFlow>
       <div className="preview-controls">
         <button
@@ -163,6 +256,14 @@ function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
         </button>
       </div>
     </div>
+  )
+}
+
+function PreviewMode(props: PreviewModeProps) {
+  return (
+    <ReactFlowProvider>
+      <PreviewModeContent {...props} />
+    </ReactFlowProvider>
   )
 }
 

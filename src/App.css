@@ -48,6 +48,16 @@
   transition: stroke-width 0.2s ease, stroke 0.2s ease;
 }
 
+/* Edge label styling */
+.react-flow__edge-text {
+  pointer-events: all;
+}
+
+.react-flow__edge-textbg {
+  rx: 4;
+  ry: 4;
+}
+
 .react-flow__edge:hover .react-flow__edge-path {
   stroke-width: 3;
   stroke: #667eea;
@@ -265,6 +275,51 @@
   background: rgba(39, 39, 42, 0.5);
   color: rgba(231, 236, 235, 0.3);
   border-color: rgba(255, 255, 255, 0.05);
+}
+
+.edge-label-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 4px;
+  margin-bottom: 4px;
+}
+
+.edge-label-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  background: white;
+  color: #333;
+  transition: all 0.15s ease;
+}
+
+.edge-label-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.edge-label-input::placeholder {
+  color: #adb5bd;
+}
+
+.app.dark-mode .edge-label-input {
+  background: rgba(39, 39, 42, 0.6);
+  border-color: rgba(120, 252, 214, 0.2);
+  color: #e7eceb;
+}
+
+.app.dark-mode .edge-label-input:focus {
+  border-color: rgba(120, 252, 214, 0.5);
+  box-shadow: 0 0 0 2px rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .edge-label-input::placeholder {
+  color: rgba(231, 236, 235, 0.4);
 }
 
 .edge-style-picker {

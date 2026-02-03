@@ -54,6 +54,7 @@ export interface BaseFlowEdge {
   style?: EdgeStyle
   sourceHandle?: HandlePosition
   targetHandle?: HandlePosition
+  label?: string
 }
 
 export interface BaseFlow {
@@ -155,6 +156,16 @@ function FlowChartEditor() {
 
   const [nodes, setNodes] = useNodesState(initialNodes)
   const [edges, setEdges] = useEdgesState([])
+
+  // Update edge label callback
+  const updateEdgeLabel = useCallback((edgeId: string, label: string) => {
+    setEdges((eds) =>
+      eds.map((edge) =>
+        edge.id === edgeId ? { ...edge, label } : edge
+      )
+    )
+  }, [setEdges])
+
   const [previewMode, setPreviewMode] = useState(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
@@ -315,6 +326,18 @@ function FlowChartEditor() {
         width: 20,
         height: 20,
       },
+      labelStyle: {
+        fill: darkMode ? '#e7eceb' : '#333',
+        fontWeight: 500,
+        fontSize: 12,
+      },
+      labelBgStyle: {
+        fill: darkMode ? 'rgba(15, 18, 17, 0.9)' : 'rgba(255, 255, 255, 0.9)',
+        stroke: darkMode ? 'rgba(120, 252, 214, 0.3)' : 'rgba(0, 0, 0, 0.1)',
+        strokeWidth: 1,
+      },
+      labelBgPadding: [6, 4] as [number, number],
+      labelBgBorderRadius: 4,
     }
   }, [darkMode])
 
@@ -587,6 +610,7 @@ function FlowChartEditor() {
       target: edge.target,
       sourceHandle: edge.sourceHandle,
       targetHandle: edge.targetHandle,
+      label: edge.label,
       ...getEdgeStyleProps(edge.style || 'default'),
     }))
 
@@ -673,6 +697,17 @@ function FlowChartEditor() {
               <span className="selection-toolbar-text">
                 {totalSelected} item{totalSelected !== 1 ? 's' : ''} selected
               </span>
+              {selectedEdges.length === 1 && (
+                <div className="edge-label-editor">
+                  <input
+                    type="text"
+                    className="edge-label-input"
+                    value={typeof selectedEdges[0].label === 'string' ? selectedEdges[0].label : ''}
+                    onChange={(e) => updateEdgeLabel(selectedEdges[0].id, e.target.value)}
+                    placeholder="Edge label..."
+                  />
+                </div>
+              )}
               {selectedEdges.length > 0 && (
                 <div className="edge-style-picker">
                   <button
@@ -754,6 +789,7 @@ function FlowChartEditor() {
           nodes={nodes}
           edges={edges}
           onUpdateNodeLabel={updateNodeLabel}
+          onUpdateEdgeLabel={updateEdgeLabel}
           onApplyFlow={applyBaseFlow}
           onClose={() => setSidebarMode('none')}
         />

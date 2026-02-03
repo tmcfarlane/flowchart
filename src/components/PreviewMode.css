@@ -59,13 +59,56 @@
   transform: translateY(-1px);
 }
 
+/* Dark mode React Flow styles */
 .preview-mode .react-flow {
   flex: 1;
   background: #0f1211;
 }
 
+.preview-mode .react-flow-dark {
+  background: #0f1211;
+}
+
+.preview-mode .react-flow-dark .react-flow__pane {
+  background: #0f1211;
+}
+
+.preview-mode .react-flow-dark .react-flow__background {
+  background: #0f1211;
+}
+
+.preview-mode .react-flow-dark .react-flow__edge-path {
+  stroke: #78fcd6;
+}
+
+.preview-mode .react-flow-dark .react-flow__edge.animated .react-flow__edge-path {
+  stroke: #78fcd6;
+}
+
+/* Ensure edges are always visible in presentation mode */
+.preview-mode .react-flow__edge-path {
+  stroke-width: 2px;
+}
+
+.preview-mode .react-flow__edge {
+  pointer-events: none;
+}
+
+/* Light mode React Flow styles */
 .preview-mode.light .react-flow {
   background: #f8fafc;
+}
+
+.preview-mode.light .react-flow .react-flow__pane {
+  background: #f8fafc;
+}
+
+.preview-mode.light .react-flow .react-flow__background {
+  background: #f8fafc;
+}
+
+.preview-mode.light .react-flow .react-flow__edge-path {
+  stroke: #555;
 }
 
 .preview-controls {
@@ -110,6 +153,15 @@
   cursor: not-allowed;
   background: rgba(39, 39, 42, 0.6);
   color: rgba(231, 236, 235, 0.6);
+}
+
+.preview-mode.light .nav-button {
+  background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.preview-mode.light .nav-button:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
 .preview-mode.light .nav-button:disabled {
