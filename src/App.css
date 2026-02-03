@@ -328,12 +328,14 @@
   box-shadow: 0 0 8px rgba(120, 252, 214, 0.3);
 }
 
-.react-flow.arrow-mode {
-  cursor: crosshair;
+.react-flow.arrow-mode,
+.react-flow.arrow-mode .react-flow__pane,
+.react-flow.arrow-mode .react-flow__viewport {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='%23333' stroke-width='1.5'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='%23333' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair !important;
 }
 
 .react-flow.arrow-mode .react-flow__node {
-  cursor: crosshair;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='%23333' stroke-width='1.5'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='%23333' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair !important;
 }
 
 .react-flow.arrow-mode .react-flow__handle {
@@ -354,15 +356,16 @@
 .react-flow.arrow-mode .react-flow__handle:hover {
   background: #2d6cb5;
   box-shadow: 0 0 0 5px rgba(74, 144, 217, 0.35), 0 1px 3px rgba(0, 0, 0, 0.15);
-  transform: scale(1.2);
 }
 
-.react-flow-dark.arrow-mode {
-  cursor: crosshair;
+.react-flow-dark.arrow-mode,
+.react-flow-dark.arrow-mode .react-flow__pane,
+.react-flow-dark.arrow-mode .react-flow__viewport {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='%2378fcd6' stroke-width='1.5'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='%2378fcd6' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair !important;
 }
 
 .react-flow-dark.arrow-mode .react-flow__node {
-  cursor: crosshair;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cline x1='12' y1='2' x2='12' y2='22' stroke='%2378fcd6' stroke-width='1.5'/%3E%3Cline x1='2' y1='12' x2='22' y2='12' stroke='%2378fcd6' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, crosshair !important;
 }
 
 .react-flow-dark.arrow-mode .react-flow__handle {
@@ -383,7 +386,6 @@
 .react-flow-dark.arrow-mode .react-flow__handle:hover {
   background: #00ffb6;
   box-shadow: 0 0 0 5px rgba(120, 252, 214, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
-  transform: scale(1.2);
 }
 
 .react-flow.hand-mode {
