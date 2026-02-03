@@ -238,7 +238,8 @@
 
 .step-node:hover .react-flow__handle,
 .decision-node:hover .react-flow__handle,
-.note-node:hover .react-flow__handle {
+.note-node:hover .react-flow__handle,
+.image-node:hover .react-flow__handle {
   opacity: 1;
 }
 
@@ -260,13 +261,15 @@
 
 .step-node.selected .react-flow__handle,
 .decision-node.selected .react-flow__handle,
-.note-node.selected .react-flow__handle {
+.note-node.selected .react-flow__handle,
+.image-node.selected .react-flow__handle {
   opacity: 0.7;
 }
 
 .step-node.selected:hover .react-flow__handle,
 .decision-node.selected:hover .react-flow__handle,
-.note-node.selected:hover .react-flow__handle {
+.note-node.selected:hover .react-flow__handle,
+.image-node.selected:hover .react-flow__handle {
   opacity: 1;
 }
 
@@ -378,4 +381,81 @@
 
 .react-flow-dark .node-resize-line {
   border-color: #78fcd6 !important;
+}
+
+/* Image Node */
+.image-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  min-width: 140px;
+  min-height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.image-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-color: #bbb;
+}
+
+.image-node.selected {
+  border-color: #78fcd6;
+  border-width: 2px;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.2),
+              0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow__node.dragging .image-node {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: scale(1.02);
+}
+
+.image-node-content {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  pointer-events: none;
+}
+
+.image-node-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Image Node - Dark Mode */
+.react-flow-dark .image-node {
+  background: rgba(30, 33, 32, 0.9);
+  border-color: rgba(120, 252, 214, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 252, 214, 0.1);
+}
+
+.react-flow-dark .image-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(120, 252, 214, 0.15);
+  border-color: rgba(120, 252, 214, 0.5);
+}
+
+.react-flow-dark .image-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.2),
+              0 6px 16px rgba(0, 0, 0, 0.5),
+              0 0 30px rgba(120, 252, 214, 0.2);
+}
+
+.react-flow-dark .image-node-placeholder {
+  color: rgba(231, 236, 235, 0.5);
 }

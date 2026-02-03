@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode } from '../App'
+import ImagePicker from './ImagePicker'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
+  onAddImage: (imageUrl: string, label: string) => void
   onTogglePreview: () => void
   onToggleExplorer: () => void
-  onToggleAI: () => void
   sidebarMode: SidebarMode
   onUndo: () => void
   onRedo: () => void
@@ -21,9 +22,9 @@ interface ToolbarProps {
 
 function Toolbar({
   onAddNode,
+  onAddImage,
   onTogglePreview,
   onToggleExplorer,
-  onToggleAI,
   sidebarMode,
   onUndo,
   onRedo,
@@ -36,6 +37,7 @@ function Toolbar({
   onToggleDarkMode,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
+  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
 
   const handleClearClick = () => {
     setIsClearConfirmOpen(true)
@@ -81,8 +83,19 @@ function Toolbar({
             title="Hand Tool (H) - Pan canvas"
             aria-label="Hand Tool"
           >
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M8 1v4M5 3v5M11 3v5M3 6v6c0 2 1 3 3 3h4c2 0 3-1 3-3V6M3 6c-1 0-1.5.5-1.5 1.5S2 9 3 9M13 6c1 0 1.5.5 1.5 1.5S14 9 13 9" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path d="M6.4 3.2c.5 0 1 .4 1 1v6.4h.8V3.8c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v6.8h.8V4.6c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v6.3h.8V6.8c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v6.5c0 2.2-1.5 3.7-3.8 3.7H9.1c-2.1 0-3.5-1.4-3.8-3.6L4.7 9.9c-.2-1 .5-1.9 1.5-2.1.1 0 .2 0 .2 0z" />
+            </svg>
+          </button>
+          <button
+            className={`toolbar-button ${toolMode === 'arrow' ? 'active' : ''}`}
+            onClick={() => onSetToolMode('arrow')}
+            title="Arrow Tool (A) - Connect nodes only"
+            aria-label="Arrow Tool"
+          >
+            <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 10h10" />
+              <path d="M11 6l4 4-4 4" />
             </svg>
           </button>
         </div>
@@ -119,6 +132,18 @@ function Toolbar({
             <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
               <path d="M3 2h10v9l-3 3H3V2z" stroke="currentColor" strokeWidth="1.5" fill="none" />
               <path d="M10 11v3l3-3h-3z" fill="currentColor" />
+            </svg>
+          </button>
+          <button
+            className="toolbar-button add-image"
+            onClick={() => setIsImagePickerOpen(true)}
+            title="Add Image (I)"
+            aria-label="Add Image"
+          >
+            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <circle cx="5.5" cy="5.5" r="1" fill="currentColor" />
+              <path d="M2 11.5l3-3 2 2 3.5-3.5 3.5 3.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
             </svg>
           </button>
         </div>
@@ -171,8 +196,8 @@ function Toolbar({
           >
             {darkMode ? (
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="5" fill="#FFD93D" stroke="#FFA726" strokeWidth="1" />
-                <g stroke="#FFD93D" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="5" fill="currentColor" stroke="currentColor" strokeWidth="1" />
+                <g stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <line x1="12" y1="1" x2="12" y2="4" />
                   <line x1="12" y1="20" x2="12" y2="23" />
                   <line x1="1" y1="12" x2="4" y2="12" />
@@ -204,19 +229,6 @@ function Toolbar({
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
               <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
-            </svg>
-          </button>
-          <button
-            className={`toolbar-button ${sidebarMode === 'ai' ? 'active' : ''}`}
-            onClick={onToggleAI}
-            title="AI Assistant"
-            aria-label="Toggle AI Assistant"
-          >
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-              <circle cx="5" cy="6" r="1" />
-              <circle cx="11" cy="6" r="1" />
-              <path d="M8 2a6 6 0 0 0-6 6c0 2.2 1.2 4.1 3 5.2V15l2-1 2 1v-1.8c1.8-1.1 3-3 3-5.2a6 6 0 0 0-6-6z" stroke="currentColor" strokeWidth="1.5" fill="none" />
-              <path d="M5.5 9.5c.5.5 1.5 1 2.5 1s2-.5 2.5-1" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" />
             </svg>
           </button>
           <button
@@ -259,6 +271,14 @@ function Toolbar({
             </div>
           </div>
         </div>
+      )}
+
+      {isImagePickerOpen && (
+        <ImagePicker
+          isOpen={isImagePickerOpen}
+          onClose={() => setIsImagePickerOpen(false)}
+          onSelectImage={onAddImage}
+        />
       )}
     </>
   )

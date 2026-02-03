@@ -94,56 +94,61 @@
 
 .selection-toolbar {
   position: fixed;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 80px;
+  left: 16px;
   background: white;
   border: 1px solid #dee2e6;
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(102, 126, 234, 0.1);
   display: flex;
-  gap: 10px;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
   z-index: 100;
-  animation: slideUp 0.2s ease;
+  animation: slideInLeft 0.2s ease;
+  min-width: 44px;
 }
 
-@keyframes slideUp {
+@keyframes slideInLeft {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(10px);
+    transform: translateX(-10px);
   }
 
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateX(0);
   }
 }
 
 .selection-toolbar-text {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: #495057;
-  padding: 0 6px;
-  border-right: 1px solid #e9ecef;
-  margin-right: 4px;
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 4px;
+  line-height: 1.3;
 }
 
 .selection-toolbar-button {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 7px 14px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
   background: #667eea;
   color: white;
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   transition: all 0.15s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
 }
 
 .selection-toolbar-button:hover:not(:disabled) {
@@ -199,11 +204,12 @@
   background: rgba(15, 18, 17, 0.95);
   border: 1px solid rgba(120, 252, 214, 0.2);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(120, 252, 214, 0.1);
+  backdrop-filter: blur(8px);
 }
 
 .app.dark-mode .selection-toolbar-text {
   color: #e7eceb;
-  border-right-color: rgba(255, 255, 255, 0.1);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .app.dark-mode .selection-toolbar-button {
@@ -261,54 +267,123 @@
   border-color: rgba(255, 255, 255, 0.05);
 }
 
-.selection-toolbar-select {
-  padding: 7px 28px 7px 12px;
-  background: #f8f9fa;
-  color: #495057;
-  border: 1px solid #dee2e6;
+.edge-style-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: #f1f3f4;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.edge-style-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  background: transparent;
+  color: #4b5563;
+  border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
   transition: all 0.15s ease;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%234b5563'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
 }
 
-.selection-toolbar-select:hover {
-  border-color: #adb5bd;
+.edge-style-option:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
 }
 
-.selection-toolbar-select:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
+.edge-style-option.active {
+  background: white;
+  color: #667eea;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.app.dark-mode .selection-toolbar-select {
-  background: rgba(120, 252, 214, 0.08);
+.edge-style-option svg {
+  flex-shrink: 0;
+}
+
+.app.dark-mode .edge-style-picker {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .edge-style-option {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.app.dark-mode .edge-style-option:hover {
+  background: rgba(120, 252, 214, 0.1);
   color: #e7eceb;
-  border: 1px solid rgba(120, 252, 214, 0.2);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='%2378fcd6'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
 }
 
-.app.dark-mode .selection-toolbar-select:hover {
-  border-color: rgba(120, 252, 214, 0.4);
-  background: rgba(120, 252, 214, 0.12);
+.app.dark-mode .edge-style-option.active {
+  background: rgba(120, 252, 214, 0.2);
+  color: #78fcd6;
+  box-shadow: 0 0 8px rgba(120, 252, 214, 0.3);
 }
 
-.app.dark-mode .selection-toolbar-select:focus {
-  border-color: #78fcd6;
-  box-shadow: 0 0 0 2px rgba(120, 252, 214, 0.2);
+.react-flow.arrow-mode {
+  cursor: crosshair;
 }
 
-.app.dark-mode .selection-toolbar-select option {
-  background: #0f1211;
-  color: #e7eceb;
+.react-flow.arrow-mode .react-flow__node {
+  cursor: crosshair;
+}
+
+.react-flow.arrow-mode .react-flow__handle {
+  cursor: pointer;
+  opacity: 1;
+}
+
+/* Show all handles on all nodes when in arrow mode */
+.react-flow.arrow-mode .step-node .react-flow__handle,
+.react-flow.arrow-mode .decision-node .react-flow__handle,
+.react-flow.arrow-mode .note-node .react-flow__handle,
+.react-flow.arrow-mode .image-node .react-flow__handle {
+  opacity: 1;
+  background: #4a90d9;
+  box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.25), 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow.arrow-mode .react-flow__handle:hover {
+  background: #2d6cb5;
+  box-shadow: 0 0 0 5px rgba(74, 144, 217, 0.35), 0 1px 3px rgba(0, 0, 0, 0.15);
+  transform: scale(1.2);
+}
+
+.react-flow-dark.arrow-mode {
+  cursor: crosshair;
+}
+
+.react-flow-dark.arrow-mode .react-flow__node {
+  cursor: crosshair;
+}
+
+.react-flow-dark.arrow-mode .react-flow__handle {
+  cursor: pointer;
+  opacity: 1;
+}
+
+/* Show all handles on all nodes when in arrow mode - dark mode */
+.react-flow-dark.arrow-mode .step-node .react-flow__handle,
+.react-flow-dark.arrow-mode .decision-node .react-flow__handle,
+.react-flow-dark.arrow-mode .note-node .react-flow__handle,
+.react-flow-dark.arrow-mode .image-node .react-flow__handle {
+  opacity: 1;
+  background: #78fcd6;
+  box-shadow: 0 0 0 3px rgba(120, 252, 214, 0.25), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow-dark.arrow-mode .react-flow__handle:hover {
+  background: #00ffb6;
+  box-shadow: 0 0 0 5px rgba(120, 252, 214, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  transform: scale(1.2);
 }
 
 .react-flow.hand-mode {
@@ -420,4 +495,76 @@
 
 .react-flow__background pattern line {
   stroke: rgba(0, 0, 0, 0.1);
+}
+
+/* Floating AI Chat Pill */
+.ai-floating-pill {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  background: linear-gradient(135deg, rgba(15, 18, 17, 0.98) 0%, rgba(31, 36, 34, 0.98) 100%);
+  color: #e7eceb;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
+  z-index: 90;
+  animation: floatUp 0.4s ease;
+}
+
+@keyframes floatUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.ai-floating-pill:hover {
+  transform: translateX(-50%) translateY(-3px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+  border-color: rgba(120, 252, 214, 0.35);
+  color: #78fcd6;
+}
+
+.ai-floating-pill:active {
+  transform: translateX(-50%) translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.ai-floating-pill svg {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+/* Dark mode floating pill styles */
+.app.dark-mode .ai-floating-pill {
+  background: linear-gradient(135deg, rgba(15, 18, 17, 0.95) 0%, rgba(30, 33, 32, 0.95) 100%);
+  color: #e7eceb;
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.4), 0 0 18px rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .ai-floating-pill:hover {
+  color: #00ffb6;
+  border-color: rgba(120, 252, 214, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 26px rgba(120, 252, 214, 0.3);
+  text-shadow: 0 0 10px rgba(120, 252, 214, 0.3);
+}
+
+.app.dark-mode .ai-floating-pill:active {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }

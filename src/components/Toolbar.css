@@ -64,6 +64,13 @@
   flex-shrink: 0;
 }
 
+.toolbar-icon-image {
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
+}
+
 .toolbar-button:disabled {
   color: rgba(0, 0, 0, 0.25);
   cursor: not-allowed;
@@ -128,7 +135,23 @@
   color: #00ffb6;
 }
 
+.toolbar-button.add-image {
+  color: #78fcd6;
+}
 
+.toolbar-button.add-image:hover {
+  background: rgba(120, 252, 214, 0.15);
+  color: #00ffb6;
+}
+
+.app.dark-mode .toolbar-button.add-image {
+  color: #78fcd6;
+}
+
+.app.dark-mode .toolbar-button.add-image:hover {
+  background: rgba(120, 252, 214, 0.2);
+  color: #00ffb6;
+}
 
 .toolbar-button.preview {
   color: #059669;
@@ -149,12 +172,12 @@
 }
 
 .toolbar-button.dark-mode-toggle.is-dark {
-  color: #fbbf24;
+  color: #6b7280;
 }
 
 .toolbar-button.dark-mode-toggle.is-dark:hover {
-  background: rgba(251, 191, 36, 0.12);
-  color: #f59e0b;
+  background: rgba(0, 0, 0, 0.06);
+  color: #4b5563;
 }
 
 .toolbar-button.dark-mode-toggle.is-light {
@@ -164,6 +187,15 @@
 .toolbar-button.dark-mode-toggle.is-light:hover {
   background: rgba(0, 0, 0, 0.06);
   color: #4b5563;
+}
+
+.app.dark-mode .toolbar-button.dark-mode-toggle.is-dark {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.app.dark-mode .toolbar-button.dark-mode-toggle.is-dark:hover {
+  background: rgba(120, 252, 214, 0.1);
+  color: #e7eceb;
 }
 
 @media (max-width: 600px) {
@@ -178,6 +210,11 @@
   }
 
   .toolbar-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .toolbar-icon-image {
     width: 16px;
     height: 16px;
   }

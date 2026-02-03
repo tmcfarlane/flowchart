@@ -34,10 +34,41 @@
   color: white;
 }
 
+.explorer-header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .explorer-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+}
+
+.explorer-view-toggle {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.explorer-toggle-button {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.explorer-toggle-button.active {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
 }
 
 .explorer-close {
@@ -65,6 +96,77 @@
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+}
+
+.explorer-json {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explorer-json-hint {
+  font-size: 13px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+.explorer-json-input {
+  min-height: 280px;
+  resize: vertical;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  font-size: 12px;
+  font-family: 'Geist Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  line-height: 1.5;
+  color: #111827;
+}
+
+.explorer-json-input:focus {
+  outline: none;
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 2px rgba(120, 252, 214, 0.2);
+}
+
+.explorer-json-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.explorer-json-button {
+  border: 1px solid rgba(120, 252, 214, 0.4);
+  background: rgba(120, 252, 214, 0.08);
+  color: #0f1211;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.explorer-json-button:hover {
+  background: rgba(120, 252, 214, 0.2);
+}
+
+.explorer-json-button.primary {
+  background: linear-gradient(90deg, #78fcd6, #00ffb6);
+  border-color: transparent;
+  color: #0f1211;
+}
+
+.explorer-json-button.primary:hover {
+  background: linear-gradient(90deg, #00ffb6, #78fcd6);
+}
+
+.explorer-json-error {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c1c;
+  font-size: 12px;
 }
 
 .explorer-section {
@@ -185,6 +287,19 @@
   color: #e7eceb;
 }
 
+.app.dark-mode .explorer-view-toggle {
+  background: rgba(120, 252, 214, 0.12);
+}
+
+.app.dark-mode .explorer-toggle-button {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.app.dark-mode .explorer-toggle-button.active {
+  background: rgba(15, 18, 17, 0.9);
+  color: #78fcd6;
+}
+
 .app.dark-mode .explorer-header h3 {
   background: linear-gradient(to right, #78fcd6, #00ffb6);
   -webkit-background-clip: text;
@@ -225,6 +340,29 @@
   background: rgba(39, 39, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #e7eceb;
+}
+
+.app.dark-mode .explorer-json-hint {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.app.dark-mode .explorer-json-input {
+  background: rgba(15, 18, 17, 0.8);
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  color: #e7eceb;
+}
+
+.app.dark-mode .explorer-json-button {
+  color: #e7eceb;
+}
+
+.app.dark-mode .explorer-json-button.primary {
+  color: #0f1211;
+}
+
+.app.dark-mode .explorer-json-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fecaca;
 }
 
 .app.dark-mode .explorer-input:focus {

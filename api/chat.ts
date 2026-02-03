@@ -10,12 +10,21 @@ interface FlowNode {
   type: string
   label: string
   position: { x: number; y: number }
+  width?: number
+  height?: number
+  imageUrl?: string
 }
+
+type EdgeStyle = 'default' | 'animated' | 'step'
+type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 
 interface FlowEdge {
   id: string
   source: string
   target: string
+  style?: EdgeStyle
+  sourceHandle?: HandlePosition
+  targetHandle?: HandlePosition
 }
 
 interface FlowContext {
@@ -62,14 +71,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 {
   "explanation": "A brief natural language description of what you changed and why",
   "nodes": [
-    { "id": "1", "type": "step", "label": "Node label", "position": { "x": 250, "y": 100 } }
+    { "id": "1", "type": "step", "label": "Node label", "position": { "x": 250, "y": 100 }, "width": 180, "height": 80, "imageUrl": "https://example.com/icon.svg" }
   ],
   "edges": [
-    { "id": "e1-2", "source": "1", "target": "2" }
+    { "id": "e1-2", "source": "1", "target": "2", "style": "default", "sourceHandle": "right", "targetHandle": "left" }
   ]
 }
 
 Node types can be: "step", "decision", or "note".
+Edge styles can be: "default", "animated", or "step".
+Handle positions can be: "top", "right", "bottom", or "left".
 Always include ALL nodes and edges in your response (both existing and new ones).
 Make sure to provide a clear explanation in natural language before the JSON.
 Format your response as: First explain what you're doing, then provide the JSON wrapped in a code block like this:

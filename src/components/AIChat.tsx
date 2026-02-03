@@ -1,34 +1,35 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Node, Edge, MarkerType } from 'reactflow'
+import { Node, Edge } from 'reactflow'
 import './AIChat.css'
+import { BaseFlow, EdgeStyle } from '../App'
+
+const LOADING_MESSAGES = [
+  'Thinking about your flowchart...',
+  'Analyzing the structure...',
+  'Generating ideas...',
+  'Working on it...',
+  'Processing your request...',
+  'Designing the flow...',
+]
+
+interface FlowUpdate extends BaseFlow {
+  explanation?: string
+}
 
 interface Message {
   role: 'user' | 'assistant' | 'system'
   content: string
-  flowUpdate?: {
-    explanation: string
-    nodes: Array<{
-      id: string
-      type: string
-      label: string
-      position: { x: number; y: number }
-    }>
-    edges: Array<{
-      id: string
-      source: string
-      target: string
-    }>
-  }
+  flowUpdate?: FlowUpdate
 }
 
 interface AIChatProps {
   nodes: Node[]
   edges: Edge[]
-  onUpdateFlow: (nodes: Node[], edges: Edge[]) => void
+  onApplyFlow: (flow: BaseFlow) => void
   onClose: () => void
 }
 
-function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
+function AIChat({ nodes, edges, onApplyFlow, onClose }: AIChatProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
@@ -40,6 +41,37 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  const [currentLoadingMessage, setCurrentLoadingMessage] = useState('')
+  const [loadingProgress, setLoadingProgress] = useState(0)
+
+  useEffect(() => {
+    if (!isLoading) {
+      setCurrentLoadingMessage('')
+      setLoadingProgress(0)
+      return
+    }
+
+    setCurrentLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)])
+    setLoadingProgress(10)
+
+    const messageInterval = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * LOADING_MESSAGES.length)
+      setCurrentLoadingMessage(LOADING_MESSAGES[randomIndex])
+    }, 2000)
+
+    const progressInterval = setInterval(() => {
+      setLoadingProgress((prev) => {
+        if (prev >= 90) return prev
+        return prev + Math.random() * 15
+      })
+    }, 500)
+
+    return () => {
+      clearInterval(messageInterval)
+      clearInterval(progressInterval)
+    }
+  }, [isLoading])
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -49,7 +81,7 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
   }, [messages])
 
   // Parse flow update from assistant message if present
-  const parseFlowUpdate = (content: string) => {
+  const parseFlowUpdate = (content: string): FlowUpdate | null => {
     try {
       // Look for JSON code block in the message
       const jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/)
@@ -72,33 +104,18 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
     return null
   }
 
-  // Apply flow changes to the canvas
-  const applyFlowChanges = useCallback((flowUpdate: NonNullable<Message['flowUpdate']>) => {
-    // Convert the AI's flow format to React Flow format
-    const newNodes: Node[] = flowUpdate.nodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      position: node.position,
-      data: { 
-        label: node.label,
-        onLabelChange: (_nodeId: string, _label: string) => {
-          // This will be handled by the parent component
-        }
-      },
-    }))
+  const applyFlowChanges = useCallback((flowUpdate: FlowUpdate) => {
+    onApplyFlow({
+      nodes: flowUpdate.nodes,
+      edges: flowUpdate.edges,
+    })
+  }, [onApplyFlow])
 
-    const newEdges: Edge[] = flowUpdate.edges.map((edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      type: 'default',
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-      },
-    }))
-
-    onUpdateFlow(newNodes, newEdges)
-  }, [onUpdateFlow])
+  const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
+    if (edge.animated) return 'animated'
+    if (edge.type === 'step') return 'step'
+    return 'default'
+  }, [])
 
   const sendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
@@ -124,11 +141,17 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
           type: n.type,
           label: n.data.label,
           position: n.position,
+          width: typeof n.style?.width === 'number' ? n.style.width : undefined,
+          height: typeof n.style?.height === 'number' ? n.style.height : undefined,
+          imageUrl: typeof n.data.imageUrl === 'string' ? n.data.imageUrl : undefined,
         })),
         edges: edges.map((e) => ({
           id: e.id,
           source: e.source,
           target: e.target,
+          style: getEdgeStyleFromEdge(e),
+          sourceHandle: typeof e.sourceHandle === 'string' ? e.sourceHandle : undefined,
+          targetHandle: typeof e.targetHandle === 'string' ? e.targetHandle : undefined,
         })),
       }
 
@@ -181,7 +204,7 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [inputValue, isLoading, nodes, edges, messages])
+  }, [inputValue, isLoading, nodes, edges, messages, getEdgeStyleFromEdge])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -270,10 +293,16 @@ function AIChat({ nodes, edges, onUpdateFlow, onClose }: AIChatProps) {
         ))}
         {isLoading && (
           <div className="ai-chat-message assistant">
-            <div className="message-content loading">
-              <span className="loading-dot">.</span>
-              <span className="loading-dot">.</span>
-              <span className="loading-dot">.</span>
+            <div className="loading-indicator">
+              <div className="loading-message">{currentLoadingMessage}</div>
+              <div className="loading-progress-bar">
+                <div className="loading-progress-fill" style={{ width: `${loadingProgress}%` }}></div>
+              </div>
+              <div className="loading-dots">
+                <span className="loading-dot"></span>
+                <span className="loading-dot"></span>
+                <span className="loading-dot"></span>
+              </div>
             </div>
           </div>
         )}

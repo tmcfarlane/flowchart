@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import ReactFlow, { Node, Edge, Background } from 'reactflow'
 import 'reactflow/dist/style.css'
 import './PreviewMode.css'
@@ -9,6 +9,7 @@ import NoteNode from './nodes/NoteNode'
 interface PreviewModeProps {
   nodes: Node[]
   edges: Edge[]
+  darkMode: boolean
   onExit: () => void
 }
 
@@ -18,50 +19,99 @@ const nodeTypes = {
   note: NoteNode,
 }
 
-function PreviewMode({ nodes, edges, onExit }: PreviewModeProps) {
-  const [currentNodeIndex, setCurrentNodeIndex] = useState(0)
-  const [orderedNodes, setOrderedNodes] = useState<Node[]>([])
+function PreviewMode({ nodes, edges, darkMode, onExit }: PreviewModeProps) {
+  const [currentStep, setCurrentStep] = useState(0)
 
-  // Sort nodes in a deterministic order (by position, top to bottom, left to right)
+  const startNodeId = useMemo(() => {
+    if (nodes.length === 0) return undefined
+    const incomingTargets = new Set(edges.map((edge) => edge.target))
+    const startNode = nodes.find((node) => !incomingTargets.has(node.id))
+    return startNode ? startNode.id : nodes[0].id
+  }, [edges, nodes])
+
+  const orderedEdges = useMemo(() => {
+    if (!startNodeId) return []
+
+    const visited = new Set<string>([startNodeId])
+    const queue: string[] = [startNodeId]
+    const result: Edge[] = []
+
+    while (queue.length > 0) {
+      const current = queue.shift()
+      if (!current) break
+
+      const outgoingEdges = edges.filter((edge) => edge.source === current)
+      outgoingEdges.forEach((edge) => {
+        if (!visited.has(edge.target)) {
+          result.push(edge)
+          visited.add(edge.target)
+          queue.push(edge.target)
+        }
+      })
+    }
+
+    return result
+  }, [edges, startNodeId])
+
+  const totalSteps = nodes.length > 0 ? orderedEdges.length + 1 : 0
+
   useEffect(() => {
-    const sorted = [...nodes].sort((a, b) => {
-      if (Math.abs(a.position.y - b.position.y) < 50) {
-        return a.position.x - b.position.x
-      }
-      return a.position.y - b.position.y
-    })
-    setOrderedNodes(sorted)
-  }, [nodes])
+    if (currentStep >= totalSteps && totalSteps > 0) {
+      setCurrentStep(totalSteps - 1)
+    }
+  }, [currentStep, totalSteps])
 
-  // Create highlighted nodes array
-  const highlightedNodes = nodes.map((node) => ({
-    ...node,
-    data: {
-      ...node.data,
-      // Remove edit callback in preview mode
-    },
-    selected: orderedNodes[currentNodeIndex]?.id === node.id,
-    style: {
-      ...node.style,
-      opacity: orderedNodes[currentNodeIndex]?.id === node.id ? 1 : 0.3,
-    },
-  }))
+  const visibleEdges = orderedEdges.slice(0, currentStep)
+  const visibleNodeIds = useMemo(() => {
+    const ids = new Set<string>()
+    if (startNodeId) {
+      ids.add(startNodeId)
+    }
+    visibleEdges.forEach((edge) => {
+      ids.add(edge.source)
+      ids.add(edge.target)
+    })
+    return ids
+  }, [startNodeId, visibleEdges])
+
+  const activeNodeId = useMemo(() => {
+    if (!startNodeId) return undefined
+    if (currentStep === 0) return startNodeId
+    return orderedEdges[currentStep - 1]?.target
+  }, [currentStep, orderedEdges, startNodeId])
+
+  const highlightedNodes = useMemo(() => {
+    return nodes
+      .filter((node) => visibleNodeIds.has(node.id))
+      .map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+        },
+        selected: activeNodeId === node.id,
+        style: {
+          ...node.style,
+          opacity: activeNodeId === node.id ? 1 : 0.55,
+        },
+      }))
+  }, [activeNodeId, nodes, visibleNodeIds])
 
   // Handle navigation
   const handleNext = useCallback(() => {
-    setCurrentNodeIndex((prev) => Math.min(prev + 1, orderedNodes.length - 1))
-  }, [orderedNodes.length])
+    if (totalSteps === 0) return
+    setCurrentStep((prev) => Math.min(prev + 1, totalSteps - 1))
+  }, [totalSteps])
 
   const handlePrevious = useCallback(() => {
-    setCurrentNodeIndex((prev) => Math.max(prev - 1, 0))
+    setCurrentStep((prev) => Math.max(prev - 1, 0))
   }, [])
 
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      if (e.key === 'ArrowRight') {
         handleNext()
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      } else if (e.key === 'ArrowLeft') {
         handlePrevious()
       } else if (e.key === 'Escape') {
         onExit()
@@ -73,11 +123,11 @@ function PreviewMode({ nodes, edges, onExit }: PreviewModeProps) {
   }, [handleNext, handlePrevious, onExit])
 
   return (
-    <div className="preview-mode">
+    <div className={`preview-mode ${darkMode ? 'dark' : 'light'}`}>
       <div className="preview-header">
         <div className="preview-title">Presentation Mode</div>
         <div className="preview-counter">
-          {currentNodeIndex + 1} / {orderedNodes.length}
+          {totalSteps === 0 ? 0 : currentStep + 1} / {totalSteps}
         </div>
         <button className="exit-button" onClick={onExit}>
           ✕ Exit
@@ -85,7 +135,7 @@ function PreviewMode({ nodes, edges, onExit }: PreviewModeProps) {
       </div>
       <ReactFlow
         nodes={highlightedNodes}
-        edges={edges}
+        edges={visibleEdges}
         nodeTypes={nodeTypes}
         fitView
         nodesDraggable={false}
@@ -100,14 +150,14 @@ function PreviewMode({ nodes, edges, onExit }: PreviewModeProps) {
         <button
           className="nav-button"
           onClick={handlePrevious}
-          disabled={currentNodeIndex === 0}
+          disabled={currentStep === 0}
         >
           ← Previous
         </button>
         <button
           className="nav-button"
           onClick={handleNext}
-          disabled={currentNodeIndex === orderedNodes.length - 1}
+          disabled={currentStep >= totalSteps - 1}
         >
           Next →
         </button>

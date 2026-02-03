@@ -3,7 +3,11 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #1a1a2e;
+  background: #0f1211;
+}
+
+.preview-mode.light {
+  background: #f8fafc;
 }
 
 .preview-header {
@@ -11,10 +15,17 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  background: #16213e;
+  background: rgba(15, 18, 17, 0.95);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   z-index: 10;
+}
+
+.preview-mode.light .preview-header {
+  background: #ffffff;
+  color: #0f1211;
+  border-bottom: 1px solid rgba(15, 18, 17, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .preview-title {
@@ -24,7 +35,11 @@
 
 .preview-counter {
   font-size: 16px;
-  color: #a0a0a0;
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.preview-mode.light .preview-counter {
+  color: rgba(15, 18, 17, 0.6);
 }
 
 .exit-button {
@@ -46,7 +61,11 @@
 
 .preview-mode .react-flow {
   flex: 1;
-  background: #1a1a2e;
+  background: #0f1211;
+}
+
+.preview-mode.light .react-flow {
+  background: #f8fafc;
 }
 
 .preview-controls {
@@ -54,26 +73,32 @@
   justify-content: center;
   gap: 20px;
   padding: 20px;
-  background: #16213e;
+  background: rgba(15, 18, 17, 0.95);
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.preview-mode.light .preview-controls {
+  background: #ffffff;
+  border-top: 1px solid rgba(15, 18, 17, 0.08);
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .nav-button {
   padding: 12px 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: linear-gradient(135deg, #78fcd6 0%, #00ffb6 100%);
+  color: #0f1211;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(120, 252, 214, 0.3);
 }
 
 .nav-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 16px rgba(120, 252, 214, 0.4);
 }
 
 .nav-button:active:not(:disabled) {
@@ -81,7 +106,13 @@
 }
 
 .nav-button:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
-  background: #555;
+  background: rgba(39, 39, 42, 0.6);
+  color: rgba(231, 236, 235, 0.6);
+}
+
+.preview-mode.light .nav-button:disabled {
+  background: rgba(15, 18, 17, 0.1);
+  color: rgba(15, 18, 17, 0.5);
 }
