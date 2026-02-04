@@ -44,47 +44,10 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
   const { fitView } = useReactFlow()
   const fitViewTimeoutRef = useRef<number>()
 
-  // Find the start node (node with no incoming edges)
-  const startNodeId = useMemo(() => {
-    if (nodes.length === 0) return undefined
-    const incomingTargets = new Set(edges.map((edge) => edge.target))
-    const startNode = nodes.find((node) => !incomingTargets.has(node.id))
-    return startNode ? startNode.id : nodes[0].id
-  }, [edges, nodes])
-
-  // Breadth-first traversal to get ordered list of nodes
+  // Presentation order follows the nodes array (JSON/Explorer order)
   const orderedNodeIds = useMemo(() => {
-    if (!startNodeId) return []
-
-    const visited = new Set<string>()
-    const queue: string[] = [startNodeId]
-    const result: string[] = []
-
-    while (queue.length > 0) {
-      const current = queue.shift()
-      if (!current || visited.has(current)) continue
-
-      visited.add(current)
-      result.push(current)
-
-      // Find all outgoing edges and add target nodes to queue
-      const outgoingEdges = edges.filter((edge) => edge.source === current)
-      outgoingEdges.forEach((edge) => {
-        if (!visited.has(edge.target)) {
-          queue.push(edge.target)
-        }
-      })
-    }
-
-    // Include any disconnected nodes at the end
-    nodes.forEach((node) => {
-      if (!visited.has(node.id)) {
-        result.push(node.id)
-      }
-    })
-
-    return result
-  }, [edges, nodes, startNodeId])
+    return nodes.map((node) => node.id)
+  }, [nodes])
 
   const totalSteps = orderedNodeIds.length
 
@@ -146,7 +109,7 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
   // The active (most recently revealed) node
   const activeNodeId = orderedNodeIds[currentStep]
 
-  // Create highlighted nodes with proper styling
+  // Create highlighted nodes with proper styling (no selection state in presentation)
   const highlightedNodes = useMemo(() => {
     return nodes
       .filter((node) => visibleNodeIds.has(node.id))
@@ -155,7 +118,7 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
         data: {
           ...node.data,
         },
-        selected: activeNodeId === node.id,
+        selected: false,
         style: {
           ...node.style,
           opacity: activeNodeId === node.id ? 1 : 0.55,

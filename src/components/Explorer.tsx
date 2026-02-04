@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Node, Edge } from 'reactflow'
 import './Explorer.css'
 import { BaseFlow, BaseFlowEdge, BaseFlowNode, EdgeStyle, HandlePosition } from '../App'
@@ -8,19 +8,64 @@ interface ExplorerProps {
   edges: Edge[]
   onUpdateNodeLabel: (nodeId: string, label: string) => void
   onUpdateEdgeLabel: (edgeId: string, label: string) => void
+  onReorderNodes: (fromIndex: number, toIndex: number) => void
   onApplyFlow: (flow: BaseFlow) => void
   onClose: () => void
 }
 
-function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onApplyFlow, onClose }: ExplorerProps) {
+function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorderNodes, onApplyFlow, onClose }: ExplorerProps) {
   const [viewMode, setViewMode] = useState<'visual' | 'json'>('visual')
   const [baseText, setBaseText] = useState('')
   const [baseError, setBaseError] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
 
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
+  const dragNodeRef = useRef<HTMLDivElement | null>(null)
+
   const handleNodeNameChange = (nodeId: string, newLabel: string) => {
     onUpdateNodeLabel(nodeId, newLabel)
   }
+
+  const handleDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, index: number) => {
+    setDraggedIndex(index)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', index.toString())
+    // Add a slight delay to apply dragging class for visual feedback
+    setTimeout(() => {
+      if (dragNodeRef.current) {
+        dragNodeRef.current.classList.add('dragging')
+      }
+    }, 0)
+  }, [])
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }, [])
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>, index: number) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index)
+    }
+  }, [draggedIndex])
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>, toIndex: number) => {
+    e.preventDefault()
+    const fromIndex = draggedIndex
+    if (fromIndex !== null && fromIndex !== toIndex) {
+      onReorderNodes(fromIndex, toIndex)
+    }
+    setDraggedIndex(null)
+    setDragOverIndex(null)
+  }, [draggedIndex, onReorderNodes])
 
   const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
     if (edge.animated) return 'animated'
@@ -172,8 +217,29 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onApplyF
               <div className="explorer-section">
                 <h4>Nodes ({nodes.length})</h4>
                 <div className="explorer-list">
-                  {nodes.map((node) => (
-                    <div key={node.id} className="explorer-item">
+                  {nodes.map((node, index) => (
+                    <div
+                      key={node.id}
+                      ref={draggedIndex === index ? dragNodeRef : null}
+                      className={`explorer-item draggable ${draggedIndex === index ? 'dragging' : ''
+                        } ${dragOverIndex === index ? 'drag-over' : ''}`}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, index)}
+                    >
+                      <span className="drag-handle" title="Drag to reorder">
+                        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                          <circle cx="3" cy="2" r="1.2" />
+                          <circle cx="9" cy="2" r="1.2" />
+                          <circle cx="3" cy="6" r="1.2" />
+                          <circle cx="9" cy="6" r="1.2" />
+                          <circle cx="3" cy="10" r="1.2" />
+                          <circle cx="9" cy="10" r="1.2" />
+                        </svg>
+                      </span>
                       <span className="node-type-badge">{node.type || 'default'}</span>
                       <input
                         type="text"

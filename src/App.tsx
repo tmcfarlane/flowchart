@@ -28,6 +28,7 @@ import StepNode from './components/nodes/StepNode'
 import DecisionNode from './components/nodes/DecisionNode'
 import NoteNode from './components/nodes/NoteNode'
 import ImageNode from './components/nodes/ImageNode'
+import { EditableEdge, EditableSmoothStepEdge } from './components/edges/EditableEdge'
 import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
@@ -74,9 +75,15 @@ const nodeTypes = {
   image: ImageNode,
 }
 
+const edgeTypes = {
+  default: EditableEdge,
+  smoothstep: EditableSmoothStepEdge,
+  step: EditableSmoothStepEdge,
+}
+
 function FlowChartEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const { screenToFlowPosition, zoomIn, zoomOut } = useReactFlow()
+  const { screenToFlowPosition, zoomIn, zoomOut, setCenter } = useReactFlow()
 
   const getNodeDimensions = useCallback((nodeType?: string, style?: FlowNode['style']) => {
     const width = typeof style?.width === 'number' ? style.width : undefined
@@ -98,7 +105,7 @@ function FlowChartEditor() {
     size: { width: number; height: number },
     occupiedNodes: FlowNode[]
   ) => {
-    const step = 24
+    const step = 3
     let position = { ...startPosition }
     let attempts = 0
 
@@ -166,6 +173,16 @@ function FlowChartEditor() {
     )
   }, [setEdges])
 
+  // Reorder nodes callback
+  const reorderNodes = useCallback((fromIndex: number, toIndex: number) => {
+    setNodes((nds) => {
+      const newNodes = [...nds]
+      const [movedNode] = newNodes.splice(fromIndex, 1)
+      newNodes.splice(toIndex, 0, movedNode)
+      return newNodes
+    })
+  }, [setNodes])
+
   const [previewMode, setPreviewMode] = useState(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
@@ -210,8 +227,15 @@ function FlowChartEditor() {
       }
       setNodes((nds) => [...nds, newNode])
       setNodeIdCounter((id) => id + 1)
+
+      // Center on the new image node
+      setCenter(
+        adjustedPosition.x + size.width / 2,
+        adjustedPosition.y + size.height / 2,
+        { duration: 300, zoom: 1 }
+      )
     },
-    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition]
+    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, setCenter]
   )
 
   // Undo/Redo history management
@@ -321,6 +345,7 @@ function FlowChartEditor() {
       style: style === 'animated'
         ? { strokeDasharray: '5 5', stroke: darkMode ? '#78fcd6' : '#555' }
         : {},
+      data: { onLabelChange: updateEdgeLabel },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 20,
@@ -339,7 +364,7 @@ function FlowChartEditor() {
       labelBgPadding: [6, 4] as [number, number],
       labelBgBorderRadius: 4,
     }
-  }, [darkMode])
+  }, [darkMode, updateEdgeLabel])
 
   // Handle new connections
   const onConnect = useCallback(
@@ -397,8 +422,15 @@ function FlowChartEditor() {
       }
       setNodes((nds) => [...nds, newNode])
       setNodeIdCounter((id) => id + 1)
+
+      // Center on the new node
+      setCenter(
+        adjustedPosition.x + size.width / 2,
+        adjustedPosition.y + size.height / 2,
+        { duration: 300, zoom: 1 }
+      )
     },
-    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, getNodeDimensions]
+    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, getNodeDimensions, setCenter]
   )
 
   // Delete selected nodes and edges
@@ -431,7 +463,7 @@ function FlowChartEditor() {
   const pasteSelection = useCallback(() => {
     if (clipboard.nodes.length === 0) return
 
-    const offset = 50 * (pasteCount + 1)
+    const offset = 3
 
     // Create ID mapping for pasted nodes
     const idMapping: Record<string, string> = {}
@@ -482,7 +514,18 @@ function FlowChartEditor() {
     setEdges((eds) => [...eds, ...pastedEdges])
     setNodeIdCounter((id) => id + clipboard.nodes.length)
     setPasteCount((count) => count + 1)
-  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel, pasteCount, nodes, findAvailablePosition, getNodeDimensions])
+
+    // Center on the first pasted node
+    if (pastedNodes.length > 0) {
+      const firstNode = pastedNodes[0]
+      const size = getNodeDimensions(firstNode.type, firstNode.style)
+      setCenter(
+        firstNode.position.x + size.width / 2,
+        firstNode.position.y + size.height / 2,
+        { duration: 300, zoom: 1 }
+      )
+    }
+  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel, pasteCount, nodes, findAvailablePosition, getNodeDimensions, setCenter])
 
   // Cut selected nodes and edges (copy + delete)
   const cutSelection = useCallback(() => {
@@ -682,6 +725,7 @@ function FlowChartEditor() {
           onConnect={onConnect}
           onReconnect={onReconnect}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           connectionMode={ConnectionMode.Loose}
           fitView
           fitViewOptions={{ padding: 0.2, duration: 600, maxZoom: 1.2 }}
@@ -720,20 +764,6 @@ function FlowChartEditor() {
         if (totalSelected > 0) {
           return (
             <div className="selection-toolbar">
-              <span className="selection-toolbar-text">
-                {totalSelected} item{totalSelected !== 1 ? 's' : ''} selected
-              </span>
-              {selectedEdges.length === 1 && (
-                <div className="edge-label-editor">
-                  <input
-                    type="text"
-                    className="edge-label-input"
-                    value={typeof selectedEdges[0].label === 'string' ? selectedEdges[0].label : ''}
-                    onChange={(e) => updateEdgeLabel(selectedEdges[0].id, e.target.value)}
-                    placeholder="Edge label..."
-                  />
-                </div>
-              )}
               {selectedEdges.length > 0 && (
                 <div className="edge-style-picker">
                   <button
@@ -769,42 +799,41 @@ function FlowChartEditor() {
                   </button>
                 </div>
               )}
-              <button
-                className="selection-toolbar-button delete"
-                onClick={deleteSelected}
-                title="Delete selected items"
-                aria-label="Delete selected items"
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M5 3V2h6v1h4v1H1V3h4zM3 5h10l-.5 9H3.5L3 5zm3 1v6h1V6H6zm3 0v6h1V6H9z" />
-                </svg>
-                Delete
-              </button>
-              <button
-                className="selection-toolbar-button copy"
-                onClick={copySelection}
-                title="Copy selected items"
-                aria-label="Copy selected items"
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M4 2h8v1H4V2zm0 2h8v8H4V4zm1 1v6h6V5H5z" fillRule="evenodd" />
-                  <path d="M2 4v9h9v1H1V4h1z" opacity="0.6" />
-                </svg>
-                Copy
-              </button>
-              <button
-                className="selection-toolbar-button paste"
-                onClick={pasteSelection}
-                title="Paste copied items"
-                aria-label="Paste copied items"
-                disabled={clipboard.nodes.length === 0}
-              >
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M5 1h6v1h2v12H3V2h2V1zm1 1v1h4V2H6zM4 3v10h8V3H4z" fillRule="evenodd" />
-                  <path d="M6 6h4v1H6V6zm0 2h4v1H6V8z" />
-                </svg>
-                Paste
-              </button>
+              <div className="selection-toolbar-actions">
+                <button
+                  className="selection-toolbar-button delete"
+                  onClick={deleteSelected}
+                  title="Delete selected items"
+                  aria-label="Delete selected items"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M5 3V2h6v1h4v1H1V3h4zM3 5h10l-.5 9H3.5L3 5zm3 1v6h1V6H6zm3 0v6h1V6H9z" />
+                  </svg>
+                </button>
+                <button
+                  className="selection-toolbar-button copy"
+                  onClick={copySelection}
+                  title="Copy selected items"
+                  aria-label="Copy selected items"
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M4 2h8v1H4V2zm0 2h8v8H4V4zm1 1v6h6V5H5z" fillRule="evenodd" />
+                    <path d="M2 4v9h9v1H1V4h1z" opacity="0.6" />
+                  </svg>
+                </button>
+                <button
+                  className="selection-toolbar-button paste"
+                  onClick={pasteSelection}
+                  title="Paste copied items"
+                  aria-label="Paste copied items"
+                  disabled={clipboard.nodes.length === 0}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M5 1h6v1h2v12H3V2h2V1zm1 1v1h4V2H6zM4 3v10h8V3H4z" fillRule="evenodd" />
+                    <path d="M6 6h4v1H6V6zm0 2h4v1H6V8z" />
+                  </svg>
+                </button>
+              </div>
             </div>
           )
         }
@@ -816,6 +845,7 @@ function FlowChartEditor() {
           edges={edges}
           onUpdateNodeLabel={updateNodeLabel}
           onUpdateEdgeLabel={updateEdgeLabel}
+          onReorderNodes={reorderNodes}
           onApplyFlow={applyBaseFlow}
           onClose={() => setSidebarMode('none')}
         />
