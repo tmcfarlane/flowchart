@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Node, Edge } from 'reactflow'
 import './AIChat.css'
-import { BaseFlow, EdgeStyle } from '../App'
+import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
 
 const LOADING_MESSAGES = [
   'Thinking about your flowchart...',
@@ -12,34 +12,24 @@ const LOADING_MESSAGES = [
   'Designing the flow...',
 ]
 
-interface FlowUpdate extends BaseFlow {
-  explanation?: string
-}
-
-interface Message {
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  flowUpdate?: FlowUpdate
+interface FlowProposal {
+  summary?: string
+  nodes: BaseFlowNode[]
+  edges: BaseFlowEdge[]
 }
 
 interface AIChatProps {
   nodes: Node[]
   edges: Edge[]
-  onApplyFlow: (flow: BaseFlow) => void
+  onProposalReady: (proposal: FlowProposal) => void
+  isOpen: boolean
   onClose: () => void
 }
 
-function AIChat({ nodes, edges, onApplyFlow, onClose }: AIChatProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'assistant',
-      content: 'Hello! I can help you create and modify your flowchart. Try asking me to add nodes, create connections, or modify your flow.',
-    },
-  ])
+function AIChat({ nodes, edges, onProposalReady, isOpen, onClose }: AIChatProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const [currentLoadingMessage, setCurrentLoadingMessage] = useState('')
   const [loadingProgress, setLoadingProgress] = useState(0)
@@ -72,44 +62,69 @@ function AIChat({ nodes, edges, onApplyFlow, onClose }: AIChatProps) {
     }
   }, [isLoading])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // Parse flow update from assistant message if present
-  const parseFlowUpdate = (content: string): FlowUpdate | null => {
-    try {
-      // Look for JSON code block in the message
-      const jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/)
-      if (!jsonMatch) return null
-
-      const jsonStr = jsonMatch[1]
-      const parsed = JSON.parse(jsonStr)
-
-      // Validate the structure
-      if (parsed.nodes && Array.isArray(parsed.nodes) && parsed.edges && Array.isArray(parsed.edges)) {
-        return {
-          explanation: parsed.explanation || 'Flow updated',
-          nodes: parsed.nodes,
-          edges: parsed.edges,
-        }
-      }
-    } catch (e) {
-      console.error('Failed to parse flow update:', e)
+  // Parse flow proposal from assistant message
+  // With structured outputs, the API returns raw JSON directly (no code block wrapper)
+  const parseFlowProposal = (content: string, finishReason?: string): FlowProposal | null => {
+    // Check for truncation due to token limit
+    if (finishReason === 'length') {
+      console.error('Response was truncated due to token limit')
+      return null
     }
-    return null
-  }
 
-  const applyFlowChanges = useCallback((flowUpdate: FlowUpdate) => {
-    onApplyFlow({
-      nodes: flowUpdate.nodes,
-      edges: flowUpdate.edges,
-    })
-  }, [onApplyFlow])
+    let parsed: unknown = null
+
+    // Try direct JSON parse first (structured outputs return raw JSON)
+    try {
+      parsed = JSON.parse(content)
+    } catch {
+      // Fall back to code block extraction for backward compatibility
+      try {
+        let jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/)
+        if (!jsonMatch) {
+          jsonMatch = content.match(/```\s*\n([\s\S]*?)\n```/)
+        }
+        
+        if (jsonMatch) {
+          const jsonStr = jsonMatch[1].trim()
+          parsed = JSON.parse(jsonStr)
+        }
+      } catch (e) {
+        console.error('Failed to parse JSON from code block:', e)
+      }
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      console.error('Could not parse response as JSON:', content)
+      return null
+    }
+
+    const proposal = parsed as Record<string, unknown>
+
+    // Validate the structure - nodes and edges are required
+    if (!proposal.nodes || !Array.isArray(proposal.nodes)) {
+      console.error('Invalid proposal: missing or invalid nodes array', proposal)
+      return null
+    }
+    
+    if (!proposal.edges || !Array.isArray(proposal.edges)) {
+      console.error('Invalid proposal: missing or invalid edges array', proposal)
+      return null
+    }
+
+    // Validate each node has required fields
+    for (const node of proposal.nodes) {
+      if (!node.id || !node.type || !node.label || !node.position) {
+        console.error('Invalid node structure:', node)
+        return null
+      }
+    }
+
+    return {
+      summary: (proposal.summary as string) || (proposal.explanation as string) || 'Flowchart proposal',
+      nodes: proposal.nodes as BaseFlowNode[],
+      edges: proposal.edges as BaseFlowEdge[],
+    }
+  }
 
   const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
     if (edge.animated) return 'animated'
@@ -120,15 +135,7 @@ function AIChat({ nodes, edges, onApplyFlow, onClose }: AIChatProps) {
   const sendMessage = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return
 
-    const userMessage: Message = { role: 'user', content: inputValue }
-    
-    // Detect if user is asking for modifications
-    const modificationKeywords = ['add', 'create', 'modify', 'change', 'update', 'delete', 'remove', 'connect', 'link']
-    const isRequestingModification = modificationKeywords.some(keyword => 
-      inputValue.toLowerCase().includes(keyword)
-    )
-    
-    setMessages((prev) => [...prev, userMessage])
+    const userPrompt = inputValue.trim()
     setInputValue('')
     setIsLoading(true)
     setError(null)
@@ -156,18 +163,15 @@ function AIChat({ nodes, edges, onApplyFlow, onClose }: AIChatProps) {
       }
 
       // Call our serverless function proxy at /api/chat
+      // The API uses structured outputs to guarantee valid JSON matching our schema
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          messages: [
-            ...messages.slice(-5), // Include last 5 messages for context
-            userMessage,
-          ],
+          messages: [{ role: 'user', content: userPrompt }],
           flowContext,
-          requestStructuredUpdate: isRequestingModification,
         }),
       })
 
@@ -180,31 +184,34 @@ function AIChat({ nodes, edges, onApplyFlow, onClose }: AIChatProps) {
 
       const data = await response.json()
       const content = data.message || 'No response received.'
-      
-      // Check if the response contains a flow update
-      const flowUpdate = parseFlowUpdate(content)
-      
-      // Extract just the explanation part (text before the JSON block)
-      let displayContent = content
-      if (flowUpdate) {
-        displayContent = content.replace(/```json\s*\n[\s\S]*?\n```/, '').trim()
-      }
-      
-      const assistantMessage: Message = {
-        role: 'assistant',
-        content: displayContent,
-        flowUpdate: flowUpdate || undefined,
+      const finishReason = data.finishReason as string | undefined
+
+      console.log('AI Response:', content, 'Finish reason:', finishReason)
+
+      // Parse the flow proposal (with structured outputs, this should always succeed)
+      const proposal = parseFlowProposal(content, finishReason)
+
+      if (!proposal) {
+        // Handle specific error cases
+        if (finishReason === 'length') {
+          throw new Error('The AI response was cut off due to length limits. Try a simpler request.')
+        }
+        throw new Error('Could not parse AI response. Please try again or rephrase your request.')
       }
 
-      setMessages((prev) => [...prev, assistantMessage])
+      // Notify parent with the proposal
+      onProposalReady(proposal)
+      
+      // Close the bubble after successful proposal
+      onClose()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-      setError(`Failed to get AI response: ${errorMessage}`)
+      setError(errorMessage)
       console.error('AI Chat error:', err)
     } finally {
       setIsLoading(false)
     }
-  }, [inputValue, isLoading, nodes, edges, messages, getEdgeStyleFromEdge])
+  }, [inputValue, isLoading, nodes, edges, getEdgeStyleFromEdge, onProposalReady, onClose])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -213,128 +220,86 @@ function AIChat({ nodes, edges, onApplyFlow, onClose }: AIChatProps) {
     }
   }
 
-  return (
-    <>
-      <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />
-      <div className="ai-chat-sidebar">
-      <div className="ai-chat-header">
-        <h3>AI Assistant</h3>
-        <button className="ai-chat-close" onClick={onClose} title="Close AI Chat">
-          ×
-        </button>
-      </div>
+  // Handle ESC key to close
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [isOpen, onClose])
 
-      <div className="ai-chat-messages">
-        {messages.map((message, index) => (
-          <div key={index}>
-            <div
-              className={`ai-chat-message ${message.role === 'user' ? 'user' : 'assistant'}`}
-            >
-              <div className="message-content">{message.content}</div>
-            </div>
-            {message.flowUpdate && (
-              <div className="ai-chat-proposed-flow">
-                <div className="proposed-flow-header">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" style={{ marginRight: '6px' }}>
-                    <circle cx="3" cy="8" r="1.5" fill="#10b981"/>
-                    <circle cx="8" cy="4" r="1.5" fill="#10b981"/>
-                    <circle cx="8" cy="12" r="1.5" fill="#10b981"/>
-                    <circle cx="13" cy="8" r="1.5" fill="#10b981"/>
-                    <path d="M3 8h4M8 5v2M8 10v2M9 8h3" stroke="#10b981" strokeWidth="1.5"/>
-                  </svg>
-                  <span className="proposed-flow-title">Proposed Flow</span>
-                </div>
-                <div className="proposed-flow-summary">
-                  <div className="proposed-flow-count">
-                    {message.flowUpdate.nodes.length} node{message.flowUpdate.nodes.length !== 1 ? 's' : ''}, {message.flowUpdate.edges.length} edge{message.flowUpdate.edges.length !== 1 ? 's' : ''}
-                  </div>
-                </div>
-                <div className="proposed-flow-actions">
-                  <button
-                    className="proposed-flow-button insert"
-                    onClick={() => applyFlowChanges(message.flowUpdate!)}
-                    title="Apply these changes to your flowchart"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                    Insert
-                  </button>
-                  <button
-                    className="proposed-flow-button cancel"
-                    onClick={() => {
-                      // Just dismiss - the message stays but user can scroll past
-                    }}
-                    title="Dismiss this proposal"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                    Cancel
-                  </button>
-                  <button
-                    className="proposed-flow-button regenerate"
-                    onClick={() => {
-                      // Re-run the last user message to get a new proposal
-                      // For now, just show a message that this will be implemented
-                      alert('Regenerate will re-run your last request')
-                    }}
-                    title="Request a new proposal"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M13 8A5 5 0 1 1 8 3V1l3 3-3 3V5a3 3 0 1 0 3 3h2z"/>
-                    </svg>
-                    Regenerate
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-        {isLoading && (
-          <div className="ai-chat-message assistant">
+  if (!isOpen) return null
+
+  return (
+    <div
+      className="ai-bubble-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="ai-bubble-title"
+    >
+      <div className="ai-bubble-prompt" onClick={(e) => e.stopPropagation()}>
+        <div className="ai-bubble-header">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '8px' }}>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" opacity="0.3"/>
+            <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M11 7h2v6h-2zM11 15h2v2h-2z" fill="currentColor"/>
+          </svg>
+          <span id="ai-bubble-title" className="ai-bubble-title">AI Flowchart Assistant</span>
+          <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M1 1l12 12M13 1L1 13" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="ai-bubble-content">
+          <p className="ai-bubble-message">
+            👋 Hi! I can help you create flowcharts. Tell me what you'd like to add to your canvas.
+          </p>
+
+          {isLoading ? (
             <div className="loading-indicator">
               <div className="loading-message">{currentLoadingMessage}</div>
               <div className="loading-progress-bar">
                 <div className="loading-progress-fill" style={{ width: `${loadingProgress}%` }}></div>
               </div>
-              <div className="loading-dots">
-                <span className="loading-dot"></span>
-                <span className="loading-dot"></span>
-                <span className="loading-dot"></span>
-              </div>
             </div>
-          </div>
-        )}
-        {error && (
-          <div className="ai-chat-error">
-            <strong>Error:</strong> {error}
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          ) : (
+            <>
+              <textarea
+                className="ai-bubble-input"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="E.g., 'Create a login flow' or 'Add error handling steps'..."
+                rows={3}
+                autoFocus
+              />
+              <button
+                className="ai-bubble-send"
+                onClick={sendMessage}
+                disabled={!inputValue.trim()}
+              >
+                Generate Flowchart
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                  <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
+                </svg>
+              </button>
+            </>
+          )}
 
-      <div className="ai-chat-input-container">
-        <textarea
-          className="ai-chat-input"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask me to help with your flowchart..."
-          rows={3}
-          disabled={isLoading}
-        />
-        <button
-          className="ai-chat-send"
-          onClick={sendMessage}
-          disabled={!inputValue.trim() || isLoading}
-          title="Send message (Enter)"
-        >
-          {isLoading ? '...' : 'Send'}
-        </button>
+          {error && (
+            <div className="ai-bubble-error">
+              {error}
+            </div>
+          )}
+        </div>
       </div>
-      </div>
-    </>
+    </div>
   )
 }
 

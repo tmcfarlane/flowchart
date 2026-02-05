@@ -1,4 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -35,7 +37,6 @@ interface FlowContext {
 interface ChatRequest {
   messages: ChatMessage[]
   flowContext?: FlowContext
-  requestStructuredUpdate?: boolean
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -45,7 +46,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { messages, flowContext, requestStructuredUpdate } = req.body as ChatRequest
+    const { messages, flowContext } = req.body as ChatRequest
 
     // Validate request
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -64,35 +65,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
-    // Build system message with flow context if provided
-    let systemMessage = 'You are a flowchart assistant helping users create and modify flowcharts.'
-    if (flowContext && requestStructuredUpdate) {
-      systemMessage += `\n\nThe user has the following flowchart:\n${JSON.stringify(flowContext, null, 2)}\n\nWhen the user asks you to make changes to their flowchart, respond with a JSON object containing the updated flow. The JSON should have this structure:
-{
-  "explanation": "A brief natural language description of what you changed and why",
-  "nodes": [
-    { "id": "1", "type": "step", "label": "Node label", "position": { "x": 250, "y": 100 }, "width": 180, "height": 80, "imageUrl": "https://example.com/icon.svg" }
-  ],
-  "edges": [
-    { "id": "e1-2", "source": "1", "target": "2", "style": "default", "sourceHandle": "right", "targetHandle": "left" }
-  ]
-}
+    // Load flowchart generation skill
+    const skillPath = join(process.cwd(), 'api', 'flowchart-generation-skill.md')
+    const skillContent = readFileSync(skillPath, 'utf-8')
+    
+    // Build system message
+    let systemMessage = skillContent
+    
+    if (flowContext) {
+      systemMessage += `\n\n---\n\nCURRENT FLOWCHART CONTEXT:\n${JSON.stringify(flowContext, null, 2)}\n\nGenerate NEW nodes/edges to insert alongside the existing flowchart.`
+    }
 
-Node types can be: "step", "decision", or "note".
-Edge styles can be: "default", "animated", or "step".
-Handle positions can be: "top", "right", "bottom", or "left".
-Always include ALL nodes and edges in your response (both existing and new ones).
-Make sure to provide a clear explanation in natural language before the JSON.
-Format your response as: First explain what you're doing, then provide the JSON wrapped in a code block like this:
-\`\`\`json
-{...}
-\`\`\``
-    } else if (flowContext) {
-      systemMessage += `\n\nThe user has the following flowchart:\n${JSON.stringify(flowContext, null, 2)}\n\nHelp them modify or understand their flowchart. If they ask you to make changes, explain what you would do clearly.`
+    // Define JSON schema for structured outputs
+    // This guarantees the model returns valid JSON matching our flowchart schema
+    const flowchartSchema = {
+      type: 'json_schema',
+      json_schema: {
+        name: 'FlowchartProposal',
+        strict: true,
+        schema: {
+          type: 'object',
+          properties: {
+            summary: { type: 'string' },
+            nodes: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  type: { type: 'string', enum: ['step', 'decision', 'note', 'image'] },
+                  label: { type: 'string' },
+                  position: {
+                    type: 'object',
+                    properties: {
+                      x: { type: 'number' },
+                      y: { type: 'number' },
+                    },
+                    required: ['x', 'y'],
+                    additionalProperties: false,
+                  },
+                  width: { type: ['number', 'null'] },
+                  height: { type: ['number', 'null'] },
+                  imageUrl: { type: ['string', 'null'] },
+                },
+                required: ['id', 'type', 'label', 'position', 'width', 'height', 'imageUrl'],
+                additionalProperties: false,
+              },
+            },
+            edges: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  source: { type: 'string' },
+                  target: { type: 'string' },
+                  style: { type: ['string', 'null'], enum: ['default', 'animated', 'step', null] },
+                  sourceHandle: { type: ['string', 'null'], enum: ['top', 'right', 'bottom', 'left', null] },
+                  targetHandle: { type: ['string', 'null'], enum: ['top', 'right', 'bottom', 'left', null] },
+                },
+                required: ['id', 'source', 'target', 'style', 'sourceHandle', 'targetHandle'],
+                additionalProperties: false,
+              },
+            },
+          },
+          required: ['summary', 'nodes', 'edges'],
+          additionalProperties: false,
+        },
+      },
     }
 
     // Call Azure OpenAI API
-    const endpoint = `https://${resourceName}.openai.azure.com/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`
+    const endpoint = `https://${resourceName}.openai.azure.com/openai/deployments/${deploymentName}/chat/completions?api-version=2024-08-01-preview`
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -104,7 +148,10 @@ Format your response as: First explain what you're doing, then provide the JSON 
         messages: [{ role: 'system', content: systemMessage }, ...messages],
         // Newer Azure OpenAI chat models require `max_completion_tokens`
         // (and may reject `max_tokens`).
-        max_completion_tokens: 800,
+        max_completion_tokens: 4000,
+        temperature: 0.7,
+        // Use structured outputs to guarantee valid JSON matching our schema
+        response_format: flowchartSchema,
       }),
     })
 
@@ -118,11 +165,13 @@ Format your response as: First explain what you're doing, then provide the JSON 
 
     const data = await response.json()
     const assistantMessage = data.choices[0]?.message?.content || 'No response received.'
+    const finishReason = data.choices[0]?.finish_reason || 'unknown'
 
-    // Return successful response
+    // Return successful response with finish_reason for truncation detection
     return res.status(200).json({
       message: assistantMessage,
       role: 'assistant',
+      finishReason,
     })
   } catch (error) {
     console.error('Chat API error:', error)

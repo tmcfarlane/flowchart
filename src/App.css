@@ -653,3 +653,49 @@
 .app.dark-mode .editable-edge-text.hint {
   color: rgba(231, 236, 235, 0.6);
 }
+
+/* React Flow Attribution Panel */
+.react-flow__attribution {
+  background: rgba(255, 255, 255, 0.4) !important;
+  padding: 3px 6px !important;
+  border-radius: 4px !important;
+  font-size: 9px !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  opacity: 0.5 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.react-flow__attribution:hover {
+  opacity: 0.8 !important;
+}
+
+.react-flow__attribution a {
+  color: #6b7280 !important;
+  text-decoration: none !important;
+  font-weight: 400 !important;
+}
+
+.react-flow__attribution a:hover {
+  color: #4b5563 !important;
+}
+
+/* Dark mode attribution panel */
+.react-flow-dark .react-flow__attribution {
+  background: rgba(15, 18, 17, 0.6) !important;
+  border: 1px solid rgba(120, 252, 214, 0.08) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2) !important;
+  opacity: 0.35 !important;
+}
+
+.react-flow-dark .react-flow__attribution:hover {
+  opacity: 0.65 !important;
+}
+
+.react-flow-dark .react-flow__attribution a {
+  color: rgba(231, 236, 235, 0.5) !important;
+}
+
+.react-flow-dark .react-flow__attribution a:hover {
+  color: rgba(120, 252, 214, 0.7) !important;
+}

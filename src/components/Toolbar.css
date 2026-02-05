@@ -118,12 +118,12 @@
 }
 
 .toolbar-button.add-node {
-  color: #059669;
+  color: #78fcd6;
 }
 
 .toolbar-button.add-node:hover {
-  background: rgba(5, 150, 105, 0.1);
-  color: #047857;
+  background: rgba(120, 252, 214, 0.15);
+  color: #00ffb6;
 }
 
 .app.dark-mode .toolbar-button.add-node {

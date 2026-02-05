@@ -1,0 +1,266 @@
+/* AI Insert Preview Dialog */
+.ai-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 210;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.ai-preview-dialog {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 900px;
+  height: 80vh;
+  max-height: 700px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.ai-preview-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.ai-preview-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.ai-preview-summary {
+  margin: 6px 0 0 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.ai-preview-close {
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.ai-preview-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.ai-preview-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ai-preview-flow {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ai-preview-info {
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f9fafb;
+  font-size: 13px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.ai-preview-info svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.ai-preview-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.ai-preview-button {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.ai-preview-button.cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.ai-preview-button.cancel:hover {
+  background: #e5e7eb;
+}
+
+.ai-preview-button.insert {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.ai-preview-button.insert:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.ai-preview-button.insert:active {
+  transform: translateY(0);
+}
+
+/* Dark Mode */
+.app.dark-mode .ai-preview-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.app.dark-mode .ai-preview-dialog {
+  background: #0f1211;
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.8), 0 0 60px rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .ai-preview-header {
+  border-bottom: 1px solid rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .ai-preview-title {
+  color: #e7eceb;
+  background: linear-gradient(to right, #78fcd6, #00ffb6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.app.dark-mode .ai-preview-summary {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.app.dark-mode .ai-preview-close {
+  color: #78fcd6;
+}
+
+.app.dark-mode .ai-preview-close:hover {
+  background: rgba(120, 252, 214, 0.1);
+}
+
+.app.dark-mode .ai-preview-flow {
+  border-bottom: 1px solid rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .ai-preview-info {
+  background: rgba(120, 252, 214, 0.03);
+  border-top: 1px solid rgba(120, 252, 214, 0.1);
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.app.dark-mode .ai-preview-actions {
+  border-top: 1px solid rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .ai-preview-button.cancel {
+  background: rgba(120, 252, 214, 0.1);
+  color: #78fcd6;
+  border: 1px solid rgba(120, 252, 214, 0.2);
+}
+
+.app.dark-mode .ai-preview-button.cancel:hover {
+  background: rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .ai-preview-button.insert {
+  background: linear-gradient(135deg, #78fcd6 0%, #00ffb6 100%);
+  color: #0f1211;
+}
+
+.app.dark-mode .ai-preview-button.insert:hover {
+  box-shadow: 0 4px 12px rgba(120, 252, 214, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ai-preview-dialog {
+    width: 95%;
+    height: 85vh;
+  }
+
+  .ai-preview-header {
+    padding: 16px 20px;
+  }
+
+  .ai-preview-title {
+    font-size: 18px;
+  }
+
+  .ai-preview-summary {
+    font-size: 13px;
+  }
+
+  .ai-preview-actions {
+    padding: 12px 20px;
+  }
+
+  .ai-preview-button {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+}

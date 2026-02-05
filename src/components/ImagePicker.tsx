@@ -83,7 +83,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   const [activeTab, setActiveTab] = useState<Tab>('library')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFolder, setSelectedFolder] = useState<string>('popular')
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [_uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null)
   const [editableLabel, setEditableLabel] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)

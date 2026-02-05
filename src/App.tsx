@@ -32,10 +32,17 @@ import { EditableEdge, EditableSmoothStepEdge } from './components/edges/Editabl
 import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
+import AIInsertPreviewDialog from './components/AIInsertPreviewDialog'
 
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
-export type SidebarMode = 'none' | 'explorer' | 'ai'
+export type SidebarMode = 'none' | 'explorer'
+
+export interface FlowProposal {
+  summary?: string
+  nodes: BaseFlowNode[]
+  edges: BaseFlowEdge[]
+}
 export type ToolMode = 'select' | 'hand' | 'arrow'
 
 export interface BaseFlowNode {
@@ -192,6 +199,8 @@ function FlowChartEditor() {
   const [clipboard, setClipboard] = useState<{ nodes: FlowNode[]; edges: Edge[] }>({ nodes: [], edges: [] })
   const [pasteCount, setPasteCount] = useState(0)
   const [darkMode, setDarkMode] = useState(true)
+  const [isAIBubbleOpen, setIsAIBubbleOpen] = useState(false)
+  const [aiProposal, setAIProposal] = useState<FlowProposal | null>(null)
 
   const addImageNode = useCallback(
     (imageUrl: string, label: string) => {
@@ -647,13 +656,119 @@ function FlowChartEditor() {
     setSidebarMode((prev) => (prev === 'explorer' ? 'none' : 'explorer'))
   }, [])
 
-  // Toggle AI Chat sidebar
+  // Toggle AI Bubble
   const toggleAI = useCallback(() => {
-    setSidebarMode((prev) => (prev === 'ai' ? 'none' : 'ai'))
+    setIsAIBubbleOpen((prev) => !prev)
   }, [])
 
   const toggleDarkMode = useCallback(() => {
     setDarkMode((prev) => !prev)
+  }, [])
+
+  // Handle AI proposal ready - open preview dialog
+  const handleAIProposalReady = useCallback((proposal: FlowProposal) => {
+    setAIProposal(proposal)
+  }, [])
+
+  // Insert AI proposal into canvas (insert-as-new algorithm)
+  const insertAIProposal = useCallback(() => {
+    if (!aiProposal) return
+
+    // 1. Generate unique IDs for the new nodes
+    const idMap = new Map<string, string>()
+    let currentCounter = nodeIdCounter
+
+    aiProposal.nodes.forEach((node) => {
+      const newId = currentCounter.toString()
+      idMap.set(node.id, newId)
+      currentCounter++
+    })
+
+    // 2. Calculate bounding box of proposal nodes
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+
+    aiProposal.nodes.forEach((node) => {
+      const width = node.width || (node.type === 'decision' ? 160 : 180)
+      const height = node.height || (node.type === 'decision' ? 160 : 80)
+      
+      minX = Math.min(minX, node.position.x)
+      minY = Math.min(minY, node.position.y)
+      maxX = Math.max(maxX, node.position.x + width)
+      maxY = Math.max(maxY, node.position.y + height)
+    })
+
+    // 3. Calculate centroid of proposal
+    const proposalCenterX = (minX + maxX) / 2
+    const proposalCenterY = (minY + maxY) / 2
+
+    // 4. Get viewport center position
+    let targetPosition = { x: 400, y: 300 }
+    if (reactFlowWrapper.current) {
+      const rect = reactFlowWrapper.current.getBoundingClientRect()
+      targetPosition = screenToFlowPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      })
+    }
+
+    // 5. Calculate offset to move proposal to viewport center
+    const offsetX = targetPosition.x - proposalCenterX
+    const offsetY = targetPosition.y - proposalCenterY
+
+    // 6. Create new nodes with remapped IDs and offset positions
+    const newNodes: FlowNode[] = aiProposal.nodes.map((node) => {
+      const newId = idMap.get(node.id)!
+      return {
+        id: newId,
+        type: node.type,
+        position: {
+          x: node.position.x + offsetX,
+          y: node.position.y + offsetY,
+        },
+        data: {
+          label: node.label,
+          imageUrl: node.imageUrl,
+          onLabelChange: updateNodeLabel,
+        },
+        style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
+      }
+    })
+
+    // 7. Create new edges with remapped IDs and default handles
+    const newEdges: Edge[] = aiProposal.edges.map((edge) => {
+      const newSource = idMap.get(edge.source)!
+      const newTarget = idMap.get(edge.target)!
+      
+      // Add default handles if not specified (bottom-to-top for vertical flows)
+      const sourceHandle = edge.sourceHandle || 'bottom'
+      const targetHandle = edge.targetHandle || 'top'
+      
+      return {
+        id: edge.id ? `${idMap.get(edge.id.split('-')[0]) || 'e'}-${newSource}-${newTarget}` : `e${newSource}-${newTarget}`,
+        source: newSource,
+        target: newTarget,
+        sourceHandle,
+        targetHandle,
+        label: edge.label,
+        ...getEdgeStyleProps(edge.style || 'animated'),
+      }
+    })
+
+    // 8. Add nodes and edges to existing state
+    setNodes((nds) => [...nds, ...newNodes])
+    setEdges((eds) => [...eds, ...newEdges])
+    setNodeIdCounter(currentCounter)
+
+    // 9. Close preview dialog
+    setAIProposal(null)
+  }, [aiProposal, nodeIdCounter, reactFlowWrapper, screenToFlowPosition, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges])
+
+  // Cancel AI proposal
+  const cancelAIProposal = useCallback(() => {
+    setAIProposal(null)
   }, [])
 
   useEffect(() => {
@@ -850,25 +965,24 @@ function FlowChartEditor() {
           onClose={() => setSidebarMode('none')}
         />
       )}
-      {sidebarMode === 'ai' && (
-        <AIChat
-          nodes={nodes}
-          edges={edges}
-          onApplyFlow={applyBaseFlow}
-          onClose={() => setSidebarMode('none')}
+      <AIChat
+        nodes={nodes}
+        edges={edges}
+        onProposalReady={handleAIProposalReady}
+        isOpen={isAIBubbleOpen}
+        onClose={() => setIsAIBubbleOpen(false)}
+      />
+      {aiProposal && (
+        <AIInsertPreviewDialog
+          proposal={aiProposal}
+          onInsert={insertAIProposal}
+          onCancel={cancelAIProposal}
+          darkMode={darkMode}
         />
       )}
-      {sidebarMode !== 'ai' && (
-        <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Chat">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor">
-            <circle cx="5.5" cy="6.5" r="1.1" />
-            <circle cx="12.5" cy="6.5" r="1.1" />
-            <path d="M9 2.3a6.8 6.8 0 0 0-6.8 6.8c0 2.5 1.4 4.6 3.4 5.9V17l2.3-1.1 2.3 1.1v-2c2-1.3 3.4-3.4 3.4-5.9A6.8 6.8 0 0 0 9 2.3z" stroke="currentColor" strokeWidth="1.6" fill="none" />
-            <path d="M6.2 10.8c.6.6 1.7 1.1 2.8 1.1s2.2-.5 2.8-1.1" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-          </svg>
-          Chat with AI
-        </button>
-      )}
+      <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">
+        Chat with AI
+      </button>
     </div>
   )
 }

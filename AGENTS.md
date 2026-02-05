@@ -1,6 +1,18 @@
 # Agent Instructions (FlowChart Designer)
 
-This repository is a Vite + React + TypeScript flowchart editor using React Flow, with a minimal Vercel Serverless Function at `api/chat.ts` to proxy AI requests. Follow the task contract in `RALPH_TASK.md` for what to build and how to report progress.
+This repository is a Vite + React + TypeScript flowchart editor using React Flow, with a minimal Vercel Serverless Function at `api/chat.ts` to proxy AI requests.
+
+## AI Flowchart Generation Skill
+
+The system uses a **flowchart generation skill** (`api/flowchart-generation-skill.md`) to enforce strict JSON schema output from the AI model. This skill:
+
+- Forces the AI to ONLY generate flowchart JSON (nodes + edges arrays)
+- Prevents the AI from creating other JSON schemas (songs, recipes, etc.)
+- Interprets non-flowchart requests as processes (e.g., "make a song" → "flowchart of making a song")
+- Includes 6+ wrong/right examples to train consistent output
+- Is loaded by `api/chat.ts` and sent as the system prompt
+
+**To modify AI behavior:** Edit `api/flowchart-generation-skill.md`, not the API code directly.
 
 ## Source of truth: `RALPH_TASK.md`
 

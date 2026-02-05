@@ -1,72 +1,75 @@
-# API Documentation
+# Flowchart API
 
-## `/api/chat` - AI Chat Proxy
+## `/api/chat`
 
-This serverless function proxies AI chat requests to Azure OpenAI, ensuring API credentials never reach the browser.
+Vercel Serverless Function that proxies AI requests to Azure OpenAI (or compatible endpoint).
 
-### Endpoint
+### Environment Variables
 
-```
-POST /api/chat
-```
+Server-side environment variables (NOT `VITE_*`):
 
-### Request Body
+- `AZURE_DEPLOYMENT_NAME` - Azure OpenAI deployment name
+- `AZURE_RESOURCE_NAME` - Azure OpenAI resource name
+- `AZURE_API_KEY` - Azure OpenAI API key
+
+### Request Format
 
 ```typescript
+POST /api/chat
+
 {
-  messages: Array<{
-    role: 'user' | 'assistant' | 'system'
-    content: string
-  }>
-  flowContext?: {
-    nodes: Array<{
-      id: string
-      type: string
-      label: string
-      position: { x: number; y: number }
-    }>
-    edges: Array<{
-      id: string
-      source: string
-      target: string
-    }>
+  "messages": [
+    { "role": "user", "content": "Create a login flow" }
+  ],
+  "flowContext": {
+    "nodes": [...],  // Current flowchart nodes
+    "edges": [...]   // Current flowchart edges
   }
 }
 ```
 
-### Response
+### Response Format
 
-**Success (200):**
-```json
+```typescript
 {
-  "message": "Assistant response text",
+  "message": "```json\n{...}\n```",
   "role": "assistant"
 }
 ```
 
-**Error (400/500):**
-```json
-{
-  "error": "Error description"
-}
+The `message` field contains a JSON code block with the flowchart proposal.
+
+### Flowchart Generation Skill
+
+The API uses a **skill-based prompt engineering approach** defined in `flowchart-generation-skill.md`.
+
+This skill file:
+- Defines the exact JSON schema the AI must use
+- Provides multiple correct/wrong examples
+- Enforces strict flowchart-only output
+- Is loaded at runtime and sent as the system prompt
+
+**To modify AI behavior:** Edit `flowchart-generation-skill.md`, not `chat.ts`.
+
+### Architecture
+
+```
+User Input → Frontend (AIChat.tsx)
+    ↓
+    → POST /api/chat (with flowContext)
+    ↓
+    → Loads flowchart-generation-skill.md
+    ↓
+    → Azure OpenAI API (with skill as system prompt)
+    ↓
+    → Returns flowchart JSON
+    ↓
+    → Frontend parses JSON → Shows preview → Inserts on confirm
 ```
 
-### Environment Variables
+### Error Handling
 
-Configure these server-side environment variables in your Vercel project:
-
-- `AZURE_DEPLOYMENT_NAME` - Your Azure OpenAI deployment name
-- `AZURE_RESOURCE_NAME` - Your Azure OpenAI resource name
-- `AZURE_API_KEY` - Your Azure OpenAI API key
-
-**Important:** These are server-side only. Do NOT use `VITE_*` prefix as that would expose them to the browser.
-
-### Local Development
-
-For local development with Vercel CLI:
-
-1. Copy `.env.example` to `.env`
-2. Fill in your Azure OpenAI credentials
-3. Run `vercel dev` to test the serverless function locally
-
-The frontend will automatically call `/api/chat` whether in development or production.
+- **400** - Invalid request (missing messages)
+- **405** - Method not allowed (non-POST)
+- **500** - Server configuration error or Azure OpenAI API error
+- **200** - Success (includes assistant message)
