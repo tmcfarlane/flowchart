@@ -60,13 +60,13 @@
 
 .react-flow__edge:hover .react-flow__edge-path {
   stroke-width: 3;
-  stroke: #667eea;
+  stroke: #10b981;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: #667eea;
+  stroke: #10b981;
   stroke-width: 3;
-  filter: drop-shadow(0 0 4px rgba(102, 126, 234, 0.4));
+  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.4));
 }
 
 .react-flow__edge.animated .react-flow__edge-path {
@@ -91,39 +91,40 @@
 
 /* Style for the connection line being drawn */
 .react-flow__connection-path {
-  stroke: #667eea;
+  stroke: #10b981;
   stroke-width: 2;
   stroke-dasharray: 5;
   animation: dashdraw 0.5s linear infinite;
 }
 
 .react-flow__connectionline {
-  stroke: #667eea;
+  stroke: #10b981;
   stroke-width: 2;
 }
 
 .selection-toolbar {
   position: fixed;
   top: 80px;
-  left: 16px;
-  background: white;
-  border: 1px solid #dee2e6;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   padding: 6px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.06);
   display: flex;
   flex-direction: column;
   gap: 6px;
   align-items: center;
   z-index: 100;
-  animation: slideInLeft 0.2s ease;
+  animation: slideInRight 0.2s ease;
   width: 52px;
+  backdrop-filter: blur(8px);
 }
 
-@keyframes slideInLeft {
+@keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateX(-10px);
+    transform: translateX(10px);
   }
 
   to {
@@ -135,10 +136,10 @@
 .selection-toolbar-text {
   font-size: 10px;
   font-weight: 600;
-  color: #495057;
+  color: #6b7280;
   padding: 4px 2px;
   text-align: center;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #e5e7eb;
   margin-bottom: 2px;
   line-height: 1.2;
   white-space: nowrap;
@@ -156,34 +157,30 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
-  background: #667eea;
-  color: white;
+  background: transparent;
+  color: #4b5563;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   width: 32px;
   height: 32px;
 }
 
 .selection-toolbar-button:hover:not(:disabled) {
-  background: #5a67d8;
-  transform: translateY(-1px);
-  box-shadow: 0 3px 6px rgba(102, 126, 234, 0.3);
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
 }
 
 .selection-toolbar-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transform: scale(0.95);
 }
 
 .selection-toolbar-button:disabled {
-  background: #adb5bd;
+  color: rgba(0, 0, 0, 0.25);
   cursor: not-allowed;
-  opacity: 0.6;
 }
 
 .selection-toolbar-button svg {
@@ -191,31 +188,34 @@
 }
 
 .selection-toolbar-button.delete {
-  background: #ff6b6b;
+  color: #ef4444;
 }
 
 .selection-toolbar-button.delete svg {
-  color: #9aa0a6;
+  color: #ef4444;
 }
 
 .selection-toolbar-button.delete:hover {
-  background: #ff5252;
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
 }
 
 .selection-toolbar-button.copy {
-  background: #4dabf7;
+  color: #4b5563;
 }
 
 .selection-toolbar-button.copy:hover {
-  background: #339af0;
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
 }
 
 .selection-toolbar-button.paste {
-  background: #51cf66;
+  color: #4b5563;
 }
 
 .selection-toolbar-button.paste:hover:not(:disabled) {
-  background: #40c057;
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
 }
 
 .app.dark-mode .selection-toolbar {
@@ -318,7 +318,7 @@
 
 .edge-style-option.active {
   background: white;
-  color: #667eea;
+  color: #10b981;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -501,8 +501,8 @@
 }
 
 .react-flow__controls button:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
 .react-flow__background {
@@ -527,17 +527,18 @@
   align-items: center;
   gap: 8px;
   padding: 8px 18px;
-  background: linear-gradient(135deg, rgba(15, 18, 17, 0.98) 0%, rgba(31, 36, 34, 0.98) 100%);
-  color: #e7eceb;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  color: #374151;
+  border: 1px solid #e5e7eb;
   border-radius: 50px;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1), 0 0 1px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   z-index: 90;
   animation: floatUp 0.4s ease;
+  backdrop-filter: blur(8px);
 }
 
 @keyframes floatUp {
@@ -554,20 +555,32 @@
 
 .ai-floating-pill:hover {
   transform: translateX(-50%) translateY(-3px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
-  border-color: rgba(120, 252, 214, 0.35);
-  color: #78fcd6;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 
 .ai-floating-pill:active {
   transform: translateX(-50%) translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .ai-floating-pill svg {
   flex-shrink: 0;
   width: 14px;
   height: 14px;
+}
+
+.ai-pill-logo {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.ai-pill-brand {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: #4b5563;
 }
 
 /* Dark mode floating pill styles */
@@ -589,6 +602,13 @@
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
+.app.dark-mode .ai-pill-brand {
+  background: linear-gradient(to right, #78fcd6, #00ffb6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* Editable Edge Label Styles */
 .editable-edge-label {
   background: white;
@@ -602,8 +622,8 @@
 }
 
 .editable-edge-label.selected {
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  border-color: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .editable-edge-label.editing {
@@ -652,6 +672,38 @@
 
 .app.dark-mode .editable-edge-text.hint {
   color: rgba(231, 236, 235, 0.6);
+}
+
+/* MiniMap */
+.react-flow__minimap {
+  opacity: 0.7;
+  transition: opacity 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  animation: minimapFadeIn 0.4s ease;
+}
+
+@keyframes minimapFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+}
+
+.react-flow__minimap:hover {
+  opacity: 1;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow-dark .react-flow__minimap {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.react-flow-dark .react-flow__minimap:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 12px rgba(120, 252, 214, 0.1);
 }
 
 /* React Flow Attribution Panel */

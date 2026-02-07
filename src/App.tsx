@@ -1,10 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import ReactFlow, {
   Node as FlowNode,
   Edge,
   Controls,
   Background,
   BackgroundVariant,
+  MiniMap,
   Connection,
   ConnectionMode,
   SelectionMode,
@@ -33,6 +34,8 @@ import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
 import AIInsertPreviewDialog from './components/AIInsertPreviewDialog'
+import { resolveAzureIcons } from './utils/azureIconRegistry'
+import { getMessages, addMessage as addThreadMessage } from './utils/conversationStore'
 
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
@@ -90,7 +93,7 @@ const edgeTypes = {
 
 function FlowChartEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const { screenToFlowPosition, zoomIn, zoomOut, setCenter } = useReactFlow()
+  const { screenToFlowPosition, zoomIn, zoomOut, setCenter, fitView, getViewport, setViewport } = useReactFlow()
 
   const getNodeDimensions = useCallback((nodeType?: string, style?: FlowNode['style']) => {
     const width = typeof style?.width === 'number' ? style.width : undefined
@@ -158,15 +161,7 @@ function FlowChartEditor() {
     )
   }, [])
 
-  const initialNodes: FlowNode[] = [
-    {
-      id: '1',
-      type: 'step',
-      position: { x: 250, y: 100 },
-      data: { label: 'Start', onLabelChange: updateNodeLabel },
-      style: { width: 180, height: 80 },
-    },
-  ]
+  const initialNodes: FlowNode[] = []
 
   const [nodes, setNodes] = useNodesState(initialNodes)
   const [edges, setEdges] = useEdgesState([])
@@ -201,6 +196,11 @@ function FlowChartEditor() {
   const [darkMode, setDarkMode] = useState(true)
   const [isAIBubbleOpen, setIsAIBubbleOpen] = useState(false)
   const [aiProposal, setAIProposal] = useState<FlowProposal | null>(null)
+  const [showWelcomeAI, setShowWelcomeAI] = useState(true)
+  const [isRefining, setIsRefining] = useState(false)
+  const [aiThreadId, setAIThreadId] = useState<string | null>(null)
+  const [proposalPreview, setProposalPreview] = useState<{ nodes: FlowNode[]; edges: Edge[] } | null>(null)
+  const [showMinimap, setShowMinimap] = useState(false)
 
   const addImageNode = useCallback(
     (imageUrl: string, label: string) => {
@@ -353,12 +353,13 @@ function FlowChartEditor() {
       animated: style === 'animated',
       style: style === 'animated'
         ? { strokeDasharray: '5 5', stroke: darkMode ? '#78fcd6' : '#555' }
-        : {},
+        : { stroke: darkMode ? '#78fcd6' : undefined },
       data: { onLabelChange: updateEdgeLabel },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 20,
         height: 20,
+        color: darkMode ? '#78fcd6' : '#555',
       },
       labelStyle: {
         fill: darkMode ? '#e7eceb' : '#333',
@@ -658,6 +659,7 @@ function FlowChartEditor() {
 
   // Toggle AI Bubble
   const toggleAI = useCallback(() => {
+    setShowWelcomeAI(false)
     setIsAIBubbleOpen((prev) => !prev)
   }, [])
 
@@ -665,9 +667,24 @@ function FlowChartEditor() {
     setDarkMode((prev) => !prev)
   }, [])
 
+  // Custom fit view that accounts for the floating toolbar at the top
+  const handleFitView = useCallback(() => {
+    // Fit view instantly (no animation) to calculate correct viewport
+    fitView({ padding: 0.2, maxZoom: 1.2, duration: 0 })
+    // Then shift viewport down to account for toolbar and animate smoothly
+    requestAnimationFrame(() => {
+      const vp = getViewport()
+      setViewport(
+        { x: vp.x, y: vp.y + 35, zoom: vp.zoom },
+        { duration: 500 }
+      )
+    })
+  }, [fitView, getViewport, setViewport])
+
   // Handle AI proposal ready - open preview dialog
-  const handleAIProposalReady = useCallback((proposal: FlowProposal) => {
+  const handleAIProposalReady = useCallback((proposal: FlowProposal, threadId?: string) => {
     setAIProposal(proposal)
+    if (threadId) setAIThreadId(threadId)
   }, [])
 
   // Insert AI proposal into canvas (insert-as-new algorithm)
@@ -764,12 +781,148 @@ function FlowChartEditor() {
 
     // 9. Close preview dialog
     setAIProposal(null)
+    setAIThreadId(null)
   }, [aiProposal, nodeIdCounter, reactFlowWrapper, screenToFlowPosition, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges])
 
   // Cancel AI proposal
   const cancelAIProposal = useCallback(() => {
     setAIProposal(null)
+    setAIThreadId(null)
   }, [])
+
+  // Dismiss welcome AI prompt
+  const dismissWelcomeAI = useCallback(() => {
+    setShowWelcomeAI(false)
+  }, [])
+
+  // Refine AI proposal via chat sidebar
+  const handleRefineProposal = useCallback(async (instruction: string): Promise<string | undefined> => {
+    if (!aiProposal) return undefined
+    setIsRefining(true)
+    try {
+      // Build messages: use thread history if available, otherwise single message
+      let messages: { role: string; content: string }[]
+      if (aiThreadId) {
+        addThreadMessage(aiThreadId, { role: 'user', content: instruction })
+        messages = getMessages(aiThreadId).map((m) => ({ role: m.role, content: m.content }))
+      } else {
+        messages = [{ role: 'user', content: instruction }]
+      }
+
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages,
+          mode: 'refine',
+          flowContext: {
+            nodes: aiProposal.nodes.map((n) => ({
+              id: n.id,
+              type: n.type,
+              label: n.label,
+              position: n.position,
+              width: n.width,
+              height: n.height,
+            })),
+            edges: aiProposal.edges.map((e) => ({
+              id: e.id,
+              source: e.source,
+              target: e.target,
+              style: e.style,
+              sourceHandle: e.sourceHandle,
+              targetHandle: e.targetHandle,
+              label: e.label,
+            })),
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `API request failed with status ${response.status}`)
+      }
+
+      const data = await response.json()
+      const content = data.message || ''
+
+      let parsed: Record<string, unknown> | null = null
+      try {
+        parsed = JSON.parse(content) as Record<string, unknown>
+      } catch {
+        // Try extracting from code block
+        const jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/) || content.match(/```\s*\n([\s\S]*?)\n```/)
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[1].trim()) as Record<string, unknown>
+          } catch { /* noop */ }
+        }
+      }
+
+      if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
+        const refinedProposal = resolveAzureIcons({
+          summary: (parsed.summary as string) || (parsed.explanation as string) || 'Refined flowchart',
+          nodes: parsed.nodes as BaseFlowNode[],
+          edges: parsed.edges as BaseFlowEdge[],
+        })
+        setAIProposal(refinedProposal)
+
+        // Save assistant summary to thread
+        if (aiThreadId) {
+          addThreadMessage(aiThreadId, {
+            role: 'assistant',
+            content: refinedProposal.summary || 'Refined flowchart',
+          })
+        }
+        return refinedProposal.summary
+      }
+    } catch (err) {
+      console.error('Refinement error:', err)
+    } finally {
+      setIsRefining(false)
+    }
+    return undefined
+  }, [aiProposal, aiThreadId])
+
+  // Preview proposal in presentation mode
+  const handlePreviewProposal = useCallback(() => {
+    if (!aiProposal) return
+
+    const strokeColor = darkMode ? '#78fcd6' : '#555'
+
+    const previewNodes: FlowNode[] = aiProposal.nodes.map((node) => ({
+      id: node.id,
+      type: node.type,
+      position: node.position,
+      data: {
+        label: node.label,
+        imageUrl: node.imageUrl,
+        onLabelChange: () => {},
+      },
+      style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
+    }))
+
+    const previewEdges: Edge[] = aiProposal.edges.map((edge) => ({
+      id: edge.id || `e${edge.source}-${edge.target}`,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle || 'bottom',
+      targetHandle: edge.targetHandle || 'top',
+      label: edge.label,
+      type: 'default' as const,
+      markerEnd: {
+        type: MarkerType.ArrowClosed,
+        width: 20,
+        height: 20,
+        color: strokeColor,
+      },
+      style: {
+        stroke: strokeColor,
+        strokeWidth: 2,
+      },
+    }))
+
+    setProposalPreview({ nodes: previewNodes, edges: previewEdges })
+  }, [aiProposal, darkMode])
 
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : 'light-mode'
@@ -802,6 +955,71 @@ function FlowChartEditor() {
     setEdges(newEdges)
   }, [getEdgeStyleProps, setEdges, setNodes, updateNodeLabel])
 
+  // Compute canvas pan boundaries so the minimap stays locked to the node area.
+  // Padding scales with content size but stays tight so you can't pan into empty space.
+  const translateExtent = useMemo((): [[number, number], [number, number]] => {
+    if (nodes.length === 0) {
+      return [[-500, -500], [500, 500]]
+    }
+
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+
+    for (const node of nodes) {
+      const w = typeof node.style?.width === 'number' ? node.style.width : (node.type === 'decision' ? 160 : 180)
+      const h = typeof node.style?.height === 'number' ? node.style.height : (node.type === 'decision' ? 160 : 80)
+      minX = Math.min(minX, node.position.x)
+      minY = Math.min(minY, node.position.y)
+      maxX = Math.max(maxX, node.position.x + w)
+      maxY = Math.max(maxY, node.position.y + h)
+    }
+
+    // Padding = half the content span, clamped between 300–600px
+    const contentW = maxX - minX
+    const contentH = maxY - minY
+    const padding = Math.max(300, Math.min(600, Math.min(contentW, contentH) * 0.5))
+    return [[minX - padding, minY - padding], [maxX + padding, maxY + padding]]
+  }, [nodes])
+
+  // Show the minimap only when nodes overflow the visible viewport
+  const updateMinimapVisibility = useCallback(() => {
+    if (nodes.length === 0) {
+      setShowMinimap(false)
+      return
+    }
+
+    const wrapper = reactFlowWrapper.current
+    if (!wrapper) { setShowMinimap(false); return }
+
+    const { zoom } = getViewport()
+    const rect = wrapper.getBoundingClientRect()
+    const visibleW = rect.width / zoom
+    const visibleH = rect.height / zoom
+
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const node of nodes) {
+      const w = typeof node.style?.width === 'number' ? node.style.width : (node.type === 'decision' ? 160 : 180)
+      const h = typeof node.style?.height === 'number' ? node.style.height : (node.type === 'decision' ? 160 : 80)
+      minX = Math.min(minX, node.position.x)
+      minY = Math.min(minY, node.position.y)
+      maxX = Math.max(maxX, node.position.x + w)
+      maxY = Math.max(maxY, node.position.y + h)
+    }
+
+    const contentW = maxX - minX
+    const contentH = maxY - minY
+
+    // Show when content exceeds 70% of the visible area in either dimension
+    setShowMinimap(contentW > visibleW * 0.7 || contentH > visibleH * 0.7)
+  }, [nodes, getViewport])
+
+  // Recheck visibility whenever nodes change
+  useEffect(() => {
+    updateMinimapVisibility()
+  }, [updateMinimapVisibility])
+
   if (previewMode) {
     return (
       <PreviewMode
@@ -809,6 +1027,18 @@ function FlowChartEditor() {
         edges={edges}
         darkMode={darkMode}
         onExit={togglePreview}
+      />
+    )
+  }
+
+  // Preview proposal in presentation mode (returns to proposal dialog on exit)
+  if (proposalPreview) {
+    return (
+      <PreviewMode
+        nodes={proposalPreview.nodes}
+        edges={proposalPreview.edges}
+        darkMode={darkMode}
+        onExit={() => setProposalPreview(null)}
       />
     )
   }
@@ -849,6 +1079,7 @@ function FlowChartEditor() {
           snapGrid={[15, 15]}
           minZoom={0.1}
           maxZoom={2}
+          translateExtent={translateExtent}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           panOnScroll={toolMode !== 'arrow'}
           panOnScrollSpeed={0.8}
@@ -859,6 +1090,7 @@ function FlowChartEditor() {
           nodesDraggable={toolMode === 'select'}
           elementsSelectable={toolMode === 'select'}
           connectOnClick={toolMode !== 'arrow'}
+          onMoveEnd={updateMinimapVisibility}
           zoomActivationKeyCode=""
           className={`${darkMode ? 'react-flow-dark' : ''} ${toolMode === 'hand' ? 'hand-mode' : ''} ${toolMode === 'arrow' ? 'arrow-mode' : ''}`}
         >
@@ -870,7 +1102,22 @@ function FlowChartEditor() {
               color={darkMode ? 'rgba(231, 236, 235, 0.18)' : 'rgba(15, 18, 17, 0.12)'}
             />
           )}
-          <Controls />
+          <Controls onFitView={handleFitView} />
+          {showMinimap && (
+            <MiniMap
+              nodeColor={darkMode ? '#78fcd6' : '#10b981'}
+              nodeStrokeColor={darkMode ? 'rgba(120, 252, 214, 0.5)' : '#059669'}
+              maskColor={darkMode ? 'rgba(15, 18, 17, 0.85)' : 'rgba(240, 240, 240, 0.85)'}
+              style={{
+                background: darkMode ? '#1a1d1c' : '#f9fafb',
+                border: darkMode ? '1px solid rgba(120, 252, 214, 0.2)' : '1px solid #e5e7eb',
+                borderRadius: 6,
+                width: 120,
+                height: 90,
+              }}
+              pannable
+            />
+          )}
         </ReactFlow>
       </div>
       {(() => {
@@ -965,24 +1212,45 @@ function FlowChartEditor() {
           onClose={() => setSidebarMode('none')}
         />
       )}
+      {/* Welcome AI prompt on fresh empty canvas */}
+      {showWelcomeAI && nodes.length === 0 && !isAIBubbleOpen && !aiProposal && (
+        <AIChat
+          nodes={nodes}
+          edges={edges}
+          onProposalReady={handleAIProposalReady}
+          isOpen={true}
+          onClose={dismissWelcomeAI}
+          variant="welcome"
+          onDismiss={dismissWelcomeAI}
+        />
+      )}
+      {/* Full AI chat overlay (triggered by pill button) */}
       <AIChat
         nodes={nodes}
         edges={edges}
         onProposalReady={handleAIProposalReady}
         isOpen={isAIBubbleOpen}
         onClose={() => setIsAIBubbleOpen(false)}
+        variant="full"
       />
       {aiProposal && (
         <AIInsertPreviewDialog
           proposal={aiProposal}
           onInsert={insertAIProposal}
           onCancel={cancelAIProposal}
+          onPreview={handlePreviewProposal}
+          onRefine={handleRefineProposal}
+          isRefining={isRefining}
           darkMode={darkMode}
         />
       )}
-      <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">
-        Chat with AI
-      </button>
+      {/* Show pill when welcome prompt is not visible and AI bubble is not open */}
+      {!isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
+        <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">
+          <img src={darkMode ? '/logo/logo_color.svg' : '/logo/logo_dark_pointer.svg'} alt="" className="ai-pill-logo" />
+          <span className="ai-pill-brand">Zero Click Dev</span>
+        </button>
+      )}
     </div>
   )
 }

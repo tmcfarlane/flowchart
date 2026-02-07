@@ -139,14 +139,14 @@ The AI assistant uses Azure OpenAI with **Structured Outputs** to guarantee vali
 sequenceDiagram
     participant User
     participant AIChat
-    participant API as "api/chat.ts"
-    participant Azure as "Azure OpenAI"
+    participant API as api/chat.ts
+    participant Azure as Azure OpenAI
 
     User->>AIChat: Enter prompt
     AIChat->>API: POST /api/chat
     API->>Azure: Request with response_format schema
     Azure-->>API: Raw JSON (guaranteed valid)
-    API-->>AIChat: JSON with nodes and edges arrays
+    API-->>AIChat: { message: "{ nodes: [...], edges: [...] }" }
     AIChat->>AIChat: JSON.parse(message)
     AIChat-->>User: Show preview dialog
 ```
@@ -156,6 +156,28 @@ sequenceDiagram
 - **Server-side proxy**: API keys are kept secure on the server (`api/chat.ts`), never exposed to the browser
 - **Flowchart skill**: A specialized system prompt (`api/flowchart-generation-skill.md`) guides the AI to create high-quality flowcharts
 - **Truncation detection**: The system checks `finish_reason` to detect if responses were cut off due to token limits
+
+### Azure Icon Auto-Mapping
+
+When the AI generates a flowchart involving Azure services, the system automatically resolves matching Azure service icons from the local icon library (653 SVGs) and upgrades plain step nodes to image nodes -- no extra API calls required.
+
+```mermaid
+flowchart LR
+  A[AI returns proposal] --> B[resolveAzureIcons]
+  B --> C{Label matches icon?}
+  C -->|Yes| D["Set type=image, imageUrl=local SVG"]
+  C -->|No| E[Keep as step node]
+  D --> F[Store proposal in state]
+  E --> F
+  F --> G[Preview / Insert]
+```
+
+**How it works:**
+- A frontend-only icon registry (`src/utils/azureIconRegistry.ts`) builds a lookup map at module-load time using Vite's `import.meta.glob`
+- After the AI response is parsed, `resolveAzureIcons()` post-processes the proposal, matching node labels to Azure service icons via alias lookup, exact match, and substring match
+- An `isAzureRelatedFlow()` gate prevents false positives on non-Azure flowcharts
+- Icons render in both dark and light mode with adaptive background styling
+- The alias map covers 100+ common phrasings (e.g., "Cosmos DB", "AKS", "App Service", "Redis Cache")
 
 ### Flowchart Schema
 

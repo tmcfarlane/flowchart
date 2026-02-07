@@ -127,7 +127,10 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
       }))
   }, [activeNodeId, nodes, visibleNodeIds])
 
-  // Fit view to visible nodes when step changes
+  // Center on the active node when step changes.
+  // For the first couple of steps we show all revealed nodes (nice "build-up"),
+  // but once there are 3+ visible nodes we lock the camera on the current node
+  // so the audience can actually read it instead of zooming further and further out.
   useEffect(() => {
     if (fitViewTimeoutRef.current) {
       clearTimeout(fitViewTimeoutRef.current)
@@ -136,13 +139,18 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
     // Small delay to allow nodes to render
     fitViewTimeoutRef.current = setTimeout(() => {
       if (highlightedNodes.length > 0) {
-        const visibleIds = highlightedNodes.map((n) => n.id)
+        const shouldFocusActive = highlightedNodes.length > 2
+
+        const targetNodes = shouldFocusActive
+          ? [{ id: activeNodeId }]
+          : highlightedNodes.map((n) => ({ id: n.id }))
+
         fitView({
-          padding: 0.3,
+          padding: shouldFocusActive ? 0.5 : 0.3,
           duration: 500,
-          maxZoom: 1.5,
+          maxZoom: shouldFocusActive ? 1 : 1.5,
           minZoom: 0.3,
-          nodes: visibleIds.map((id) => ({ id })),
+          nodes: targetNodes,
         })
       }
     }, 50)
@@ -152,7 +160,7 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
         clearTimeout(fitViewTimeoutRef.current)
       }
     }
-  }, [currentStep, highlightedNodes, fitView])
+  }, [currentStep, highlightedNodes, activeNodeId, fitView])
 
   // Handle navigation
   const handleNext = useCallback(() => {
@@ -182,16 +190,7 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
   }, [handleNext, handlePrevious, onExit])
 
   return (
-    <div className={`preview-mode ${darkMode ? 'dark' : 'light'}`}>
-      <div className="preview-header">
-        <div className="preview-title">Presentation Mode</div>
-        <div className="preview-counter">
-          {totalSteps === 0 ? 0 : currentStep + 1} / {totalSteps}
-        </div>
-        <button className="exit-button" onClick={onExit}>
-          ✕ Exit
-        </button>
-      </div>
+    <div className={`preview-mode fullscreen ${darkMode ? 'dark' : 'light'}`}>
       <ReactFlow
         nodes={highlightedNodes}
         edges={visibleEdges}
@@ -203,8 +202,8 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
-        zoomOnScroll={false}
-        panOnDrag={false}
+        zoomOnScroll={true}
+        panOnDrag={true}
         proOptions={{ hideAttribution: true }}
         className={darkMode ? 'react-flow-dark' : ''}
       >
@@ -215,21 +214,29 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
           color={darkMode ? 'rgba(231, 236, 235, 0.18)' : 'rgba(15, 18, 17, 0.12)'}
         />
       </ReactFlow>
-      <div className="preview-controls">
-        <button
-          className="nav-button"
-          onClick={handlePrevious}
-          disabled={currentStep === 0}
-        >
-          ← Previous
-        </button>
-        <button
-          className="nav-button"
-          onClick={handleNext}
-          disabled={currentStep >= totalSteps - 1}
-        >
-          Next →
-        </button>
+      <div className="floating-controls">
+        <div className="floating-bar">
+          <button
+            className="nav-button nav-button-sm"
+            onClick={handlePrevious}
+            disabled={currentStep === 0}
+          >
+            ←
+          </button>
+          <span className="floating-counter">
+            {totalSteps === 0 ? 0 : currentStep + 1} / {totalSteps}
+          </span>
+          <button
+            className="nav-button nav-button-sm"
+            onClick={handleNext}
+            disabled={currentStep >= totalSteps - 1}
+          >
+            →
+          </button>
+          <button className="exit-button exit-button-sm" onClick={onExit}>
+            ✕
+          </button>
+        </div>
       </div>
     </div>
   )

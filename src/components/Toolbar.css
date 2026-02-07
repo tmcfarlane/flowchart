@@ -100,12 +100,12 @@
 }
 
 .toolbar-button.active {
-  background: rgba(139, 92, 246, 0.12);
-  color: #8b5cf6;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
 }
 
 .toolbar-button.active:hover {
-  background: rgba(139, 92, 246, 0.18);
+  background: rgba(16, 185, 129, 0.18);
 }
 
 .app.dark-mode .toolbar-button.active {
@@ -118,12 +118,12 @@
 }
 
 .toolbar-button.add-node {
-  color: #78fcd6;
+  color: #4b5563;
 }
 
 .toolbar-button.add-node:hover {
-  background: rgba(120, 252, 214, 0.15);
-  color: #00ffb6;
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
 }
 
 .app.dark-mode .toolbar-button.add-node {
@@ -136,12 +136,12 @@
 }
 
 .toolbar-button.add-image {
-  color: #78fcd6;
+  color: #4b5563;
 }
 
 .toolbar-button.add-image:hover {
-  background: rgba(120, 252, 214, 0.15);
-  color: #00ffb6;
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
 }
 
 .app.dark-mode .toolbar-button.add-image {
