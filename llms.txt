@@ -1,0 +1,156 @@
+# FlowChart Designer
+
+> A modern, interactive flowchart designer built with Vite, React, TypeScript, and React Flow. Create flowcharts with AI assistance powered by Azure OpenAI, dark/light mode, presentation mode, and 663+ bundled Azure service icons.
+
+## Project overview
+
+FlowChart Designer is a single-page web application that lets users visually build flowcharts on an interactive canvas. Users can add nodes (step, decision, note, image), connect them with styled edges, and present them in a step-by-step presentation mode. An AI assistant powered by Azure OpenAI can generate entire flowcharts from natural-language prompts, with automatic Azure service icon resolution.
+
+The app is deployed on Vercel with a serverless API proxy that keeps Azure credentials server-side.
+
+## Tech stack
+
+- Vite (build tool, dev server, dev middleware for API proxy)
+- React 18 + TypeScript
+- React Flow (reactflow v11) + @reactflow/node-resizer
+- Azure OpenAI (gpt-4o with structured outputs)
+- Vitest + Testing Library
+- Vercel (hosting, serverless functions)
+
+## Directory structure
+
+```
+├── api/                        # Vercel serverless functions
+│   ├── chat.ts                 # POST /api/chat — Azure OpenAI proxy
+│   └── flowchart-generation-skill.md  # System prompt for AI generation
+├── assets/                     # 663+ Azure service SVG icons (organized by category)
+├── docs/                       # Design docs
+│   ├── PRD.md
+│   └── UI-Design-References.md
+├── public/                     # Static assets (favicons, logos)
+├── src/
+│   ├── App.tsx                 # Main application component (~1270 lines)
+│   ├── App.css                 # Main application styles
+│   ├── components/
+│   │   ├── AIChat.tsx          # AI chat interface (welcome + full-screen overlay)
+│   │   ├── AIInsertPreviewDialog.tsx  # Proposal preview with insert/refine/present
+│   │   ├── Explorer.tsx        # Sidebar explorer (visual + JSON modes)
+│   │   ├── ImagePicker.tsx     # Azure icon browser + image upload
+│   │   ├── Toolbar.tsx         # Main toolbar (tools, actions, dark mode toggle)
+│   │   ├── PreviewMode.tsx     # Presentation mode with step-through navigation
+│   │   ├── edges/
+│   │   │   └── EditableEdge.tsx  # Custom edge with double-click label editing
+│   │   └── nodes/
+│   │       ├── StepNode.tsx    # Rounded-rectangle process step
+│   │       ├── DecisionNode.tsx  # Diamond-shaped decision node
+│   │       ├── NoteNode.tsx    # Sticky-note style node
+│   │       ├── ImageNode.tsx   # Image/icon node with label
+│   │       └── NodeStyles.css  # Shared node styles
+│   ├── utils/
+│   │   ├── azureIconRegistry.ts   # Icon lookup map built via import.meta.glob
+│   │   └── conversationStore.ts   # Session-persisted conversation threads
+│   └── test/
+│       ├── App.test.tsx
+│       └── setup.ts
+├── index.html
+├── vite.config.ts              # Vite config with dev API middleware
+├── vercel.json                 # Vercel deployment config
+├── tsconfig.json
+└── package.json
+```
+
+## Key source files
+
+### src/App.tsx
+Central orchestrator. Manages all canvas state (nodes, edges, selection), toolbar actions, undo/redo history, copy/paste clipboard, tool modes (select/hand/arrow), dark mode, and coordinates between child components. Renders the React Flow canvas, Toolbar, Explorer, AIChat, PreviewMode, ImagePicker, and AIInsertPreviewDialog.
+
+### api/chat.ts
+Vercel serverless function that proxies requests to Azure OpenAI. Uses structured outputs (response_format with strict JSON schema) to guarantee valid flowchart JSON. Reads AZURE_DEPLOYMENT_NAME, AZURE_RESOURCE_NAME, and AZURE_API_KEY from environment variables. Also served locally via Vite dev middleware.
+
+### src/components/AIChat.tsx
+Two-variant AI chat UI. Welcome variant shows a floating prompt on empty canvases with starter suggestions. Full variant is a full-screen overlay with conversation threads (sessionStorage, 30-min TTL), 47+ starter prompts, and a loading progress bar with rotating messages.
+
+### src/components/AIInsertPreviewDialog.tsx
+Modal that previews AI-generated flowchart proposals. Supports fullscreen toggle (auto for 8+ nodes), a refinement sidebar for iterative follow-up messages, and actions: Insert (add to canvas), Cancel, Present (enter presentation mode), and Regenerate.
+
+### src/components/Toolbar.tsx
+Floating toolbar with tool mode selection (Select/Hand/Arrow), node creation buttons, edge style picker, dark mode toggle, undo/redo, explorer toggle, preview button, clear all, and multi-select bulk actions (delete, copy, paste, edge style).
+
+### src/components/Explorer.tsx
+Right-side panel with two modes. Visual mode: browsable node/edge lists with inline label editing, drag-to-reorder nodes, and edge style badges. JSON mode: raw flowchart JSON editor with copy-to-clipboard and apply-with-validation.
+
+### src/components/PreviewMode.tsx
+Full-screen presentation mode. Reveals nodes one-by-one in order, progressively shows edges once both endpoints are visible, highlights the active node, auto-fits the viewport, and supports keyboard navigation (arrows, space, escape).
+
+### src/components/ImagePicker.tsx
+Modal for adding image nodes. Azure Icons tab: searchable grid of 663+ SVGs with category filtering and a Popular tab. Upload tab: file upload (PNG/JPG/SVG) with preview and label editing.
+
+### src/utils/azureIconRegistry.ts
+Builds a lookup map of Azure service icons at module load time using Vite's import.meta.glob. Provides resolveAzureIcons() which post-processes AI proposals, matching node labels to icons via alias map (100+ entries), exact match, and substring match. Gated by isAzureRelatedFlow() to avoid false positives.
+
+### src/components/edges/EditableEdge.tsx
+Custom React Flow edge component. Renders a bezier/smoothstep/step path with arrow markers. Supports double-click to edit the label inline, with enter-to-save and escape-to-cancel.
+
+### src/components/nodes/
+Four custom node components (StepNode, DecisionNode, NoteNode, ImageNode). All support inline label editing, resize handles via @reactflow/node-resizer, 4 connection handles, and visual hover/selected states. DecisionNode uses aspect-ratio-locked resizing.
+
+## Conventions
+
+- State management is local React state in App.tsx (no external store)
+- Undo/redo uses a snapshot array (max 10 states) with debounced saves (500ms)
+- Conversation threads are stored in sessionStorage with a 30-minute TTL
+- Azure icons are imported at build time via import.meta.glob — no runtime fetches
+- The API route is proxied through Vite middleware in dev and Vercel functions in production
+- Dark mode applies a `dark-mode` class to the body element
+- Tool modes are: "select" (default), "hand" (pan only), "arrow" (connect only)
+- Nodes snap to a 15px grid
+- CSS is co-located with components (ComponentName.css alongside ComponentName.tsx)
+
+## Node types
+
+| Type | Shape | Min size | Special behavior |
+|------|-------|----------|-----------------|
+| step | Rounded rectangle | 140×80 | Standard process step |
+| decision | Diamond | 140×140 | Aspect-ratio locked resize |
+| note | Folded-corner rectangle | 140×100 | Multi-line textarea editing |
+| image | Rectangle with icon | 140×140 | Displays SVG icon or uploaded image |
+
+## Edge styles
+
+| Style | Type | Appearance |
+|-------|------|-----------|
+| default | bezier | Solid curved line |
+| animated | bezier | Dashed line with CSS animation |
+| step | smoothstep | Orthogonal with rounded corners |
+
+## AI flowchart schema
+
+The AI generates JSON matching this structure:
+
+```json
+{
+  "summary": "Description of the flowchart",
+  "nodes": [
+    { "id": "1", "type": "step|decision|note|image", "label": "text", "position": { "x": 0, "y": 0 } }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "1", "target": "2", "label": "optional", "style": "default|animated|step", "sourceHandle": "bottom", "targetHandle": "top" }
+  ]
+}
+```
+
+## Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| AZURE_DEPLOYMENT_NAME | For AI features | Azure OpenAI deployment name |
+| AZURE_RESOURCE_NAME | For AI features | Azure OpenAI resource name |
+| AZURE_API_KEY | For AI features | Azure OpenAI API key |
+
+## Commands
+
+- `pnpm install` — Install dependencies
+- `pnpm dev` — Start development server
+- `pnpm build` — TypeScript compile + Vite production build
+- `pnpm preview` — Preview production build locally
+- `pnpm test` — Run Vitest test suite
