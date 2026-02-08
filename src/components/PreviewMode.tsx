@@ -137,7 +137,7 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
     }
 
     // Small delay to allow nodes to render
-    fitViewTimeoutRef.current = setTimeout(() => {
+    fitViewTimeoutRef.current = window.setTimeout(() => {
       if (highlightedNodes.length > 0) {
         const shouldFocusActive = highlightedNodes.length > 2
 

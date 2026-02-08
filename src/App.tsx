@@ -317,7 +317,7 @@ function FlowChartEditor() {
       clearTimeout(saveTimeoutRef.current)
     }
 
-    saveTimeoutRef.current = setTimeout(() => {
+    saveTimeoutRef.current = window.setTimeout(() => {
       const currentState = history[historyIndex]
       const hasChanged =
         JSON.stringify(currentState?.nodes) !== JSON.stringify(nodes) ||
