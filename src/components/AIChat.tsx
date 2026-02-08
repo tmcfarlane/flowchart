@@ -325,7 +325,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
         </div>
 
         <div className="ai-bubble-content">
-          <p className="ai-welcome-heading">What's your flow?</p>
+          {!isLoading && <p className="ai-welcome-heading">What's your flow?</p>}
 
           {isLoading ? (
             <div className="loading-indicator">
@@ -411,7 +411,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
         </div>
 
         <div className="ai-bubble-content">
-          <p className="ai-welcome-heading">What's the vibe today?</p>
+          {!isLoading && <p className="ai-welcome-heading">What's the vibe today?</p>}
 
           {isLoading ? (
             <div className="loading-indicator">

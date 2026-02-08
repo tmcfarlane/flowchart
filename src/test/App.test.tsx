@@ -21,9 +21,9 @@ describe('FlowChart Designer', () => {
     expect(screen.getByLabelText('Enter Preview Mode')).toBeInTheDocument()
   })
 
-  it('renders the starter node', () => {
+  it('shows the welcome AI prompt on an empty canvas', () => {
     render(<App />)
-    expect(screen.getByText('Start')).toBeInTheDocument()
+    expect(screen.getByText("What's your flow?")).toBeInTheDocument()
   })
 
   it('can add a new step node', () => {
@@ -31,9 +31,7 @@ describe('FlowChart Designer', () => {
     const addStepButton = screen.getByLabelText('Add Step Node')
     fireEvent.click(addStepButton)
 
-    // After adding, we should have the original "Start" and a new "Step"
-    const stepNodes = screen.getAllByText(/Step|Start/)
-    expect(stepNodes.length).toBeGreaterThan(1)
+    expect(screen.getByText('Step')).toBeInTheDocument()
   })
 
   it('can add a new decision node', () => {
@@ -54,20 +52,22 @@ describe('FlowChart Designer', () => {
 
   it('can enter preview mode', () => {
     render(<App />)
+    fireEvent.click(screen.getByLabelText('Add Step Node'))
     const previewButton = screen.getByLabelText('Enter Preview Mode')
     fireEvent.click(previewButton)
 
-    expect(screen.getByText('Presentation Mode')).toBeInTheDocument()
-    expect(screen.getByText(/Exit/i)).toBeInTheDocument()
+    expect(screen.getByText('1 / 1')).toBeInTheDocument()
+    expect(screen.getByText('✕')).toBeInTheDocument()
   })
 
   it('shows navigation buttons in preview mode', () => {
     render(<App />)
+    fireEvent.click(screen.getByLabelText('Add Step Node'))
     const previewButton = screen.getByLabelText('Enter Preview Mode')
     fireEvent.click(previewButton)
 
-    expect(screen.getByText(/Previous/i)).toBeInTheDocument()
-    expect(screen.getByText(/Next/i)).toBeInTheDocument()
+    expect(screen.getByText('←')).toBeInTheDocument()
+    expect(screen.getByText('→')).toBeInTheDocument()
   })
 
   it('can exit preview mode', () => {
@@ -75,21 +75,22 @@ describe('FlowChart Designer', () => {
 
     // Enter preview mode
     const previewButton = screen.getByLabelText('Enter Preview Mode')
+    fireEvent.click(screen.getByLabelText('Add Step Node'))
     fireEvent.click(previewButton)
-    expect(screen.getByText('Presentation Mode')).toBeInTheDocument()
+    expect(screen.getByText('1 / 1')).toBeInTheDocument()
 
     // Exit preview mode
-    const exitButton = screen.getByText(/Exit/i)
+    const exitButton = screen.getByText('✕')
     fireEvent.click(exitButton)
-    expect(screen.queryByText('Presentation Mode')).not.toBeInTheDocument()
+    expect(screen.queryByText('1 / 1')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Selection Tool')).toBeInTheDocument()
   })
 
   it('shows confirmation modal when clicking Clear All and can cancel', () => {
     render(<App />)
 
-    // Verify the starter node exists
-    expect(screen.getByText('Start')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Add Step Node'))
+    expect(screen.getByText('Step')).toBeInTheDocument()
 
     // Click Clear All button
     const clearAllButton = screen.getByLabelText('Clear All')
@@ -103,16 +104,16 @@ describe('FlowChart Designer', () => {
     const cancelButton = screen.getByText('Cancel')
     fireEvent.click(cancelButton)
 
-    // Modal should close and starter node should still exist
+    // Modal should close and node should still exist
     expect(screen.queryByText('Clear the entire board?')).not.toBeInTheDocument()
-    expect(screen.getByText('Start')).toBeInTheDocument()
+    expect(screen.getByText('Step')).toBeInTheDocument()
   })
 
   it('clears the board when confirming Clear All', () => {
     render(<App />)
 
-    // Verify the starter node exists
-    expect(screen.getByText('Start')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Add Step Node'))
+    expect(screen.getByText('Step')).toBeInTheDocument()
 
     // Click Clear All button
     const clearAllButton = screen.getByLabelText('Clear All')
@@ -127,7 +128,7 @@ describe('FlowChart Designer', () => {
 
     // Modal should close and starter node should be removed
     expect(screen.queryByText('Clear the entire board?')).not.toBeInTheDocument()
-    expect(screen.queryByText('Start')).not.toBeInTheDocument()
+    expect(screen.queryByText('Step')).not.toBeInTheDocument()
   })
 })
 
@@ -144,32 +145,38 @@ describe('AI Flowchart Assistant', () => {
     vi.restoreAllMocks()
   })
 
-  it('renders the AI floating pill button', () => {
+  it('shows welcome prompt first, then the AI floating pill after dismiss', () => {
     render(<App />)
+    expect(screen.getByText("What's your flow?")).toBeInTheDocument()
+    expect(screen.queryByLabelText('Open AI Assistant')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('No, thank you'))
     expect(screen.getByLabelText('Open AI Assistant')).toBeInTheDocument()
   })
 
   it('opens the AI bubble when clicking the floating pill', () => {
     render(<App />)
+    fireEvent.click(screen.getByText('No, thank you'))
     const aiButton = screen.getByLabelText('Open AI Assistant')
     fireEvent.click(aiButton)
 
-    expect(screen.getByText('AI Flowchart Assistant')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/Create a login flow/i)).toBeInTheDocument()
+    expect(screen.getByText("What's the vibe today?")).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)).toBeInTheDocument()
   })
 
   it('closes the AI bubble when clicking close button', () => {
     render(<App />)
     
     // Open bubble
+    fireEvent.click(screen.getByText('No, thank you'))
     const aiButton = screen.getByLabelText('Open AI Assistant')
     fireEvent.click(aiButton)
-    expect(screen.getByText('AI Flowchart Assistant')).toBeInTheDocument()
+    expect(screen.getByText("What's the vibe today?")).toBeInTheDocument()
 
     // Close bubble
     const closeButton = screen.getByLabelText('Close')
     fireEvent.click(closeButton)
-    expect(screen.queryByText('AI Flowchart Assistant')).not.toBeInTheDocument()
+    expect(screen.queryByText("What's the vibe today?")).not.toBeInTheDocument()
   })
 
   it('shows preview dialog when AI returns a valid proposal', async () => {
@@ -199,12 +206,8 @@ describe('AI Flowchart Assistant', () => {
 
     render(<App />)
 
-    // Open AI bubble
-    const aiButton = screen.getByLabelText('Open AI Assistant')
-    fireEvent.click(aiButton)
-
     // Type a prompt
-    const input = screen.getByPlaceholderText(/Create a login flow/i)
+    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
     fireEvent.change(input, { target: { value: 'Create a login flow' } })
 
     // Click generate
@@ -217,7 +220,7 @@ describe('AI Flowchart Assistant', () => {
     })
 
     // Check that the proposal summary is shown
-    expect(screen.getByText('Basic login flow with authentication')).toBeInTheDocument()
+    expect(screen.getAllByText('Basic login flow with authentication').length).toBeGreaterThan(0)
 
     // Check that Insert and Cancel buttons are present
     expect(screen.getByText('Insert into Canvas')).toBeInTheDocument()
@@ -244,13 +247,8 @@ describe('AI Flowchart Assistant', () => {
 
     render(<App />)
 
-    // Count initial nodes (should have "Start" node)
-    expect(screen.getByText('Start')).toBeInTheDocument()
-
-    // Open AI bubble and generate
-    const aiButton = screen.getByLabelText('Open AI Assistant')
-    fireEvent.click(aiButton)
-    const input = screen.getByPlaceholderText(/Create a login flow/i)
+    // Generate via welcome prompt
+    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
     fireEvent.change(input, { target: { value: 'Add a test node' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
@@ -271,7 +269,6 @@ describe('AI Flowchart Assistant', () => {
 
     // New node should be added to canvas
     expect(screen.getByText('Test Node')).toBeInTheDocument()
-    expect(screen.getByText('Start')).toBeInTheDocument() // Original node still there
   })
 
   it('does not insert nodes when clicking Cancel button', async () => {
@@ -294,10 +291,8 @@ describe('AI Flowchart Assistant', () => {
 
     render(<App />)
 
-    // Open AI bubble and generate
-    const aiButton = screen.getByLabelText('Open AI Assistant')
-    fireEvent.click(aiButton)
-    const input = screen.getByPlaceholderText(/Create a login flow/i)
+    // Generate via welcome prompt
+    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
     fireEvent.change(input, { target: { value: 'Add a test node' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
@@ -318,7 +313,6 @@ describe('AI Flowchart Assistant', () => {
 
     // New node should NOT be added
     expect(screen.queryByText('Should Not Appear')).not.toBeInTheDocument()
-    expect(screen.getByText('Start')).toBeInTheDocument() // Original node still there
   })
 
   it('shows error message when AI response is invalid', async () => {
@@ -333,10 +327,8 @@ describe('AI Flowchart Assistant', () => {
 
     render(<App />)
 
-    // Open AI bubble and generate
-    const aiButton = screen.getByLabelText('Open AI Assistant')
-    fireEvent.click(aiButton)
-    const input = screen.getByPlaceholderText(/Create a login flow/i)
+    // Generate via welcome prompt
+    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
     fireEvent.change(input, { target: { value: 'Invalid request' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
@@ -367,10 +359,8 @@ describe('AI Flowchart Assistant', () => {
 
     render(<App />)
 
-    // Open AI bubble and generate
-    const aiButton = screen.getByLabelText('Open AI Assistant')
-    fireEvent.click(aiButton)
-    const input = screen.getByPlaceholderText(/Create a login flow/i)
+    // Generate via welcome prompt
+    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
     fireEvent.change(input, { target: { value: 'Add something' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
@@ -387,14 +377,11 @@ describe('AI Flowchart Assistant', () => {
       )
     })
 
-    // Verify flowContext includes the starter node
+    // Verify flowContext exists (empty canvas)
     const callArgs = fetchMock.mock.calls[0]
     const body = JSON.parse(callArgs[1].body)
     expect(body.flowContext).toBeDefined()
-    expect(body.flowContext.nodes).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: 'Start' })
-      ])
-    )
+    expect(body.flowContext.nodes).toEqual([])
+    expect(body.flowContext.edges).toEqual([])
   })
 })
