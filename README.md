@@ -8,7 +8,7 @@
 <p align="center">A modern flowchart designer with optional AI-assisted generation.</p>
 
 <p align="center">
-  <a href="https://github.com/tmcfarlane/flowchart/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/github/license/tmcfarlane/flowchart?style=flat-square" /></a>
+  <a href="https://github.com/tmcfarlane/flowchart/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" /></a>
   <a href="https://github.com/tmcfarlane/flowchart/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/tmcfarlane/flowchart?style=flat-square" /></a>
   <a href="https://github.com/tmcfarlane/flowchart/issues"><img alt="Issues" src="https://img.shields.io/github/issues/tmcfarlane/flowchart?style=flat-square" /></a>
 </p>
