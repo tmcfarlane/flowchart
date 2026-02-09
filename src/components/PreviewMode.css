@@ -1,0 +1,273 @@
+.preview-mode {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #0f1211;
+}
+
+.preview-mode.light {
+  background: #f8fafc;
+}
+
+/* Always fullscreen — canvas fills the viewport */
+.preview-mode.fullscreen .react-flow {
+  height: 100vh;
+}
+
+/* Dark mode React Flow styles */
+.preview-mode .react-flow {
+  flex: 1;
+  background: #0f1211;
+}
+
+.preview-mode .react-flow-dark {
+  background: #0f1211;
+}
+
+.preview-mode .react-flow-dark .react-flow__pane {
+  background: #0f1211;
+}
+
+.preview-mode .react-flow-dark .react-flow__background {
+  background: #0f1211;
+}
+
+.preview-mode .react-flow-dark .react-flow__edge-path {
+  stroke: #78fcd6;
+}
+
+.preview-mode .react-flow-dark .react-flow__edge.animated .react-flow__edge-path {
+  stroke: #78fcd6;
+}
+
+/* Ensure edges are always visible in presentation mode */
+.preview-mode .react-flow__edge-path {
+  stroke-width: 2px;
+}
+
+.preview-mode .react-flow__edge {
+  pointer-events: none;
+}
+
+/* Light mode React Flow styles */
+.preview-mode.light .react-flow {
+  background: #f8fafc;
+}
+
+.preview-mode.light .react-flow .react-flow__pane {
+  background: #f8fafc;
+}
+
+.preview-mode.light .react-flow .react-flow__background {
+  background: #f8fafc;
+}
+
+.preview-mode.light .react-flow .react-flow__edge-path {
+  stroke: #555;
+}
+
+/* --- Floating control bar (always visible on hover) --- */
+.floating-controls {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.preview-mode:hover .floating-controls,
+.floating-controls:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.floating-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: rgba(15, 18, 17, 0.88);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(120, 252, 214, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.preview-mode.light .floating-bar {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(102, 126, 234, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.floating-counter {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(231, 236, 235, 0.8);
+  min-width: 50px;
+  text-align: center;
+  user-select: none;
+}
+
+.preview-mode.light .floating-counter {
+  color: rgba(15, 18, 17, 0.7);
+}
+
+/* Nav buttons */
+.nav-button {
+  padding: 12px 32px;
+  background: linear-gradient(135deg, #78fcd6 0%, #00ffb6 100%);
+  color: #0f1211;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(120, 252, 214, 0.3);
+}
+
+.nav-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(120, 252, 214, 0.4);
+}
+
+.nav-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: rgba(39, 39, 42, 0.6);
+  color: rgba(231, 236, 235, 0.6);
+}
+
+.preview-mode.light .nav-button {
+  background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.preview-mode.light .nav-button:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.preview-mode.light .nav-button:disabled {
+  background: rgba(15, 18, 17, 0.1);
+  color: rgba(15, 18, 17, 0.5);
+}
+
+/* Smaller nav buttons for floating bar */
+.nav-button-sm {
+  padding: 8px 18px;
+  font-size: 14px;
+}
+
+/* Exit button */
+.exit-button {
+  padding: 8px 20px;
+  background: rgba(255, 107, 107, 0.15);
+  color: rgba(255, 107, 107, 0.7);
+  border: 1px solid rgba(255, 107, 107, 0.2);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.exit-button:hover {
+  background: rgba(255, 107, 107, 0.25);
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.4);
+  transform: translateY(-1px);
+}
+
+.exit-button-sm {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* Mobile responsive styles */
+@media (max-width: 768px) {
+  .floating-controls {
+    bottom: 16px;
+  }
+
+  .floating-bar {
+    padding: 8px 12px;
+    gap: 8px;
+    border-radius: 10px;
+  }
+
+  .nav-button {
+    padding: 10px 24px;
+    font-size: 14px;
+  }
+
+  .nav-button-sm {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+
+  .floating-counter {
+    font-size: 13px;
+    min-width: 40px;
+  }
+
+  .exit-button {
+    padding: 6px 16px;
+    font-size: 13px;
+  }
+
+  .exit-button-sm {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-controls {
+    bottom: 12px;
+    width: calc(100% - 24px);
+    left: 12px;
+    right: 12px;
+    transform: none;
+  }
+
+  .floating-bar {
+    padding: 6px 10px;
+    gap: 6px;
+    border-radius: 8px;
+    justify-content: center;
+  }
+
+  .nav-button {
+    padding: 8px 16px;
+    font-size: 13px;
+    flex: 1;
+  }
+
+  .nav-button-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .floating-counter {
+    font-size: 12px;
+    min-width: 35px;
+  }
+
+  .exit-button {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .exit-button-sm {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+}

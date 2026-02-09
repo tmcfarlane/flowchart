@@ -1,0 +1,565 @@
+.custom-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #ddd;
+  min-width: 120px;
+  text-align: center;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-color: #bbb;
+}
+
+.custom-node.selected {
+  border-color: #667eea;
+  border-width: 3px;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* Active state during interaction */
+.react-flow__node.dragging .custom-node {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: scale(1.02);
+}
+
+.step-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #d4f4dd 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #51cf66;
+  min-width: 140px;
+  min-height: 80px;
+  text-align: center;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.step-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-color: #40c057;
+}
+
+.step-node.selected {
+  border-color: #667eea;
+  border-width: 3px;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow__node.dragging .step-node {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: scale(1.02);
+}
+
+.decision-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  min-width: 140px;
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.decision-node .decision-diamond {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #fff4e6 0%, #ffffff 100%);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  border: none;
+}
+
+.decision-node .decision-border {
+  position: absolute;
+  inset: 0;
+  background: #ffa94d;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  z-index: -1;
+}
+
+.decision-node .decision-diamond {
+  inset: 3px;
+}
+
+.decision-node.selected .decision-border {
+  background: #667eea;
+}
+
+/* Diamond resize handles - positioned at diamond vertices */
+.diamond-resize-handle {
+  background: #667eea !important;
+  border: 2px solid white !important;
+  border-radius: 3px !important;
+  width: 12px !important;
+  height: 12px !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.diamond-resize-handle:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 8px rgba(102, 126, 234, 0.6);
+}
+
+/* Node resize handles - unfilled circles with blue border at corners */
+.node-resize-handle {
+  background: white !important;
+  border: 1.5px solid #4a90d9 !important;
+  border-radius: 50% !important;
+  width: 8px !important;
+  height: 8px !important;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.node-resize-handle:hover {
+  background: #4a90d9 !important;
+  transform: scale(1.2);
+}
+
+/* Node resize line - thin dashed blue border */
+.node-resize-line {
+  border-color: #4a90d9 !important;
+  border-width: 1px !important;
+  border-style: dashed !important;
+}
+
+.decision-node .node-label,
+.decision-node .node-input {
+  max-width: 60%;
+  z-index: 1;
+  text-align: center;
+}
+
+.note-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px 20px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff9db 0%, #ffffff 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px dashed #ffd43b;
+  min-width: 140px;
+  min-height: 100px;
+  text-align: center;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.note-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+  border-color: #fab005;
+}
+
+.note-node.selected {
+  border-color: #667eea;
+  border-width: 3px;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow__node.dragging .note-node {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: scale(1.02);
+}
+
+.node-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+  word-wrap: break-word;
+  max-width: 200px;
+}
+
+.node-label:hover {
+  color: #667eea;
+}
+
+.node-input,
+.node-textarea {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  border: 2px solid #667eea;
+  border-radius: 4px;
+  padding: 4px 8px;
+  background: white;
+  width: 100%;
+  min-width: 100px;
+}
+
+.node-textarea {
+  min-height: 60px;
+  resize: none;
+  font-family: inherit;
+}
+
+.node-input:focus,
+.node-textarea:focus {
+  outline: none;
+  border-color: #764ba2;
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #4a90d9;
+  border: 2px solid white;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease, box-shadow 0.15s ease, background 0.15s ease;
+  box-shadow: 0 0 0 0px rgba(74, 144, 217, 0), 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ---- Source vs Target handle offsets ----
+   Shift source and target handles apart on the same side so
+   incoming/outgoing edges never overlap at one pixel.           */
+
+/* Top / Bottom: offset horizontally */
+.react-flow__handle-source.react-flow__handle-top,
+.react-flow__handle-source.react-flow__handle-bottom {
+  margin-left: 8px;
+}
+.react-flow__handle-target.react-flow__handle-top,
+.react-flow__handle-target.react-flow__handle-bottom {
+  margin-left: -8px;
+}
+
+/* Left / Right: offset vertically */
+.react-flow__handle-source.react-flow__handle-left,
+.react-flow__handle-source.react-flow__handle-right {
+  margin-top: 8px;
+}
+.react-flow__handle-target.react-flow__handle-left,
+.react-flow__handle-target.react-flow__handle-right {
+  margin-top: -8px;
+}
+
+/* ---- Source vs Target handle colors (light mode) ----
+   Source (outgoing) = blue, Target (incoming) = amber/orange   */
+.react-flow__handle-source {
+  background: #4a90d9;
+}
+.react-flow__handle-target {
+  background: #e8590c;
+  border-color: white;
+}
+
+.step-node:hover .react-flow__handle,
+.decision-node:hover .react-flow__handle,
+.note-node:hover .react-flow__handle,
+.image-node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__handle-connecting {
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.3), 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow__handle-connecting.react-flow__handle-source {
+  background: #2d6cb5;
+}
+.react-flow__handle-connecting.react-flow__handle-target {
+  background: #c73e00;
+}
+
+.react-flow.connecting .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__handle-source:hover {
+  background: #2d6cb5;
+  opacity: 1;
+  box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.35), 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow__handle-target:hover {
+  background: #c73e00;
+  opacity: 1;
+  box-shadow: 0 0 0 4px rgba(232, 89, 12, 0.35), 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.step-node.selected .react-flow__handle,
+.decision-node.selected .react-flow__handle,
+.note-node.selected .react-flow__handle,
+.image-node.selected .react-flow__handle {
+  opacity: 0.7;
+}
+
+.step-node.selected:hover .react-flow__handle,
+.decision-node.selected:hover .react-flow__handle,
+.note-node.selected:hover .react-flow__handle,
+.image-node.selected:hover .react-flow__handle {
+  opacity: 1;
+}
+
+/* ========================================
+   DARK MODE STYLES
+   ======================================== */
+
+/* Step Node - Dark Mode */
+.react-flow-dark .step-node {
+  background: linear-gradient(135deg, #1a2f23 0%, #0f1211 100%);
+  border-color: #78fcd6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 252, 214, 0.1);
+}
+
+.react-flow-dark .step-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(120, 252, 214, 0.15);
+  border-color: #00ffb6;
+}
+
+.react-flow-dark .step-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(120, 252, 214, 0.2);
+}
+
+/* Decision Node - Dark Mode */
+.react-flow-dark .decision-node .decision-diamond {
+  background: linear-gradient(135deg, #2a1f0a 0%, #0f1211 100%);
+}
+
+.react-flow-dark .decision-node .decision-border {
+  background: #ffa94d;
+  box-shadow: 0 0 20px rgba(255, 169, 77, 0.2);
+}
+
+.react-flow-dark .decision-node.selected .decision-border {
+  background: #78fcd6;
+  box-shadow: 0 0 30px rgba(120, 252, 214, 0.3);
+}
+
+/* Note Node - Dark Mode */
+.react-flow-dark .note-node {
+  background: linear-gradient(135deg, #2a2510 0%, #0f1211 100%);
+  border-color: #ffd43b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 212, 59, 0.1);
+}
+
+.react-flow-dark .note-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 212, 59, 0.15);
+  border-color: #fab005;
+}
+
+.react-flow-dark .note-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(120, 252, 214, 0.2);
+}
+
+/* Node Labels - Dark Mode */
+.react-flow-dark .node-label {
+  color: #e7eceb;
+}
+
+.react-flow-dark .node-label:hover {
+  color: #78fcd6;
+}
+
+/* Node Input/Textarea - Dark Mode */
+.react-flow-dark .node-input,
+.react-flow-dark .node-textarea {
+  background: #1a1d1c;
+  color: #e7eceb;
+  border-color: #78fcd6;
+}
+
+.react-flow-dark .node-input:focus,
+.react-flow-dark .node-textarea:focus {
+  border-color: #00ffb6;
+  box-shadow: 0 0 8px rgba(120, 252, 214, 0.3);
+}
+
+/* Handles - Dark Mode: Source (outgoing) = teal, Target (incoming) = amber */
+.react-flow-dark .react-flow__handle {
+  border-color: #0f1211;
+}
+.react-flow-dark .react-flow__handle-source {
+  background: #78fcd6;
+}
+.react-flow-dark .react-flow__handle-target {
+  background: #ffa94d;
+}
+
+.react-flow-dark .react-flow__handle-source:hover {
+  background: #00ffb6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.react-flow-dark .react-flow__handle-target:hover {
+  background: #ff8c00;
+  box-shadow: 0 0 0 4px rgba(255, 169, 77, 0.35), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow-dark .react-flow__handle-connecting.react-flow__handle-source {
+  background: #00ffb6;
+  box-shadow: 0 0 0 3px rgba(120, 252, 214, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.react-flow-dark .react-flow__handle-connecting.react-flow__handle-target {
+  background: #ff8c00;
+  box-shadow: 0 0 0 3px rgba(255, 169, 77, 0.3), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Resize Handles - Dark Mode */
+.react-flow-dark .node-resize-handle {
+  background: #0f1211 !important;
+  border-color: #78fcd6 !important;
+}
+
+.react-flow-dark .node-resize-handle:hover {
+  background: #78fcd6 !important;
+}
+
+.react-flow-dark .node-resize-line {
+  border-color: #78fcd6 !important;
+}
+
+/* Image Node */
+.image-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.image-node:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #d1d5db;
+}
+
+.image-node.selected {
+  border-color: #78fcd6;
+  border-width: 2px;
+  box-shadow: 0 0 0 3px rgba(120, 252, 214, 0.2),
+    0 4px 12px rgba(120, 252, 214, 0.15);
+}
+
+.react-flow__node.dragging .image-node {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  transform: scale(1.02);
+}
+
+.image-node-icon {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.95);
+  transition: background 0.15s ease;
+}
+
+.image-node-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.image-node-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #4b5563;
+  text-align: center;
+  line-height: 1.3;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
+}
+
+.image-node-placeholder {
+  width: 72px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Image Node - Dark Mode */
+.react-flow-dark .image-node {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.react-flow-dark .image-node:hover {
+  background: rgba(120, 252, 214, 0.08);
+  border-color: rgba(120, 252, 214, 0.4);
+  box-shadow: 0 4px 12px rgba(120, 252, 214, 0.15);
+}
+
+.react-flow-dark .image-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 3px rgba(120, 252, 214, 0.2),
+    0 4px 12px rgba(120, 252, 214, 0.2);
+}
+
+.react-flow-dark .image-node-icon {
+  background: rgba(240, 243, 242, 0.88);
+}
+
+.react-flow-dark .image-node:hover .image-node-icon {
+  background: rgba(240, 243, 242, 0.93);
+}
+
+.react-flow-dark .image-node-label {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.react-flow-dark .image-node:hover .image-node-label {
+  color: #e7eceb;
+}
+
+.react-flow-dark .image-node-placeholder {
+  color: rgba(231, 236, 235, 0.5);
+}
