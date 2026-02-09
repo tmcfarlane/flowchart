@@ -141,6 +141,20 @@ See `CONTRIBUTING.md`.
 
 See `SECURITY.md`.
 
+## Contributions
+
+This app was built 100% with AI assistance using:
+
+- Cursor
+- OpenCode
+- Oh My OpenCode
+
+This project also inspired me to build [Oh My Cursor](https://github.com/tmcfarlane/oh-my-cursor).
+
+Oh My Cursor is a curated set of AI agent configurations for Cursor IDE. One install gives you a team of specialized agents that coordinate autonomously through Cursor's native subagent system.
+
+No CLI wrapper. No external runtime. Just `.cursor/agents/` files and one orchestrator rule that turns Cursor into a multi-agent IDE.
+
 ## License
 
 MIT. See `LICENSE`.

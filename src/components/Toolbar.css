@@ -204,6 +204,43 @@
   color: #e7eceb;
 }
 
+/* Subtle GitHub / Open-Source link */
+.toolbar-github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(75, 85, 99, 0.85);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.toolbar-github-link:hover {
+  color: #374151;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.toolbar-github-link svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.app.dark-mode .toolbar-github-link {
+  color: rgba(231, 236, 235, 0.5);
+}
+
+.app.dark-mode .toolbar-github-link:hover {
+  color: rgba(231, 236, 235, 0.85);
+  background: rgba(120, 252, 214, 0.06);
+}
+
+.app.dark-mode .toolbar-github-link svg {
+  opacity: 0.7;
+}
+
 @media (max-width: 600px) {
   .floating-toolbar {
     padding: 6px 10px;
@@ -233,6 +270,14 @@
   .toolbar-separator {
     height: 20px;
     margin: 0 4px;
+  }
+
+  .toolbar-github-link span {
+    display: none;
+  }
+
+  .toolbar-github-link {
+    padding: 6px 8px;
   }
 }
 
