@@ -1061,6 +1061,13 @@ function FlowChartEditor() {
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         reactFlowWrapper={reactFlowWrapper}
+        nodes={nodes}
+        edges={edges}
+        onImportJson={(importedNodes, importedEdges) => {
+          saveToHistory()
+          setNodes(importedNodes)
+          setEdges(importedEdges)
+        }}
       />
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
         <ReactFlow

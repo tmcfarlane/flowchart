@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode } from '../App'
 import ImagePicker from './ImagePicker'
-import { exportToPng, exportToSvg, exportToGif } from '../utils/exportUtils'
+import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
+import type { Node as FlowNode, Edge } from 'reactflow'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
@@ -20,6 +21,9 @@ interface ToolbarProps {
   darkMode: boolean
   onToggleDarkMode: () => void
   reactFlowWrapper: React.RefObject<HTMLDivElement>
+  nodes: FlowNode[]
+  edges: Edge[]
+  onImportJson: (nodes: FlowNode[], edges: Edge[]) => void
 }
 
 function Toolbar({
@@ -38,6 +42,9 @@ function Toolbar({
   darkMode,
   onToggleDarkMode,
   reactFlowWrapper,
+  nodes,
+  edges,
+  onImportJson,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
@@ -47,6 +54,7 @@ function Toolbar({
   const [isEncoding, setIsEncoding] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleClearClick = () => {
     setIsClearConfirmOpen(true)
@@ -106,6 +114,40 @@ function Toolbar({
       setGifProgress(null)
       setIsEncoding(false)
     }
+  }
+
+  const handleExportJson = () => {
+    exportToJson(nodes, edges)
+    setIsExportOpen(false)
+  }
+
+  const handleImportJson = () => {
+    setExportError(null)
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const result = parseFlowJson(event.target?.result as string)
+        onImportJson(result.nodes, result.edges)
+        setIsExportOpen(false)
+        setExportError(null)
+      } catch (err) {
+        setExportError(err instanceof Error ? err.message : 'Failed to import file.')
+      }
+    }
+    reader.onerror = () => {
+      setExportError('Could not read the selected file.')
+    }
+    reader.readAsText(file)
+
+    // Reset so the same file can be re-selected
+    e.target.value = ''
   }
 
   // Close export dropdown on click outside
@@ -327,6 +369,13 @@ function Toolbar({
                     </div>
                   ) : (
                     <>
+                      <button className="export-option export-import-btn" onClick={handleImportJson}>
+                        Import from JSON
+                      </button>
+                      <div className="export-divider" />
+                      <button className="export-option" onClick={handleExportJson}>
+                        Export as JSON
+                      </button>
                       <button className="export-option" onClick={handleExportPng}>
                         Export as PNG
                       </button>
@@ -355,6 +404,14 @@ function Toolbar({
                           Record GIF
                         </button>
                       </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json,application/json"
+                        onChange={handleFileSelected}
+                        style={{ display: 'none' }}
+                        aria-label="Import JSON file"
+                      />
                       {exportError && (
                         <div className="export-error">{exportError}</div>
                       )}
