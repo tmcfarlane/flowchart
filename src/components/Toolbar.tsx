@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode } from '../App'
 import ImagePicker from './ImagePicker'
+import { exportToPng, exportToSvg, exportToGif } from '../utils/exportUtils'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
@@ -18,6 +19,7 @@ interface ToolbarProps {
   onSetToolMode: (mode: ToolMode) => void
   darkMode: boolean
   onToggleDarkMode: () => void
+  reactFlowWrapper: React.RefObject<HTMLDivElement>
 }
 
 function Toolbar({
@@ -35,9 +37,16 @@ function Toolbar({
   onSetToolMode,
   darkMode,
   onToggleDarkMode,
+  reactFlowWrapper,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
+  const [gifDuration, setGifDuration] = useState(2)
+  const [gifProgress, setGifProgress] = useState<{ frame: number; total: number } | null>(null)
+  const [isEncoding, setIsEncoding] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const exportRef = useRef<HTMLDivElement>(null)
 
   const handleClearClick = () => {
     setIsClearConfirmOpen(true)
@@ -52,16 +61,77 @@ function Toolbar({
     onClearAll()
   }
 
+  const handleExportPng = async () => {
+    if (!reactFlowWrapper.current) return
+    setExportError(null)
+    try {
+      await exportToPng(reactFlowWrapper.current, darkMode)
+      setIsExportOpen(false)
+    } catch {
+      setExportError('Export failed')
+    }
+  }
+
+  const handleExportSvg = async () => {
+    if (!reactFlowWrapper.current) return
+    setExportError(null)
+    try {
+      await exportToSvg(reactFlowWrapper.current, darkMode)
+      setIsExportOpen(false)
+    } catch {
+      setExportError('Export failed')
+    }
+  }
+
+  const handleExportGif = async () => {
+    if (!reactFlowWrapper.current) return
+    setExportError(null)
+    setGifProgress({ frame: 0, total: Math.round(gifDuration * 10) })
+    try {
+      await exportToGif(
+        reactFlowWrapper.current,
+        darkMode,
+        gifDuration,
+        (frame, total) => {
+          setGifProgress({ frame, total })
+          if (frame === total) {
+            setIsEncoding(true)
+          }
+        },
+      )
+      setIsExportOpen(false)
+    } catch {
+      setExportError('GIF export failed')
+    } finally {
+      setGifProgress(null)
+      setIsEncoding(false)
+    }
+  }
+
+  // Close export dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setIsExportOpen(false)
+      }
+    }
+    if (isExportOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isExportOpen])
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isClearConfirmOpen) {
-        setIsClearConfirmOpen(false)
+      if (e.key === 'Escape') {
+        if (isClearConfirmOpen) setIsClearConfirmOpen(false)
+        if (isExportOpen) setIsExportOpen(false)
       }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isClearConfirmOpen])
+  }, [isClearConfirmOpen, isExportOpen])
 
   return (
     <>
@@ -232,6 +302,67 @@ function Toolbar({
                 <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
               </svg>
             </button>
+            <div className="export-wrapper" ref={exportRef}>
+              <button
+                className={`toolbar-button export ${isExportOpen ? 'active' : ''}`}
+                onClick={() => setIsExportOpen(!isExportOpen)}
+                title="Export"
+                aria-label="Export"
+              >
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 2v8" />
+                  <path d="M4 6l4-4 4 4" />
+                  <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3" />
+                </svg>
+              </button>
+              {isExportOpen && (
+                <div className="export-dropdown">
+                  {gifProgress || isEncoding ? (
+                    <div className="export-progress">
+                      {isEncoding ? (
+                        <span>Encoding...</span>
+                      ) : (
+                        <span>Capturing... {gifProgress!.frame}/{gifProgress!.total}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <button className="export-option" onClick={handleExportPng}>
+                        Export as PNG
+                      </button>
+                      <button className="export-option" onClick={handleExportSvg}>
+                        Export as SVG
+                      </button>
+                      <div className="export-divider" />
+                      <div className="export-gif-section">
+                        <div className="export-gif-row">
+                          <span className="export-gif-label">Duration</span>
+                          <input
+                            type="number"
+                            className="export-gif-input"
+                            value={gifDuration}
+                            onChange={(e) => {
+                              const v = Math.max(1, Math.min(10, Number(e.target.value) || 1))
+                              setGifDuration(v)
+                            }}
+                            min={1}
+                            max={10}
+                            aria-label="GIF duration in seconds"
+                          />
+                          <span className="export-gif-unit">sec</span>
+                        </div>
+                        <button className="export-option export-gif-btn" onClick={handleExportGif}>
+                          Record GIF
+                        </button>
+                      </div>
+                      {exportError && (
+                        <div className="export-error">{exportError}</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <button
               className="toolbar-button preview"
               onClick={onTogglePreview}

@@ -1060,6 +1060,7 @@ function FlowChartEditor() {
         onSetToolMode={setToolMode}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
+        reactFlowWrapper={reactFlowWrapper}
       />
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
         <ReactFlow
