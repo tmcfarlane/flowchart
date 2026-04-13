@@ -73,6 +73,12 @@ Walk through your flowchart step by step with arrow keys — great for meetings 
 
 ![Presentation Mode will walk you through your flowchart from start to finish](docs/screenshots/presentation.png)
 
+### Export & Save
+
+Export to PNG, SVG, animated GIF, or JSON. Import JSON to pick up where you left off.
+
+![Export to GIF, SVG, PNG | Import/Export JSON](docs/screenshots/export.png)
+
 </details>
 
 ## Quickstart
