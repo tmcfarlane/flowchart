@@ -125,7 +125,9 @@ export async function exportToGif(
       link.download = 'flowchart.gif'
       link.href = url
       link.click()
-      URL.revokeObjectURL(url)
+      setTimeout(() => {
+        URL.revokeObjectURL(url)
+      }, 1000)
       resolve()
     })
     gif!.on('error', reject)
