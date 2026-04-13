@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode } from '../App'
 import ImagePicker from './ImagePicker'
+import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
+import type { Node as FlowNode, Edge } from 'reactflow'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
@@ -18,6 +20,10 @@ interface ToolbarProps {
   onSetToolMode: (mode: ToolMode) => void
   darkMode: boolean
   onToggleDarkMode: () => void
+  reactFlowWrapper: React.RefObject<HTMLDivElement>
+  nodes: FlowNode[]
+  edges: Edge[]
+  onImportJson: (nodes: FlowNode[], edges: Edge[]) => void
 }
 
 function Toolbar({
@@ -35,9 +41,20 @@ function Toolbar({
   onSetToolMode,
   darkMode,
   onToggleDarkMode,
+  reactFlowWrapper,
+  nodes,
+  edges,
+  onImportJson,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
+  const [isExportOpen, setIsExportOpen] = useState(false)
+  const [gifDuration, setGifDuration] = useState(2)
+  const [gifProgress, setGifProgress] = useState<{ frame: number; total: number } | null>(null)
+  const [isEncoding, setIsEncoding] = useState(false)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const exportRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleClearClick = () => {
     setIsClearConfirmOpen(true)
@@ -52,16 +69,114 @@ function Toolbar({
     onClearAll()
   }
 
+  const handleExportPng = async () => {
+    if (!reactFlowWrapper.current) return
+    setExportError(null)
+    try {
+      await exportToPng(reactFlowWrapper.current, darkMode)
+      setIsExportOpen(false)
+    } catch {
+      setExportError('Export failed')
+    }
+  }
+
+  const handleExportSvg = async () => {
+    if (!reactFlowWrapper.current) return
+    setExportError(null)
+    try {
+      await exportToSvg(reactFlowWrapper.current, darkMode)
+      setIsExportOpen(false)
+    } catch {
+      setExportError('Export failed')
+    }
+  }
+
+  const handleExportGif = async () => {
+    if (!reactFlowWrapper.current) return
+    setExportError(null)
+    setGifProgress({ frame: 0, total: Math.round(gifDuration * 10) })
+    try {
+      await exportToGif(
+        reactFlowWrapper.current,
+        darkMode,
+        gifDuration,
+        (frame, total) => {
+          setGifProgress({ frame, total })
+          if (frame === total) {
+            setIsEncoding(true)
+          }
+        },
+      )
+      setIsExportOpen(false)
+    } catch {
+      setExportError('GIF export failed')
+    } finally {
+      setGifProgress(null)
+      setIsEncoding(false)
+    }
+  }
+
+  const handleExportJson = () => {
+    exportToJson(nodes, edges)
+    setIsExportOpen(false)
+  }
+
+  const handleImportJson = () => {
+    setExportError(null)
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const result = parseFlowJson(event.target?.result as string)
+        onImportJson(result.nodes, result.edges)
+        setIsExportOpen(false)
+        setExportError(null)
+      } catch (err) {
+        setIsExportOpen(false)
+        setExportError(err instanceof Error ? err.message : 'Failed to import file.')
+      }
+    }
+    reader.onerror = () => {
+      setIsExportOpen(false)
+      setExportError('Could not read the selected file.')
+    }
+    reader.readAsText(file)
+
+    // Reset so the same file can be re-selected
+    e.target.value = ''
+  }
+
+  // Close export dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setIsExportOpen(false)
+      }
+    }
+    if (isExportOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [isExportOpen])
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isClearConfirmOpen) {
-        setIsClearConfirmOpen(false)
+      if (e.key === 'Escape') {
+        if (isClearConfirmOpen) setIsClearConfirmOpen(false)
+        if (isExportOpen) setIsExportOpen(false)
+        if (exportError) setExportError(null)
       }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isClearConfirmOpen])
+  }, [isClearConfirmOpen, isExportOpen, exportError])
 
   return (
     <>
@@ -232,6 +347,79 @@ function Toolbar({
                 <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
               </svg>
             </button>
+            <div className="export-wrapper" ref={exportRef}>
+              <button
+                className={`toolbar-button export ${isExportOpen ? 'active' : ''}`}
+                onClick={() => setIsExportOpen(!isExportOpen)}
+                title="Export"
+                aria-label="Export"
+              >
+                <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M8 10V2" />
+                  <path d="M4 6l4 4 4-4" />
+                  <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3" />
+                </svg>
+              </button>
+              {isExportOpen && (
+                <div className="export-dropdown">
+                  {gifProgress || isEncoding ? (
+                    <div className="export-progress">
+                      {isEncoding ? (
+                        <span>Encoding...</span>
+                      ) : (
+                        <span>Capturing... {gifProgress!.frame}/{gifProgress!.total}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <button className="export-option export-import-btn" onClick={handleImportJson}>
+                        Import from JSON
+                      </button>
+                      <div className="export-divider" />
+                      <button className="export-option" onClick={handleExportJson}>
+                        Export as JSON
+                      </button>
+                      <button className="export-option" onClick={handleExportPng}>
+                        Export as PNG
+                      </button>
+                      <button className="export-option" onClick={handleExportSvg}>
+                        Export as SVG
+                      </button>
+                      <div className="export-divider" />
+                      <div className="export-gif-section">
+                        <div className="export-gif-row">
+                          <span className="export-gif-label">Duration</span>
+                          <input
+                            type="number"
+                            className="export-gif-input"
+                            value={gifDuration}
+                            onChange={(e) => {
+                              const v = Math.max(1, Math.min(10, Number(e.target.value) || 1))
+                              setGifDuration(v)
+                            }}
+                            min={1}
+                            max={10}
+                            aria-label="GIF duration in seconds"
+                          />
+                          <span className="export-gif-unit">sec</span>
+                        </div>
+                        <button className="export-option export-gif-btn" onClick={handleExportGif}>
+                          Record GIF
+                        </button>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json,application/json"
+                        onChange={handleFileSelected}
+                        style={{ display: 'none' }}
+                        aria-label="Import JSON file"
+                      />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
             <button
               className="toolbar-button preview"
               onClick={onTogglePreview}
@@ -257,7 +445,7 @@ function Toolbar({
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
             </svg>
-            <span>Open-Source</span>
+            <span style={{ whiteSpace: 'nowrap' }}>Open-Source</span>
           </a>
         </div>
       </div>
@@ -285,6 +473,29 @@ function Toolbar({
                 onClick={handleConfirmClear}
               >
                 Clear board
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {exportError && (
+        <div
+          className="confirm-overlay"
+          onClick={() => setExportError(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="import-error-title"
+        >
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2 id="import-error-title" className="confirm-title">Invalid JSON Format</h2>
+            <p className="confirm-body">{exportError}</p>
+            <div className="confirm-actions">
+              <button
+                className="confirm-button confirm-cancel"
+                onClick={() => setExportError(null)}
+              >
+                OK
               </button>
             </div>
           </div>
