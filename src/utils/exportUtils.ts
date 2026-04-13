@@ -52,7 +52,11 @@ export async function exportToGif(
   onProgress?: (frame: number, total: number) => void,
 ): Promise<void> {
   const fps = 10
-  const totalFrames = Math.round(durationSeconds * fps)
+  const normalizedDurationSeconds =
+    Number.isFinite(durationSeconds) && durationSeconds > 0
+      ? durationSeconds
+      : 1 / fps
+  const totalFrames = Math.max(1, Math.round(normalizedDurationSeconds * fps))
   const frameDelay = 1000 / fps
 
   // The CSS animation (dashdraw) won't be captured by html-to-image since it
