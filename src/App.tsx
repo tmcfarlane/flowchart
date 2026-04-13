@@ -1061,6 +1061,13 @@ function FlowChartEditor() {
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         reactFlowWrapper={reactFlowWrapper}
+        nodes={nodes}
+        edges={edges}
+        onImportJson={(importedNodes, importedEdges) => {
+          saveToHistory()
+          setNodes(importedNodes)
+          setEdges(importedEdges)
+        }}
       />
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
         <ReactFlow
@@ -1223,6 +1230,11 @@ function FlowChartEditor() {
           onClose={dismissWelcomeAI}
           variant="welcome"
           onDismiss={dismissWelcomeAI}
+          onImportJson={(importedNodes, importedEdges) => {
+            saveToHistory()
+            setNodes(importedNodes)
+            setEdges(importedEdges)
+          }}
         />
       )}
       {/* Full AI chat overlay (triggered by pill button) */}
@@ -1249,7 +1261,7 @@ function FlowChartEditor() {
       {!isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
         <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">
           <img src={darkMode ? '/logo/logo_color.svg' : '/logo/logo_dark_pointer.svg'} alt="" className="ai-pill-logo" />
-          <span className="ai-pill-brand">Zero Click Dev</span>
+          <span className="ai-pill-brand">FlowChart</span>
         </button>
       )}
     </div>

@@ -703,6 +703,16 @@
   color: #4b5563;
 }
 
+.ai-pill-brand-link {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.ai-pill-brand-link:hover {
+  text-decoration: underline;
+}
+
 /* Dark mode floating pill styles */
 .app.dark-mode .ai-floating-pill {
   background: linear-gradient(135deg, rgba(15, 18, 17, 0.95) 0%, rgba(30, 33, 32, 0.95) 100%);

@@ -1,5 +1,6 @@
 import { toPng, toSvg, toCanvas } from 'html-to-image'
 import GIF from 'gif.js'
+import type { Node as FlowNode, Edge } from 'reactflow'
 
 const exportFilter = (node: Node): boolean => {
   if (node instanceof HTMLElement) {
@@ -126,4 +127,54 @@ export async function exportToGif(
     gif!.on('error', reject)
     gif!.render()
   })
+}
+
+export function exportToJson(nodes: FlowNode[], edges: Edge[]): void {
+  const data = JSON.stringify({ nodes, edges }, null, 2)
+  const blob = new Blob([data], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.download = 'flowchart.json'
+  link.href = url
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+export function parseFlowJson(
+  text: string,
+): { nodes: FlowNode[]; edges: Edge[] } {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    throw new Error('This file does not contain valid JSON.')
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('The file content is not a valid flowchart format.')
+  }
+
+  const obj = parsed as Record<string, unknown>
+
+  if (!Array.isArray(obj.nodes)) {
+    throw new Error('Missing or invalid "nodes" array in the JSON file.')
+  }
+
+  if (!Array.isArray(obj.edges)) {
+    throw new Error('Missing or invalid "edges" array in the JSON file.')
+  }
+
+  for (let i = 0; i < obj.nodes.length; i++) {
+    const node = obj.nodes[i]
+    if (!node || typeof node !== 'object') {
+      throw new Error(`Node at index ${i} is not a valid object.`)
+    }
+    if (!node.id || !node.position) {
+      throw new Error(
+        `Node at index ${i} is missing required fields (id, position).`,
+      )
+    }
+  }
+
+  return { nodes: obj.nodes as FlowNode[], edges: obj.edges as Edge[] }
 }

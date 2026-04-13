@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode } from '../App'
 import ImagePicker from './ImagePicker'
-import { exportToPng, exportToSvg, exportToGif } from '../utils/exportUtils'
+import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
+import type { Node as FlowNode, Edge } from 'reactflow'
 
 interface ToolbarProps {
   onAddNode: (type: 'step' | 'decision' | 'note') => void
@@ -20,6 +21,9 @@ interface ToolbarProps {
   darkMode: boolean
   onToggleDarkMode: () => void
   reactFlowWrapper: React.RefObject<HTMLDivElement>
+  nodes: FlowNode[]
+  edges: Edge[]
+  onImportJson: (nodes: FlowNode[], edges: Edge[]) => void
 }
 
 function Toolbar({
@@ -38,6 +42,9 @@ function Toolbar({
   darkMode,
   onToggleDarkMode,
   reactFlowWrapper,
+  nodes,
+  edges,
+  onImportJson,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
@@ -47,6 +54,7 @@ function Toolbar({
   const [isEncoding, setIsEncoding] = useState(false)
   const [exportError, setExportError] = useState<string | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleClearClick = () => {
     setIsClearConfirmOpen(true)
@@ -108,6 +116,42 @@ function Toolbar({
     }
   }
 
+  const handleExportJson = () => {
+    exportToJson(nodes, edges)
+    setIsExportOpen(false)
+  }
+
+  const handleImportJson = () => {
+    setExportError(null)
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const result = parseFlowJson(event.target?.result as string)
+        onImportJson(result.nodes, result.edges)
+        setIsExportOpen(false)
+        setExportError(null)
+      } catch (err) {
+        setIsExportOpen(false)
+        setExportError(err instanceof Error ? err.message : 'Failed to import file.')
+      }
+    }
+    reader.onerror = () => {
+      setIsExportOpen(false)
+      setExportError('Could not read the selected file.')
+    }
+    reader.readAsText(file)
+
+    // Reset so the same file can be re-selected
+    e.target.value = ''
+  }
+
   // Close export dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -127,11 +171,12 @@ function Toolbar({
       if (e.key === 'Escape') {
         if (isClearConfirmOpen) setIsClearConfirmOpen(false)
         if (isExportOpen) setIsExportOpen(false)
+        if (exportError) setExportError(null)
       }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isClearConfirmOpen, isExportOpen])
+  }, [isClearConfirmOpen, isExportOpen, exportError])
 
   return (
     <>
@@ -310,8 +355,8 @@ function Toolbar({
                 aria-label="Export"
               >
                 <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M8 2v8" />
-                  <path d="M4 6l4-4 4 4" />
+                  <path d="M8 10V2" />
+                  <path d="M4 6l4 4 4-4" />
                   <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3" />
                 </svg>
               </button>
@@ -327,6 +372,13 @@ function Toolbar({
                     </div>
                   ) : (
                     <>
+                      <button className="export-option export-import-btn" onClick={handleImportJson}>
+                        Import from JSON
+                      </button>
+                      <div className="export-divider" />
+                      <button className="export-option" onClick={handleExportJson}>
+                        Export as JSON
+                      </button>
                       <button className="export-option" onClick={handleExportPng}>
                         Export as PNG
                       </button>
@@ -355,9 +407,14 @@ function Toolbar({
                           Record GIF
                         </button>
                       </div>
-                      {exportError && (
-                        <div className="export-error">{exportError}</div>
-                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".json,application/json"
+                        onChange={handleFileSelected}
+                        style={{ display: 'none' }}
+                        aria-label="Import JSON file"
+                      />
                     </>
                   )}
                 </div>
@@ -388,7 +445,7 @@ function Toolbar({
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
               <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
             </svg>
-            <span>Open-Source</span>
+            <span style={{ whiteSpace: 'nowrap' }}>Open-Source</span>
           </a>
         </div>
       </div>
@@ -416,6 +473,29 @@ function Toolbar({
                 onClick={handleConfirmClear}
               >
                 Clear board
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {exportError && (
+        <div
+          className="confirm-overlay"
+          onClick={() => setExportError(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="import-error-title"
+        >
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2 id="import-error-title" className="confirm-title">Invalid JSON Format</h2>
+            <p className="confirm-body">{exportError}</p>
+            <div className="confirm-actions">
+              <button
+                className="confirm-button confirm-cancel"
+                onClick={() => setExportError(null)}
+              >
+                OK
               </button>
             </div>
           </div>

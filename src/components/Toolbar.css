@@ -490,6 +490,24 @@
   color: #00ffb6 !important;
 }
 
+.export-import-btn {
+  color: #4b5563 !important;
+}
+
+.export-import-btn:hover {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #1f2937 !important;
+}
+
+.app.dark-mode .export-import-btn {
+  color: rgba(231, 236, 235, 0.7) !important;
+}
+
+.app.dark-mode .export-import-btn:hover {
+  background: rgba(120, 252, 214, 0.1) !important;
+  color: #e7eceb !important;
+}
+
 .export-progress {
   padding: 12px 16px;
   text-align: center;

@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Node, Edge } from 'reactflow'
 import './AIChat.css'
 import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
+import { parseFlowJson } from '../utils/exportUtils'
 
 const LOADING_MESSAGES = [
   'Thinking about your flowchart...',
@@ -65,11 +66,14 @@ interface AIChatProps {
   onClose: () => void
   variant?: 'welcome' | 'full'
   onDismiss?: () => void
+  onImportJson?: (nodes: Node[], edges: Edge[]) => void
 }
 
-function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss }: AIChatProps) {
+function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson }: AIChatProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const welcomeFileInputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [starterPrompts] = useState(() => pickRandomPrompts(4))
 
@@ -309,6 +313,27 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isOpen, onClose])
 
+  const handleWelcomeImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !onImportJson) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      try {
+        const result = parseFlowJson(event.target?.result as string)
+        onImportJson(result.nodes, result.edges)
+        setImportError(null)
+      } catch (err) {
+        setImportError(err instanceof Error ? err.message : 'Failed to import file.')
+      }
+    }
+    reader.onerror = () => {
+      setImportError('Could not read the selected file.')
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
   if (!isOpen) return null
 
   if (variant === 'welcome') {
@@ -316,7 +341,30 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
       <div className="ai-welcome-prompt" role="dialog" aria-labelledby="ai-welcome-title">
         <div className="ai-bubble-header">
           <img src="/logo/logo_color.svg" alt="Zero Click Dev" className="ai-bubble-logo" />
-          <span id="ai-welcome-title" className="ai-bubble-title">Zero Click Dev</span>
+          <span id="ai-welcome-title" className="ai-bubble-title">
+            FlowChart
+            <span className="ai-bubble-subtitle">by <a href="https://zeroclickdev.ai" target="_blank" rel="noopener noreferrer" className="ai-bubble-subtitle-link">Zero Click Dev</a></span>
+          </span>
+          <button
+            className="ai-bubble-import"
+            onClick={() => welcomeFileInputRef.current?.click()}
+            title="Import from JSON"
+            aria-label="Import from JSON"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 2v8" />
+              <path d="M4 6l4-4 4 4" />
+              <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3" />
+            </svg>
+          </button>
+          <input
+            ref={welcomeFileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleWelcomeImport}
+            style={{ display: 'none' }}
+            aria-label="Import JSON file"
+          />
           <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M1 1l12 12M13 1L1 13" />
@@ -387,6 +435,24 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
             </button>
           )}
         </div>
+        {importError && (
+          <div
+            className="confirm-overlay"
+            onClick={() => setImportError(null)}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+              <h2 className="confirm-title">Invalid JSON Format</h2>
+              <p className="confirm-body">{importError}</p>
+              <div className="confirm-actions">
+                <button className="confirm-button confirm-cancel" onClick={() => setImportError(null)}>
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -402,7 +468,10 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
       <div className="ai-bubble-prompt" onClick={(e) => e.stopPropagation()}>
         <div className="ai-bubble-header">
           <img src="/logo/logo_color.svg" alt="Zero Click Dev" className="ai-bubble-logo" />
-          <span id="ai-bubble-title" className="ai-bubble-title">Zero Click Dev</span>
+          <span id="ai-bubble-title" className="ai-bubble-title">
+            FlowChart
+            <span className="ai-bubble-subtitle">by <a href="https://zeroclickdev.ai" target="_blank" rel="noopener noreferrer" className="ai-bubble-subtitle-link">Zero Click Dev</a></span>
+          </span>
           <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M1 1l12 12M13 1L1 13" />
