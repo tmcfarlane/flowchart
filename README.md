@@ -11,7 +11,7 @@
 </div>
 
 <div style="font-size: 1.1em; margin: 8px 0;">
-  <strong>Describe your idea. Get a flowchart. Free.</strong>
+  <strong>Describe your idea. Get a flowchart.</strong>
 </div>
 
 The open-source flowchart designer that turns plain-English prompts into polished diagrams in seconds.<br>
@@ -95,11 +95,11 @@ cp .env.example .env
 
 Set these variables (server-side only; do **not** use `VITE_*`):
 
-| Variable | Description |
-|----------|-------------|
+| Variable                | Description                  |
+| ----------------------- | ---------------------------- |
 | `AZURE_DEPLOYMENT_NAME` | Your Azure OpenAI deployment |
-| `AZURE_RESOURCE_NAME` | Your Azure resource name |
-| `AZURE_API_KEY` | Your Azure API key |
+| `AZURE_RESOURCE_NAME`   | Your Azure resource name     |
+| `AZURE_API_KEY`         | Your Azure API key           |
 
 For Vercel, add the same variables in your project settings.
 
