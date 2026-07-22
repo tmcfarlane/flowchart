@@ -11,23 +11,13 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import './PreviewMode.css'
-import StepNode from './nodes/StepNode'
-import DecisionNode from './nodes/DecisionNode'
-import NoteNode from './nodes/NoteNode'
-import ImageNode from './nodes/ImageNode'
+import { nodeTypes } from '../flow/registry'
 
 interface PreviewModeProps {
   nodes: Node[]
   edges: Edge[]
   darkMode: boolean
   onExit: () => void
-}
-
-const nodeTypes = {
-  step: StepNode,
-  decision: DecisionNode,
-  note: NoteNode,
-  image: ImageNode,
 }
 
 const defaultEdgeOptions = {

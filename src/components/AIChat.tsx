@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Node, Edge } from 'reactflow'
 import './AIChat.css'
-import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
+import { BaseFlowNode, BaseFlowEdge, EdgeStyle, DiagramMode } from '../App'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
 import { parseFlowJson } from '../utils/exportUtils'
@@ -66,7 +66,7 @@ interface AIChatProps {
   onClose: () => void
   variant?: 'welcome' | 'full'
   onDismiss?: () => void
-  onImportJson?: (nodes: Node[], edges: Edge[]) => void
+  onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode) => void
 }
 
 function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson }: AIChatProps) {
@@ -321,7 +321,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
     reader.onload = (event) => {
       try {
         const result = parseFlowJson(event.target?.result as string)
-        onImportJson(result.nodes, result.edges)
+        onImportJson(result.nodes, result.edges, result.mode)
         setImportError(null)
       } catch (err) {
         setImportError(err instanceof Error ? err.message : 'Failed to import file.')

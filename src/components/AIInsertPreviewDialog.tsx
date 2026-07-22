@@ -11,26 +11,9 @@ import ReactFlow, {
   useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import StepNode from './nodes/StepNode'
-import DecisionNode from './nodes/DecisionNode'
-import NoteNode from './nodes/NoteNode'
-import ImageNode from './nodes/ImageNode'
-import { EditableEdge, EditableSmoothStepEdge } from './edges/EditableEdge'
+import { nodeTypes, edgeTypes } from '../flow/registry'
 import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
 import './AIInsertPreviewDialog.css'
-
-const nodeTypes = {
-  step: StepNode,
-  decision: DecisionNode,
-  note: NoteNode,
-  image: ImageNode,
-}
-
-const edgeTypes = {
-  default: EditableEdge,
-  smoothstep: EditableSmoothStepEdge,
-  step: EditableSmoothStepEdge,
-}
 
 // Estimate rendered size of a node based on its type and explicit dimensions.
 // Uses tight estimates matching CSS min-width/min-height to avoid over-spacing.
@@ -47,6 +30,18 @@ function estimateNodeSize(node: FlowNode): { w: number; h: number } {
       return { w: style?.width ?? 160, h: style?.height ?? 80 }
     case 'image':
       return { w: style?.width ?? 100, h: style?.height ?? 100 }
+    case 'service':
+      return { w: style?.width ?? 180, h: style?.height ?? 90 }
+    case 'database':
+      return { w: style?.width ?? 160, h: style?.height ?? 110 }
+    case 'queue':
+      return { w: style?.width ?? 200, h: style?.height ?? 80 }
+    case 'cache':
+      return { w: style?.width ?? 160, h: style?.height ?? 90 }
+    case 'apiGateway':
+      return { w: style?.width ?? 180, h: style?.height ?? 100 }
+    case 'externalActor':
+      return { w: style?.width ?? 150, h: style?.height ?? 110 }
     default: // step
       return { w: style?.width ?? 160, h: style?.height ?? 70 }
   }

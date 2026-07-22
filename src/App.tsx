@@ -25,11 +25,7 @@ import 'reactflow/dist/style.css'
 import 'reactflow/dist/base.css'
 import './App.css'
 import Toolbar from './components/Toolbar'
-import StepNode from './components/nodes/StepNode'
-import DecisionNode from './components/nodes/DecisionNode'
-import NoteNode from './components/nodes/NoteNode'
-import ImageNode from './components/nodes/ImageNode'
-import { EditableEdge, EditableSmoothStepEdge } from './components/edges/EditableEdge'
+import { nodeTypes, edgeTypes } from './flow/registry'
 import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
@@ -40,6 +36,13 @@ import { getMessages, addMessage as addThreadMessage } from './utils/conversatio
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 export type SidebarMode = 'none' | 'explorer'
+export type DiagramMode = 'flowchart' | 'architecture'
+export type ArchNodeType = 'service' | 'database' | 'queue' | 'cache' | 'apiGateway' | 'externalActor'
+export type PaletteNodeType = 'step' | 'decision' | 'note' | ArchNodeType
+export type EdgeProtocol = 'HTTPS' | 'gRPC' | 'REST' | 'SQL' | 'WebSocket' | 'event'
+export type CommStyle = 'sync' | 'async'
+
+export const EDGE_PROTOCOLS: EdgeProtocol[] = ['HTTPS', 'gRPC', 'REST', 'SQL', 'WebSocket', 'event']
 
 export interface FlowProposal {
   summary?: string
@@ -78,17 +81,25 @@ interface HistoryState {
   edges: Edge[]
 }
 
-const nodeTypes = {
-  step: StepNode,
-  decision: DecisionNode,
-  note: NoteNode,
-  image: ImageNode,
+const ARCH_NODE_DIMENSIONS: Record<ArchNodeType, { width: number; height: number }> = {
+  service: { width: 180, height: 90 },
+  database: { width: 160, height: 110 },
+  queue: { width: 200, height: 80 },
+  cache: { width: 160, height: 90 },
+  apiGateway: { width: 180, height: 100 },
+  externalActor: { width: 150, height: 110 },
 }
 
-const edgeTypes = {
-  default: EditableEdge,
-  smoothstep: EditableSmoothStepEdge,
-  step: EditableSmoothStepEdge,
+const DEFAULT_NODE_LABELS: Record<PaletteNodeType, string> = {
+  step: 'Step',
+  decision: 'Decision?',
+  note: 'Note',
+  service: 'Service',
+  database: 'Database',
+  queue: 'Queue',
+  cache: 'Cache',
+  apiGateway: 'API Gateway',
+  externalActor: 'External Actor',
 }
 
 function FlowChartEditor() {
@@ -105,6 +116,10 @@ function FlowChartEditor() {
 
     if (nodeType === 'decision') {
       return { width: 160, height: 160 }
+    }
+
+    if (nodeType && nodeType in ARCH_NODE_DIMENSIONS) {
+      return ARCH_NODE_DIMENSIONS[nodeType as ArchNodeType]
     }
 
     return { width: 180, height: 80 }
@@ -187,6 +202,7 @@ function FlowChartEditor() {
 
   const [previewMode, setPreviewMode] = useState(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
+  const [diagramMode, setDiagramMode] = useState<DiagramMode>('flowchart')
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
   const showGrid = true
@@ -347,14 +363,24 @@ function FlowChartEditor() {
     [setEdges]
   )
 
-  const getEdgeStyleProps = useCallback((style: EdgeStyle) => {
+  const getEdgeStyleProps = useCallback((
+    style: EdgeStyle,
+    options?: { protocol?: EdgeProtocol; commStyle?: CommStyle },
+  ) => {
+    // Communication style, when set, decides solid (sync) vs dashed+animated (async);
+    // otherwise the edge style keeps its existing dash behavior.
+    const dashed = options?.commStyle ? options.commStyle === 'async' : style === 'animated'
     return {
       type: style === 'step' ? 'smoothstep' : 'default',
-      animated: style === 'animated',
-      style: style === 'animated'
+      animated: dashed,
+      style: dashed
         ? { strokeDasharray: '5 5', stroke: darkMode ? '#78fcd6' : '#555' }
         : { stroke: darkMode ? '#78fcd6' : undefined },
-      data: { onLabelChange: updateEdgeLabel },
+      data: {
+        onLabelChange: updateEdgeLabel,
+        protocol: options?.protocol,
+        commStyle: options?.commStyle,
+      },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 20,
@@ -376,16 +402,18 @@ function FlowChartEditor() {
     }
   }, [darkMode, updateEdgeLabel])
 
-  // Handle new connections
+  // Handle new connections. Architecture mode defaults to solid synchronous edges.
   const onConnect = useCallback(
     (connection: Connection) => {
       const newEdge = {
         ...connection,
-        ...getEdgeStyleProps(defaultEdgeStyle),
+        ...(diagramMode === 'architecture'
+          ? getEdgeStyleProps('default', { commStyle: 'sync' })
+          : getEdgeStyleProps(defaultEdgeStyle)),
       }
       setEdges((eds) => addEdge(newEdge as Edge, eds))
     },
-    [setEdges, defaultEdgeStyle, getEdgeStyleProps]
+    [setEdges, defaultEdgeStyle, getEdgeStyleProps, diagramMode]
   )
 
   // Handle edge reconnection
@@ -398,7 +426,9 @@ function FlowChartEditor() {
 
   // Add a new node
   const addNode = useCallback(
-    (type: 'step' | 'decision' | 'note') => {
+    (type: PaletteNodeType) => {
+      const size = getNodeDimensions(type)
+
       // Calculate center of the current viewport
       let position = { x: 200, y: 200 } // fallback
       if (reactFlowWrapper.current) {
@@ -408,13 +438,10 @@ function FlowChartEditor() {
           y: rect.top + rect.height / 2,
         })
         // Offset slightly so the node is centered (not top-left at center)
-        const nodeWidth = type === 'decision' ? 160 : 180
-        const nodeHeight = type === 'decision' ? 160 : 80
-        position.x -= nodeWidth / 2
-        position.y -= nodeHeight / 2
+        position.x -= size.width / 2
+        position.y -= size.height / 2
       }
 
-      const size = getNodeDimensions(type)
       const adjustedPosition = findAvailablePosition(position, size, nodes)
 
       const newNode: FlowNode = {
@@ -422,7 +449,7 @@ function FlowChartEditor() {
         type,
         position: adjustedPosition,
         data: {
-          label: type === 'decision' ? 'Decision?' : type === 'note' ? 'Note' : 'Step',
+          label: DEFAULT_NODE_LABELS[type],
           onLabelChange: updateNodeLabel,
         },
         style: {
@@ -636,13 +663,14 @@ function FlowChartEditor() {
   const changeEdgeStyle = useCallback((style: EdgeStyle) => {
     const selectedEdges = edges.filter(edge => edge.selected)
     if (selectedEdges.length > 0) {
-      // Change style for selected edges
+      // Change style for selected edges. Picking a style explicitly clears any
+      // sync/async override (the user chose an appearance) but keeps the protocol.
       setEdges((eds) =>
         eds.map((edge) => {
           if (!edge.selected) return edge
           return {
             ...edge,
-            ...getEdgeStyleProps(style),
+            ...getEdgeStyleProps(style, { protocol: edge.data?.protocol }),
           }
         })
       )
@@ -651,6 +679,38 @@ function FlowChartEditor() {
       setDefaultEdgeStyle(style)
     }
   }, [edges, setEdges, getEdgeStyleProps])
+
+  // Set the protocol chip on selected edges (undefined clears it)
+  const changeEdgeProtocol = useCallback((protocol?: EdgeProtocol) => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        if (!edge.selected) return edge
+        return {
+          ...edge,
+          ...getEdgeStyleProps(getEdgeStyleFromEdge(edge), {
+            protocol,
+            commStyle: edge.data?.commStyle,
+          }),
+        }
+      })
+    )
+  }, [setEdges, getEdgeStyleProps, getEdgeStyleFromEdge])
+
+  // Toggle sync/async rendering on selected edges (undefined clears the override)
+  const changeEdgeCommStyle = useCallback((commStyle?: CommStyle) => {
+    setEdges((eds) =>
+      eds.map((edge) => {
+        if (!edge.selected) return edge
+        return {
+          ...edge,
+          ...getEdgeStyleProps(getEdgeStyleFromEdge(edge), {
+            protocol: edge.data?.protocol,
+            commStyle,
+          }),
+        }
+      })
+    )
+  }, [setEdges, getEdgeStyleProps, getEdgeStyleFromEdge])
 
   // Toggle Explorer sidebar
   const toggleExplorer = useCallback(() => {
@@ -1060,13 +1120,16 @@ function FlowChartEditor() {
         onSetToolMode={setToolMode}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
+        diagramMode={diagramMode}
+        onSetDiagramMode={setDiagramMode}
         reactFlowWrapper={reactFlowWrapper}
         nodes={nodes}
         edges={edges}
-        onImportJson={(importedNodes, importedEdges) => {
+        onImportJson={(importedNodes, importedEdges, importedMode) => {
           saveToHistory()
           setNodes(importedNodes)
           setEdges(importedEdges)
+          if (importedMode) setDiagramMode(importedMode)
         }}
       />
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
@@ -1169,6 +1232,52 @@ function FlowChartEditor() {
                   </button>
                 </div>
               )}
+              {diagramMode === 'architecture' && selectedEdges.length > 0 && (() => {
+                const firstProtocol = selectedEdges[0]?.data?.protocol
+                const protocolValue = selectedEdges.every((e) => e.data?.protocol === firstProtocol)
+                  ? (firstProtocol ?? '')
+                  : ''
+                const firstComm = selectedEdges[0]?.data?.commStyle
+                const commValue = selectedEdges.every((e) => e.data?.commStyle === firstComm)
+                  ? firstComm
+                  : undefined
+                return (
+                  <div className="edge-protocol-controls">
+                    <select
+                      className="edge-protocol-select"
+                      value={protocolValue}
+                      onChange={(e) => changeEdgeProtocol((e.target.value || undefined) as EdgeProtocol | undefined)}
+                      title="Edge protocol"
+                      aria-label="Edge protocol"
+                    >
+                      <option value="">No protocol</option>
+                      {EDGE_PROTOCOLS.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                    <div className="edge-comm-toggle" role="group" aria-label="Edge communication style">
+                      <button
+                        className={`edge-comm-option ${commValue === 'sync' ? 'active' : ''}`}
+                        onClick={() => changeEdgeCommStyle(commValue === 'sync' ? undefined : 'sync')}
+                        title="Synchronous call (solid line)"
+                        aria-label="Set edge to synchronous"
+                        aria-pressed={commValue === 'sync'}
+                      >
+                        Sync
+                      </button>
+                      <button
+                        className={`edge-comm-option ${commValue === 'async' ? 'active' : ''}`}
+                        onClick={() => changeEdgeCommStyle(commValue === 'async' ? undefined : 'async')}
+                        title="Asynchronous message (dashed line)"
+                        aria-label="Set edge to asynchronous"
+                        aria-pressed={commValue === 'async'}
+                      >
+                        Async
+                      </button>
+                    </div>
+                  </div>
+                )
+              })()}
               <div className="selection-toolbar-actions">
                 <button
                   className="selection-toolbar-button delete"
@@ -1230,10 +1339,11 @@ function FlowChartEditor() {
           onClose={dismissWelcomeAI}
           variant="welcome"
           onDismiss={dismissWelcomeAI}
-          onImportJson={(importedNodes, importedEdges) => {
+          onImportJson={(importedNodes, importedEdges, importedMode) => {
             saveToHistory()
             setNodes(importedNodes)
             setEdges(importedEdges)
+            if (importedMode) setDiagramMode(importedMode)
           }}
         />
       )}

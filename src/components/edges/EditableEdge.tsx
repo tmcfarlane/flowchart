@@ -9,6 +9,8 @@ import {
 
 interface EditableEdgeData {
   onLabelChange?: (edgeId: string, label: string) => void
+  protocol?: string
+  commStyle?: 'sync' | 'async'
 }
 
 type EditableEdgeProps = EdgeProps<EditableEdgeData>
@@ -95,7 +97,7 @@ export function EditableEdge({
         style={style}
         markerEnd={markerEnd}
       />
-      {(isEditing || label || selected) && (
+      {(isEditing || label || selected || data?.protocol) && (
         <EdgeLabelRenderer>
           <div
             className={`editable-edge-label ${selected ? 'selected' : ''} ${isEditing ? 'editing' : ''}`}
@@ -106,6 +108,9 @@ export function EditableEdge({
             }}
             onDoubleClick={handleDoubleClick}
           >
+            {!isEditing && data?.protocol && (
+              <span className="edge-protocol-chip">{data.protocol}</span>
+            )}
             {isEditing ? (
               <input
                 ref={inputRef}
@@ -210,7 +215,7 @@ export function EditableSmoothStepEdge({
         style={style}
         markerEnd={markerEnd}
       />
-      {(isEditing || label || selected) && (
+      {(isEditing || label || selected || data?.protocol) && (
         <EdgeLabelRenderer>
           <div
             className={`editable-edge-label ${selected ? 'selected' : ''} ${isEditing ? 'editing' : ''}`}
@@ -221,6 +226,9 @@ export function EditableSmoothStepEdge({
             }}
             onDoubleClick={handleDoubleClick}
           >
+            {!isEditing && data?.protocol && (
+              <span className="edge-protocol-chip">{data.protocol}</span>
+            )}
             {isEditing ? (
               <input
                 ref={inputRef}

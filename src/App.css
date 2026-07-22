@@ -881,3 +881,124 @@
 .react-flow-dark .react-flow__attribution a:hover {
   color: rgba(120, 252, 214, 0.7) !important;
 }
+/* Protocol chip shown on architecture edges */
+.edge-protocol-chip {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.app.dark-mode .edge-protocol-chip {
+  background: rgba(120, 252, 214, 0.15);
+  color: #78fcd6;
+}
+
+/* Protocol + sync/async controls in the selection toolbar (architecture mode) */
+.edge-protocol-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 3px;
+  background: #f1f3f4;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.edge-protocol-select {
+  font-size: 11px;
+  font-family: inherit;
+  padding: 3px 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  color: #1f2937;
+  cursor: pointer;
+  max-width: 96px;
+}
+
+.edge-protocol-select:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 1px;
+}
+
+.edge-comm-toggle {
+  display: flex;
+  gap: 2px;
+}
+
+.edge-comm-option {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 3px 4px;
+  background: transparent;
+  color: #4b5563;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.edge-comm-option:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2937;
+}
+
+.edge-comm-option.active {
+  background: white;
+  color: #10b981;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.edge-comm-option:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 1px;
+}
+
+.app.dark-mode .edge-protocol-controls {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(120, 252, 214, 0.15);
+}
+
+.app.dark-mode .edge-protocol-select {
+  background: #1a1d1c;
+  color: #e7eceb;
+  border-color: rgba(120, 252, 214, 0.25);
+}
+
+.app.dark-mode .edge-comm-option {
+  color: rgba(231, 236, 235, 0.7);
+}
+
+.app.dark-mode .edge-comm-option:hover {
+  background: rgba(120, 252, 214, 0.1);
+  color: #e7eceb;
+}
+
+.app.dark-mode .edge-comm-option.active {
+  background: rgba(120, 252, 214, 0.2);
+  color: #78fcd6;
+  box-shadow: 0 0 8px rgba(120, 252, 214, 0.3);
+}
+
+.app.dark-mode .edge-comm-option:focus-visible,
+.app.dark-mode .edge-protocol-select:focus-visible {
+  outline-color: #78fcd6;
+}
+
+/* Respect reduced motion: stop the dash animation on animated/async edges */
+@media (prefers-reduced-motion: reduce) {
+  .react-flow__edge.animated .react-flow__edge-path {
+    animation: none;
+  }
+}
