@@ -563,3 +563,533 @@
 .react-flow-dark .image-node-placeholder {
   color: rgba(231, 236, 235, 0.5);
 }
+
+/* ========================================
+   ARCHITECTURE NODES
+   ======================================== */
+
+.arch-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border: 2px solid #ddd;
+  text-align: center;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.arch-node:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.arch-node.selected {
+  border-color: #667eea;
+  border-width: 3px;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.react-flow__node.dragging .arch-node {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  transform: scale(1.02);
+}
+
+.arch-node-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 1;
+  min-width: 0;
+}
+
+.arch-node-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.arch-node-glyph img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.arch-node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+.arch-node.selected .react-flow__handle {
+  opacity: 0.7;
+}
+
+.arch-node.selected:hover .react-flow__handle {
+  opacity: 1;
+}
+
+/* Service - rounded rect with top accent bar (blue) */
+.service-node {
+  min-width: 140px;
+  min-height: 70px;
+  background: linear-gradient(135deg, #e7f5ff 0%, #ffffff 100%);
+  border-color: #4dabf7;
+  border-top-width: 5px;
+}
+
+.service-node:hover {
+  border-color: #339af0;
+}
+
+.service-node .arch-node-glyph {
+  color: #339af0;
+}
+
+/* Database - cylinder (violet) */
+.database-node {
+  min-width: 130px;
+  min-height: 90px;
+  background: linear-gradient(135deg, #f3f0ff 0%, #ffffff 100%);
+  border-color: #9775fa;
+  border-radius: 50% 50% 14px 14px / 22% 22% 12px 12px;
+  padding-top: 20px;
+}
+
+.database-node::after {
+  content: '';
+  position: absolute;
+  top: 10%;
+  left: 5%;
+  right: 5%;
+  height: 14%;
+  border-bottom: 2px solid rgba(151, 117, 250, 0.55);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.database-node:hover {
+  border-color: #845ef7;
+}
+
+.database-node .arch-node-glyph {
+  color: #845ef7;
+}
+
+/* Queue - wide rect with message lanes (orange) */
+.queue-node {
+  min-width: 160px;
+  min-height: 60px;
+  background: linear-gradient(135deg, #fff4e6 0%, #ffffff 100%);
+  border-color: #ff922b;
+  padding-left: 34px;
+}
+
+.queue-node::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 8px;
+  width: 18px;
+  background: repeating-linear-gradient(
+    to right,
+    rgba(255, 146, 43, 0.55) 0 3px,
+    transparent 3px 9px
+  );
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.queue-node:hover {
+  border-color: #f76707;
+}
+
+.queue-node .arch-node-glyph {
+  color: #f76707;
+}
+
+/* Cache - rect with lightning glyph (pink) */
+.cache-node {
+  min-width: 130px;
+  min-height: 70px;
+  background: linear-gradient(135deg, #fff0f6 0%, #ffffff 100%);
+  border-color: #f06595;
+  border-radius: 14px;
+}
+
+.cache-node:hover {
+  border-color: #e64980;
+}
+
+.cache-node .arch-node-glyph {
+  color: #e64980;
+}
+
+/* API Gateway - hexagon (teal), clip-path layers like the decision diamond */
+.api-gateway-node {
+  min-width: 140px;
+  min-height: 80px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.api-gateway-node .gateway-border {
+  position: absolute;
+  inset: 0;
+  background: #0ca678;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+.api-gateway-node .gateway-shape {
+  position: absolute;
+  inset: 3px;
+  background: linear-gradient(135deg, #e6fcf5 0%, #ffffff 100%);
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+}
+
+.api-gateway-node.selected .gateway-border {
+  background: #667eea;
+}
+
+.api-gateway-node .arch-node-glyph {
+  color: #0ca678;
+}
+
+/* Keep the label inside the hexagon's waist (~70% of the node). The limit sits
+   on the content box, whose percentage resolves against the node: a percentage
+   on the label itself resolves against its own shrink-wrapped width and splits
+   words mid-way ("Manageme/nt"). */
+.api-gateway-node .arch-node-content {
+  max-width: 90%;
+}
+
+.api-gateway-node .node-label,
+.api-gateway-node .node-input {
+  max-width: 100%;
+}
+
+/* External Actor - dashed border with person glyph (gray) */
+.external-actor-node {
+  min-width: 120px;
+  min-height: 80px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 2px dashed #adb5bd;
+}
+
+.external-actor-node:hover {
+  border-color: #868e96;
+}
+
+.external-actor-node.selected {
+  border-style: dashed;
+}
+
+.external-actor-node .arch-node-glyph {
+  color: #868e96;
+}
+
+/* Architecture Nodes - Dark Mode */
+.react-flow-dark .arch-node {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.react-flow-dark .arch-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.2),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 0 30px rgba(120, 252, 214, 0.2);
+}
+
+.react-flow-dark .service-node {
+  background: linear-gradient(135deg, #102a43 0%, #0f1211 100%);
+  border-color: #4dabf7;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(77, 171, 247, 0.1);
+}
+
+.react-flow-dark .service-node .arch-node-glyph {
+  color: #74c0fc;
+}
+
+.react-flow-dark .database-node {
+  background: linear-gradient(135deg, #241d3d 0%, #0f1211 100%);
+  border-color: #9775fa;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(151, 117, 250, 0.1);
+}
+
+.react-flow-dark .database-node .arch-node-glyph {
+  color: #b197fc;
+}
+
+.react-flow-dark .queue-node {
+  background: linear-gradient(135deg, #33210e 0%, #0f1211 100%);
+  border-color: #ff922b;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 146, 43, 0.1);
+}
+
+.react-flow-dark .queue-node .arch-node-glyph {
+  color: #ffa94d;
+}
+
+.react-flow-dark .cache-node {
+  background: linear-gradient(135deg, #3a1626 0%, #0f1211 100%);
+  border-color: #f06595;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(240, 101, 149, 0.1);
+}
+
+.react-flow-dark .cache-node .arch-node-glyph {
+  color: #faa2c1;
+}
+
+.react-flow-dark .api-gateway-node {
+  background: transparent;
+  box-shadow: none;
+}
+
+.react-flow-dark .api-gateway-node .gateway-border {
+  background: #0ca678;
+  box-shadow: 0 0 20px rgba(12, 166, 120, 0.2);
+}
+
+.react-flow-dark .api-gateway-node .gateway-shape {
+  background: linear-gradient(135deg, #0b2b22 0%, #0f1211 100%);
+}
+
+.react-flow-dark .api-gateway-node.selected .gateway-border {
+  background: #78fcd6;
+  box-shadow: 0 0 30px rgba(120, 252, 214, 0.3);
+}
+
+.react-flow-dark .api-gateway-node .arch-node-glyph {
+  color: #38d9a9;
+}
+
+.react-flow-dark .external-actor-node {
+  background: linear-gradient(135deg, #1c1f1e 0%, #0f1211 100%);
+  border-color: rgba(173, 181, 189, 0.6);
+}
+
+.react-flow-dark .external-actor-node .arch-node-glyph {
+  color: #ced4da;
+}
+
+/* ========================================
+   CONTAINER / BOUNDARY NODES
+   ======================================== */
+
+.container-node {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  position: relative;
+  border-radius: 12px;
+  border: 2px solid #adb5bd;
+  background: rgba(134, 142, 150, 0.06);
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.container-node.selected {
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+}
+
+.container-node-header {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 20px);
+  z-index: 1;
+}
+
+.container-kind-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(134, 142, 150, 0.18);
+  color: #495057;
+}
+
+.container-node-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #343a40;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.container-node-label:hover {
+  color: #667eea;
+}
+
+.container-label-input {
+  width: auto;
+  min-width: 120px;
+  max-width: 220px;
+}
+
+.container-node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+.container-node.selected .react-flow__handle {
+  opacity: 0.7;
+}
+
+.container-node.selected:hover .react-flow__handle {
+  opacity: 1;
+}
+
+/* Per-kind tints */
+.container-node.container-vpc {
+  border-color: #4dabf7;
+  background: rgba(77, 171, 247, 0.06);
+}
+.container-node.container-vpc .container-kind-badge {
+  background: rgba(77, 171, 247, 0.18);
+  color: #1971c2;
+}
+
+.container-node.container-cluster {
+  border-color: #0ca678;
+  background: rgba(12, 166, 120, 0.06);
+}
+.container-node.container-cluster .container-kind-badge {
+  background: rgba(12, 166, 120, 0.16);
+  color: #087f5b;
+}
+
+.container-node.container-region {
+  border-color: #9775fa;
+  background: rgba(151, 117, 250, 0.06);
+}
+.container-node.container-region .container-kind-badge {
+  background: rgba(151, 117, 250, 0.16);
+  color: #6741d9;
+}
+
+.container-node.container-zone {
+  border-color: #ff922b;
+  background: rgba(255, 146, 43, 0.06);
+}
+.container-node.container-zone .container-kind-badge {
+  background: rgba(255, 146, 43, 0.18);
+  color: #d9480f;
+}
+
+.container-node.container-trustBoundary {
+  border-style: dashed;
+  border-color: #fa5252;
+  background: rgba(250, 82, 82, 0.04);
+}
+.container-node.container-trustBoundary .container-kind-badge {
+  background: rgba(250, 82, 82, 0.15);
+  color: #c92a2a;
+}
+
+/* Selected keeps the trust-boundary dashed look */
+.container-node.container-trustBoundary.selected {
+  border-style: dashed;
+  border-color: #667eea;
+}
+
+/* Container - Dark Mode */
+.react-flow-dark .container-node {
+  border-color: rgba(173, 181, 189, 0.5);
+  background: rgba(134, 142, 150, 0.08);
+}
+
+.react-flow-dark .container-node.selected {
+  border-color: #78fcd6;
+  box-shadow: 0 0 0 4px rgba(120, 252, 214, 0.15);
+}
+
+.react-flow-dark .container-node-label {
+  color: #e7eceb;
+}
+
+.react-flow-dark .container-node-label:hover {
+  color: #78fcd6;
+}
+
+.react-flow-dark .container-kind-badge {
+  background: rgba(231, 236, 235, 0.12);
+  color: rgba(231, 236, 235, 0.8);
+}
+
+.react-flow-dark .container-node.container-vpc {
+  border-color: rgba(77, 171, 247, 0.7);
+  background: rgba(77, 171, 247, 0.08);
+}
+.react-flow-dark .container-node.container-vpc .container-kind-badge {
+  background: rgba(77, 171, 247, 0.2);
+  color: #74c0fc;
+}
+
+.react-flow-dark .container-node.container-cluster {
+  border-color: rgba(12, 166, 120, 0.8);
+  background: rgba(12, 166, 120, 0.08);
+}
+.react-flow-dark .container-node.container-cluster .container-kind-badge {
+  background: rgba(12, 166, 120, 0.22);
+  color: #38d9a9;
+}
+
+.react-flow-dark .container-node.container-region {
+  border-color: rgba(151, 117, 250, 0.7);
+  background: rgba(151, 117, 250, 0.08);
+}
+.react-flow-dark .container-node.container-region .container-kind-badge {
+  background: rgba(151, 117, 250, 0.22);
+  color: #b197fc;
+}
+
+.react-flow-dark .container-node.container-zone {
+  border-color: rgba(255, 146, 43, 0.7);
+  background: rgba(255, 146, 43, 0.08);
+}
+.react-flow-dark .container-node.container-zone .container-kind-badge {
+  background: rgba(255, 146, 43, 0.2);
+  color: #ffa94d;
+}
+
+.react-flow-dark .container-node.container-trustBoundary {
+  border-color: rgba(250, 82, 82, 0.75);
+  background: rgba(250, 82, 82, 0.06);
+}
+.react-flow-dark .container-node.container-trustBoundary .container-kind-badge {
+  background: rgba(250, 82, 82, 0.22);
+  color: #ff8787;
+}
+
+.react-flow-dark .container-node.container-trustBoundary.selected {
+  border-color: #78fcd6;
+}
+
+/* Respect reduced-motion: no scale/shadow transitions on arch nodes */
+@media (prefers-reduced-motion: reduce) {
+  .arch-node,
+  .react-flow__node.dragging .arch-node,
+  .container-node {
+    transition: none;
+    transform: none;
+  }
+}

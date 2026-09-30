@@ -3,5 +3,9 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "vite",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/f/:path*", "destination": "/index.html" },
+    { "source": "/mcp", "destination": "/mcp.html" }
+  ]
 }

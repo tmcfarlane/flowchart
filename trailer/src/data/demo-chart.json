@@ -1,0 +1,40 @@
+{
+  "title": "SaaS signup → payment → onboarding",
+  "nodes": [
+    { "id": "visit", "type": "step", "label": "Visitor clicks “Start free trial”" },
+    { "id": "signup", "type": "step", "label": "Sign up with email or SSO" },
+    { "id": "auth", "type": "image", "label": "Microsoft Entra ID", "icon": "microsoft-entra-id" },
+    { "id": "verified", "type": "decision", "label": "Email verified?" },
+    { "id": "resend", "type": "step", "label": "Resend verification email" },
+    { "id": "plan", "type": "step", "label": "Choose a plan" },
+    { "id": "pay", "type": "step", "label": "Enter payment details" },
+    { "id": "paid", "type": "decision", "label": "Payment succeeded?" },
+    { "id": "retry", "type": "step", "label": "Show error, try another card" },
+    { "id": "db", "type": "image", "label": "Save account in Cosmos DB", "icon": "azure-cosmos-db" },
+    { "id": "provision", "type": "image", "label": "Provision workspace", "icon": "function-apps" },
+    { "id": "onboard", "type": "step", "label": "Guided onboarding checklist" },
+    { "id": "tip", "type": "note", "label": "Trial users can skip payment for 14 days" }
+  ],
+  "edges": [
+    { "source": "visit", "target": "signup" },
+    { "source": "signup", "target": "auth" },
+    { "source": "auth", "target": "verified" },
+    { "source": "verified", "target": "resend", "label": "No" },
+    { "source": "resend", "target": "verified", "label": "Retry" },
+    { "source": "verified", "target": "plan", "label": "Yes" },
+    { "source": "plan", "target": "pay" },
+    { "source": "pay", "target": "paid" },
+    { "source": "paid", "target": "retry", "label": "No" },
+    { "source": "retry", "target": "pay", "label": "Retry" },
+    { "source": "paid", "target": "db", "label": "Yes" },
+    { "source": "db", "target": "provision" },
+    { "source": "provision", "target": "onboard" }
+  ],
+  "createPrompt": "Draw our SaaS signup → payment → onboarding flow, with the Azure services we use.",
+  "updatePrompt": "Add a welcome email step after payment.",
+  "insertStep": {
+    "node": { "id": "welcome", "type": "image", "label": "Send welcome email", "icon": "azure-communication-services" },
+    "after": "paid",
+    "before": "db"
+  }
+}

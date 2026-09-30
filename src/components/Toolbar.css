@@ -676,3 +676,45 @@
 .app.dark-mode .confirm-delete:hover {
   background: #dc2626;
 }
+
+/* Diagram mode switcher (Flowchart / Architecture) */
+.mode-switcher {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.app.dark-mode .mode-switcher {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.mode-switcher .toolbar-button.mode-option {
+  width: auto;
+  gap: 6px;
+  padding: 0 10px;
+}
+
+.mode-option-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.mode-switcher .toolbar-button.mode-option.active {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* Visible keyboard focus for all toolbar controls */
+.toolbar-button:focus-visible,
+.export-option:focus-visible,
+.toolbar-github-link:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.app.dark-mode .toolbar-button:focus-visible,
+.app.dark-mode .export-option:focus-visible,
+.app.dark-mode .toolbar-github-link:focus-visible {
+  outline-color: #78fcd6;
+}

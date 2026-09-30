@@ -1,0 +1,6 @@
+trailer
+# CLI deploys: never upload local secrets or local build output
+.env
+.env.*
+dist
+pnpm-lock.yaml

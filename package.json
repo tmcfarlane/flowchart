@@ -4,23 +4,30 @@
   "type": "module",
   "description": "FlowChart Designer - Interactive flow chart builder",
   "scripts": {
-    "dev": "vite --port 3004",
-    "build": "tsc && vite build",
+    "dev": "node scripts/generate-azure-icon-index.mjs && vite",
+    "build": "node scripts/generate-azure-icon-index.mjs && tsc && tsc -p tsconfig.api.json && vite build",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "typecheck:api": "tsc -p tsconfig.api.json",
+    "icons:index": "node scripts/generate-azure-icon-index.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@reactflow/node-resizer": "^2.2.14",
+    "@upstash/redis": "^1.39.0",
     "@vercel/analytics": "^1.6.1",
+    "elkjs": "^0.12.0",
     "gif.js": "^0.2.0",
     "html-to-image": "^1.11.13",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "reactflow": "^11.11.4"
+    "reactflow": "^11.11.4",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.20.4",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vercel/node": "^5.5.28",

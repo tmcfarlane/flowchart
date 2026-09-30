@@ -85,6 +85,8 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
         width,
         height,
         imageUrl: typeof node.data.imageUrl === 'string' ? node.data.imageUrl : undefined,
+        parentNode: typeof node.parentNode === 'string' ? node.parentNode : undefined,
+        containerKind: typeof node.data.containerKind === 'string' ? node.data.containerKind : undefined,
       }
     })
 
@@ -128,6 +130,8 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
       width: typeof node.width === 'number' ? node.width : undefined,
       height: typeof node.height === 'number' ? node.height : undefined,
       imageUrl: typeof node.imageUrl === 'string' ? node.imageUrl : undefined,
+      parentNode: typeof node.parentNode === 'string' ? node.parentNode : undefined,
+      containerKind: typeof node.containerKind === 'string' ? node.containerKind : undefined,
     }
   }
 

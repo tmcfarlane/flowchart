@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Node, Edge } from 'reactflow'
 import './AIChat.css'
-import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
+import { BaseFlowNode, BaseFlowEdge, EdgeStyle, DiagramMode } from '../App'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
 import { parseFlowJson } from '../utils/exportUtils'
@@ -66,7 +66,7 @@ interface AIChatProps {
   onClose: () => void
   variant?: 'welcome' | 'full'
   onDismiss?: () => void
-  onImportJson?: (nodes: Node[], edges: Edge[]) => void
+  onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode) => void
 }
 
 function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson }: AIChatProps) {
@@ -321,7 +321,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
     reader.onload = (event) => {
       try {
         const result = parseFlowJson(event.target?.result as string)
-        onImportJson(result.nodes, result.edges)
+        onImportJson(result.nodes, result.edges, result.mode)
         setImportError(null)
       } catch (err) {
         setImportError(err instanceof Error ? err.message : 'Failed to import file.')
@@ -373,6 +373,20 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
         </div>
 
         <div className="ai-bubble-content">
+          {!isLoading && (
+            <p className="ai-welcome-news">
+              <span className="ai-welcome-news-tag">New</span>
+              <a href="/mcp" target="_blank" rel="noopener" className="ai-welcome-news-link">
+                Connect your AI agent (MCP)
+              </a>
+              <a href="/mcp#trailer" target="_blank" rel="noopener" className="ai-welcome-news-link ai-welcome-news-trailer">
+                <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" aria-hidden="true">
+                  <path d="M0 0.8v8.4a.6.6 0 00.9.5l7.4-4.2a.6.6 0 000-1L.9.3A.6.6 0 000 .8z" />
+                </svg>
+                Watch the trailer
+              </a>
+            </p>
+          )}
           {!isLoading && <p className="ai-welcome-heading">What's your flow?</p>}
 
           {isLoading ? (

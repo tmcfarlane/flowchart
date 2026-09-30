@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import type { EdgeStyle, HandlePosition } from '../src/shared/flowTypes.js'
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -16,9 +17,6 @@ interface FlowNode {
   height?: number
   imageUrl?: string
 }
-
-type EdgeStyle = 'default' | 'animated' | 'step'
-type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 
 interface FlowEdge {
   id: string
@@ -39,6 +37,14 @@ interface ChatRequest {
   messages: ChatMessage[]
   flowContext?: FlowContext
   mode?: 'generate' | 'refine'
+}
+
+interface AzureErrorBody {
+  error?: { message?: string }
+}
+
+interface AzureChatCompletion {
+  choices: Array<{ message?: { content?: string }; finish_reason?: string }>
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -175,7 +181,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // If the model/deployment doesn't support json_schema, fall back to json_object
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
+      const errorData = (await response.json().catch(() => ({}))) as AzureErrorBody
       const errorMsg = errorData.error?.message || ''
 
       // Check if the error is specifically about unsupported response_format
@@ -192,9 +198,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!response.ok) {
         // If we retried, read the new error; otherwise reuse the original
-        const finalError = isFormatError
+        const finalError = (isFormatError
           ? await response.json().catch(() => ({}))
-          : errorData
+          : errorData) as AzureErrorBody
         console.error('Azure OpenAI API error:', finalError)
         return res.status(response.status).json({
           error: finalError.error?.message || `Azure OpenAI API request failed with status ${response.status}`,
@@ -202,7 +208,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    const data = await response.json()
+    const data = (await response.json()) as AzureChatCompletion
     const assistantMessage = data.choices[0]?.message?.content || 'No response received.'
     const finishReason = data.choices[0]?.finish_reason || 'unknown'
 

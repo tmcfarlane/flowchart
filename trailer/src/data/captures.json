@@ -1,0 +1,2501 @@
+{
+  "landscape": {
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    },
+    "dpr": 2,
+    "direction": "LR",
+    "id": "hDZT5de3oe",
+    "url": "https://flowchart.zeroclickdev.ai/f/hDZT5de3oe",
+    "editUrl": "https://flowchart.zeroclickdev.ai/f/hDZT5de3oe#edit=ZwQdb2fIdwnk29TrfBQ9fLHcSlg_5mrgzhFrKJ6koSA",
+    "editTokenPreview": "ZwQdb2…",
+    "tool": {
+      "createArgs": {
+        "title": "SaaS signup → payment → onboarding",
+        "nodes": [
+          {
+            "id": "visit",
+            "type": "step",
+            "label": "Visitor clicks “Start free trial”",
+            "position": {
+              "x": 32,
+              "y": 182
+            }
+          },
+          {
+            "id": "signup",
+            "type": "step",
+            "label": "Sign up with email or SSO",
+            "position": {
+              "x": 272,
+              "y": 191
+            }
+          },
+          {
+            "id": "auth",
+            "type": "image",
+            "label": "Microsoft Entra ID",
+            "icon": "microsoft-entra-id",
+            "position": {
+              "x": 512,
+              "y": 161
+            }
+          },
+          {
+            "id": "verified",
+            "type": "decision",
+            "label": "Email verified?",
+            "position": {
+              "x": 712,
+              "y": 151
+            }
+          },
+          {
+            "id": "resend",
+            "type": "step",
+            "label": "Resend verification email",
+            "position": {
+              "x": 932,
+              "y": 74
+            }
+          },
+          {
+            "id": "plan",
+            "type": "step",
+            "label": "Choose a plan",
+            "position": {
+              "x": 932,
+              "y": 231
+            }
+          },
+          {
+            "id": "pay",
+            "type": "step",
+            "label": "Enter payment details",
+            "position": {
+              "x": 1172,
+              "y": 231
+            }
+          },
+          {
+            "id": "paid",
+            "type": "decision",
+            "label": "Payment succeeded?",
+            "position": {
+              "x": 1412,
+              "y": 47
+            }
+          },
+          {
+            "id": "retry",
+            "type": "step",
+            "label": "Show error, try another card",
+            "position": {
+              "x": 1632,
+              "y": 231
+            }
+          },
+          {
+            "id": "db",
+            "type": "image",
+            "label": "Save account in Cosmos DB",
+            "icon": "azure-cosmos-db",
+            "position": {
+              "x": 1872,
+              "y": 31
+            }
+          },
+          {
+            "id": "provision",
+            "type": "image",
+            "label": "Provision workspace",
+            "icon": "function-apps",
+            "position": {
+              "x": 2072,
+              "y": 31
+            }
+          },
+          {
+            "id": "onboard",
+            "type": "step",
+            "label": "Guided onboarding checklist",
+            "position": {
+              "x": 2272,
+              "y": 61
+            }
+          },
+          {
+            "id": "tip",
+            "type": "note",
+            "label": "Trial users can skip payment for 14 days",
+            "position": {
+              "x": 12,
+              "y": 12
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source": "visit",
+            "target": "signup",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          },
+          {
+            "source": "signup",
+            "target": "auth",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          },
+          {
+            "source": "auth",
+            "target": "verified",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          },
+          {
+            "source": "verified",
+            "target": "resend",
+            "label": "No",
+            "sourceHandle": "top",
+            "targetHandle": "left"
+          },
+          {
+            "source": "resend",
+            "target": "verified",
+            "label": "Retry",
+            "sourceHandle": "bottom",
+            "targetHandle": "right"
+          },
+          {
+            "source": "verified",
+            "target": "plan",
+            "label": "Yes",
+            "sourceHandle": "bottom",
+            "targetHandle": "left"
+          },
+          {
+            "source": "plan",
+            "target": "pay",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          },
+          {
+            "source": "pay",
+            "target": "paid",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          },
+          {
+            "source": "paid",
+            "target": "retry",
+            "label": "No",
+            "sourceHandle": "bottom",
+            "targetHandle": "left"
+          },
+          {
+            "source": "retry",
+            "target": "pay",
+            "label": "Retry",
+            "sourceHandle": "bottom",
+            "targetHandle": "bottom"
+          },
+          {
+            "source": "paid",
+            "target": "db",
+            "label": "Yes",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          },
+          {
+            "source": "db",
+            "target": "provision",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          },
+          {
+            "source": "provision",
+            "target": "onboard",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          }
+        ],
+        "direction": "LR"
+      },
+      "createText": "Created flowchart \"SaaS signup → payment → onboarding\" (id hDZT5de3oe, version 1, 13 nodes, 13 edges).\n\nGive the user this link to open and edit the chart:\nhttps://flowchart.zeroclickdev.ai/f/hDZT5de3oe#edit=ZwQdb2fIdwnk29TrfBQ9fLHcSlg_5mrgzhFrKJ6koSA\n\nView-only link: https://flowchart.zeroclickdev.ai/f/hDZT5de3oe\nChart id: hDZT5de3oe\nEdit token: ZwQdb2fIdwnk29TrfBQ9fLHcSlg_5mrgzhFrKJ6koSA (keep it: update_flowchart needs it; anyone with it can edit the chart)\n\nThe user can keep editing in the browser. Before changing this chart later, call get_flowchart to load their latest version, then call update_flowchart with this id, the edit token, and expectedVersion (currently 1).",
+      "getText": "Flowchart \"SaaS signup → payment → onboarding\" (id hDZT5de3oe, version 1, 13 nodes, 13 edges), last updated 2026-09-30T15:08:40.280Z.\nTo change it, call update_flowchart with expectedVersion: 1.",
+      "getVersion": 1,
+      "updateOperations": [
+        {
+          "op": "add_node",
+          "node": {
+            "id": "welcome",
+            "type": "image",
+            "label": "Send welcome email",
+            "icon": "azure-communication-services",
+            "position": {
+              "x": 1652,
+              "y": 31
+            }
+          }
+        },
+        {
+          "op": "update_edge",
+          "id": "epaid-db",
+          "changes": {
+            "target": "welcome",
+            "targetHandle": "left"
+          }
+        },
+        {
+          "op": "add_edge",
+          "edge": {
+            "source": "welcome",
+            "target": "db",
+            "sourceHandle": "right",
+            "targetHandle": "left"
+          }
+        }
+      ],
+      "updateText": "Updated flowchart \"SaaS signup → payment → onboarding\" (id hDZT5de3oe, version 2, 14 nodes, 14 edges): added node \"welcome\"; updated edge \"epaid-db\"; added edge welcome -> db.\nThe user's open browser tab picks this up within a few seconds.\nEdit link: https://flowchart.zeroclickdev.ai/f/hDZT5de3oe#edit=ZwQdb2fIdwnk29TrfBQ9fLHcSlg_5mrgzhFrKJ6koSA\nNext update: pass expectedVersion: 2 (call get_flowchart first if the user may have edited it).",
+      "updateVersion": 2,
+      "changes": [
+        "added node \"welcome\"",
+        "updated edge \"epaid-db\"",
+        "added edge welcome -> db"
+      ]
+    },
+    "open": {
+      "url": "https://flowchart.zeroclickdev.ai/f/hDZT5de3oe",
+      "nodes": {
+        "visit": {
+          "x": 88.5,
+          "y": 527.9,
+          "width": 137.3,
+          "height": 46.4
+        },
+        "signup": {
+          "x": 227.7,
+          "y": 533.1,
+          "width": 124,
+          "height": 46.4
+        },
+        "auth": {
+          "x": 367,
+          "y": 515.7,
+          "width": 69,
+          "height": 84.2
+        },
+        "verified": {
+          "x": 483,
+          "y": 509.9,
+          "width": 81.2,
+          "height": 81.2
+        },
+        "resend": {
+          "x": 610.6,
+          "y": 465.2,
+          "width": 121.4,
+          "height": 46.4
+        },
+        "plan": {
+          "x": 610.6,
+          "y": 556.3,
+          "width": 81.2,
+          "height": 46.4
+        },
+        "pay": {
+          "x": 749.8,
+          "y": 556.3,
+          "width": 109,
+          "height": 46.4
+        },
+        "paid": {
+          "x": 889,
+          "y": 449.6,
+          "width": 81.7,
+          "height": 81.2
+        },
+        "retry": {
+          "x": 1016.7,
+          "y": 556.3,
+          "width": 133.2,
+          "height": 46.4
+        },
+        "db": {
+          "x": 1155.9,
+          "y": 440.3,
+          "width": 99.4,
+          "height": 114.7
+        },
+        "provision": {
+          "x": 1271.9,
+          "y": 440.3,
+          "width": 76.6,
+          "height": 91.9
+        },
+        "onboard": {
+          "x": 1387.9,
+          "y": 457.7,
+          "width": 135.2,
+          "height": 46.4
+        },
+        "tip": {
+          "x": 76.9,
+          "y": 429.3,
+          "width": 141.5,
+          "height": 58
+        }
+      },
+      "transform": {
+        "zoom": 0.580086,
+        "x": 69.9621,
+        "y": 422.316
+      },
+      "badge": {
+        "x": 16,
+        "y": 84,
+        "width": 474.5,
+        "height": 38
+      },
+      "badgeStatus": {
+        "x": 348.9,
+        "y": 95.5,
+        "width": 34.5,
+        "height": 15
+      },
+      "toolbar": {
+        "x": 255,
+        "y": 16,
+        "width": 1090,
+        "height": 58
+      },
+      "shareButton": {
+        "x": 1101.4,
+        "y": 27,
+        "width": 91.4,
+        "height": 36
+      }
+    },
+    "update": {
+      "frames": 336,
+      "changeFrame": 43,
+      "flashFrame": 43,
+      "flashEndFrame": 283,
+      "atChange": {
+        "nodes": {
+          "visit": {
+            "x": 88.5,
+            "y": 527.9,
+            "width": 137.3,
+            "height": 46.4
+          },
+          "signup": {
+            "x": 227.7,
+            "y": 533.1,
+            "width": 124,
+            "height": 46.4
+          },
+          "auth": {
+            "x": 367,
+            "y": 515.7,
+            "width": 69,
+            "height": 84.2
+          },
+          "verified": {
+            "x": 483,
+            "y": 509.9,
+            "width": 81.2,
+            "height": 81.2
+          },
+          "resend": {
+            "x": 610.6,
+            "y": 465.2,
+            "width": 121.4,
+            "height": 46.4
+          },
+          "plan": {
+            "x": 610.6,
+            "y": 556.3,
+            "width": 81.2,
+            "height": 46.4
+          },
+          "pay": {
+            "x": 749.8,
+            "y": 556.3,
+            "width": 109,
+            "height": 46.4
+          },
+          "paid": {
+            "x": 889,
+            "y": 449.6,
+            "width": 81.7,
+            "height": 81.2
+          },
+          "retry": {
+            "x": 1016.7,
+            "y": 556.3,
+            "width": 133.2,
+            "height": 46.4
+          },
+          "db": {
+            "x": 1155.9,
+            "y": 440.3,
+            "width": 99.4,
+            "height": 114.7
+          },
+          "provision": {
+            "x": 1271.9,
+            "y": 440.3,
+            "width": 76.6,
+            "height": 91.9
+          },
+          "onboard": {
+            "x": 1387.9,
+            "y": 457.7,
+            "width": 135.2,
+            "height": 46.4
+          },
+          "tip": {
+            "x": 76.9,
+            "y": 429.3,
+            "width": 141.5,
+            "height": 58
+          },
+          "welcome": {
+            "x": 1028.3,
+            "y": 440.3,
+            "width": 76.2,
+            "height": 91.4
+          }
+        },
+        "transform": {
+          "zoom": 0.580086,
+          "x": 69.9621,
+          "y": 422.316
+        }
+      },
+      "badge": {
+        "x": 16,
+        "y": 84,
+        "width": 474.5,
+        "height": 38
+      },
+      "status": {
+        "x": 292.5,
+        "y": 93.5,
+        "width": 136.5,
+        "height": 19
+      },
+      "nodes": {
+        "visit": {
+          "x": 88.5,
+          "y": 527.9,
+          "width": 137.3,
+          "height": 46.4
+        },
+        "signup": {
+          "x": 227.7,
+          "y": 533.1,
+          "width": 124,
+          "height": 46.4
+        },
+        "auth": {
+          "x": 367,
+          "y": 515.7,
+          "width": 69,
+          "height": 84.2
+        },
+        "verified": {
+          "x": 483,
+          "y": 509.9,
+          "width": 81.2,
+          "height": 81.2
+        },
+        "resend": {
+          "x": 610.6,
+          "y": 465.2,
+          "width": 121.4,
+          "height": 46.4
+        },
+        "plan": {
+          "x": 610.6,
+          "y": 556.3,
+          "width": 81.2,
+          "height": 46.4
+        },
+        "pay": {
+          "x": 749.8,
+          "y": 556.3,
+          "width": 109,
+          "height": 46.4
+        },
+        "paid": {
+          "x": 889,
+          "y": 449.6,
+          "width": 81.7,
+          "height": 81.2
+        },
+        "retry": {
+          "x": 1016.7,
+          "y": 556.3,
+          "width": 133.2,
+          "height": 46.4
+        },
+        "db": {
+          "x": 1155.9,
+          "y": 440.3,
+          "width": 99.4,
+          "height": 114.7
+        },
+        "provision": {
+          "x": 1271.9,
+          "y": 440.3,
+          "width": 76.6,
+          "height": 91.9
+        },
+        "onboard": {
+          "x": 1387.9,
+          "y": 457.7,
+          "width": 135.2,
+          "height": 46.4
+        },
+        "tip": {
+          "x": 76.9,
+          "y": 429.3,
+          "width": 141.5,
+          "height": 58
+        },
+        "welcome": {
+          "x": 1028.3,
+          "y": 440.3,
+          "width": 76.2,
+          "height": 91.4
+        }
+      },
+      "transform": {
+        "zoom": 0.580086,
+        "x": 69.9621,
+        "y": 422.316
+      },
+      "file": "captures/landscape/update.mp4",
+      "fps": 60
+    },
+    "present": {
+      "file": "captures/landscape/present.mp4",
+      "fps": 60,
+      "frames": 156,
+      "pressAt": [
+        12,
+        75
+      ],
+      "startIndex": 5
+    },
+    "stills": {
+      "nodes": {
+        "visit": {
+          "x": 88.5,
+          "y": 527.9,
+          "width": 137.3,
+          "height": 46.4
+        },
+        "signup": {
+          "x": 227.7,
+          "y": 533.1,
+          "width": 124,
+          "height": 46.4
+        },
+        "auth": {
+          "x": 367,
+          "y": 515.7,
+          "width": 69,
+          "height": 84.2
+        },
+        "verified": {
+          "x": 483,
+          "y": 509.9,
+          "width": 81.2,
+          "height": 81.2
+        },
+        "resend": {
+          "x": 610.6,
+          "y": 465.2,
+          "width": 121.4,
+          "height": 46.4
+        },
+        "plan": {
+          "x": 610.6,
+          "y": 556.3,
+          "width": 81.2,
+          "height": 46.4
+        },
+        "pay": {
+          "x": 749.8,
+          "y": 556.3,
+          "width": 109,
+          "height": 46.4
+        },
+        "paid": {
+          "x": 889,
+          "y": 449.6,
+          "width": 81.7,
+          "height": 81.2
+        },
+        "retry": {
+          "x": 1016.7,
+          "y": 556.3,
+          "width": 133.2,
+          "height": 46.4
+        },
+        "db": {
+          "x": 1155.9,
+          "y": 440.3,
+          "width": 99.4,
+          "height": 114.7
+        },
+        "provision": {
+          "x": 1271.9,
+          "y": 440.3,
+          "width": 76.6,
+          "height": 91.9
+        },
+        "onboard": {
+          "x": 1387.9,
+          "y": 457.7,
+          "width": 135.2,
+          "height": 46.4
+        },
+        "tip": {
+          "x": 76.9,
+          "y": 429.3,
+          "width": 141.5,
+          "height": 58
+        },
+        "welcome": {
+          "x": 1028.3,
+          "y": 440.3,
+          "width": 76.2,
+          "height": 91.4
+        }
+      },
+      "transform": {
+        "zoom": 0.580086,
+        "x": 69.9621,
+        "y": 422.316
+      },
+      "shareButton": {
+        "x": 1101.4,
+        "y": 27,
+        "width": 91.4,
+        "height": 36
+      },
+      "sharePanel": {
+        "x": 764.7,
+        "y": 73,
+        "width": 440,
+        "height": 330.9
+      },
+      "copyEdit": {
+        "x": 1123.7,
+        "y": 206.8,
+        "width": 64,
+        "height": 29.8
+      },
+      "copyMcp": {
+        "x": 1123.7,
+        "y": 297.6,
+        "width": 64,
+        "height": 29.8
+      },
+      "exportButton": {
+        "x": 1006.4,
+        "y": 27,
+        "width": 36,
+        "height": 36
+      },
+      "exportDropdown": {
+        "x": 934.4,
+        "y": 71,
+        "width": 180,
+        "height": 232
+      },
+      "export_png": {
+        "x": 941.3671875,
+        "y": 149,
+        "width": 166,
+        "height": 31
+      },
+      "export_svg": {
+        "x": 941.3671875,
+        "y": 180,
+        "width": 166,
+        "height": 31
+      },
+      "export_gif": {
+        "x": 941.3671875,
+        "y": 261,
+        "width": 166,
+        "height": 31
+      },
+      "darkToggle": {
+        "x": 930.4,
+        "y": 27,
+        "width": 36,
+        "height": 36
+      },
+      "addImage": {
+        "x": 757.4,
+        "y": 27,
+        "width": 36,
+        "height": 36
+      }
+    },
+    "layoutV1": {
+      "id": "hDZT5de3oe",
+      "version": 1,
+      "title": "SaaS signup → payment → onboarding",
+      "nodes": [
+        {
+          "id": "visit",
+          "type": "step",
+          "label": "Visitor clicks “Start free trial”",
+          "position": {
+            "x": 32,
+            "y": 182
+          }
+        },
+        {
+          "id": "signup",
+          "type": "step",
+          "label": "Sign up with email or SSO",
+          "position": {
+            "x": 272,
+            "y": 191
+          }
+        },
+        {
+          "id": "auth",
+          "type": "image",
+          "label": "Microsoft Entra ID",
+          "position": {
+            "x": 512,
+            "y": 161
+          },
+          "icon": "microsoft-entra-id"
+        },
+        {
+          "id": "verified",
+          "type": "decision",
+          "label": "Email verified?",
+          "position": {
+            "x": 712,
+            "y": 151
+          }
+        },
+        {
+          "id": "resend",
+          "type": "step",
+          "label": "Resend verification email",
+          "position": {
+            "x": 932,
+            "y": 74
+          }
+        },
+        {
+          "id": "plan",
+          "type": "step",
+          "label": "Choose a plan",
+          "position": {
+            "x": 932,
+            "y": 231
+          }
+        },
+        {
+          "id": "pay",
+          "type": "step",
+          "label": "Enter payment details",
+          "position": {
+            "x": 1172,
+            "y": 231
+          }
+        },
+        {
+          "id": "paid",
+          "type": "decision",
+          "label": "Payment succeeded?",
+          "position": {
+            "x": 1412,
+            "y": 47
+          }
+        },
+        {
+          "id": "retry",
+          "type": "step",
+          "label": "Show error, try another card",
+          "position": {
+            "x": 1632,
+            "y": 231
+          }
+        },
+        {
+          "id": "db",
+          "type": "image",
+          "label": "Save account in Cosmos DB",
+          "position": {
+            "x": 1872,
+            "y": 31
+          },
+          "icon": "azure-cosmos-db"
+        },
+        {
+          "id": "provision",
+          "type": "image",
+          "label": "Provision workspace",
+          "position": {
+            "x": 2072,
+            "y": 31
+          },
+          "icon": "function-apps"
+        },
+        {
+          "id": "onboard",
+          "type": "step",
+          "label": "Guided onboarding checklist",
+          "position": {
+            "x": 2272,
+            "y": 61
+          }
+        },
+        {
+          "id": "tip",
+          "type": "note",
+          "label": "Trial users can skip payment for 14 days",
+          "position": {
+            "x": 12,
+            "y": 12
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "evisit-signup",
+          "source": "visit",
+          "target": "signup",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "esignup-auth",
+          "source": "signup",
+          "target": "auth",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eauth-verified",
+          "source": "auth",
+          "target": "verified",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "everified-resend",
+          "source": "verified",
+          "target": "resend",
+          "label": "No",
+          "sourceHandle": "top",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eresend-verified",
+          "source": "resend",
+          "target": "verified",
+          "label": "Retry",
+          "sourceHandle": "bottom",
+          "targetHandle": "right",
+          "style": "animated"
+        },
+        {
+          "id": "everified-plan",
+          "source": "verified",
+          "target": "plan",
+          "label": "Yes",
+          "sourceHandle": "bottom",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eplan-pay",
+          "source": "plan",
+          "target": "pay",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "epay-paid",
+          "source": "pay",
+          "target": "paid",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-retry",
+          "source": "paid",
+          "target": "retry",
+          "label": "No",
+          "sourceHandle": "bottom",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eretry-pay",
+          "source": "retry",
+          "target": "pay",
+          "label": "Retry",
+          "sourceHandle": "bottom",
+          "targetHandle": "bottom",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-db",
+          "source": "paid",
+          "target": "db",
+          "label": "Yes",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "edb-provision",
+          "source": "db",
+          "target": "provision",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eprovision-onboard",
+          "source": "provision",
+          "target": "onboard",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        }
+      ]
+    },
+    "layoutV2": {
+      "id": "hDZT5de3oe",
+      "version": 2,
+      "title": "SaaS signup → payment → onboarding",
+      "nodes": [
+        {
+          "id": "visit",
+          "type": "step",
+          "label": "Visitor clicks “Start free trial”",
+          "position": {
+            "x": 32,
+            "y": 182
+          }
+        },
+        {
+          "id": "signup",
+          "type": "step",
+          "label": "Sign up with email or SSO",
+          "position": {
+            "x": 272,
+            "y": 191
+          }
+        },
+        {
+          "id": "auth",
+          "type": "image",
+          "label": "Microsoft Entra ID",
+          "position": {
+            "x": 512,
+            "y": 161
+          },
+          "icon": "microsoft-entra-id"
+        },
+        {
+          "id": "verified",
+          "type": "decision",
+          "label": "Email verified?",
+          "position": {
+            "x": 712,
+            "y": 151
+          }
+        },
+        {
+          "id": "resend",
+          "type": "step",
+          "label": "Resend verification email",
+          "position": {
+            "x": 932,
+            "y": 74
+          }
+        },
+        {
+          "id": "plan",
+          "type": "step",
+          "label": "Choose a plan",
+          "position": {
+            "x": 932,
+            "y": 231
+          }
+        },
+        {
+          "id": "pay",
+          "type": "step",
+          "label": "Enter payment details",
+          "position": {
+            "x": 1172,
+            "y": 231
+          }
+        },
+        {
+          "id": "paid",
+          "type": "decision",
+          "label": "Payment succeeded?",
+          "position": {
+            "x": 1412,
+            "y": 47
+          }
+        },
+        {
+          "id": "retry",
+          "type": "step",
+          "label": "Show error, try another card",
+          "position": {
+            "x": 1632,
+            "y": 231
+          }
+        },
+        {
+          "id": "db",
+          "type": "image",
+          "label": "Save account in Cosmos DB",
+          "position": {
+            "x": 1872,
+            "y": 31
+          },
+          "icon": "azure-cosmos-db"
+        },
+        {
+          "id": "provision",
+          "type": "image",
+          "label": "Provision workspace",
+          "position": {
+            "x": 2072,
+            "y": 31
+          },
+          "icon": "function-apps"
+        },
+        {
+          "id": "onboard",
+          "type": "step",
+          "label": "Guided onboarding checklist",
+          "position": {
+            "x": 2272,
+            "y": 61
+          }
+        },
+        {
+          "id": "tip",
+          "type": "note",
+          "label": "Trial users can skip payment for 14 days",
+          "position": {
+            "x": 12,
+            "y": 12
+          }
+        },
+        {
+          "id": "welcome",
+          "type": "image",
+          "label": "Send welcome email",
+          "position": {
+            "x": 1652,
+            "y": 31
+          },
+          "icon": "azure-communication-services"
+        }
+      ],
+      "edges": [
+        {
+          "id": "evisit-signup",
+          "source": "visit",
+          "target": "signup",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "esignup-auth",
+          "source": "signup",
+          "target": "auth",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eauth-verified",
+          "source": "auth",
+          "target": "verified",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "everified-resend",
+          "source": "verified",
+          "target": "resend",
+          "label": "No",
+          "sourceHandle": "top",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eresend-verified",
+          "source": "resend",
+          "target": "verified",
+          "label": "Retry",
+          "sourceHandle": "bottom",
+          "targetHandle": "right",
+          "style": "animated"
+        },
+        {
+          "id": "everified-plan",
+          "source": "verified",
+          "target": "plan",
+          "label": "Yes",
+          "sourceHandle": "bottom",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eplan-pay",
+          "source": "plan",
+          "target": "pay",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "epay-paid",
+          "source": "pay",
+          "target": "paid",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-retry",
+          "source": "paid",
+          "target": "retry",
+          "label": "No",
+          "sourceHandle": "bottom",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eretry-pay",
+          "source": "retry",
+          "target": "pay",
+          "label": "Retry",
+          "sourceHandle": "bottom",
+          "targetHandle": "bottom",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-db",
+          "source": "paid",
+          "target": "welcome",
+          "label": "Yes",
+          "sourceHandle": "right",
+          "style": "animated",
+          "targetHandle": "left"
+        },
+        {
+          "id": "edb-provision",
+          "source": "db",
+          "target": "provision",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "eprovision-onboard",
+          "source": "provision",
+          "target": "onboard",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        },
+        {
+          "id": "ewelcome-db",
+          "source": "welcome",
+          "target": "db",
+          "sourceHandle": "right",
+          "targetHandle": "left",
+          "style": "animated"
+        }
+      ]
+    }
+  },
+  "capturedAt": "2026-09-30T15:11:28.441Z",
+  "portrait": {
+    "viewport": {
+      "width": 1120,
+      "height": 1904
+    },
+    "dpr": 2,
+    "direction": "TB",
+    "id": "hDZT5de3oe",
+    "url": "https://flowchart.zeroclickdev.ai/f/hDZT5de3oe",
+    "editUrl": "https://flowchart.zeroclickdev.ai/f/hDZT5de3oe#edit=HQtPM7UIDp0bWyNsnOYRUltxlmx4Ro_3CarJ8E3VpG4",
+    "editTokenPreview": "HQtPM7…",
+    "tool": {
+      "createArgs": {
+        "title": "SaaS signup → payment → onboarding",
+        "nodes": [
+          {
+            "id": "visit",
+            "type": "step",
+            "label": "Visitor clicks “Start free trial”",
+            "position": {
+              "x": 272,
+              "y": 25
+            }
+          },
+          {
+            "id": "signup",
+            "type": "step",
+            "label": "Sign up with email or SSO",
+            "position": {
+              "x": 272,
+              "y": 182
+            }
+          },
+          {
+            "id": "auth",
+            "type": "image",
+            "label": "Microsoft Entra ID",
+            "icon": "microsoft-entra-id",
+            "position": {
+              "x": 292,
+              "y": 322
+            }
+          },
+          {
+            "id": "verified",
+            "type": "decision",
+            "label": "Email verified?",
+            "position": {
+              "x": 282,
+              "y": 522
+            }
+          },
+          {
+            "id": "resend",
+            "type": "step",
+            "label": "Resend verification email",
+            "position": {
+              "x": 72,
+              "y": 742
+            }
+          },
+          {
+            "id": "plan",
+            "type": "step",
+            "label": "Choose a plan",
+            "position": {
+              "x": 312,
+              "y": 751
+            }
+          },
+          {
+            "id": "pay",
+            "type": "step",
+            "label": "Enter payment details",
+            "position": {
+              "x": 312,
+              "y": 899
+            }
+          },
+          {
+            "id": "paid",
+            "type": "decision",
+            "label": "Payment succeeded?",
+            "position": {
+              "x": 129,
+              "y": 1039
+            }
+          },
+          {
+            "id": "retry",
+            "type": "step",
+            "label": "Show error, try another card",
+            "position": {
+              "x": 312,
+              "y": 1259
+            }
+          },
+          {
+            "id": "db",
+            "type": "image",
+            "label": "Save account in Cosmos DB",
+            "icon": "azure-cosmos-db",
+            "position": {
+              "x": 112,
+              "y": 1459
+            }
+          },
+          {
+            "id": "provision",
+            "type": "image",
+            "label": "Provision workspace",
+            "icon": "function-apps",
+            "position": {
+              "x": 112,
+              "y": 1659
+            }
+          },
+          {
+            "id": "onboard",
+            "type": "step",
+            "label": "Guided onboarding checklist",
+            "position": {
+              "x": 92,
+              "y": 1859
+            }
+          },
+          {
+            "id": "tip",
+            "type": "note",
+            "label": "Trial users can skip payment for 14 days",
+            "position": {
+              "x": 12,
+              "y": 12
+            }
+          }
+        ],
+        "edges": [
+          {
+            "source": "visit",
+            "target": "signup",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          },
+          {
+            "source": "signup",
+            "target": "auth",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          },
+          {
+            "source": "auth",
+            "target": "verified",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          },
+          {
+            "source": "verified",
+            "target": "resend",
+            "label": "No",
+            "sourceHandle": "left",
+            "targetHandle": "top"
+          },
+          {
+            "source": "resend",
+            "target": "verified",
+            "label": "Retry",
+            "sourceHandle": "right",
+            "targetHandle": "bottom"
+          },
+          {
+            "source": "verified",
+            "target": "plan",
+            "label": "Yes",
+            "sourceHandle": "right",
+            "targetHandle": "top"
+          },
+          {
+            "source": "plan",
+            "target": "pay",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          },
+          {
+            "source": "pay",
+            "target": "paid",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          },
+          {
+            "source": "paid",
+            "target": "retry",
+            "label": "No",
+            "sourceHandle": "right",
+            "targetHandle": "top"
+          },
+          {
+            "source": "retry",
+            "target": "pay",
+            "label": "Retry",
+            "sourceHandle": "right",
+            "targetHandle": "right"
+          },
+          {
+            "source": "paid",
+            "target": "db",
+            "label": "Yes",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          },
+          {
+            "source": "db",
+            "target": "provision",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          },
+          {
+            "source": "provision",
+            "target": "onboard",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          }
+        ],
+        "direction": "TB"
+      },
+      "createText": "Created flowchart \"SaaS signup → payment → onboarding\" (id hDZT5de3oe, version 1, 13 nodes, 13 edges).\n\nGive the user this link to open and edit the chart:\nhttps://flowchart.zeroclickdev.ai/f/hDZT5de3oe#edit=HQtPM7UIDp0bWyNsnOYRUltxlmx4Ro_3CarJ8E3VpG4\n\nView-only link: https://flowchart.zeroclickdev.ai/f/hDZT5de3oe\nChart id: hDZT5de3oe\nEdit token: HQtPM7UIDp0bWyNsnOYRUltxlmx4Ro_3CarJ8E3VpG4 (keep it: update_flowchart needs it; anyone with it can edit the chart)\n\nThe user can keep editing in the browser. Before changing this chart later, call get_flowchart to load their latest version, then call update_flowchart with this id, the edit token, and expectedVersion (currently 1).",
+      "getText": "Flowchart \"SaaS signup → payment → onboarding\" (id hDZT5de3oe, version 1, 13 nodes, 13 edges), last updated 2026-09-30T14:56:53.082Z.\nTo change it, call update_flowchart with expectedVersion: 1.",
+      "getVersion": 1,
+      "updateOperations": [
+        {
+          "op": "add_node",
+          "node": {
+            "id": "welcome",
+            "type": "image",
+            "label": "Send welcome email",
+            "icon": "azure-communication-services",
+            "position": {
+              "x": 112,
+              "y": 1259
+            }
+          }
+        },
+        {
+          "op": "update_edge",
+          "id": "epaid-db",
+          "changes": {
+            "target": "welcome",
+            "targetHandle": "top"
+          }
+        },
+        {
+          "op": "add_edge",
+          "edge": {
+            "source": "welcome",
+            "target": "db",
+            "sourceHandle": "bottom",
+            "targetHandle": "top"
+          }
+        }
+      ],
+      "updateText": "Updated flowchart \"SaaS signup → payment → onboarding\" (id hDZT5de3oe, version 2, 14 nodes, 14 edges): added node \"welcome\"; updated edge \"epaid-db\"; added edge welcome -> db.\nThe user's open browser tab picks this up within a few seconds.\nEdit link: https://flowchart.zeroclickdev.ai/f/hDZT5de3oe#edit=HQtPM7UIDp0bWyNsnOYRUltxlmx4Ro_3CarJ8E3VpG4\nNext update: pass expectedVersion: 2 (call get_flowchart first if the user may have edited it).",
+      "updateVersion": 2,
+      "changes": [
+        "added node \"welcome\"",
+        "updated edge \"epaid-db\"",
+        "added edge welcome -> db"
+      ]
+    },
+    "open": {
+      "url": "https://flowchart.zeroclickdev.ai/f/hDZT5de3oe",
+      "nodes": {
+        "visit": {
+          "x": 555.8,
+          "y": 171.2,
+          "width": 198.4,
+          "height": 67.1
+        },
+        "signup": {
+          "x": 555.8,
+          "y": 302.8,
+          "width": 179.2,
+          "height": 67.1
+        },
+        "auth": {
+          "x": 572.6,
+          "y": 420.2,
+          "width": 99.7,
+          "height": 121.7
+        },
+        "verified": {
+          "x": 564.2,
+          "y": 587.8,
+          "width": 117.4,
+          "height": 117.4
+        },
+        "resend": {
+          "x": 388.2,
+          "y": 772.3,
+          "width": 175.4,
+          "height": 67.1
+        },
+        "plan": {
+          "x": 589.3,
+          "y": 779.8,
+          "width": 117.4,
+          "height": 67.1
+        },
+        "pay": {
+          "x": 589.3,
+          "y": 903.9,
+          "width": 157.5,
+          "height": 67.1
+        },
+        "paid": {
+          "x": 435.9,
+          "y": 1021.2,
+          "width": 118.1,
+          "height": 117.4
+        },
+        "retry": {
+          "x": 589.3,
+          "y": 1205.7,
+          "width": 192.5,
+          "height": 67.1
+        },
+        "db": {
+          "x": 421.7,
+          "y": 1373.3,
+          "width": 143.7,
+          "height": 165.7
+        },
+        "provision": {
+          "x": 421.7,
+          "y": 1541,
+          "width": 110.7,
+          "height": 132.8
+        },
+        "onboard": {
+          "x": 404.9,
+          "y": 1708.6,
+          "width": 195.4,
+          "height": 67.1
+        },
+        "tip": {
+          "x": 337.9,
+          "y": 160.3,
+          "width": 204.5,
+          "height": 83.8
+        }
+      },
+      "transform": {
+        "zoom": 0.83829,
+        "x": 327.794,
+        "y": 150.248
+      },
+      "badge": {
+        "x": 16,
+        "y": 84,
+        "width": 474.5,
+        "height": 38
+      },
+      "badgeStatus": {
+        "x": 348.9,
+        "y": 95.5,
+        "width": 34.5,
+        "height": 15
+      },
+      "toolbar": {
+        "x": 15,
+        "y": 16,
+        "width": 1090,
+        "height": 58
+      },
+      "shareButton": {
+        "x": 861.4,
+        "y": 27,
+        "width": 91.4,
+        "height": 36
+      }
+    },
+    "update": {
+      "frames": 336,
+      "changeFrame": 42,
+      "flashFrame": 42,
+      "flashEndFrame": 282,
+      "atChange": {
+        "nodes": {
+          "visit": {
+            "x": 555.8,
+            "y": 171.2,
+            "width": 198.4,
+            "height": 67.1
+          },
+          "signup": {
+            "x": 555.8,
+            "y": 302.8,
+            "width": 179.2,
+            "height": 67.1
+          },
+          "auth": {
+            "x": 572.6,
+            "y": 420.2,
+            "width": 99.7,
+            "height": 121.7
+          },
+          "verified": {
+            "x": 564.2,
+            "y": 587.8,
+            "width": 117.4,
+            "height": 117.4
+          },
+          "resend": {
+            "x": 388.2,
+            "y": 772.3,
+            "width": 175.4,
+            "height": 67.1
+          },
+          "plan": {
+            "x": 589.3,
+            "y": 779.8,
+            "width": 117.4,
+            "height": 67.1
+          },
+          "pay": {
+            "x": 589.3,
+            "y": 903.9,
+            "width": 157.5,
+            "height": 67.1
+          },
+          "paid": {
+            "x": 435.9,
+            "y": 1021.2,
+            "width": 118.1,
+            "height": 117.4
+          },
+          "retry": {
+            "x": 589.3,
+            "y": 1205.7,
+            "width": 192.5,
+            "height": 67.1
+          },
+          "db": {
+            "x": 421.7,
+            "y": 1373.3,
+            "width": 143.7,
+            "height": 165.7
+          },
+          "provision": {
+            "x": 421.7,
+            "y": 1541,
+            "width": 110.7,
+            "height": 132.8
+          },
+          "onboard": {
+            "x": 404.9,
+            "y": 1708.6,
+            "width": 195.4,
+            "height": 67.1
+          },
+          "tip": {
+            "x": 337.9,
+            "y": 160.3,
+            "width": 204.5,
+            "height": 83.8
+          },
+          "welcome": {
+            "x": 421.7,
+            "y": 1205.7,
+            "width": 110.1,
+            "height": 132.1
+          }
+        },
+        "transform": {
+          "zoom": 0.83829,
+          "x": 327.794,
+          "y": 150.248
+        }
+      },
+      "badge": {
+        "x": 16,
+        "y": 84,
+        "width": 474.5,
+        "height": 38
+      },
+      "status": {
+        "x": 292.5,
+        "y": 93.5,
+        "width": 136.5,
+        "height": 19
+      },
+      "nodes": {
+        "visit": {
+          "x": 555.8,
+          "y": 171.2,
+          "width": 198.4,
+          "height": 67.1
+        },
+        "signup": {
+          "x": 555.8,
+          "y": 302.8,
+          "width": 179.2,
+          "height": 67.1
+        },
+        "auth": {
+          "x": 572.6,
+          "y": 420.2,
+          "width": 99.7,
+          "height": 121.7
+        },
+        "verified": {
+          "x": 564.2,
+          "y": 587.8,
+          "width": 117.4,
+          "height": 117.4
+        },
+        "resend": {
+          "x": 388.2,
+          "y": 772.3,
+          "width": 175.4,
+          "height": 67.1
+        },
+        "plan": {
+          "x": 589.3,
+          "y": 779.8,
+          "width": 117.4,
+          "height": 67.1
+        },
+        "pay": {
+          "x": 589.3,
+          "y": 903.9,
+          "width": 157.5,
+          "height": 67.1
+        },
+        "paid": {
+          "x": 435.9,
+          "y": 1021.2,
+          "width": 118.1,
+          "height": 117.4
+        },
+        "retry": {
+          "x": 589.3,
+          "y": 1205.7,
+          "width": 192.5,
+          "height": 67.1
+        },
+        "db": {
+          "x": 421.7,
+          "y": 1373.3,
+          "width": 143.7,
+          "height": 165.7
+        },
+        "provision": {
+          "x": 421.7,
+          "y": 1541,
+          "width": 110.7,
+          "height": 132.8
+        },
+        "onboard": {
+          "x": 404.9,
+          "y": 1708.6,
+          "width": 195.4,
+          "height": 67.1
+        },
+        "tip": {
+          "x": 337.9,
+          "y": 160.3,
+          "width": 204.5,
+          "height": 83.8
+        },
+        "welcome": {
+          "x": 421.7,
+          "y": 1205.7,
+          "width": 110.1,
+          "height": 132.1
+        }
+      },
+      "transform": {
+        "zoom": 0.83829,
+        "x": 327.794,
+        "y": 150.248
+      },
+      "file": "captures/portrait/update.mp4",
+      "fps": 60
+    },
+    "present": {
+      "file": "captures/portrait/present.mp4",
+      "fps": 60,
+      "frames": 156,
+      "pressAt": [
+        12,
+        75
+      ],
+      "startIndex": 5
+    },
+    "stills": {
+      "nodes": {
+        "visit": {
+          "x": 555.8,
+          "y": 171.2,
+          "width": 198.4,
+          "height": 67.1
+        },
+        "signup": {
+          "x": 555.8,
+          "y": 302.8,
+          "width": 179.2,
+          "height": 67.1
+        },
+        "auth": {
+          "x": 572.6,
+          "y": 420.2,
+          "width": 99.7,
+          "height": 121.7
+        },
+        "verified": {
+          "x": 564.2,
+          "y": 587.8,
+          "width": 117.4,
+          "height": 117.4
+        },
+        "resend": {
+          "x": 388.2,
+          "y": 772.3,
+          "width": 175.4,
+          "height": 67.1
+        },
+        "plan": {
+          "x": 589.3,
+          "y": 779.8,
+          "width": 117.4,
+          "height": 67.1
+        },
+        "pay": {
+          "x": 589.3,
+          "y": 903.9,
+          "width": 157.5,
+          "height": 67.1
+        },
+        "paid": {
+          "x": 435.9,
+          "y": 1021.2,
+          "width": 118.1,
+          "height": 117.4
+        },
+        "retry": {
+          "x": 589.3,
+          "y": 1205.7,
+          "width": 192.5,
+          "height": 67.1
+        },
+        "db": {
+          "x": 421.7,
+          "y": 1373.3,
+          "width": 143.7,
+          "height": 165.7
+        },
+        "provision": {
+          "x": 421.7,
+          "y": 1541,
+          "width": 110.7,
+          "height": 132.8
+        },
+        "onboard": {
+          "x": 404.9,
+          "y": 1708.6,
+          "width": 195.4,
+          "height": 67.1
+        },
+        "tip": {
+          "x": 337.9,
+          "y": 160.3,
+          "width": 204.5,
+          "height": 83.8
+        },
+        "welcome": {
+          "x": 421.7,
+          "y": 1205.7,
+          "width": 110.1,
+          "height": 132.1
+        }
+      },
+      "transform": {
+        "zoom": 0.83829,
+        "x": 327.794,
+        "y": 150.248
+      },
+      "shareButton": {
+        "x": 861.4,
+        "y": 27,
+        "width": 91.4,
+        "height": 36
+      },
+      "sharePanel": {
+        "x": 524.7,
+        "y": 73,
+        "width": 440,
+        "height": 330.9
+      },
+      "copyEdit": {
+        "x": 883.7,
+        "y": 206.8,
+        "width": 64,
+        "height": 29.8
+      },
+      "copyMcp": {
+        "x": 883.7,
+        "y": 297.6,
+        "width": 64,
+        "height": 29.8
+      },
+      "exportButton": {
+        "x": 766.4,
+        "y": 27,
+        "width": 36,
+        "height": 36
+      },
+      "exportDropdown": {
+        "x": 694.4,
+        "y": 71,
+        "width": 180,
+        "height": 232
+      },
+      "export_png": {
+        "x": 701.3671875,
+        "y": 149,
+        "width": 166,
+        "height": 31
+      },
+      "export_svg": {
+        "x": 701.3671875,
+        "y": 180,
+        "width": 166,
+        "height": 31
+      },
+      "export_gif": {
+        "x": 701.3671875,
+        "y": 261,
+        "width": 166,
+        "height": 31
+      },
+      "darkToggle": {
+        "x": 690.4,
+        "y": 27,
+        "width": 36,
+        "height": 36
+      },
+      "addImage": {
+        "x": 517.4,
+        "y": 27,
+        "width": 36,
+        "height": 36
+      }
+    },
+    "layoutV1": {
+      "id": "hDZT5de3oe",
+      "version": 1,
+      "title": "SaaS signup → payment → onboarding",
+      "nodes": [
+        {
+          "id": "visit",
+          "type": "step",
+          "label": "Visitor clicks “Start free trial”",
+          "position": {
+            "x": 272,
+            "y": 25
+          }
+        },
+        {
+          "id": "signup",
+          "type": "step",
+          "label": "Sign up with email or SSO",
+          "position": {
+            "x": 272,
+            "y": 182
+          }
+        },
+        {
+          "id": "auth",
+          "type": "image",
+          "label": "Microsoft Entra ID",
+          "position": {
+            "x": 292,
+            "y": 322
+          },
+          "icon": "microsoft-entra-id"
+        },
+        {
+          "id": "verified",
+          "type": "decision",
+          "label": "Email verified?",
+          "position": {
+            "x": 282,
+            "y": 522
+          }
+        },
+        {
+          "id": "resend",
+          "type": "step",
+          "label": "Resend verification email",
+          "position": {
+            "x": 72,
+            "y": 742
+          }
+        },
+        {
+          "id": "plan",
+          "type": "step",
+          "label": "Choose a plan",
+          "position": {
+            "x": 312,
+            "y": 751
+          }
+        },
+        {
+          "id": "pay",
+          "type": "step",
+          "label": "Enter payment details",
+          "position": {
+            "x": 312,
+            "y": 899
+          }
+        },
+        {
+          "id": "paid",
+          "type": "decision",
+          "label": "Payment succeeded?",
+          "position": {
+            "x": 129,
+            "y": 1039
+          }
+        },
+        {
+          "id": "retry",
+          "type": "step",
+          "label": "Show error, try another card",
+          "position": {
+            "x": 312,
+            "y": 1259
+          }
+        },
+        {
+          "id": "db",
+          "type": "image",
+          "label": "Save account in Cosmos DB",
+          "position": {
+            "x": 112,
+            "y": 1459
+          },
+          "icon": "azure-cosmos-db"
+        },
+        {
+          "id": "provision",
+          "type": "image",
+          "label": "Provision workspace",
+          "position": {
+            "x": 112,
+            "y": 1659
+          },
+          "icon": "function-apps"
+        },
+        {
+          "id": "onboard",
+          "type": "step",
+          "label": "Guided onboarding checklist",
+          "position": {
+            "x": 92,
+            "y": 1859
+          }
+        },
+        {
+          "id": "tip",
+          "type": "note",
+          "label": "Trial users can skip payment for 14 days",
+          "position": {
+            "x": 12,
+            "y": 12
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "evisit-signup",
+          "source": "visit",
+          "target": "signup",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "esignup-auth",
+          "source": "signup",
+          "target": "auth",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eauth-verified",
+          "source": "auth",
+          "target": "verified",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "everified-resend",
+          "source": "verified",
+          "target": "resend",
+          "label": "No",
+          "sourceHandle": "left",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eresend-verified",
+          "source": "resend",
+          "target": "verified",
+          "label": "Retry",
+          "sourceHandle": "right",
+          "targetHandle": "bottom",
+          "style": "animated"
+        },
+        {
+          "id": "everified-plan",
+          "source": "verified",
+          "target": "plan",
+          "label": "Yes",
+          "sourceHandle": "right",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eplan-pay",
+          "source": "plan",
+          "target": "pay",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "epay-paid",
+          "source": "pay",
+          "target": "paid",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-retry",
+          "source": "paid",
+          "target": "retry",
+          "label": "No",
+          "sourceHandle": "right",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eretry-pay",
+          "source": "retry",
+          "target": "pay",
+          "label": "Retry",
+          "sourceHandle": "right",
+          "targetHandle": "right",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-db",
+          "source": "paid",
+          "target": "db",
+          "label": "Yes",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "edb-provision",
+          "source": "db",
+          "target": "provision",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eprovision-onboard",
+          "source": "provision",
+          "target": "onboard",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        }
+      ]
+    },
+    "layoutV2": {
+      "id": "hDZT5de3oe",
+      "version": 2,
+      "title": "SaaS signup → payment → onboarding",
+      "nodes": [
+        {
+          "id": "visit",
+          "type": "step",
+          "label": "Visitor clicks “Start free trial”",
+          "position": {
+            "x": 272,
+            "y": 25
+          }
+        },
+        {
+          "id": "signup",
+          "type": "step",
+          "label": "Sign up with email or SSO",
+          "position": {
+            "x": 272,
+            "y": 182
+          }
+        },
+        {
+          "id": "auth",
+          "type": "image",
+          "label": "Microsoft Entra ID",
+          "position": {
+            "x": 292,
+            "y": 322
+          },
+          "icon": "microsoft-entra-id"
+        },
+        {
+          "id": "verified",
+          "type": "decision",
+          "label": "Email verified?",
+          "position": {
+            "x": 282,
+            "y": 522
+          }
+        },
+        {
+          "id": "resend",
+          "type": "step",
+          "label": "Resend verification email",
+          "position": {
+            "x": 72,
+            "y": 742
+          }
+        },
+        {
+          "id": "plan",
+          "type": "step",
+          "label": "Choose a plan",
+          "position": {
+            "x": 312,
+            "y": 751
+          }
+        },
+        {
+          "id": "pay",
+          "type": "step",
+          "label": "Enter payment details",
+          "position": {
+            "x": 312,
+            "y": 899
+          }
+        },
+        {
+          "id": "paid",
+          "type": "decision",
+          "label": "Payment succeeded?",
+          "position": {
+            "x": 129,
+            "y": 1039
+          }
+        },
+        {
+          "id": "retry",
+          "type": "step",
+          "label": "Show error, try another card",
+          "position": {
+            "x": 312,
+            "y": 1259
+          }
+        },
+        {
+          "id": "db",
+          "type": "image",
+          "label": "Save account in Cosmos DB",
+          "position": {
+            "x": 112,
+            "y": 1459
+          },
+          "icon": "azure-cosmos-db"
+        },
+        {
+          "id": "provision",
+          "type": "image",
+          "label": "Provision workspace",
+          "position": {
+            "x": 112,
+            "y": 1659
+          },
+          "icon": "function-apps"
+        },
+        {
+          "id": "onboard",
+          "type": "step",
+          "label": "Guided onboarding checklist",
+          "position": {
+            "x": 92,
+            "y": 1859
+          }
+        },
+        {
+          "id": "tip",
+          "type": "note",
+          "label": "Trial users can skip payment for 14 days",
+          "position": {
+            "x": 12,
+            "y": 12
+          }
+        },
+        {
+          "id": "welcome",
+          "type": "image",
+          "label": "Send welcome email",
+          "position": {
+            "x": 112,
+            "y": 1259
+          },
+          "icon": "azure-communication-services"
+        }
+      ],
+      "edges": [
+        {
+          "id": "evisit-signup",
+          "source": "visit",
+          "target": "signup",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "esignup-auth",
+          "source": "signup",
+          "target": "auth",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eauth-verified",
+          "source": "auth",
+          "target": "verified",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "everified-resend",
+          "source": "verified",
+          "target": "resend",
+          "label": "No",
+          "sourceHandle": "left",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eresend-verified",
+          "source": "resend",
+          "target": "verified",
+          "label": "Retry",
+          "sourceHandle": "right",
+          "targetHandle": "bottom",
+          "style": "animated"
+        },
+        {
+          "id": "everified-plan",
+          "source": "verified",
+          "target": "plan",
+          "label": "Yes",
+          "sourceHandle": "right",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eplan-pay",
+          "source": "plan",
+          "target": "pay",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "epay-paid",
+          "source": "pay",
+          "target": "paid",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-retry",
+          "source": "paid",
+          "target": "retry",
+          "label": "No",
+          "sourceHandle": "right",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eretry-pay",
+          "source": "retry",
+          "target": "pay",
+          "label": "Retry",
+          "sourceHandle": "right",
+          "targetHandle": "right",
+          "style": "animated"
+        },
+        {
+          "id": "epaid-db",
+          "source": "paid",
+          "target": "welcome",
+          "label": "Yes",
+          "sourceHandle": "bottom",
+          "style": "animated",
+          "targetHandle": "top"
+        },
+        {
+          "id": "edb-provision",
+          "source": "db",
+          "target": "provision",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "eprovision-onboard",
+          "source": "provision",
+          "target": "onboard",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        },
+        {
+          "id": "ewelcome-db",
+          "source": "welcome",
+          "target": "db",
+          "sourceHandle": "bottom",
+          "targetHandle": "top",
+          "style": "animated"
+        }
+      ]
+    }
+  }
+}

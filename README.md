@@ -1,9 +1,13 @@
 <div align="center">
 
 <p>
-  <a href="https://flowchart.zeroclickdev.ai/">
-    <img src="docs/screenshots/flow.gif" alt="FlowChart AI — Free AI-powered flowchart designer" width="560" />
+  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer">
+    <img src="docs/screenshots/trailer-teaser.gif" alt="Flowchart AI trailer: an AI agent adds a step to a flowchart over MCP, and the chart open in the browser updates live" width="720" />
   </a>
+</p>
+
+<p>
+  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer"><strong>▶ Watch the trailer</strong></a> (0:56, sound on)
 </p>
 
 <div style="font-size: 2.5em; font-weight: 800; letter-spacing: 0.08em; line-height: 1.1;">
@@ -31,11 +35,16 @@ Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
 
 </div>
 
+> [!TIP]
+> **New: the Flowchart AI MCP server.** Connect Claude, ChatGPT, VS Code, Cursor or OpenCode to `https://flowchart.zeroclickdev.ai/api/mcp`, and your agent can draw a flowchart, hand you a link, and keep editing it with you. Free, no account or API key. [Launch page and setup](https://flowchart.zeroclickdev.ai/mcp) · [Docs](docs/mcp.md)
+
 ---
 
 ## Features
 
 - **AI-powered generation** — describe what you want in plain English, get a structured flowchart in seconds
+- **Works with your AI agent (MCP)** — Claude, Copilot, Cursor, OpenCode or ChatGPT can create a chart, hand you a link, and keep editing it with you
+- **Share links with live sync** — share a chart in one click; edits from you and your agent appear live
 - **Free to use** — no sign-up, no paywall, no limits on the canvas
 - **Export to PNG, SVG & animated GIF** — share diagrams in docs, slides, or README files
 - **Presentation mode** — step through your flowchart with arrow keys, perfect for walkthroughs
@@ -48,6 +57,10 @@ Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
 
 <details>
 <summary><strong>Screenshots</strong></summary>
+
+### Demo
+
+![FlowChart AI — Free AI-powered flowchart designer](docs/screenshots/flow.gif)
 
 ### AI Generation
 
@@ -90,6 +103,23 @@ pnpm dev          # http://localhost:3004
 pnpm test         # run tests
 pnpm build        # production build
 ```
+
+## Use it from your AI agent (MCP)
+
+Flowchart AI is also a remote MCP server. Connect it to your agent, ask for a chart, and you get a link to an editable flowchart. Keep editing in the browser while the agent keeps editing the same chart; each side sees the other's changes.
+
+```
+https://flowchart.zeroclickdev.ai/api/mcp
+```
+
+```sh
+# Claude Code
+claude mcp add --transport http flowchart https://flowchart.zeroclickdev.ai/api/mcp
+```
+
+Tools: `create_flowchart`, `get_flowchart`, `update_flowchart`, `list_node_types`, `search_azure_icons`. No account or API key is needed. The dev server also serves the MCP endpoint at `http://localhost:3004/api/mcp`. Setup steps for each client are on the **[launch page](https://flowchart.zeroclickdev.ai/mcp)**, and **[docs/mcp.md](docs/mcp.md)** has the same setup plus the tool reference, privacy notes, and self-hosting with Upstash Redis.
+
+![An AI agent's edit appearing live in a shared chart](docs/screenshots/mcp-agent-update.png)
 
 ## AI Setup (optional)
 

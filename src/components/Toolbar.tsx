@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import './Toolbar.css'
-import { SidebarMode, ToolMode } from '../App'
+import { SidebarMode, ToolMode, DiagramMode, PaletteNodeType } from '../App'
 import ImagePicker from './ImagePicker'
+import ShareMenu, { type ShareMenuProps } from './ShareMenu'
 import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
 import type { Node as FlowNode, Edge } from 'reactflow'
 
 interface ToolbarProps {
-  onAddNode: (type: 'step' | 'decision' | 'note') => void
+  onAddNode: (type: PaletteNodeType) => void
+  onAddContainer: () => void
   onAddImage: (imageUrl: string, label: string) => void
   onTogglePreview: () => void
   onToggleExplorer: () => void
@@ -20,14 +22,18 @@ interface ToolbarProps {
   onSetToolMode: (mode: ToolMode) => void
   darkMode: boolean
   onToggleDarkMode: () => void
+  diagramMode: DiagramMode
+  onSetDiagramMode: (mode: DiagramMode) => void
   reactFlowWrapper: React.RefObject<HTMLDivElement>
   nodes: FlowNode[]
   edges: Edge[]
-  onImportJson: (nodes: FlowNode[], edges: Edge[]) => void
+  onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode) => void
+  share?: ShareMenuProps
 }
 
 function Toolbar({
   onAddNode,
+  onAddContainer,
   onAddImage,
   onTogglePreview,
   onToggleExplorer,
@@ -41,10 +47,13 @@ function Toolbar({
   onSetToolMode,
   darkMode,
   onToggleDarkMode,
+  diagramMode,
+  onSetDiagramMode,
   reactFlowWrapper,
   nodes,
   edges,
   onImportJson,
+  share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
@@ -117,7 +126,7 @@ function Toolbar({
   }
 
   const handleExportJson = () => {
-    exportToJson(nodes, edges)
+    exportToJson(nodes, edges, diagramMode)
     setIsExportOpen(false)
   }
 
@@ -134,7 +143,7 @@ function Toolbar({
     reader.onload = (event) => {
       try {
         const result = parseFlowJson(event.target?.result as string)
-        onImportJson(result.nodes, result.edges)
+        onImportJson(result.nodes, result.edges, result.mode)
         setIsExportOpen(false)
         setExportError(null)
       } catch (err) {
@@ -182,6 +191,40 @@ function Toolbar({
     <>
       <div className="floating-toolbar">
         <div className="toolbar-row">
+          <div className="toolbar-group mode-switcher" role="group" aria-label="Diagram mode">
+            <button
+              className={`toolbar-button mode-option ${diagramMode === 'flowchart' ? 'active' : ''}`}
+              onClick={() => onSetDiagramMode('flowchart')}
+              title="Flowchart Mode"
+              aria-label="Flowchart Mode"
+              aria-pressed={diagramMode === 'flowchart'}
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" aria-hidden="true">
+                <rect x="4" y="1.5" width="8" height="4" rx="1" />
+                <path d="M8 5.5v2" />
+                <path d="M8 7.5L11.5 11L8 14.5L4.5 11L8 7.5z" />
+              </svg>
+              <span className="mode-option-label">Flowchart</span>
+            </button>
+            <button
+              className={`toolbar-button mode-option ${diagramMode === 'architecture' ? 'active' : ''}`}
+              onClick={() => onSetDiagramMode('architecture')}
+              title="Architecture Mode"
+              aria-label="Architecture Mode"
+              aria-pressed={diagramMode === 'architecture'}
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" />
+                <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" />
+                <rect x="5.25" y="9" width="5.5" height="5.5" rx="1" />
+                <path d="M4.5 7v1.5M11.5 7v1.5" />
+              </svg>
+              <span className="mode-option-label">Architecture</span>
+            </button>
+          </div>
+
+          <div className="toolbar-separator" />
+
           <div className="toolbar-group">
             <button
               className={`toolbar-button ${toolMode === 'select' ? 'active' : ''}`}
@@ -219,37 +262,123 @@ function Toolbar({
           <div className="toolbar-separator" />
 
           <div className="toolbar-group">
-            <button
-              className="toolbar-button add-node"
-              onClick={() => onAddNode('step')}
-              title="Add Step Node (S)"
-              aria-label="Add Step Node"
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-                <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
-              </svg>
-            </button>
-            <button
-              className="toolbar-button add-node"
-              onClick={() => onAddNode('decision')}
-              title="Add Decision Node (D)"
-              aria-label="Add Decision Node"
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 2L14 8L8 14L2 8Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
-              </svg>
-            </button>
-            <button
-              className="toolbar-button add-node"
-              onClick={() => onAddNode('note')}
-              title="Add Note (N)"
-              aria-label="Add Note"
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M3 2h10v9l-3 3H3V2z" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                <path d="M10 11v3l3-3h-3z" fill="currentColor" />
-              </svg>
-            </button>
+            {diagramMode === 'flowchart' ? (
+              <>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('step')}
+                  title="Add Step Node (S)"
+                  aria-label="Add Step Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                    <rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('decision')}
+                  title="Add Decision Node (D)"
+                  aria-label="Add Decision Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 2L14 8L8 14L2 8Z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('note')}
+                  title="Add Note (N)"
+                  aria-label="Add Note"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M3 2h10v9l-3 3H3V2z" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                    <path d="M10 11v3l3-3h-3z" fill="currentColor" />
+                  </svg>
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('service')}
+                  title="Add Service Node"
+                  aria-label="Add Service Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="2" y="2" width="12" height="12" rx="2" />
+                    <path d="M2 6h12" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('database')}
+                  title="Add Database Node"
+                  aria-label="Add Database Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <ellipse cx="8" cy="3.5" rx="5.5" ry="2" />
+                    <path d="M2.5 3.5v9c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2v-9" />
+                    <path d="M2.5 8c0 1.1 2.5 2 5.5 2s5.5-.9 5.5-2" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('queue')}
+                  title="Add Queue Node"
+                  aria-label="Add Queue Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="1.5" y="4" width="13" height="8" rx="1.5" />
+                    <path d="M5 4v8M8.5 4v8" />
+                    <path d="M11 8h2" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('cache')}
+                  title="Add Cache Node"
+                  aria-label="Add Cache Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M9 1L3 9h4l-1 6 6-8H8l1-6z" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('apiGateway')}
+                  title="Add API Gateway Node"
+                  aria-label="Add API Gateway Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4.5 1.5h7l3 6.5-3 6.5h-7l-3-6.5 3-6.5z" />
+                    <path d="M5.5 8h5M8.5 6l2 2-2 2" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={() => onAddNode('externalActor')}
+                  title="Add External Actor Node"
+                  aria-label="Add External Actor Node"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <circle cx="8" cy="4.5" r="2.5" />
+                    <path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={onAddContainer}
+                  title="Add Container"
+                  aria-label="Add Container"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="1.5" y="1.5" width="13" height="13" rx="2" strokeDasharray="3 2" />
+                    <rect x="4.5" y="6.5" width="3" height="3" rx="0.5" />
+                    <rect x="9" y="6.5" width="3" height="3" rx="0.5" />
+                  </svg>
+                </button>
+              </>
+            )}
             <button
               className="toolbar-button add-image"
               onClick={() => setIsImagePickerOpen(true)}
@@ -431,6 +560,13 @@ function Toolbar({
               </svg>
             </button>
           </div>
+
+          {share && (
+            <>
+              <div className="toolbar-separator" />
+              <ShareMenu {...share} />
+            </>
+          )}
 
           <div className="toolbar-separator" />
 

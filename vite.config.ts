@@ -1,7 +1,9 @@
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { readFileSync } from 'fs'
+import { tmpdir } from 'os'
 import { join } from 'path'
+import { fileURLToPath } from 'url'
 
 // https://vitejs.dev/config/
 function apiChatDevPlugin(mode: string): Plugin {
@@ -233,11 +235,86 @@ function apiChatDevPlugin(mode: string): Plugin {
   }
 }
 
+// Serves /api/flows and /api/mcp during `npm run dev` by running the same
+// handler modules Vercel deploys (api/*.ts), loaded through Vite's SSR module
+// loader. src/shared/server/nodeAdapter.ts adds the req.body/req.query that
+// Vercel provides.
+const FLOW_ENV_KEYS = [
+  'KV_REST_API_URL',
+  'KV_REST_API_TOKEN',
+  'UPSTASH_REDIS_REST_URL',
+  'UPSTASH_REDIS_REST_TOKEN',
+  'PUBLIC_BASE_URL',
+]
+
+function apiFlowsDevPlugin(mode: string): Plugin {
+  return {
+    name: 'api-flows-dev',
+    configureServer(server) {
+      if (process.env.VITEST) return
+
+      const env = loadEnv(mode, process.cwd(), '')
+      for (const [key, value] of Object.entries(env)) {
+        const forwarded = FLOW_ENV_KEYS.includes(key) || key.startsWith('FLOW_')
+        if (forwarded && value && !process.env[key]) process.env[key] = value
+      }
+      // Without Redis, keep dev charts in a temp file so they survive restarts.
+      process.env.FLOW_STORE_FILE ??= join(tmpdir(), 'flowchart-dev', 'flows.json')
+
+      server.httpServer?.once('listening', async () => {
+        try {
+          const store = await server.ssrLoadModule('/src/shared/server/store.ts')
+          const redis = store.resolveRedisConfig(process.env)
+          const address = server.httpServer?.address()
+          const port = address && typeof address === 'object' ? address.port : 3004
+          console.log(
+            `[flowchart] Dev API: /api/flows and /api/mcp (MCP endpoint http://localhost:${port}/api/mcp). ` +
+              `Storage: ${redis ? `Upstash Redis (${redis.source})` : `file-backed dev store at ${process.env.FLOW_STORE_FILE}`}`,
+          )
+        } catch (err) {
+          console.error('[flowchart] Dev API failed to load', err)
+        }
+      })
+
+      server.middlewares.use(async (req, res, next) => {
+        const pathname = (req.url ?? '').split('?')[0]
+        if (!pathname.startsWith('/api/flows') && !pathname.startsWith('/api/mcp')) return next()
+        try {
+          const adapter = await server.ssrLoadModule('/src/shared/server/nodeAdapter.ts')
+          const route = adapter.matchApiRoute(pathname)
+          if (!route) return next()
+          await adapter.prepareVercelStyleRequest(req, route.params)
+          const handlerModule = await server.ssrLoadModule(adapter.API_ROUTE_MODULES[route.name])
+          await handlerModule.default(req, res)
+        } catch (err) {
+          if (err instanceof Error) server.ssrFixStacktrace(err)
+          console.error('[api-flows-dev]', err)
+          if (!res.headersSent) {
+            res.statusCode = 500
+            res.setHeader('Content-Type', 'application/json')
+            res.end(JSON.stringify({ error: 'Internal server error' }))
+          }
+        }
+      })
+    },
+  }
+}
+
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), apiChatDevPlugin(mode)],
+  plugins: [react(), apiChatDevPlugin(mode), apiFlowsDevPlugin(mode)],
   server: {
-    port: process.env.PORT ? Number(process.env.PORT) : undefined,
+    port: process.env.PORT ? Number(process.env.PORT) : 3004,
     strictPort: !!process.env.PORT,
+  },
+  build: {
+    rollupOptions: {
+      // mcp.html is the /mcp launch page: its own entry, so it ships without the React Flow app bundle.
+      // `vite` and `vite preview` serve /mcp from mcp.html; vercel.json rewrites it in production.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        mcp: fileURLToPath(new URL('./mcp.html', import.meta.url)),
+      },
+    },
   },
   test: {
     globals: true,

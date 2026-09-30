@@ -1,6 +1,7 @@
 import { toPng, toSvg, toCanvas } from 'html-to-image'
 import GIF from 'gif.js'
 import type { Node as FlowNode, Edge } from 'reactflow'
+import type { DiagramMode } from '../App'
 
 const exportFilter = (node: Node): boolean => {
   if (node instanceof HTMLElement) {
@@ -135,8 +136,21 @@ export async function exportToGif(
   })
 }
 
-export function exportToJson(nodes: FlowNode[], edges: Edge[]): void {
-  const data = JSON.stringify({ nodes, edges }, null, 2)
+/** Serialize a flow document. `version`/`mode` are additive keys; `nodes`/`edges` keep their legacy shape. */
+export function serializeFlow(
+  nodes: FlowNode[],
+  edges: Edge[],
+  mode: DiagramMode = 'flowchart',
+): string {
+  return JSON.stringify({ version: 2, mode, nodes, edges }, null, 2)
+}
+
+export function exportToJson(
+  nodes: FlowNode[],
+  edges: Edge[],
+  mode: DiagramMode = 'flowchart',
+): void {
+  const data = serializeFlow(nodes, edges, mode)
   const blob = new Blob([data], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -148,7 +162,7 @@ export function exportToJson(nodes: FlowNode[], edges: Edge[]): void {
 
 export function parseFlowJson(
   text: string,
-): { nodes: FlowNode[]; edges: Edge[] } {
+): { nodes: FlowNode[]; edges: Edge[]; mode: DiagramMode } {
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
@@ -182,5 +196,8 @@ export function parseFlowJson(
     }
   }
 
-  return { nodes: obj.nodes as FlowNode[], edges: obj.edges as Edge[] }
+  // Tolerant of legacy files: a missing/unknown mode means flowchart.
+  const mode: DiagramMode = obj.mode === 'architecture' ? 'architecture' : 'flowchart'
+
+  return { nodes: obj.nodes as FlowNode[], edges: obj.edges as Edge[], mode }
 }

@@ -1,0 +1,28 @@
+{
+  "title": "CI/CD pipeline to AKS",
+  "prompt": "A CI/CD pipeline that deploys our app to AKS, with a rollback if checks fail",
+  "nodes": [
+    { "id": "push", "type": "step", "label": "Developer pushes to main" },
+    { "id": "build", "type": "step", "label": "Build and run unit tests" },
+    { "id": "tests", "type": "decision", "label": "Tests pass?" },
+    { "id": "fix", "type": "step", "label": "Notify author to fix" },
+    { "id": "registry", "type": "image", "label": "Push image to Container Registry", "icon": "container-registries" },
+    { "id": "staging", "type": "image", "label": "Deploy to staging on AKS", "icon": "kubernetes-services" },
+    { "id": "smoke", "type": "decision", "label": "Smoke tests pass?" },
+    { "id": "rollback", "type": "step", "label": "Roll back the release" },
+    { "id": "prod", "type": "step", "label": "Promote to production" },
+    { "id": "monitor", "type": "image", "label": "Monitor with App Insights", "icon": "application-insights" },
+    { "id": "note", "type": "note", "label": "Rollbacks keep the last three releases" }
+  ],
+  "edges": [
+    { "source": "push", "target": "build" },
+    { "source": "build", "target": "tests" },
+    { "source": "tests", "target": "fix", "label": "No" },
+    { "source": "tests", "target": "registry", "label": "Yes" },
+    { "source": "registry", "target": "staging" },
+    { "source": "staging", "target": "smoke" },
+    { "source": "smoke", "target": "rollback", "label": "No" },
+    { "source": "smoke", "target": "prod", "label": "Yes" },
+    { "source": "prod", "target": "monitor" }
+  ]
+}

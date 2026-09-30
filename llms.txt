@@ -1,42 +1,72 @@
 # FlowChart Designer
 
-> A modern, interactive flowchart designer built with Vite, React, TypeScript, and React Flow. Create flowcharts with AI assistance powered by Azure OpenAI, dark/light mode, presentation mode, and 663+ bundled Azure service icons.
+> A modern, interactive flowchart designer built with Vite, React, TypeScript, and React Flow. Create flowcharts with AI assistance powered by Azure OpenAI, share them with live sync, let any AI agent create and edit charts through a remote MCP server, and use dark/light mode, presentation mode, and 633 bundled Azure service icons.
 
 ## Project overview
 
-FlowChart Designer is a single-page web application that lets users visually build flowcharts on an interactive canvas. Users can add nodes (step, decision, note, image), connect them with styled edges, and present them in a step-by-step presentation mode. An AI assistant powered by Azure OpenAI can generate entire flowcharts from natural-language prompts, with automatic Azure service icon resolution.
+FlowChart Designer is a single-page web application that lets users visually build flowcharts on an interactive canvas. Users can add nodes (step, decision, note, image, architecture nodes, containers), connect them with styled edges, and present them in a step-by-step presentation mode. An AI assistant powered by Azure OpenAI can generate entire flowcharts from natural-language prompts, with automatic Azure service icon resolution.
 
-The app is deployed on Vercel with a serverless API proxy that keeps Azure credentials server-side.
+Charts can be shared as links (`/f/:id`). A remote MCP server at `/api/mcp` (https://flowchart.zeroclickdev.ai/api/mcp) lets AI agents create a chart, return an edit link, and keep editing the same chart; the browser polls for new versions and saves local edits back, so agent and user see each other's changes. The MCP server never calls an LLM: the connected agent composes the chart and the server validates, lays out (elkjs), and stores it (Upstash Redis). See docs/mcp.md.
+
+The app is deployed on Vercel with serverless functions that keep credentials and storage server-side.
+
+## Links
+
+- [Flowchart AI](https://flowchart.zeroclickdev.ai/): the editor (single-page app)
+- [MCP server launch page](https://flowchart.zeroclickdev.ai/mcp): what the MCP server does, the trailer, the five tools, an FAQ, and copy-paste setup for Claude, Claude Code, ChatGPT, VS Code, Cursor and OpenCode
+- [Trailer](https://flowchart.zeroclickdev.ai/media/flowchart-ai-trailer.mp4): 56-second product trailer (MP4, 1920×1080, H.264/AAC); vertical cut at /media/flowchart-ai-trailer-vertical.mp4. Also on the launch page at /mcp#trailer
+- MCP endpoint: https://flowchart.zeroclickdev.ai/api/mcp (Streamable HTTP, no authentication)
+- [MCP and sharing docs](https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md)
 
 ## Tech stack
 
-- Vite (build tool, dev server, dev middleware for API proxy)
+- Vite (build tool, dev server, dev middleware for the API)
 - React 18 + TypeScript
 - React Flow (reactflow v11) + @reactflow/node-resizer
 - Azure OpenAI (gpt-4o with structured outputs)
+- MCP TypeScript SDK (@modelcontextprotocol/sdk), zod, elkjs (server-side layout)
+- Upstash Redis (@upstash/redis) for shared charts, rate limits and daily budgets
 - Vitest + Testing Library
 - Vercel (hosting, serverless functions)
 
 ## Directory structure
 
 ```
-├── api/                        # Vercel serverless functions
+├── api/                        # Vercel serverless functions (native ESM: relative imports end in .js)
 │   ├── chat.ts                 # POST /api/chat — Azure OpenAI proxy
-│   └── flowchart-generation-skill.md  # System prompt for AI generation
-├── assets/                     # 663+ Azure service SVG icons (organized by category)
-├── docs/                       # Design docs
-│   ├── PRD.md
-│   └── UI-Design-References.md
+│   ├── mcp.ts                  # POST /api/mcp — remote MCP server (Streamable HTTP, stateless)
+│   ├── flows/index.ts          # POST /api/flows — create a shared chart
+│   ├── flows/[id].ts           # GET/PUT/PATCH /api/flows/:id
+│   └── flowchart-generation-skill.md  # System prompt for in-app AI generation
+├── assets/                     # 633 unique Azure service SVG icons (organized by category)
+├── docs/                       # Design docs, docs/mcp.md (MCP + sharing), screenshots, trailer-teaser.gif
 ├── public/                     # Static assets (favicons, logos)
+│   └── media/                  # Trailer MP4s (landscape + vertical), posters, Open Graph images
+├── scripts/
+│   └── generate-azure-icon-index.mjs  # Builds src/shared/generated/azure-icon-index.json
+├── trailer/                    # Remotion project for the trailer, poster and OG images (own package; not deployed)
 ├── src/
-│   ├── App.tsx                 # Main application component (~1270 lines)
+│   ├── App.tsx                 # Main application component
 │   ├── App.css                 # Main application styles
+│   ├── mcp/                    # /mcp launch page: main.ts (copy buttons, tabs) + mcp.css, no React
+│   ├── hooks/
+│   │   └── useSharedFlow.ts    # Load /f/:id, poll for versions, autosave, conflicts
+│   ├── shared/                 # Code shared by the browser, api/ and the MCP server
+│   │   ├── flowTypes.ts        # Chart document model and constants (browser-safe)
+│   │   ├── flowSchema.ts       # zod schemas + semantic validation with fixable messages
+│   │   ├── patch.ts            # update operations (add/update/remove node/edge)
+│   │   ├── layout.ts           # elkjs layout, incremental placement, handles
+│   │   ├── icons.ts            # Azure icon index, search and alias resolution
+│   │   ├── generated/azure-icon-index.json
+│   │   └── server/             # Node-only: store, tokens, rate limits, MCP server, HTTP handlers
 │   ├── components/
 │   │   ├── AIChat.tsx          # AI chat interface (welcome + full-screen overlay)
 │   │   ├── AIInsertPreviewDialog.tsx  # Proposal preview with insert/refine/present
 │   │   ├── Explorer.tsx        # Sidebar explorer (visual + JSON modes)
 │   │   ├── ImagePicker.tsx     # Azure icon browser + image upload
-│   │   ├── Toolbar.tsx         # Main toolbar (tools, actions, dark mode toggle)
+│   │   ├── Toolbar.tsx         # Main toolbar (tools, actions, dark mode toggle, Share)
+│   │   ├── ShareMenu.tsx       # Share button and panel (view/edit/MCP links)
+│   │   ├── ShareStatus.tsx     # Shared badge, sync status, conflict notice
 │   │   ├── PreviewMode.tsx     # Presentation mode with step-through navigation
 │   │   ├── edges/
 │   │   │   └── EditableEdge.tsx  # Custom edge with double-click label editing
@@ -48,14 +78,17 @@ The app is deployed on Vercel with a serverless API proxy that keeps Azure crede
 │   │       └── NodeStyles.css  # Shared node styles
 │   ├── utils/
 │   │   ├── azureIconRegistry.ts   # Icon lookup map built via import.meta.glob
+│   │   ├── azureIconIds.ts        # Stable icon ids <-> asset URLs (for shared charts)
+│   │   ├── sharedFlow.ts          # Shared chart document <-> React Flow conversion
+│   │   ├── shareApi.ts            # Browser client for /api/flows, edit-token storage
 │   │   └── conversationStore.ts   # Session-persisted conversation threads
-│   └── test/
-│       ├── App.test.tsx
-│       └── setup.ts
-├── index.html
-├── vite.config.ts              # Vite config with dev API middleware
-├── vercel.json                 # Vercel deployment config
-├── tsconfig.json
+│   └── test/                   # Vitest suites (app, shared/, server/ incl. MCP + HTTP)
+├── index.html                  # App entry
+├── mcp.html                    # /mcp launch page entry (separate Vite input, no app bundle)
+├── vite.config.ts              # Vite config with dev API middleware and both HTML entries
+├── vercel.json                 # Vercel deployment config (rewrites /f/* to the SPA and /mcp to mcp.html)
+├── tsconfig.json               # App type-check
+├── tsconfig.api.json           # api/ + src/shared type-check (NodeNext, like Vercel)
 └── package.json
 ```
 
@@ -66,6 +99,12 @@ Central orchestrator. Manages all canvas state (nodes, edges, selection), toolba
 
 ### api/chat.ts
 Vercel serverless function that proxies requests to Azure OpenAI. Uses structured outputs (response_format with strict JSON schema) to guarantee valid flowchart JSON. Reads AZURE_DEPLOYMENT_NAME, AZURE_RESOURCE_NAME, and AZURE_API_KEY from environment variables. Also served locally via Vite dev middleware.
+
+### api/mcp.ts, api/flows/ and src/shared/server/
+The remote MCP server and the shared-chart REST API. Tools: create_flowchart, get_flowchart, update_flowchart (operations or replace, with expectedVersion for optimistic concurrency), list_node_types, search_azure_icons. Resources: flowchart://guide (authoring guide) and flowchart://schema. Prompt: design_flowchart. Charts get a 10-character id, a version, and a random edit token stored only as a SHA-256 hash. Storage is Upstash Redis (atomic Lua compare-and-set); local development falls back to a file-backed memory store; production fails with 503 when storage is missing. Validation errors come back as `isError` tool results listing each problem and how to fix it.
+
+### src/hooks/useSharedFlow.ts
+Browser side of sharing: opens /f/:id, moves an `#edit=` token into localStorage and out of the URL, polls `GET /api/flows/:id?since=<version>` (every 3 seconds after activity, slowing to every 15 seconds while nothing changes, paused while the tab is hidden or after 30 idle minutes), applies remote updates when there are no unsaved local edits (otherwise shows a conflict notice), and autosaves local edits with `PUT` + `baseVersion`.
 
 ### src/components/AIChat.tsx
 Two-variant AI chat UI. Welcome variant shows a floating prompt on empty canvases with starter suggestions. Full variant is a full-screen overlay with conversation threads (sessionStorage, 30-min TTL), 47+ starter prompts, and a loading progress bar with rotating messages.
@@ -146,11 +185,16 @@ The AI generates JSON matching this structure:
 | AZURE_DEPLOYMENT_NAME | For AI features | Azure OpenAI deployment name |
 | AZURE_RESOURCE_NAME | For AI features | Azure OpenAI resource name |
 | AZURE_API_KEY | For AI features | Azure OpenAI API key |
+| KV_REST_API_URL / KV_REST_API_TOKEN | For sharing + MCP in production | Upstash Redis (Vercel Marketplace). UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN also work |
+| PUBLIC_BASE_URL | No | Origin used in returned chart links |
+| FLOW_TTL_DAYS, FLOW_RATE_LIMIT, FLOW_STORE | No | Retention, rate-limit switch, in-memory override (see docs/mcp.md) |
 
 ## Commands
 
 - `pnpm install` — Install dependencies
-- `pnpm dev` — Start development server
-- `pnpm build` — TypeScript compile + Vite production build
+- `pnpm dev` — Start development server (also serves /api/flows and /api/mcp)
+- `pnpm build` — Regenerate the icon index, type-check the app and api/, then Vite production build
 - `pnpm preview` — Preview production build locally
 - `pnpm test` — Run Vitest test suite
+- `npm run typecheck:api` — Type-check api/ and src/shared the way Vercel runs them (NodeNext ESM)
+- `npm run icons:index` — Regenerate src/shared/generated/azure-icon-index.json from assets/icons
