@@ -12,10 +12,11 @@ import { Close } from './scenes/Close'
 
 loadTrailerFonts()
 
-export const AUDIO_FILE = 'audio/trailer-mix.wav'
+export const AUDIO_FILE = 'audio/trailer-narrated.m4a'
 
 export const Trailer: React.FC = () => {
   const hasAudio = getStaticFiles().some((f) => f.name === AUDIO_FILE)
+  if (!hasAudio) throw new Error('The approved audio/trailer-narrated.m4a master is missing. Restore it from Git before rendering.')
   return (
     <AbsoluteFill style={{ background: C.bg }}>
       <Sequence name="Hook" from={SCENES.hook.from} durationInFrames={SCENES.hook.duration}>
@@ -36,7 +37,7 @@ export const Trailer: React.FC = () => {
       <Sequence name="Close" from={SCENES.close.from} durationInFrames={SCENES.close.duration}>
         <Close from={SCENES.close.from} />
       </Sequence>
-      {hasAudio && <Audio src={staticFile(AUDIO_FILE)} />}
+      <Audio src={staticFile(AUDIO_FILE)} />
     </AbsoluteFill>
   )
 }

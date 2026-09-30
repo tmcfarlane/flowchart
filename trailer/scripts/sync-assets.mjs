@@ -3,7 +3,6 @@
 // The repo root stays the single source of truth: logos from public/logo, Azure icons
 // from assets/icons (via the app's generated icon index), fonts from node_modules.
 
-import { execFileSync } from 'node:child_process'
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -50,8 +49,7 @@ for (const [from, name] of fonts) copy(from, join(PUBLIC, 'fonts', name))
 
 console.log(`[assets] logos: 2, azure icons: ${copied}, fonts: ${fonts.length}`)
 
-// The soundtrack is generated rather than copied: render it if it is missing.
-if (!existsSync(join(PUBLIC, 'audio', 'trailer-mix.wav'))) {
-  console.log('[assets] public/audio/trailer-mix.wav is missing, rendering it (npm run music)')
-  execFileSync(process.execPath, [join(TRAILER, 'scripts', 'audio', 'render-audio.mjs')], { stdio: 'inherit' })
+// Default renders use the approved master; never silently replace it with music only.
+if (!existsSync(join(PUBLIC, 'audio', 'trailer-narrated.m4a'))) {
+  throw new Error('The approved public/audio/trailer-narrated.m4a master is missing. Restore it from Git before rendering.')
 }

@@ -13,7 +13,7 @@
     "render:vertical": "npm run assets && remotion render src/index.ts TrailerVertical out/flowchart-ai-trailer-vertical.mp4 --muted && node scripts/mux-audio.mjs out/flowchart-ai-trailer-vertical.mp4",
     "render:poster": "npm run assets && remotion still src/index.ts Poster out/flowchart-ai-trailer-poster.png",
     "render:og": "npm run assets && remotion still src/index.ts OgImage out/og-image.png && remotion still src/index.ts OgImageMcp out/og-image-mcp.png",
-    "render:all": "npm run music && npm run render && npm run render:vertical && npm run render:poster && npm run qa",
+    "render:all": "npm run render && npm run render:vertical && npm run render:poster && npm run qa",
     "qa": "node scripts/qa/check.mjs",
     "qa:frames": "node scripts/qa/check.mjs --frames",
     "typecheck": "tsc --noEmit"
