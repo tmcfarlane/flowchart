@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { readFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { fileURLToPath } from 'url'
 
 // https://vitejs.dev/config/
 function apiChatDevPlugin(mode: string): Plugin {
@@ -304,6 +305,16 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: process.env.PORT ? Number(process.env.PORT) : 3004,
     strictPort: !!process.env.PORT,
+  },
+  build: {
+    rollupOptions: {
+      // mcp.html is the /mcp launch page: its own entry, so it ships without the React Flow app bundle.
+      // `vite` and `vite preview` serve /mcp from mcp.html; vercel.json rewrites it in production.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        mcp: fileURLToPath(new URL('./mcp.html', import.meta.url)),
+      },
+    },
   },
   test: {
     globals: true,

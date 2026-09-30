@@ -10,6 +10,14 @@ Charts can be shared as links (`/f/:id`). A remote MCP server at `/api/mcp` (htt
 
 The app is deployed on Vercel with serverless functions that keep credentials and storage server-side.
 
+## Links
+
+- [Flowchart AI](https://flowchart.zeroclickdev.ai/): the editor (single-page app)
+- [MCP server launch page](https://flowchart.zeroclickdev.ai/mcp): what the MCP server does, the trailer, the five tools, an FAQ, and copy-paste setup for Claude, Claude Code, ChatGPT, VS Code, Cursor and OpenCode
+- [Trailer](https://flowchart.zeroclickdev.ai/media/flowchart-ai-trailer.mp4): 56-second product trailer (MP4, 1920×1080, H.264/AAC); vertical cut at /media/flowchart-ai-trailer-vertical.mp4. Also on the launch page at /mcp#trailer
+- MCP endpoint: https://flowchart.zeroclickdev.ai/api/mcp (Streamable HTTP, no authentication)
+- [MCP and sharing docs](https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md)
+
 ## Tech stack
 
 - Vite (build tool, dev server, dev middleware for the API)
@@ -31,13 +39,16 @@ The app is deployed on Vercel with serverless functions that keep credentials an
 │   ├── flows/[id].ts           # GET/PUT/PATCH /api/flows/:id
 │   └── flowchart-generation-skill.md  # System prompt for in-app AI generation
 ├── assets/                     # 633 unique Azure service SVG icons (organized by category)
-├── docs/                       # Design docs, docs/mcp.md (MCP + sharing), screenshots
+├── docs/                       # Design docs, docs/mcp.md (MCP + sharing), screenshots, trailer-teaser.gif
 ├── public/                     # Static assets (favicons, logos)
+│   └── media/                  # Trailer MP4s (landscape + vertical), posters, Open Graph images
 ├── scripts/
 │   └── generate-azure-icon-index.mjs  # Builds src/shared/generated/azure-icon-index.json
+├── trailer/                    # Remotion project for the trailer, poster and OG images (own package; not deployed)
 ├── src/
 │   ├── App.tsx                 # Main application component
 │   ├── App.css                 # Main application styles
+│   ├── mcp/                    # /mcp launch page: main.ts (copy buttons, tabs) + mcp.css, no React
 │   ├── hooks/
 │   │   └── useSharedFlow.ts    # Load /f/:id, poll for versions, autosave, conflicts
 │   ├── shared/                 # Code shared by the browser, api/ and the MCP server
@@ -72,9 +83,10 @@ The app is deployed on Vercel with serverless functions that keep credentials an
 │   │   ├── shareApi.ts            # Browser client for /api/flows, edit-token storage
 │   │   └── conversationStore.ts   # Session-persisted conversation threads
 │   └── test/                   # Vitest suites (app, shared/, server/ incl. MCP + HTTP)
-├── index.html
-├── vite.config.ts              # Vite config with dev API middleware
-├── vercel.json                 # Vercel deployment config (rewrites /f/* to the SPA)
+├── index.html                  # App entry
+├── mcp.html                    # /mcp launch page entry (separate Vite input, no app bundle)
+├── vite.config.ts              # Vite config with dev API middleware and both HTML entries
+├── vercel.json                 # Vercel deployment config (rewrites /f/* to the SPA and /mcp to mcp.html)
 ├── tsconfig.json               # App type-check
 ├── tsconfig.api.json           # api/ + src/shared type-check (NodeNext, like Vercel)
 └── package.json

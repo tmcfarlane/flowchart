@@ -142,7 +142,7 @@ function ShareMenu({ isShared, canEdit, viewUrl, editUrl, creating, createError,
                 hint="Add this remote MCP server to Claude, Cursor, VS Code or OpenCode to create and edit charts from your agent."
               />
               <p className="share-panel-footer">
-                <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md" target="_blank" rel="noopener noreferrer">
+                <a href="/mcp" target="_blank" rel="noopener">
                   MCP setup guide
                 </a>
               </p>

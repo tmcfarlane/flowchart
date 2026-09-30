@@ -404,6 +404,78 @@
   letter-spacing: -0.3px;
 }
 
+/* "New" announcement above the welcome heading (links to /mcp) */
+.ai-welcome-news {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin: -4px 0 14px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.ai-welcome-news-tag {
+  margin-right: -6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ai-welcome-news-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 3px;
+  color: #047857;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ai-welcome-news-link:hover {
+  color: #065f46;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ai-welcome-news-link:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.ai-welcome-news-trailer {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.app.dark-mode .ai-welcome-news-tag {
+  background: rgba(120, 252, 214, 0.14);
+  color: #78fcd6;
+}
+
+.app.dark-mode .ai-welcome-news-link {
+  color: #78fcd6;
+}
+
+.app.dark-mode .ai-welcome-news-link:hover {
+  color: #00ffb6;
+}
+
+.app.dark-mode .ai-welcome-news-link:focus-visible {
+  outline-color: #78fcd6;
+}
+
+.app.dark-mode .ai-welcome-news-trailer {
+  color: rgba(231, 236, 235, 0.72);
+}
+
+.app.dark-mode .ai-welcome-news-trailer:hover {
+  color: #e7eceb;
+}
+
 /* Starter prompt suggestions */
 .ai-prompt-suggestions {
   display: grid;

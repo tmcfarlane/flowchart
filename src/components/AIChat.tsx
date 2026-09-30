@@ -373,6 +373,20 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
         </div>
 
         <div className="ai-bubble-content">
+          {!isLoading && (
+            <p className="ai-welcome-news">
+              <span className="ai-welcome-news-tag">New</span>
+              <a href="/mcp" target="_blank" rel="noopener" className="ai-welcome-news-link">
+                Connect your AI agent (MCP)
+              </a>
+              <a href="/mcp#trailer" target="_blank" rel="noopener" className="ai-welcome-news-link ai-welcome-news-trailer">
+                <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" aria-hidden="true">
+                  <path d="M0 0.8v8.4a.6.6 0 00.9.5l7.4-4.2a.6.6 0 000-1L.9.3A.6.6 0 000 .8z" />
+                </svg>
+                Watch the trailer
+              </a>
+            </p>
+          )}
           {!isLoading && <p className="ai-welcome-heading">What's your flow?</p>}
 
           {isLoading ? (

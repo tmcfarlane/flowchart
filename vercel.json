@@ -5,6 +5,7 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/f/:path*", "destination": "/index.html" }
+    { "source": "/f/:path*", "destination": "/index.html" },
+    { "source": "/mcp", "destination": "/mcp.html" }
   ]
 }

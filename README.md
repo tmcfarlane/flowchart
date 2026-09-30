@@ -1,9 +1,13 @@
 <div align="center">
 
 <p>
-  <a href="https://flowchart.zeroclickdev.ai/">
-    <img src="docs/screenshots/flow.gif" alt="FlowChart AI — Free AI-powered flowchart designer" width="560" />
+  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer">
+    <img src="docs/screenshots/trailer-teaser.gif" alt="Flowchart AI trailer: an AI agent adds a step to a flowchart over MCP, and the chart open in the browser updates live" width="720" />
   </a>
+</p>
+
+<p>
+  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer"><strong>▶ Watch the trailer</strong></a> (0:56, sound on)
 </p>
 
 <div style="font-size: 2.5em; font-weight: 800; letter-spacing: 0.08em; line-height: 1.1;">
@@ -31,6 +35,9 @@ Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
 
 </div>
 
+> [!TIP]
+> **New: the Flowchart AI MCP server.** Connect Claude, ChatGPT, VS Code, Cursor or OpenCode to `https://flowchart.zeroclickdev.ai/api/mcp`, and your agent can draw a flowchart, hand you a link, and keep editing it with you. Free, no account or API key. [Launch page and setup](https://flowchart.zeroclickdev.ai/mcp) · [Docs](docs/mcp.md)
+
 ---
 
 ## Features
@@ -50,6 +57,10 @@ Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
 
 <details>
 <summary><strong>Screenshots</strong></summary>
+
+### Demo
+
+![FlowChart AI — Free AI-powered flowchart designer](docs/screenshots/flow.gif)
 
 ### AI Generation
 
@@ -106,7 +117,7 @@ https://flowchart.zeroclickdev.ai/api/mcp
 claude mcp add --transport http flowchart https://flowchart.zeroclickdev.ai/api/mcp
 ```
 
-Tools: `create_flowchart`, `get_flowchart`, `update_flowchart`, `list_node_types`, `search_azure_icons`. No account or API key is needed. The dev server also serves the MCP endpoint at `http://localhost:3004/api/mcp`. See **[docs/mcp.md](docs/mcp.md)** for setup in Claude, VS Code, Cursor, OpenCode and ChatGPT, the tool reference, privacy notes, and self-hosting with Upstash Redis.
+Tools: `create_flowchart`, `get_flowchart`, `update_flowchart`, `list_node_types`, `search_azure_icons`. No account or API key is needed. The dev server also serves the MCP endpoint at `http://localhost:3004/api/mcp`. Setup steps for each client are on the **[launch page](https://flowchart.zeroclickdev.ai/mcp)**, and **[docs/mcp.md](docs/mcp.md)** has the same setup plus the tool reference, privacy notes, and self-hosting with Upstash Redis.
 
 ![An AI agent's edit appearing live in a shared chart](docs/screenshots/mcp-agent-update.png)
 

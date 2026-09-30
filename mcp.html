@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flowchart AI MCP server — Your agent draws. You iterate.</title>
+  <meta name="description" content="Connect Claude, ChatGPT, VS Code, Cursor or OpenCode to the free Flowchart AI MCP server. Your agent creates a flowchart, hands you a link to edit it, and keeps editing the same chart with you. No account, no API key, open source." />
+  <link rel="canonical" href="https://flowchart.zeroclickdev.ai/mcp" />
+  <meta name="theme-color" content="#0f1211" />
+  <meta name="color-scheme" content="dark" />
+
+  <link rel="icon" type="image/svg+xml" href="/logo/logo_color.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Flowchart AI" />
+  <meta property="og:title" content="Flowchart AI MCP server — Your agent draws. You iterate." />
+  <meta property="og:description" content="Let your AI agent create a flowchart, hand you a link, and keep editing it with you. Free remote MCP server for Claude, ChatGPT, VS Code, Cursor and OpenCode. No account, no API key." />
+  <meta property="og:url" content="https://flowchart.zeroclickdev.ai/mcp" />
+  <meta property="og:image" content="https://flowchart.zeroclickdev.ai/media/og-image-mcp.jpg" />
+  <meta property="og:image:secure_url" content="https://flowchart.zeroclickdev.ai/media/og-image-mcp.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Flowchart AI MCP server: Your agent draws. You iterate. Beside it, a chart in the editor with the node an AI agent just added." />
+  <meta property="og:video" content="https://flowchart.zeroclickdev.ai/media/flowchart-ai-trailer.mp4" />
+  <meta property="og:video:secure_url" content="https://flowchart.zeroclickdev.ai/media/flowchart-ai-trailer.mp4" />
+  <meta property="og:video:type" content="video/mp4" />
+  <meta property="og:video:width" content="1920" />
+  <meta property="og:video:height" content="1080" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Flowchart AI MCP server — Your agent draws. You iterate." />
+  <meta name="twitter:description" content="Let your AI agent create a flowchart, hand you a link, and keep editing it with you. Free, no account, open source." />
+  <meta name="twitter:image" content="https://flowchart.zeroclickdev.ai/media/og-image-mcp.jpg" />
+  <meta name="twitter:image:alt" content="Flowchart AI MCP server: Your agent draws. You iterate." />
+
+  <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoObject",
+      "name": "Flowchart AI trailer",
+      "description": "Describe your idea, get a flowchart. Then an AI agent creates a chart over MCP and updates it live while it is open in the browser.",
+      "thumbnailUrl": "https://flowchart.zeroclickdev.ai/media/flowchart-ai-trailer-poster.jpg",
+      "uploadDate": "2026-09-30",
+      "duration": "PT56S",
+      "contentUrl": "https://flowchart.zeroclickdev.ai/media/flowchart-ai-trailer.mp4"
+    }
+  </script>
+
+  <link rel="stylesheet" href="/src/mcp/mcp.css" />
+  <script type="module" src="/src/mcp/main.ts"></script>
+</head>
+
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img src="/logo/logo_color.svg" alt="" width="28" height="28" />
+        <span class="brand-name">Flowchart AI</span>
+      </a>
+      <nav class="header-nav" aria-label="Primary">
+        <a class="nav-link" href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md">Docs</a>
+        <a class="nav-link" href="https://github.com/tmcfarlane/flowchart">GitHub</a>
+        <a class="button button-quiet" href="/"><span class="button-label-desktop">Open Flowchart AI</span><span class="button-label-mobile">Open app</span></a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container">
+        <p class="kicker"><span class="tag">New</span> Flowchart AI is now an MCP server</p>
+        <h1 id="hero-title"><span class="line">Your agent draws.</span> <span class="line accent">You iterate.</span></h1>
+        <div class="hero-body">
+          <div class="hero-copy">
+            <p class="lede">
+              Ask Claude, ChatGPT, Copilot, Cursor or OpenCode for a flowchart and get back a link to a real,
+              editable chart. Change it in the browser while your agent keeps editing the same chart. Each of you
+              sees the other’s changes within seconds.
+            </p>
+            <ul class="facts" aria-label="At a glance">
+              <li>Free</li>
+              <li>No account or API key</li>
+              <li><a href="https://github.com/tmcfarlane/flowchart">Open source</a></li>
+            </ul>
+          </div>
+
+          <div class="endpoint">
+            <p class="endpoint-label">MCP server URL</p>
+            <div class="endpoint-box">
+              <code class="endpoint-url" id="endpoint-url">https://flowchart.zeroclickdev.ai/api/mcp</code>
+              <button type="button" class="button button-primary copy-button" data-copy="https://flowchart.zeroclickdev.ai/api/mcp" aria-label="Copy the MCP server URL">Copy</button>
+            </div>
+            <p class="endpoint-hint">Streamable HTTP, no sign-in. <a href="#setup">Setup for your client</a></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="trailer" id="trailer" aria-label="Trailer">
+      <div class="container">
+        <figure class="video-figure">
+          <div class="video-frame">
+            <video id="trailer-video" class="video" controls playsinline preload="none" width="1920" height="1080"
+              poster="/media/flowchart-ai-trailer-poster.jpg"
+              data-poster="/media/flowchart-ai-trailer-poster.jpg"
+              data-poster-portrait="/media/flowchart-ai-trailer-poster-vertical.jpg"
+              aria-label="Flowchart AI trailer" aria-describedby="trailer-caption">
+              <source src="/media/flowchart-ai-trailer-vertical.mp4" type="video/mp4" media="(orientation: portrait) and (max-width: 700px)" />
+              <source src="/media/flowchart-ai-trailer.mp4" type="video/mp4" />
+              <p>Your browser can’t play this video. <a href="/media/flowchart-ai-trailer.mp4">Download the trailer (MP4)</a>.</p>
+            </video>
+            <button type="button" class="video-play" id="trailer-play" hidden>
+              <span class="video-play-pill">
+                <span class="video-play-icon" aria-hidden="true">
+                  <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor"><path d="M1 1.2v11.6a.9.9 0 001.36.77l9.3-5.8a.9.9 0 000-1.54L2.36.43A.9.9 0 001 1.2z" /></svg>
+                </span>
+                Play the trailer
+                <span class="video-play-time">0:56</span>
+              </span>
+            </button>
+          </div>
+          <script>
+            // Select matching artwork and video before playback. Once playback starts, keep
+            // that source and its ratio through rotation so watching or pausing never resets it.
+            (function () {
+              var video = document.getElementById('trailer-video');
+              var play = document.getElementById('trailer-play');
+              var frame = video.parentElement;
+              var portraitQuery = window.matchMedia('(orientation: portrait) and (max-width: 700px)');
+              var hasStarted = false;
+              var playPending = false;
+              function selectSource() {
+                if (hasStarted || playPending) return;
+                var portrait = portraitQuery.matches;
+                var source = video.querySelector(portrait ? 'source[media]' : 'source:not([media])');
+                frame.setAttribute('data-orientation', portrait ? 'portrait' : 'landscape');
+                video.poster = video.getAttribute(portrait ? 'data-poster-portrait' : 'data-poster');
+                video.width = portrait ? 1080 : 1920;
+                video.height = portrait ? 1920 : 1080;
+                if (video.src !== source.src) video.src = source.src;
+              }
+              selectSource();
+              if (portraitQuery.addEventListener) portraitQuery.addEventListener('change', selectSource);
+              else portraitQuery.addListener(selectSource);
+              video.controls = false;
+              play.hidden = false;
+              function started() {
+                hasStarted = true;
+                playPending = false;
+                play.hidden = true;
+                video.controls = true;
+              }
+              function retry() {
+                playPending = false;
+                play.hidden = false;
+                video.controls = true;
+              }
+              play.addEventListener('click', function (event) {
+                if (playPending) return;
+                playPending = true;
+                video.controls = true;
+                if (video.error) video.load();
+                var result = video.play();
+                if (result && result.catch) result.catch(retry);
+                // Keyboard users land on the player's own controls; a mouse click leaves focus alone.
+                if (event.detail === 0) video.focus();
+              });
+              video.addEventListener('play', started);
+              video.addEventListener('error', retry);
+            })();
+          </script>
+          <figcaption id="trailer-caption">
+            <span class="caption-meta">Sound on.</span>
+            A prompt becomes a chart. Then an agent creates one over MCP and updates it while it’s open in the browser.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="how" id="how-it-works" aria-labelledby="how-title">
+      <div class="container">
+        <h2 id="how-title">How it works</h2>
+        <ol class="steps">
+          <li class="step">
+            <h3>Connect your agent</h3>
+            <p>Add the server URL to your AI client once. There’s nothing to sign up for and no key to paste.</p>
+          </li>
+          <li class="step">
+            <h3>Ask for a chart</h3>
+            <p>“Draw our signup → payment → onboarding flow.” Your agent calls <code>create_flowchart</code>, the server lays the chart out, and you get a link to open it.</p>
+          </li>
+          <li class="step">
+            <h3>Iterate together</h3>
+            <p>Drag, rename or add steps in the browser; your edits save automatically. Ask your agent for a change and it calls <code>update_flowchart</code>. Your open tab shows it within seconds, marked <span class="ui-label">Updated by AI agent</span>.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="setup" id="setup" aria-labelledby="setup-title">
+      <div class="container">
+        <div class="section-head">
+          <h2 id="setup-title">Set up your client</h2>
+          <p>Pick your client. Any other MCP client that supports Streamable HTTP works with the same URL.</p>
+        </div>
+
+        <div class="tabs" data-tabs data-tabs-label="MCP clients">
+          <section class="tabpanel" id="setup-claude" data-tab="Claude" aria-labelledby="setup-claude-title">
+            <h3 class="panel-title" id="setup-claude-title">Claude (web and desktop)</h3>
+            <ol class="instructions">
+              <li>Open <a href="https://claude.ai/customize/connectors"><strong>Customize → Connectors</strong></a>, click <strong>+</strong>, then <strong>Add custom connector</strong>.</li>
+              <li>Name it <strong>Flowchart AI</strong> and paste the server URL. Leave <strong>Advanced settings</strong> empty; there’s nothing to sign in to.</li>
+              <li>Click <strong>Add</strong>. In a chat, turn it on from <strong>+ → Connectors</strong>.</li>
+            </ol>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">Server URL</span>
+                <button type="button" class="copy-button" data-copy-target="snip-claude" aria-label="Copy the server URL for Claude">Copy</button>
+              </div>
+              <pre class="snippet-code wrap" id="snip-claude"><code>https://flowchart.zeroclickdev.ai/api/mcp</code></pre>
+            </div>
+            <p class="note">Custom connectors work on the Free plan (one connector), Pro and Max. On Team and Enterprise, an Owner adds the connector first under <strong>Organization settings → Connectors</strong>; members then connect it from <strong>Customize → Connectors</strong>.</p>
+          </section>
+
+          <section class="tabpanel" id="setup-claude-code" data-tab="Claude Code" aria-labelledby="setup-claude-code-title">
+            <h3 class="panel-title" id="setup-claude-code-title">Claude Code</h3>
+            <p>Run this in your terminal:</p>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">Terminal</span>
+                <button type="button" class="copy-button" data-copy-target="snip-claude-code" aria-label="Copy the Claude Code command">Copy</button>
+              </div>
+              <pre class="snippet-code wrap" id="snip-claude-code"><code>claude mcp add --transport http flowchart https://flowchart.zeroclickdev.ai/api/mcp</code></pre>
+            </div>
+            <p class="note">Add <code>--scope user</code> to use it in every project. Run <code>/mcp</code> inside Claude Code to check the connection.</p>
+          </section>
+
+          <section class="tabpanel" id="setup-chatgpt" data-tab="ChatGPT" aria-labelledby="setup-chatgpt-title">
+            <h3 class="panel-title" id="setup-chatgpt-title">ChatGPT (web, developer mode)</h3>
+            <ol class="instructions">
+              <li>In ChatGPT, open <strong>Settings → Security and login</strong> and turn on <strong>Developer mode</strong>.</li>
+              <li>Go to <a href="https://chatgpt.com/plugins"><strong>chatgpt.com/plugins</strong></a> and click <strong>+</strong>. Name it <strong>Flowchart AI</strong>, paste the server URL as the connection, choose <strong>No authentication</strong>, and create it.</li>
+              <li>In a chat, choose <strong>Developer mode</strong> from the <strong>+</strong> menu and select Flowchart AI. ChatGPT asks you to confirm before it creates or changes a chart.</li>
+            </ol>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">Server URL</span>
+                <button type="button" class="copy-button" data-copy-target="snip-chatgpt" aria-label="Copy the server URL for ChatGPT">Copy</button>
+              </div>
+              <pre class="snippet-code wrap" id="snip-chatgpt"><code>https://flowchart.zeroclickdev.ai/api/mcp</code></pre>
+            </div>
+            <p class="note">Developer mode is available on the web for Plus, Pro, Business, Enterprise and Edu accounts; in a workspace, an admin may need to allow it. Menu names change often, so look for “Developer mode” if these don’t match.</p>
+          </section>
+
+          <section class="tabpanel" id="setup-vscode" data-tab="VS Code" aria-labelledby="setup-vscode-title">
+            <h3 class="panel-title" id="setup-vscode-title">VS Code (GitHub Copilot)</h3>
+            <p>Run <strong>MCP: Add Server</strong> from the Command Palette, choose HTTP, paste the server URL, and save it to <strong>.mcp.json</strong> (this workspace) or <strong>Copilot Global</strong> (every workspace). Or add it to <code>.mcp.json</code> at the root of your workspace:</p>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">.mcp.json</span>
+                <button type="button" class="copy-button" data-copy-target="snip-vscode-json" aria-label="Copy the VS Code configuration">Copy</button>
+              </div>
+              <pre class="snippet-code" id="snip-vscode-json"><code>{
+  "mcpServers": {
+    "flowchart": {
+      "type": "http",
+      "url": "https://flowchart.zeroclickdev.ai/api/mcp"
+    }
+  }
+}</code></pre>
+            </div>
+            <p>Or add it to your VS Code user profile from a terminal:</p>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">Terminal (macOS, Linux)</span>
+                <button type="button" class="copy-button" data-copy-target="snip-vscode-cli" aria-label="Copy the VS Code command">Copy</button>
+              </div>
+              <pre class="snippet-code wrap" id="snip-vscode-cli"><code>code --add-mcp '{"name":"flowchart","type":"http","url":"https://flowchart.zeroclickdev.ai/api/mcp"}'</code></pre>
+            </div>
+          </section>
+
+          <section class="tabpanel" id="setup-cursor" data-tab="Cursor" aria-labelledby="setup-cursor-title">
+            <h3 class="panel-title" id="setup-cursor-title">Cursor</h3>
+            <p><a class="button button-quiet" href="cursor://anysphere.cursor-deeplink/mcp/install?name=flowchart&amp;config=eyJ1cmwiOiJodHRwczovL2Zsb3djaGFydC56ZXJvY2xpY2tkZXYuYWkvYXBpL21jcCJ9">Add to Cursor</a></p>
+            <p>Or add it to <code>~/.cursor/mcp.json</code> for all projects, or <code>.cursor/mcp.json</code> for one:</p>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">~/.cursor/mcp.json</span>
+                <button type="button" class="copy-button" data-copy-target="snip-cursor" aria-label="Copy the Cursor configuration">Copy</button>
+              </div>
+              <pre class="snippet-code" id="snip-cursor"><code>{
+  "mcpServers": {
+    "flowchart": {
+      "url": "https://flowchart.zeroclickdev.ai/api/mcp"
+    }
+  }
+}</code></pre>
+            </div>
+          </section>
+
+          <section class="tabpanel" id="setup-opencode" data-tab="OpenCode" aria-labelledby="setup-opencode-title">
+            <h3 class="panel-title" id="setup-opencode-title">OpenCode</h3>
+            <p>Run this in your project (add <code>--global</code> to use it in every project):</p>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">Terminal</span>
+                <button type="button" class="copy-button" data-copy-target="snip-opencode-cli" aria-label="Copy the OpenCode command">Copy</button>
+              </div>
+              <pre class="snippet-code wrap" id="snip-opencode-cli"><code>opencode mcp add flowchart --url https://flowchart.zeroclickdev.ai/api/mcp</code></pre>
+            </div>
+            <p>Or add it to <code>opencode.json</code> yourself:</p>
+            <div class="snippet">
+              <div class="snippet-bar">
+                <span class="snippet-label">opencode.json</span>
+                <button type="button" class="copy-button" data-copy-target="snip-opencode-json" aria-label="Copy the OpenCode configuration">Copy</button>
+              </div>
+              <pre class="snippet-code" id="snip-opencode-json"><code>{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "flowchart": {
+        "type": "remote",
+        "url": "https://flowchart.zeroclickdev.ai/api/mcp"
+      }
+    }
+  }
+}</code></pre>
+            </div>
+            <p class="note">On OpenCode 1.x, run <code>opencode mcp add</code> and follow the prompts, or put <code>"flowchart": { "type": "remote", "url": "https://flowchart.zeroclickdev.ai/api/mcp" }</code> directly under <code>"mcp"</code>.</p>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <section class="tools" id="tools" aria-labelledby="tools-title">
+      <div class="container split">
+        <div class="split-head">
+          <h2 id="tools-title">Five tools</h2>
+          <p>Your agent finds these on its own. The server also gives it an authoring guide and a JSON schema, and invalid input comes back with a list of exact fixes.</p>
+        </div>
+        <dl class="tool-list">
+          <div class="tool">
+            <dt><code>create_flowchart</code></dt>
+            <dd>Creates a chart from nodes and edges, lays it out, and returns a view link and an edit link.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>get_flowchart</code></dt>
+            <dd>Reads the latest version of a chart, including your edits in the browser.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>update_flowchart</code></dt>
+            <dd>Adds, changes or removes nodes and edges in place, and checks the version it last read so it doesn’t overwrite your newer edits.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>list_node_types</code></dt>
+            <dd>Lists the node types, containers, edge styles and limits an agent can use.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>search_azure_icons</code></dt>
+            <dd>Finds official Azure service icons by name or alias, like “cosmos” or “aks”.</dd>
+          </div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="faq" id="faq" aria-labelledby="faq-title">
+      <div class="container split">
+        <div class="split-head">
+          <h2 id="faq-title">Questions</h2>
+          <p>More detail in the <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md">MCP docs</a>.</p>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>Is it free? Do I need an account?</summary>
+            <p>It’s free, and there’s no account, sign-up or API key. Access to each chart comes from its link instead.</p>
+          </details>
+          <details>
+            <summary>Who can see my chart?</summary>
+            <p>Anyone with its view link (<code>/f/&lt;id&gt;</code>) can see it. The edit link adds <code>#edit=…</code> and lets whoever has it, including your agent, change the chart, so share it only with people and agents you trust. Chart ids are random and can’t practically be guessed, but don’t put passwords or keys in a chart.</p>
+          </details>
+          <details>
+            <summary>Does Flowchart AI use AI on its side?</summary>
+            <p>No. The MCP server never calls a language model. Your own agent writes the chart; the server only checks it, lays it out and stores it. (The prompt box in the app is separate and uses Azure OpenAI.)</p>
+          </details>
+          <details>
+            <summary>What are the limits?</summary>
+            <p>A chart can have up to 500 nodes and 1,000 edges (256 KB). Agents can create up to 300 charts and make 1,200 updates an hour from one network, and a daily budget shared by everyone keeps the free service from being overrun. See the <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md#limits">full list</a>.</p>
+          </details>
+          <details>
+            <summary>Can I host it myself?</summary>
+            <p>Yes. The code is MIT-licensed. Deploy it to Vercel with Upstash Redis for storage, or run <code>npm run dev</code> to serve the app and <code>/api/mcp</code> locally. See <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md#self-hosting">self-hosting</a>.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>Free &amp; open source · by <a href="https://zeroclickdev.ai">ZeroClickDev</a></p>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="/">Open Flowchart AI</a>
+        <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md">Docs</a>
+        <a href="https://github.com/tmcfarlane/flowchart">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+  <p class="visually-hidden" role="status" aria-live="polite" id="copy-status"></p>
+</body>
+
+</html>
