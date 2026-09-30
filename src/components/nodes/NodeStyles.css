@@ -765,9 +765,17 @@
   color: #0ca678;
 }
 
+/* Keep the label inside the hexagon's waist (~70% of the node). The limit sits
+   on the content box, whose percentage resolves against the node: a percentage
+   on the label itself resolves against its own shrink-wrapped width and splits
+   words mid-way ("Manageme/nt"). */
+.api-gateway-node .arch-node-content {
+  max-width: 90%;
+}
+
 .api-gateway-node .node-label,
 .api-gateway-node .node-input {
-  max-width: 70%;
+  max-width: 100%;
 }
 
 /* External Actor - dashed border with person glyph (gray) */
