@@ -1,0 +1,122 @@
+{
+  "voice": {
+    "name": "Sarah - Mature, Reassuring, Confident",
+    "id": "EXAVITQu4vr4xnSDxMaL",
+    "provider": "ElevenLabs MCP",
+    "model": "eleven_v4",
+    "stability": 0.5,
+    "similarity_boost": 0.75,
+    "style": 0.15,
+    "speed": 1.0,
+    "output_format": "mp3_44100_192",
+    "direction": "Warm, confident, conversational"
+  },
+  "duration": 56,
+  "cues": [
+    {
+      "start": 0.55,
+      "trimStart": 0.04,
+      "trimEnd": 2.73,
+      "text": "Great ideas deserve a clear picture.",
+      "clip": "01-hook"
+    },
+    {
+      "start": 6.0,
+      "trimStart": 0.1,
+      "trimEnd": 3.72,
+      "text": "Meet Flowchart AI. Make your ideas visible.",
+      "clip": "02-brand"
+    },
+    {
+      "start": 10.5,
+      "trimStart": 0.04,
+      "trimEnd": 5.78,
+      "text": "Describe a process in plain English. Get an editable flowchart, ready to refine.",
+      "clip": "03-generate"
+    },
+    {
+      "start": 20.5,
+      "trimStart": 0.04,
+      "trimEnd": 4.56,
+      "text": "Or connect your own AI agent. Create a chart right in chat.",
+      "clip": "04-agent"
+    },
+    {
+      "start": 27.0,
+      "trimStart": 0.1,
+      "trimEnd": 4.45,
+      "text": "Need a change? Just ask. See it update, live.",
+      "clip": "05-update"
+    },
+    {
+      "start": 33.0,
+      "trimStart": 0.15,
+      "trimEnd": 3.04,
+      "text": "Your agent draws. You iterate.",
+      "clip": "06-iterate"
+    },
+    {
+      "start": 36.1,
+      "trimStart": 0.0,
+      "trimEnd": 1.96,
+      "text": "Build with Azure icons.",
+      "clip": "07-montage"
+    },
+    {
+      "start": 38.1,
+      "trimStart": 2.1,
+      "trimEnd": 2.88,
+      "text": "Present.",
+      "clip": "07-montage"
+    },
+    {
+      "start": 40.1,
+      "trimStart": 3.0,
+      "trimEnd": 3.79,
+      "text": "Export.",
+      "clip": "07-montage"
+    },
+    {
+      "start": 42.1,
+      "trimStart": 3.88,
+      "trimEnd": 6.13,
+      "text": "Share a link, and edit together.",
+      "clip": "07-montage"
+    },
+    {
+      "start": 46.8,
+      "trimStart": 0.04,
+      "trimEnd": 6.11,
+      "text": "Flowchart AI. Describe your idea. Get a flowchart. Free and open source.",
+      "clip": "08-close"
+    }
+  ],
+  "master": "public/audio/trailer-narrated.m4a",
+  "mix": {
+    "target_lufs": -14,
+    "true_peak_ceiling_db": -1.2,
+    "music_gain_db": -4.01,
+    "ducking": {
+      "threshold": 0.035,
+      "ratio": 6,
+      "attack_ms": 20,
+      "release_ms": 350
+    },
+    "input_measured": {
+      "input_i": "-16.61",
+      "input_tp": "-4.64",
+      "input_lra": "2.00",
+      "input_thresh": "-26.74",
+      "output_i": "-13.97",
+      "output_tp": "-1.75",
+      "output_lra": "1.70",
+      "output_thresh": "-24.04",
+      "normalization_type": "dynamic",
+      "target_offset": "-0.03"
+    }
+  },
+  "approvedWebCopies": {
+    "flowchart-ai-trailer.mp4": "2bfc720d46a6758f6ba9223fc343b23bded337e01125ecd87da0dc84b4ff9ea8",
+    "flowchart-ai-trailer-vertical.mp4": "d13c2294cab72233e0a331fa1671695c7ce5454f58a242ece0b96bcc0491d809"
+  }
+}

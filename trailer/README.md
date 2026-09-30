@@ -6,7 +6,7 @@ app's build, tests and Vercel deploy ignore it (see the root `.vercelignore`).
 
 | Output | Composition | Spec |
 | --- | --- | --- |
-| `out/flowchart-ai-trailer.mp4` | `Trailer` | 1920×1080, 60 fps, H.264 High + AAC 320 kb/s, −14 LUFS |
+| `out/flowchart-ai-trailer.mp4` | `Trailer` | 1920×1080, 60 fps, H.264 High + AAC 192 kb/s, −14 LUFS |
 | `out/flowchart-ai-trailer-vertical.mp4` | `TrailerVertical` | 1080×1920, 60 fps, same audio, every scene recomposed for portrait |
 | `out/flowchart-ai-trailer-poster.png` | `Poster` | 1920×1080 still |
 | `out/og-image.png`, `out/og-image-mcp.png` | `OgImage`, `OgImageMcp` | 1200×630 Open Graph cards for the website (`npm run render:og`) |
@@ -49,15 +49,22 @@ npm run render           # out/flowchart-ai-trailer.mp4
 npm run render:vertical  # out/flowchart-ai-trailer-vertical.mp4
 npm run render:poster    # out/flowchart-ai-trailer-poster.png
 npm run render:og        # out/og-image.png, out/og-image-mcp.png (website Open Graph cards)
-npm run render:all       # music, all three, then QA
+npm run render:all       # all three with the approved narration, then QA
 npm run qa               # specs, duration, loudness
 npm run qa:frames        # the same, plus small review JPEGs in out/review
 ```
 
 Each render first runs `npm run assets`, which copies the app's logos, Azure icons and fonts into
-`public/` (the repo stays the source of truth) and renders the soundtrack if it is missing. The
-videos are rendered muted, then `scripts/mux-audio.mjs` adds `public/audio/trailer-mix.wav` as AAC
-with a proper priming edit list (Remotion's own AAC track plays about 43 ms late).
+`public/` (the repo stays the source of truth) and checks that the approved soundtrack is present.
+The videos are rendered muted, then `scripts/mux-audio.mjs` copies
+`public/audio/trailer-narrated.m4a`, including its AAC priming edit list. The same master plays
+in Studio. Missing narration fails the render instead of falling back to music only.
+
+The approved voiceover uses ElevenLabs' **Sarah — Mature, Reassuring, Confident** voice and
+**Eleven v4**, with warm, confident delivery. Its script, scene cues and mix settings are in
+`voiceover.json`. The finished 56-second master includes the original score with music ducking
+under speech. `npm run music` regenerates only the original music and sound-effects bed; it
+does not replace the approved narrated master.
 Single frames for review: `node scripts/qa/stills.mjs Trailer 600,1500` (writes PNGs to `out/frames`).
 
 ## Web copies for the site
@@ -66,11 +73,17 @@ The website serves smaller copies from the app's `public/media/` (used by `/mcp`
 tags in `index.html` and `mcp.html`, and `llms.txt`). The `OgImage` and `OgImageMcp` stills
 (1200×630, `src/OgImage.tsx`) render with `npm run render:og`. From `trailer/`:
 
+The production copies use the approved narrated mix: landscape at 1920×1080 and portrait at
+720×1280, both 30 fps, H.264/AAC 160 kb/s, with the MP4 index at the start for mobile playback.
+
 ```sh
-# Trailers: H.264 High 4.2, 60 fps, AAC 160 kb/s, moov atom first. Use the same for the vertical cut.
-ffmpeg -i out/flowchart-ai-trailer.mp4 -map 0:v:0 -map 0:a:0 -c:v libx264 -preset veryslow -crf 19 \
+# Web trailers: H.264, 30 fps, AAC 160 kb/s, moov atom first.
+ffmpeg -i out/flowchart-ai-trailer.mp4 -map 0:v:0 -map 0:a:0 -vf fps=30 -c:v libx264 -preset veryslow -crf 23 \
   -profile:v high -level:v 4.2 -pix_fmt yuv420p -color_primaries bt709 -color_trc bt709 -colorspace bt709 \
   -g 240 -c:a aac_at -b:a 160k -map_metadata -1 -movflags +faststart ../public/media/flowchart-ai-trailer.mp4
+ffmpeg -i out/flowchart-ai-trailer-vertical.mp4 -map 0:v:0 -map 0:a:0 -vf fps=30,scale=720:1280 \
+  -c:v libx264 -preset veryslow -crf 23 -profile:v high -pix_fmt yuv420p -g 240 \
+  -c:a aac_at -b:a 160k -map_metadata -1 -movflags +faststart ../public/media/flowchart-ai-trailer-vertical.mp4
 
 # Posters and Open Graph images: JPEG without chroma subsampling, so small text stays sharp.
 ffmpeg -i out/flowchart-ai-trailer-poster.png -q:v 3 -pix_fmt yuvj444p ../public/media/flowchart-ai-trailer-poster.jpg
@@ -117,14 +130,15 @@ in `src/data/demo-chart.json`; the generated chart in the Generate scene is
 ## Regenerate the music
 
 ```sh
-npm run music             # public/audio/trailer-mix.wav
+npm run music             # original music bed: public/audio/trailer-mix.wav
 npm run music -- --stems  # also writes per-bus stems (git-ignored)
 ```
 
 The score and every sound effect are synthesised by `scripts/audio/` from the same cue list the
-picture uses, so changing a cue in `src/timeline.ts` and re-running `npm run music` keeps the
-sound in sync. The mix is normalised to −14 LUFS integrated with a true-peak ceiling below −1 dBTP.
-See [AUDIO_LICENSE.md](AUDIO_LICENSE.md).
+picture uses. Changing a cue in `src/timeline.ts` and re-running `npm run music` updates that bed;
+make a new narrated mix before replacing `public/audio/trailer-narrated.m4a` if the picture timing
+changes. The production mix measures −14.05 LUFS integrated and −2.15 dBTP.
+See [AUDIO_LICENSE.md](AUDIO_LICENSE.md) for music licensing and narration provenance.
 
 ## Licenses
 

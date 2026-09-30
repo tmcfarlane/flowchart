@@ -1,13 +1,26 @@
 # Trailer audio: source and license
 
-**File:** `public/audio/trailer-mix.wav` (48 kHz, 16-bit, stereo, 56 s), muxed into the rendered
-MP4s as AAC.
+**Narrated master:** `public/audio/trailer-narrated.m4a` (48 kHz, stereo, 56 s, AAC 192 kb/s),
+used by Studio and copied into future rendered MP4s. The production web copies use the approved
+AAC 160 kb/s mix.
+
+**Original music bed:** `public/audio/trailer-mix.wav` (48 kHz, 16-bit, stereo, 56 s), generated
+by `npm run music`.
+
+## Narration provenance
+
+The narration was generated through the ElevenLabs MCP using the premade **Sarah — Mature,
+Reassuring, Confident** voice and the **Eleven v4** model. The original script, synthesis settings,
+scene cues and mix settings are recorded in `voiceover.json`. The finished mix lowers the music
+under speech, returns it in the pauses, and is mastered to approximately −14 LUFS. The source
+recordings and lossless mixing files are retained separately from the web deliverables.
 
 ## How it was made
 
-The music and every sound effect are synthesised from scratch by the scripts in `scripts/audio/`
+The original music bed and every sound effect are synthesised from scratch by the scripts in `scripts/audio/`
 (`npm run music`). No samples, loops, sound libraries, presets, recordings or AI audio generators
-are used. Nothing third-party is in the file.
+are used in that bed. These statements describe the music and sound effects; the narrated master
+also includes the ElevenLabs voiceover described above.
 
 - **Score** (`render-audio.mjs`): an original 120 BPM electronic cue in D major, one chord per
   2-second bar (Dmaj9, Gmaj7, A6, Bm7), arranged to the picture: a quiet pad intro, a pre-drop
@@ -27,11 +40,12 @@ are used. Nothing third-party is in the file.
   is normalised to −14 LUFS integrated with the true peak kept below −1 dBTP, then written with
   TPDF dither.
 
-Every random source is seeded, so re-running `npm run music` reproduces the same file.
+Every random source in the bed is seeded, so re-running `npm run music` reproduces the same bed.
 
 ## License
 
 The music and sound effects are original works created for Flowchart AI by ZeroClickDev and are
 released under the repository's [MIT License](../LICENSE). They may be used, modified and
 redistributed with the trailer or on their own under those terms. There are no third-party
-rights to clear.
+rights to clear for the synthesised music and sound effects. This paragraph covers those original
+works; narration provenance is recorded separately above.

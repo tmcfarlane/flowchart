@@ -1,7 +1,7 @@
 import { Config } from '@remotion/cli/config'
 
 // Master output: H.264 High, 1080p60 (or 1080x1920 for the vertical cut). The npm render
-// scripts render muted and mux the soundtrack with scripts/mux-audio.mjs (AAC 320 kb/s with a
+// scripts render muted and copy the approved narrated AAC master with scripts/mux-audio.mjs (with a
 // priming edit list, so sound and picture stay frame-exact); the audio settings below only
 // apply to renders started from the Studio UI.
 Config.setVideoImageFormat('png')
