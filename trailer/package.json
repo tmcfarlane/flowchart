@@ -1,0 +1,39 @@
+{
+  "name": "flowchart-ai-trailer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Motion-design trailer for Flowchart AI, built with Remotion. Self-contained: the app's build, tests and deploy ignore this folder.",
+  "scripts": {
+    "assets": "node scripts/sync-assets.mjs",
+    "music": "node scripts/audio/render-audio.mjs",
+    "capture": "node scripts/capture/capture.mjs",
+    "studio": "npm run assets && remotion studio src/index.ts",
+    "render": "npm run assets && remotion render src/index.ts Trailer out/flowchart-ai-trailer.mp4 --muted && node scripts/mux-audio.mjs out/flowchart-ai-trailer.mp4",
+    "render:vertical": "npm run assets && remotion render src/index.ts TrailerVertical out/flowchart-ai-trailer-vertical.mp4 --muted && node scripts/mux-audio.mjs out/flowchart-ai-trailer-vertical.mp4",
+    "render:poster": "npm run assets && remotion still src/index.ts Poster out/flowchart-ai-trailer-poster.png",
+    "render:og": "npm run assets && remotion still src/index.ts OgImage out/og-image.png && remotion still src/index.ts OgImageMcp out/og-image-mcp.png",
+    "render:all": "npm run music && npm run render && npm run render:vertical && npm run render:poster && npm run qa",
+    "qa": "node scripts/qa/check.mjs",
+    "qa:frames": "node scripts/qa/check.mjs --frames",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.530",
+    "@remotion/fonts": "4.0.530",
+    "inter-ui": "^4.1.1",
+    "jetbrains-mono": "^1.0.6",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "remotion": "4.0.530"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
+    "@types/react": "^18.3.12",
+    "playwright": "^1.63.0",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}

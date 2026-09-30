@@ -1,0 +1,209 @@
+{
+  "id": "yBNhMuduOW",
+  "version": 1,
+  "title": "CI/CD pipeline to AKS",
+  "nodes": [
+    {
+      "id": "push",
+      "type": "step",
+      "label": "Developer pushes to main",
+      "position": {
+        "x": 272,
+        "y": 42
+      },
+      "width": 180,
+      "height": 80
+    },
+    {
+      "id": "build",
+      "type": "step",
+      "label": "Build and run unit tests",
+      "position": {
+        "x": 272,
+        "y": 182
+      },
+      "width": 180,
+      "height": 80
+    },
+    {
+      "id": "tests",
+      "type": "decision",
+      "label": "Tests pass?",
+      "position": {
+        "x": 282,
+        "y": 322
+      },
+      "width": 160,
+      "height": 160
+    },
+    {
+      "id": "fix",
+      "type": "step",
+      "label": "Notify author to fix",
+      "position": {
+        "x": 79,
+        "y": 542
+      },
+      "width": 180,
+      "height": 80
+    },
+    {
+      "id": "registry",
+      "type": "image",
+      "label": "Push image to Container Registry",
+      "icon": "container-registries",
+      "position": {
+        "x": 319,
+        "y": 542
+      },
+      "width": 140,
+      "height": 140
+    },
+    {
+      "id": "staging",
+      "type": "image",
+      "label": "Deploy to staging on AKS",
+      "icon": "kubernetes-services",
+      "position": {
+        "x": 319,
+        "y": 742
+      },
+      "width": 140,
+      "height": 140
+    },
+    {
+      "id": "smoke",
+      "type": "decision",
+      "label": "Smoke tests pass?",
+      "position": {
+        "x": 309,
+        "y": 942
+      },
+      "width": 160,
+      "height": 160
+    },
+    {
+      "id": "rollback",
+      "type": "step",
+      "label": "Roll back the release",
+      "position": {
+        "x": 85,
+        "y": 1162
+      },
+      "width": 180,
+      "height": 80
+    },
+    {
+      "id": "prod",
+      "type": "step",
+      "label": "Promote to production",
+      "position": {
+        "x": 325,
+        "y": 1162
+      },
+      "width": 180,
+      "height": 80
+    },
+    {
+      "id": "monitor",
+      "type": "image",
+      "label": "Monitor with App Insights",
+      "icon": "application-insights",
+      "position": {
+        "x": 345,
+        "y": 1302
+      },
+      "width": 140,
+      "height": 140
+    },
+    {
+      "id": "note",
+      "type": "note",
+      "label": "Rollbacks keep the last three releases",
+      "position": {
+        "x": 12,
+        "y": 12
+      },
+      "width": 200,
+      "height": 110
+    }
+  ],
+  "edges": [
+    {
+      "id": "epush-build",
+      "source": "push",
+      "target": "build",
+      "style": "animated",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "ebuild-tests",
+      "source": "build",
+      "target": "tests",
+      "style": "animated",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "etests-fix",
+      "source": "tests",
+      "target": "fix",
+      "label": "No",
+      "style": "animated",
+      "sourceHandle": "left",
+      "targetHandle": "top"
+    },
+    {
+      "id": "etests-registry",
+      "source": "tests",
+      "target": "registry",
+      "label": "Yes",
+      "style": "animated",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "eregistry-staging",
+      "source": "registry",
+      "target": "staging",
+      "style": "animated",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "estaging-smoke",
+      "source": "staging",
+      "target": "smoke",
+      "style": "animated",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "esmoke-rollback",
+      "source": "smoke",
+      "target": "rollback",
+      "label": "No",
+      "style": "animated",
+      "sourceHandle": "left",
+      "targetHandle": "top"
+    },
+    {
+      "id": "esmoke-prod",
+      "source": "smoke",
+      "target": "prod",
+      "label": "Yes",
+      "style": "animated",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    },
+    {
+      "id": "eprod-monitor",
+      "source": "prod",
+      "target": "monitor",
+      "style": "animated",
+      "sourceHandle": "bottom",
+      "targetHandle": "top"
+    }
+  ]
+}
