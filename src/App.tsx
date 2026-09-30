@@ -32,6 +32,7 @@ import AIChat from './components/AIChat'
 import AIInsertPreviewDialog from './components/AIInsertPreviewDialog'
 import { resolveAzureIcons } from './utils/azureIconRegistry'
 import { getMessages, addMessage as addThreadMessage } from './utils/conversationStore'
+import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from './utils/nesting'
 
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
@@ -41,8 +42,20 @@ export type ArchNodeType = 'service' | 'database' | 'queue' | 'cache' | 'apiGate
 export type PaletteNodeType = 'step' | 'decision' | 'note' | ArchNodeType
 export type EdgeProtocol = 'HTTPS' | 'gRPC' | 'REST' | 'SQL' | 'WebSocket' | 'event'
 export type CommStyle = 'sync' | 'async'
+export type ContainerKind = 'vpc' | 'cluster' | 'region' | 'zone' | 'trustBoundary' | 'group'
 
 export const EDGE_PROTOCOLS: EdgeProtocol[] = ['HTTPS', 'gRPC', 'REST', 'SQL', 'WebSocket', 'event']
+
+export const CONTAINER_KINDS: { value: ContainerKind; label: string }[] = [
+  { value: 'group', label: 'Group' },
+  { value: 'vpc', label: 'VPC' },
+  { value: 'cluster', label: 'Cluster' },
+  { value: 'region', label: 'Region' },
+  { value: 'zone', label: 'Zone' },
+  { value: 'trustBoundary', label: 'Trust boundary' },
+]
+
+const CONTAINER_DEFAULT_SIZE = { width: 420, height: 300 }
 
 export interface FlowProposal {
   summary?: string
@@ -59,6 +72,8 @@ export interface BaseFlowNode {
   width?: number
   height?: number
   imageUrl?: string
+  parentNode?: string
+  containerKind?: string
 }
 
 export interface BaseFlowEdge {
@@ -122,6 +137,10 @@ function FlowChartEditor() {
       return ARCH_NODE_DIMENSIONS[nodeType as ArchNodeType]
     }
 
+    if (nodeType === 'container') {
+      return { ...CONTAINER_DEFAULT_SIZE }
+    }
+
     return { width: 180, height: 80 }
   }, [])
 
@@ -136,12 +155,15 @@ function FlowChartEditor() {
 
     const overlaps = (candidate: { x: number; y: number }) => {
       return occupiedNodes.some((node) => {
+        // Containers are meant to enclose other nodes, not repel them
+        if (node.type === 'container') return false
         const nodeSize = getNodeDimensions(node.type, node.style)
+        const nodeAbs = getAbsolutePosition(node, occupiedNodes)
         const nodeBox = {
-          left: node.position.x,
-          right: node.position.x + nodeSize.width,
-          top: node.position.y,
-          bottom: node.position.y + nodeSize.height,
+          left: nodeAbs.x,
+          right: nodeAbs.x + nodeSize.width,
+          top: nodeAbs.y,
+          bottom: nodeAbs.y + nodeSize.height,
         }
         const candidateBox = {
           left: candidate.x,
@@ -351,9 +373,25 @@ function FlowChartEditor() {
     }
   }, [nodes, edges, history, historyIndex, saveToHistory])
 
-  // Handle node changes (dragging, selection, etc.)
+  // Handle node changes (dragging, selection, etc.).
+  // When a container is removed (e.g., via the Delete key), its children are
+  // detached first so they survive at their absolute positions.
   const onNodesChange = useCallback(
-    (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes: NodeChange[]) => {
+      const removedIds = new Set(
+        changes.filter((c) => c.type === 'remove').map((c) => (c as { id: string }).id)
+      )
+      setNodes((nds) => {
+        const base = removedIds.size === 0
+          ? nds
+          : nds.map((n) =>
+              n.parentNode && removedIds.has(n.parentNode) && !removedIds.has(n.id)
+                ? { ...n, position: getAbsolutePosition(n, nds), parentNode: undefined, extent: undefined }
+                : n
+            )
+        return applyNodeChanges(changes, base)
+      })
+    },
     [setNodes]
   )
 
@@ -470,9 +508,138 @@ function FlowChartEditor() {
     [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, getNodeDimensions, setCenter]
   )
 
-  // Delete selected nodes and edges
+  // Add an empty container at the viewport center. Containers are prepended so
+  // they render behind existing nodes and keep the parents-first ordering valid.
+  const addContainer = useCallback(() => {
+    const size = { ...CONTAINER_DEFAULT_SIZE }
+
+    let position = { x: 200, y: 200 }
+    if (reactFlowWrapper.current) {
+      const rect = reactFlowWrapper.current.getBoundingClientRect()
+      position = screenToFlowPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2,
+      })
+      position.x -= size.width / 2
+      position.y -= size.height / 2
+    }
+
+    const newNode: FlowNode = {
+      id: nodeIdCounter.toString(),
+      type: 'container',
+      position,
+      data: {
+        label: 'Container',
+        containerKind: 'group',
+        onLabelChange: updateNodeLabel,
+      },
+      style: { width: size.width, height: size.height },
+    }
+    setNodes((nds) => [newNode, ...nds])
+    setNodeIdCounter((id) => id + 1)
+
+    setCenter(
+      position.x + size.width / 2,
+      position.y + size.height / 2,
+      { duration: 300, zoom: 1 }
+    )
+  }, [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, setCenter])
+
+  // Wrap the selected nodes in a new container sized to their bounding box.
+  // Positions are converted to parent-relative; nested selections keep their
+  // existing parent when it is also selected.
+  const wrapSelectionInContainer = useCallback(() => {
+    const selectedNodes = nodes.filter((n) => n.selected)
+    if (selectedNodes.length === 0) return
+
+    const selectedIds = new Set(selectedNodes.map((n) => n.id))
+    const toWrap = selectedNodes.filter((n) => !(n.parentNode && selectedIds.has(n.parentNode)))
+
+    const PAD = 24
+    const PAD_TOP = 48 // room for the container header
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const n of toWrap) {
+      const abs = getAbsolutePosition(n, nodes)
+      const dims = getNodeDimensions(n.type, n.style)
+      minX = Math.min(minX, abs.x)
+      minY = Math.min(minY, abs.y)
+      maxX = Math.max(maxX, abs.x + dims.width)
+      maxY = Math.max(maxY, abs.y + dims.height)
+    }
+
+    const containerId = nodeIdCounter.toString()
+    const containerPos = { x: minX - PAD, y: minY - PAD_TOP }
+    const container: FlowNode = {
+      id: containerId,
+      type: 'container',
+      position: containerPos,
+      selected: true,
+      data: {
+        label: 'Container',
+        containerKind: 'group',
+        onLabelChange: updateNodeLabel,
+      },
+      style: {
+        width: maxX - minX + PAD * 2,
+        height: maxY - minY + PAD_TOP + PAD,
+      },
+    }
+
+    setNodes((nds) => {
+      const updated = nds.map((n) => {
+        if (!selectedIds.has(n.id)) return n
+        if (n.parentNode && selectedIds.has(n.parentNode)) {
+          return { ...n, selected: false }
+        }
+        const abs = getAbsolutePosition(n, nds)
+        return {
+          ...n,
+          parentNode: containerId,
+          extent: 'parent' as const,
+          position: { x: abs.x - containerPos.x, y: abs.y - containerPos.y },
+          selected: false,
+        }
+      })
+      return sortParentsFirst([container, ...updated])
+    })
+    setNodeIdCounter((id) => id + 1)
+  }, [nodes, nodeIdCounter, getNodeDimensions, updateNodeLabel, setNodes])
+
+  // Detach selected nodes from their container, keeping them in place
+  const detachSelection = useCallback(() => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.selected && n.parentNode
+          ? { ...n, position: getAbsolutePosition(n, nds), parentNode: undefined, extent: undefined }
+          : n
+      )
+    )
+  }, [setNodes])
+
+  // Change the kind of the selected container(s)
+  const changeContainerKind = useCallback((kind: ContainerKind) => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.selected && n.type === 'container'
+          ? { ...n, data: { ...n.data, containerKind: kind } }
+          : n
+      )
+    )
+  }, [setNodes])
+
+  // Delete selected nodes and edges. Children of deleted containers are
+  // detached (kept at absolute positions), not cascade-deleted.
   const deleteSelected = useCallback(() => {
-    setNodes((nds) => nds.filter((node) => !node.selected))
+    setNodes((nds) => {
+      const removedIds = new Set(nds.filter((n) => n.selected).map((n) => n.id))
+      return nds
+        .map((n) =>
+          n.parentNode && removedIds.has(n.parentNode) && !removedIds.has(n.id)
+            ? { ...n, position: getAbsolutePosition(n, nds), parentNode: undefined, extent: undefined }
+            : n
+        )
+        .filter((n) => !n.selected)
+    })
     setEdges((eds) => eds.filter((edge) => !edge.selected))
   }, [setNodes, setEdges])
 
@@ -489,25 +656,68 @@ function FlowChartEditor() {
     return { selectedNodes, selectedEdges }
   }, [nodes, edges])
 
-  // Copy selected nodes and edges
+  // Copy selected nodes and edges. Copying a container brings its descendants
+  // along (with their internal edges); a copied child whose parent is NOT in
+  // the copy set is flattened to its absolute position at copy time.
   const copySelection = useCallback(() => {
     const { selectedNodes, selectedEdges } = getSelectedItems()
-    setClipboard({ nodes: selectedNodes, edges: selectedEdges })
-    setPasteCount(0)
-  }, [getSelectedItems])
 
-  // Paste nodes and edges from clipboard
+    const copiedIds = new Set(selectedNodes.map((n) => n.id))
+    const autoAddedIds = new Set<string>()
+    let grew = true
+    while (grew) {
+      grew = false
+      for (const n of nodes) {
+        if (n.parentNode && copiedIds.has(n.parentNode) && !copiedIds.has(n.id)) {
+          copiedIds.add(n.id)
+          autoAddedIds.add(n.id)
+          grew = true
+        }
+      }
+    }
+
+    const copiedNodes = nodes
+      .filter((n) => copiedIds.has(n.id))
+      .map((n) =>
+        n.parentNode && !copiedIds.has(n.parentNode)
+          ? { ...n, position: getAbsolutePosition(n, nodes), parentNode: undefined, extent: undefined }
+          : n
+      )
+
+    // Include edges internal to auto-added container contents; explicitly
+    // selected edges keep today's behavior.
+    const selectedEdgeIds = new Set(selectedEdges.map((e) => e.id))
+    const internalEdges = edges.filter(
+      (e) =>
+        !selectedEdgeIds.has(e.id) &&
+        copiedIds.has(e.source) &&
+        copiedIds.has(e.target) &&
+        (autoAddedIds.has(e.source) || autoAddedIds.has(e.target))
+    )
+
+    setClipboard({ nodes: sortParentsFirst(copiedNodes), edges: [...selectedEdges, ...internalEdges] })
+    setPasteCount(0)
+  }, [getSelectedItems, nodes, edges])
+
+  // Paste nodes and edges from clipboard. Fresh ids come from counter
+  // enumeration (never parsed out of existing ids, which may be non-numeric);
+  // parentNode references are remapped and nesting is preserved.
   const pasteSelection = useCallback(() => {
     if (clipboard.nodes.length === 0) return
 
     const offset = 3
+    const { nodes: remappedNodes, edges: pastedEdges, nextCounter } = remapPastedNodes(
+      clipboard.nodes,
+      clipboard.edges,
+      nodeIdCounter
+    )
 
-    // Create ID mapping for pasted nodes
-    const idMapping: Record<string, string> = {}
     const occupiedNodes = [...nodes]
-    const pastedNodes: FlowNode[] = clipboard.nodes.map((node) => {
-      const newId = (nodeIdCounter + parseInt(node.id)).toString()
-      idMapping[node.id] = newId
+    const pastedNodes: FlowNode[] = remappedNodes.map((node) => {
+      // Children keep their parent-relative position; they move with the parent
+      if (node.parentNode) {
+        return { ...node, data: { ...node.data, onLabelChange: updateNodeLabel } }
+      }
 
       const desiredPosition = {
         x: node.position.x + offset,
@@ -516,45 +726,23 @@ function FlowChartEditor() {
       const size = getNodeDimensions(node.type, node.style)
       const adjustedPosition = findAvailablePosition(desiredPosition, size, occupiedNodes)
 
-      const newNode = {
+      const placed = {
         ...node,
-        id: newId,
         position: adjustedPosition,
-        selected: false,
-        data: {
-          ...node.data,
-          onLabelChange: updateNodeLabel,
-        },
+        data: { ...node.data, onLabelChange: updateNodeLabel },
       }
-
-      occupiedNodes.push({
-        ...newNode,
-        position: adjustedPosition,
-        style: node.style,
-      })
-
-      return newNode
+      occupiedNodes.push(placed)
+      return placed
     })
 
-    // Update edges to use new node IDs
-    const pastedEdges: Edge[] = clipboard.edges
-      .filter((edge) => idMapping[edge.source] && idMapping[edge.target])
-      .map((edge) => ({
-        ...edge,
-        id: `e${idMapping[edge.source]}-${idMapping[edge.target]}`,
-        source: idMapping[edge.source],
-        target: idMapping[edge.target],
-        selected: false,
-      }))
-
-    setNodes((nds) => [...nds, ...pastedNodes])
+    setNodes((nds) => sortParentsFirst([...nds, ...pastedNodes]))
     setEdges((eds) => [...eds, ...pastedEdges])
-    setNodeIdCounter((id) => id + clipboard.nodes.length)
+    setNodeIdCounter(nextCounter)
     setPasteCount((count) => count + 1)
 
-    // Center on the first pasted node
-    if (pastedNodes.length > 0) {
-      const firstNode = pastedNodes[0]
+    // Center on the first pasted top-level node
+    const firstNode = pastedNodes.find((n) => !n.parentNode) || pastedNodes[0]
+    if (firstNode) {
       const size = getNodeDimensions(firstNode.type, firstNode.style)
       setCenter(
         firstNode.position.x + size.width / 2,
@@ -770,11 +958,12 @@ function FlowChartEditor() {
     aiProposal.nodes.forEach((node) => {
       const width = node.width || (node.type === 'decision' ? 160 : 180)
       const height = node.height || (node.type === 'decision' ? 160 : 80)
-      
-      minX = Math.min(minX, node.position.x)
-      minY = Math.min(minY, node.position.y)
-      maxX = Math.max(maxX, node.position.x + width)
-      maxY = Math.max(maxY, node.position.y + height)
+      const abs = getAbsolutePosition(node, aiProposal.nodes)
+
+      minX = Math.min(minX, abs.x)
+      minY = Math.min(minY, abs.y)
+      maxX = Math.max(maxX, abs.x + width)
+      maxY = Math.max(maxY, abs.y + height)
     })
 
     // 3. Calculate centroid of proposal
@@ -795,19 +984,27 @@ function FlowChartEditor() {
     const offsetX = targetPosition.x - proposalCenterX
     const offsetY = targetPosition.y - proposalCenterY
 
-    // 6. Create new nodes with remapped IDs and offset positions
+    // 6. Create new nodes with remapped IDs and offset positions.
+    // Children of containers keep parent-relative positions (only top-level
+    // nodes are offset); parentNode references are remapped.
     const newNodes: FlowNode[] = aiProposal.nodes.map((node) => {
       const newId = idMap.get(node.id)!
+      const newParent = node.parentNode ? idMap.get(node.parentNode) : undefined
       return {
         id: newId,
         type: node.type,
-        position: {
-          x: node.position.x + offsetX,
-          y: node.position.y + offsetY,
-        },
+        position: newParent
+          ? node.position
+          : {
+              x: node.position.x + offsetX,
+              y: node.position.y + offsetY,
+            },
+        parentNode: newParent,
+        extent: newParent ? ('parent' as const) : undefined,
         data: {
           label: node.label,
           imageUrl: node.imageUrl,
+          containerKind: node.containerKind,
           onLabelChange: updateNodeLabel,
         },
         style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
@@ -834,8 +1031,8 @@ function FlowChartEditor() {
       }
     })
 
-    // 8. Add nodes and edges to existing state
-    setNodes((nds) => [...nds, ...newNodes])
+    // 8. Add nodes and edges to existing state (parents before children)
+    setNodes((nds) => sortParentsFirst([...nds, ...newNodes]))
     setEdges((eds) => [...eds, ...newEdges])
     setNodeIdCounter(currentCounter)
 
@@ -989,13 +1186,16 @@ function FlowChartEditor() {
   }, [darkMode])
 
   const applyBaseFlow = useCallback((flow: BaseFlow) => {
-    const nodesWithCallbacks: FlowNode[] = flow.nodes.map((node) => ({
+    const nodesWithCallbacks: FlowNode[] = sortParentsFirst(flow.nodes).map((node) => ({
       id: node.id,
       type: node.type,
       position: node.position,
+      parentNode: node.parentNode,
+      extent: node.parentNode ? ('parent' as const) : undefined,
       data: {
         label: node.label,
         imageUrl: node.imageUrl,
+        containerKind: node.containerKind,
         onLabelChange: updateNodeLabel,
       },
       style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
@@ -1030,10 +1230,11 @@ function FlowChartEditor() {
     for (const node of nodes) {
       const w = typeof node.style?.width === 'number' ? node.style.width : (node.type === 'decision' ? 160 : 180)
       const h = typeof node.style?.height === 'number' ? node.style.height : (node.type === 'decision' ? 160 : 80)
-      minX = Math.min(minX, node.position.x)
-      minY = Math.min(minY, node.position.y)
-      maxX = Math.max(maxX, node.position.x + w)
-      maxY = Math.max(maxY, node.position.y + h)
+      const abs = getAbsolutePosition(node, nodes)
+      minX = Math.min(minX, abs.x)
+      minY = Math.min(minY, abs.y)
+      maxX = Math.max(maxX, abs.x + w)
+      maxY = Math.max(maxY, abs.y + h)
     }
 
     // Padding = half the content span, clamped between 300–600px
@@ -1062,10 +1263,11 @@ function FlowChartEditor() {
     for (const node of nodes) {
       const w = typeof node.style?.width === 'number' ? node.style.width : (node.type === 'decision' ? 160 : 180)
       const h = typeof node.style?.height === 'number' ? node.style.height : (node.type === 'decision' ? 160 : 80)
-      minX = Math.min(minX, node.position.x)
-      minY = Math.min(minY, node.position.y)
-      maxX = Math.max(maxX, node.position.x + w)
-      maxY = Math.max(maxY, node.position.y + h)
+      const abs = getAbsolutePosition(node, nodes)
+      minX = Math.min(minX, abs.x)
+      minY = Math.min(minY, abs.y)
+      maxX = Math.max(maxX, abs.x + w)
+      maxY = Math.max(maxY, abs.y + h)
     }
 
     const contentW = maxX - minX
@@ -1107,6 +1309,7 @@ function FlowChartEditor() {
     <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       <Toolbar
         onAddNode={addNode}
+        onAddContainer={addContainer}
         onAddImage={addImageNode}
         onTogglePreview={togglePreview}
         onToggleExplorer={toggleExplorer}
@@ -1127,7 +1330,7 @@ function FlowChartEditor() {
         edges={edges}
         onImportJson={(importedNodes, importedEdges, importedMode) => {
           saveToHistory()
-          setNodes(importedNodes)
+          setNodes(sortParentsFirst(importedNodes))
           setEdges(importedEdges)
           if (importedMode) setDiagramMode(importedMode)
         }}
@@ -1275,6 +1478,56 @@ function FlowChartEditor() {
                         Async
                       </button>
                     </div>
+                  </div>
+                )
+              })()}
+              {diagramMode === 'architecture' && selectedNodes.length > 0 && (() => {
+                const selectedContainers = selectedNodes.filter((n) => n.type === 'container')
+                const firstKind = selectedContainers[0]?.data?.containerKind || 'group'
+                const kindValue = selectedContainers.every((n) => (n.data?.containerKind || 'group') === firstKind)
+                  ? firstKind
+                  : 'group'
+                const anyHasParent = selectedNodes.some((n) => n.parentNode)
+                return (
+                  <div className="container-controls">
+                    {selectedContainers.length > 0 && (
+                      <select
+                        className="edge-protocol-select"
+                        value={kindValue}
+                        onChange={(e) => changeContainerKind(e.target.value as ContainerKind)}
+                        title="Container kind"
+                        aria-label="Container kind"
+                      >
+                        {CONTAINER_KINDS.map((k) => (
+                          <option key={k.value} value={k.value}>{k.label}</option>
+                        ))}
+                      </select>
+                    )}
+                    <button
+                      className="selection-toolbar-button"
+                      onClick={wrapSelectionInContainer}
+                      title="Wrap selection in container"
+                      aria-label="Wrap selection in container"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                        <rect x="1.5" y="1.5" width="13" height="13" rx="2" strokeDasharray="3 2" />
+                        <rect x="5" y="5" width="6" height="6" rx="1" fill="currentColor" stroke="none" />
+                      </svg>
+                    </button>
+                    {anyHasParent && (
+                      <button
+                        className="selection-toolbar-button"
+                        onClick={detachSelection}
+                        title="Detach from container"
+                        aria-label="Detach from container"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="1.5" y="6.5" width="8" height="8" rx="1.5" strokeDasharray="3 2" />
+                          <path d="M9 7l5-5" />
+                          <path d="M10.5 2H14v3.5" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 )
               })()}

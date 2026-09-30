@@ -14,6 +14,7 @@ import {
   ApiGatewayNode,
   ExternalActorNode,
 } from '../components/nodes/ArchNode'
+import ContainerNode from '../components/nodes/ContainerNode'
 import { EditableEdge, EditableSmoothStepEdge } from '../components/edges/EditableEdge'
 
 export const nodeTypes = {
@@ -27,6 +28,7 @@ export const nodeTypes = {
   cache: CacheNode,
   apiGateway: ApiGatewayNode,
   externalActor: ExternalActorNode,
+  container: ContainerNode,
 }
 
 export const edgeTypes = {

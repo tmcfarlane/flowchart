@@ -7,6 +7,7 @@ import type { Node as FlowNode, Edge } from 'reactflow'
 
 interface ToolbarProps {
   onAddNode: (type: PaletteNodeType) => void
+  onAddContainer: () => void
   onAddImage: (imageUrl: string, label: string) => void
   onTogglePreview: () => void
   onToggleExplorer: () => void
@@ -30,6 +31,7 @@ interface ToolbarProps {
 
 function Toolbar({
   onAddNode,
+  onAddContainer,
   onAddImage,
   onTogglePreview,
   onToggleExplorer,
@@ -358,6 +360,18 @@ function Toolbar({
                   <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                     <circle cx="8" cy="4.5" r="2.5" />
                     <path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5" />
+                  </svg>
+                </button>
+                <button
+                  className="toolbar-button add-node"
+                  onClick={onAddContainer}
+                  title="Add Container"
+                  aria-label="Add Container"
+                >
+                  <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="1.5" y="1.5" width="13" height="13" rx="2" strokeDasharray="3 2" />
+                    <rect x="4.5" y="6.5" width="3" height="3" rx="0.5" />
+                    <rect x="9" y="6.5" width="3" height="3" rx="0.5" />
                   </svg>
                 </button>
               </>

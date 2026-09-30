@@ -12,6 +12,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { nodeTypes, edgeTypes } from '../flow/registry'
+import { sortParentsFirst } from '../utils/nesting'
 import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
 import './AIInsertPreviewDialog.css'
 
@@ -42,6 +43,8 @@ function estimateNodeSize(node: FlowNode): { w: number; h: number } {
       return { w: style?.width ?? 180, h: style?.height ?? 100 }
     case 'externalActor':
       return { w: style?.width ?? 150, h: style?.height ?? 110 }
+    case 'container':
+      return { w: style?.width ?? 420, h: style?.height ?? 300 }
     default: // step
       return { w: style?.width ?? 160, h: style?.height ?? 70 }
   }
@@ -62,10 +65,14 @@ function resolveOverlaps(inputNodes: FlowNode[]): FlowNode[] {
 
     for (let i = 0; i < nodes.length; i++) {
       const a = nodes[i]
+      // Children use parent-relative coordinates and containers are meant to
+      // enclose other nodes — skip both in overlap resolution
+      if (a.parentNode || a.type === 'container') continue
       const sA = estimateNodeSize(a)
 
       for (let j = i + 1; j < nodes.length; j++) {
         const b = nodes[j]
+        if (b.parentNode || b.type === 'container') continue
         const sB = estimateNodeSize(b)
 
         // Calculate actual overlap on each axis (positive = overlapping)
@@ -149,15 +156,18 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
       id: node.id,
       type: node.type,
       position: node.position,
+      parentNode: node.parentNode,
+      extent: node.parentNode ? ('parent' as const) : undefined,
       data: {
         label: node.label,
         imageUrl: node.imageUrl,
+        containerKind: node.containerKind,
         onLabelChange: () => { }, // Read-only, no-op
       },
       style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
     }))
 
-    return resolveOverlaps(rawNodes)
+    return sortParentsFirst(resolveOverlaps(rawNodes))
   }, [proposal.nodes])
 
   // Lock the canvas pan boundaries to the node area so the minimap stays focused
