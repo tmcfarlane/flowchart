@@ -1,0 +1,747 @@
+/* Sharing UI: toolbar Share button + panel, shared-chart badge, notices. */
+
+/* ---------- Toolbar Share button ---------- */
+.share-wrapper {
+  position: relative;
+}
+
+.toolbar-button.share-button {
+  width: auto;
+  gap: 6px;
+  padding: 0 12px;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toolbar-button.share-button:hover {
+  background: rgba(16, 185, 129, 0.18);
+  color: #065f46;
+}
+
+.toolbar-button.share-button.is-shared::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25);
+}
+
+.app.dark-mode .toolbar-button.share-button {
+  color: #78fcd6;
+  background: rgba(120, 252, 214, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(120, 252, 214, 0.22);
+}
+
+.app.dark-mode .toolbar-button.share-button:hover {
+  color: #00ffb6;
+  background: rgba(120, 252, 214, 0.2);
+}
+
+.app.dark-mode .toolbar-button.share-button.is-shared::after {
+  background: #00ffb6;
+  box-shadow: 0 0 8px rgba(0, 255, 182, 0.7);
+}
+
+.share-button-label {
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .share-button-label {
+    display: none;
+  }
+
+  .toolbar-button.share-button {
+    padding: 0 8px;
+  }
+}
+
+/* ---------- Share panel ---------- */
+.share-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: -12px;
+  width: 440px;
+  max-width: calc(100vw - 24px);
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), 0 0 1px rgba(0, 0, 0, 0.08);
+  z-index: 210;
+  text-align: left;
+  animation: sharePanelIn 0.16s ease-out;
+  backdrop-filter: blur(8px);
+}
+
+.app.dark-mode .share-panel {
+  background: rgba(24, 27, 26, 0.98);
+  border-color: rgba(120, 252, 214, 0.22);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 48px rgba(120, 252, 214, 0.07);
+}
+
+@keyframes sharePanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.share-panel-title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.app.dark-mode .share-panel-title {
+  color: #e7eceb;
+}
+
+.share-panel-text {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.app.dark-mode .share-panel-text {
+  color: rgba(231, 236, 235, 0.62);
+}
+
+.share-field {
+  margin-bottom: 12px;
+}
+
+.share-field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4b5563;
+}
+
+.app.dark-mode .share-field-label {
+  color: rgba(231, 236, 235, 0.75);
+}
+
+.share-field-label .share-chip {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.app.dark-mode .share-field-label .share-chip {
+  background: rgba(120, 252, 214, 0.14);
+  color: #78fcd6;
+}
+
+.share-field-row {
+  display: flex;
+  gap: 6px;
+}
+
+.share-field-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid #d1d5db;
+  border-radius: 7px;
+  background: #f9fafb;
+  color: #1f2937;
+  font: 11.5px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  outline: none;
+}
+
+.share-field-input:focus {
+  border-color: #10b981;
+}
+
+.app.dark-mode .share-field-input {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #e7eceb;
+}
+
+.app.dark-mode .share-field-input:focus {
+  border-color: rgba(120, 252, 214, 0.55);
+}
+
+.share-field-hint {
+  margin: 5px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.app.dark-mode .share-field-hint {
+  color: rgba(231, 236, 235, 0.45);
+}
+
+.share-copy-button,
+.share-primary-button,
+.share-secondary-button {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.share-copy-button:active,
+.share-primary-button:active,
+.share-secondary-button:active {
+  transform: scale(0.97);
+}
+
+.share-copy-button {
+  min-width: 64px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #374151;
+}
+
+.share-copy-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.share-copy-button.copied {
+  background: rgba(16, 185, 129, 0.15);
+  color: #047857;
+}
+
+.app.dark-mode .share-copy-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7eceb;
+}
+
+.app.dark-mode .share-copy-button:hover {
+  background: rgba(120, 252, 214, 0.14);
+  color: #78fcd6;
+}
+
+.app.dark-mode .share-copy-button.copied {
+  background: rgba(120, 252, 214, 0.2);
+  color: #00ffb6;
+}
+
+.share-primary-button {
+  width: 100%;
+  padding: 9px 14px;
+  background: #10b981;
+  color: #fff;
+}
+
+.share-primary-button:hover:not(:disabled) {
+  background: #059669;
+}
+
+.share-primary-button:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.app.dark-mode .share-primary-button {
+  background: linear-gradient(135deg, #78fcd6 0%, #00ffb6 100%);
+  color: #0f1211;
+  box-shadow: 0 0 20px rgba(120, 252, 214, 0.25);
+}
+
+.app.dark-mode .share-primary-button:hover:not(:disabled) {
+  box-shadow: 0 0 28px rgba(120, 252, 214, 0.4);
+}
+
+.share-secondary-button {
+  background: rgba(0, 0, 0, 0.06);
+  color: #374151;
+}
+
+.share-secondary-button:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.app.dark-mode .share-secondary-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e7eceb;
+}
+
+.app.dark-mode .share-secondary-button:hover {
+  background: rgba(255, 255, 255, 0.13);
+}
+
+.share-panel-divider {
+  height: 1px;
+  margin: 4px 0 12px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.app.dark-mode .share-panel-divider {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.share-panel-footer {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.share-panel-footer a {
+  color: #059669;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.share-panel-footer a:hover {
+  text-decoration: underline;
+}
+
+.app.dark-mode .share-panel-footer {
+  color: rgba(231, 236, 235, 0.55);
+}
+
+.app.dark-mode .share-panel-footer a {
+  color: #78fcd6;
+}
+
+.share-panel-error {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.app.dark-mode .share-panel-error {
+  color: #ff8787;
+}
+
+/* ---------- Shared badge (top-left, below the toolbar) ---------- */
+.share-badge {
+  position: fixed;
+  top: 84px;
+  left: 16px;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(520px, calc(100vw - 96px));
+  padding: 6px 6px 6px 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+  font-size: 12px;
+  color: #374151;
+  backdrop-filter: blur(8px);
+  animation: sharePanelIn 0.25s ease-out;
+}
+
+.app.dark-mode .share-badge {
+  background: rgba(24, 27, 26, 0.94);
+  border-color: rgba(120, 252, 214, 0.2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 24px rgba(120, 252, 214, 0.08);
+  color: #e7eceb;
+}
+
+.share-badge-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.app.dark-mode .share-badge-dot {
+  background: #00ffb6;
+  box-shadow: 0 0 8px rgba(0, 255, 182, 0.8);
+}
+
+.share-badge.status-saving .share-badge-dot,
+.share-badge.status-loading .share-badge-dot {
+  animation: shareDotPulse 0.9s ease-in-out infinite;
+}
+
+.share-badge.status-error .share-badge-dot,
+.share-badge.status-conflict .share-badge-dot {
+  background: #f59e0b;
+  box-shadow: none;
+}
+
+.share-badge.is-readonly .share-badge-dot {
+  background: #9ca3af;
+  box-shadow: none;
+}
+
+@keyframes shareDotPulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.share-badge-kind {
+  flex-shrink: 0;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #047857;
+}
+
+.app.dark-mode .share-badge-kind {
+  background: linear-gradient(to right, #78fcd6, #00ffb6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.share-badge.is-readonly .share-badge-kind {
+  color: #6b7280;
+  -webkit-text-fill-color: currentColor;
+  background: none;
+}
+
+.share-badge-sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.app.dark-mode .share-badge-sep {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.share-badge-title {
+  min-width: 0;
+  max-width: 240px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.share-badge-title:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.app.dark-mode .share-badge-title:hover:not(:disabled) {
+  background: rgba(120, 252, 214, 0.08);
+}
+
+.share-badge-title:disabled {
+  cursor: default;
+}
+
+.share-badge-title-input {
+  width: 220px;
+  padding: 2px 6px;
+  border: 1px solid #10b981;
+  border-radius: 5px;
+  background: #fff;
+  color: #111827;
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+}
+
+.app.dark-mode .share-badge-title-input {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(120, 252, 214, 0.5);
+  color: #e7eceb;
+}
+
+.share-badge-status {
+  flex-shrink: 0;
+  color: #6b7280;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+.app.dark-mode .share-badge-status {
+  color: rgba(231, 236, 235, 0.55);
+}
+
+.share-badge-status.flash {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.14);
+  color: #047857;
+  font-weight: 600;
+  animation: shareFlash 4s ease-out forwards;
+}
+
+.app.dark-mode .share-badge-status.flash {
+  background: rgba(120, 252, 214, 0.16);
+  color: #00ffb6;
+}
+
+@keyframes shareFlash {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 182, 0.6);
+  }
+  20% {
+    box-shadow: 0 0 0 6px rgba(0, 255, 182, 0);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+.share-badge-status.is-warning {
+  color: #b45309;
+}
+
+.app.dark-mode .share-badge-status.is-warning {
+  color: #fbbf24;
+}
+
+.share-badge-copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.share-badge-copy:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+
+.app.dark-mode .share-badge-copy {
+  background: rgba(120, 252, 214, 0.14);
+  color: #78fcd6;
+}
+
+.app.dark-mode .share-badge-copy:hover {
+  background: rgba(120, 252, 214, 0.24);
+  color: #00ffb6;
+}
+
+.share-badge-copy:focus-visible,
+.share-badge-title:focus-visible,
+.share-copy-button:focus-visible,
+.share-primary-button:focus-visible,
+.share-secondary-button:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+.app.dark-mode .share-badge-copy:focus-visible,
+.app.dark-mode .share-badge-title:focus-visible,
+.app.dark-mode .share-copy-button:focus-visible,
+.app.dark-mode .share-primary-button:focus-visible,
+.app.dark-mode .share-secondary-button:focus-visible {
+  outline-color: #78fcd6;
+}
+
+@media (max-width: 600px) {
+  .share-badge {
+    top: 70px;
+    left: 8px;
+    max-width: calc(100vw - 16px);
+  }
+
+  .share-badge-title {
+    max-width: 120px;
+  }
+}
+
+/* ---------- Notices ---------- */
+.share-notice {
+  position: fixed;
+  top: 132px;
+  left: 16px;
+  z-index: 96;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 14px;
+  background: rgba(255, 251, 235, 0.98);
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  font-size: 13px;
+  color: #78350f;
+  animation: sharePanelIn 0.2s ease-out;
+}
+
+.app.dark-mode .share-notice {
+  background: rgba(40, 34, 20, 0.97);
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fde68a;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.share-notice-text {
+  flex: 1 1 220px;
+  line-height: 1.45;
+}
+
+.share-notice-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.share-notice .share-primary-button {
+  width: auto;
+}
+
+@media (max-width: 600px) {
+  .share-notice {
+    top: 116px;
+    left: 8px;
+  }
+}
+
+/* ---------- Loading / not found ---------- */
+.share-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.share-overlay-card {
+  pointer-events: auto;
+  max-width: 380px;
+  padding: 24px 28px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.14);
+  color: #374151;
+}
+
+.app.dark-mode .share-overlay-card {
+  background: rgba(24, 27, 26, 0.97);
+  border-color: rgba(120, 252, 214, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55), 0 0 60px rgba(120, 252, 214, 0.08);
+  color: #e7eceb;
+}
+
+.share-overlay-card h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.share-overlay-card p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  opacity: 0.75;
+}
+
+.share-overlay-card .share-primary-button {
+  width: auto;
+}
+
+.share-spinner {
+  width: 26px;
+  height: 26px;
+  margin: 0 auto 12px;
+  border: 3px solid rgba(16, 185, 129, 0.2);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: shareSpin 0.8s linear infinite;
+}
+
+.app.dark-mode .share-spinner {
+  border-color: rgba(120, 252, 214, 0.18);
+  border-top-color: #78fcd6;
+}
+
+@keyframes shareSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Nodes changed remotely (e.g. by an AI agent) ---------- */
+.react-flow__node.flow-remote-change {
+  animation: remoteChangeGlow 3.2s ease-out;
+  border-radius: 10px;
+}
+
+@keyframes remoteChangeGlow {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0));
+  }
+  12% {
+    filter: drop-shadow(0 0 16px rgba(16, 185, 129, 0.9));
+  }
+  60% {
+    filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.55));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(16, 185, 129, 0));
+  }
+}
+
+.react-flow-dark .react-flow__node.flow-remote-change {
+  animation-name: remoteChangeGlowDark;
+}
+
+@keyframes remoteChangeGlowDark {
+  0% {
+    filter: drop-shadow(0 0 0 rgba(0, 255, 182, 0));
+  }
+  12% {
+    filter: drop-shadow(0 0 18px rgba(0, 255, 182, 0.95));
+  }
+  60% {
+    filter: drop-shadow(0 0 12px rgba(0, 255, 182, 0.6));
+  }
+  100% {
+    filter: drop-shadow(0 0 0 rgba(0, 255, 182, 0));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-badge,
+  .share-panel,
+  .share-notice,
+  .share-badge-status.flash,
+  .react-flow__node.flow-remote-change,
+  .share-badge.status-saving .share-badge-dot,
+  .share-badge.status-loading .share-badge-dot {
+    animation: none;
+  }
+
+  .share-spinner {
+    animation-duration: 2s;
+  }
+}

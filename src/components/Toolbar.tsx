@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode, DiagramMode, PaletteNodeType } from '../App'
 import ImagePicker from './ImagePicker'
+import ShareMenu, { type ShareMenuProps } from './ShareMenu'
 import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
 import type { Node as FlowNode, Edge } from 'reactflow'
 
@@ -27,6 +28,7 @@ interface ToolbarProps {
   nodes: FlowNode[]
   edges: Edge[]
   onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode) => void
+  share?: ShareMenuProps
 }
 
 function Toolbar({
@@ -51,6 +53,7 @@ function Toolbar({
   nodes,
   edges,
   onImportJson,
+  share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
@@ -557,6 +560,13 @@ function Toolbar({
               </svg>
             </button>
           </div>
+
+          {share && (
+            <>
+              <div className="toolbar-separator" />
+              <ShareMenu {...share} />
+            </>
+          )}
 
           <div className="toolbar-separator" />
 

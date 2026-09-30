@@ -1,0 +1,24 @@
+{
+  // Type-checks the Vercel functions (api/) and the server-side shared code.
+  // NodeNext mirrors how Vercel runs these files (native ESM, "type": "module"):
+  // extensionless relative imports or JSON imports without `with { type: 'json' }`
+  // fail here instead of failing at runtime with ERR_MODULE_NOT_FOUND.
+  // target/lib match the root tsconfig.json, which Vercel uses when it compiles
+  // the functions, so newer-lib APIs fail here rather than in the Vercel build.
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["api/**/*.ts", "src/shared/**/*.ts", "assets/icon-mappings/*.ts"]
+}

@@ -20,6 +20,9 @@ import ReactFlow, {
   MarkerType,
   ReactFlowProvider,
   useReactFlow,
+  useNodesInitialized,
+  getRectOfNodes,
+  getTransformForBounds,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import 'reactflow/dist/base.css'
@@ -33,6 +36,11 @@ import AIInsertPreviewDialog from './components/AIInsertPreviewDialog'
 import { resolveAzureIcons } from './utils/azureIconRegistry'
 import { getMessages, addMessage as addThreadMessage } from './utils/conversationStore'
 import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from './utils/nesting'
+import ShareStatus from './components/ShareStatus'
+import { useSharedFlow, type ApplyReason } from './hooks/useSharedFlow'
+import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
+import { parseSharedLocation } from './utils/shareApi'
+import { isArchitectureChart, nextNumericNodeId, type Chart } from './shared/flowTypes'
 
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
@@ -234,7 +242,8 @@ function FlowChartEditor() {
   const [darkMode, setDarkMode] = useState(true)
   const [isAIBubbleOpen, setIsAIBubbleOpen] = useState(false)
   const [aiProposal, setAIProposal] = useState<FlowProposal | null>(null)
-  const [showWelcomeAI, setShowWelcomeAI] = useState(true)
+  // A shared link (/f/:id) opens a chart, so skip the empty-canvas welcome prompt.
+  const [showWelcomeAI, setShowWelcomeAI] = useState(() => !parseSharedLocation(window.location))
   const [isRefining, setIsRefining] = useState(false)
   const [aiThreadId, setAIThreadId] = useState<string | null>(null)
   const [proposalPreview, setProposalPreview] = useState<{ nodes: FlowNode[]; edges: Edge[] } | null>(null)
@@ -1215,6 +1224,101 @@ function FlowChartEditor() {
     setEdges(newEdges)
   }, [getEdgeStyleProps, setEdges, setNodes, updateNodeLabel])
 
+  // Shared charts (/f/:id): render stored charts with the same node data and
+  // edge styling as hand-made ones, and apply live updates from agents.
+  const remoteHighlightTimer = useRef<number>()
+  const fitAfterLoadRef = useRef(false)
+  const nodesInitialized = useNodesInitialized()
+  const { getNodes: getRenderedNodes } = useReactFlow()
+
+  // Fit a loaded chart into the band between the toolbar and the AI pill.
+  const fitSharedChart = useCallback(() => {
+    const wrapper = reactFlowWrapper.current
+    const rendered = getRenderedNodes()
+    if (!wrapper || rendered.length === 0) return
+    const { width, height } = wrapper.getBoundingClientRect()
+    const top = 128
+    const bottom = 96
+    const side = 48
+    const [x, y, zoom] = getTransformForBounds(
+      getRectOfNodes(rendered),
+      Math.max(200, width - side * 2),
+      Math.max(200, height - top - bottom),
+      0.1,
+      1.2,
+      0.04,
+    )
+    setViewport({ x: x + side, y: y + top, zoom }, { duration: 400 })
+  }, [getRenderedNodes, setViewport])
+
+  useEffect(() => {
+    // Fit once the loaded nodes have been measured, so nothing ends up off-screen.
+    if (!nodesInitialized || !fitAfterLoadRef.current) return
+    fitAfterLoadRef.current = false
+    fitSharedChart()
+  }, [nodesInitialized, fitSharedChart])
+
+  const applySharedChart = useCallback((chart: Chart, reason: ApplyReason) => {
+    const flow = chartToFlow(chart, { onLabelChange: updateNodeLabel, edgeProps: getEdgeStyleProps })
+    setNodeIdCounter((counter) => Math.max(counter, nextNumericNodeId(flow.nodes)))
+
+    if (reason === 'initial') {
+      setNodes(flow.nodes)
+      setEdges(flow.edges)
+      setShowWelcomeAI(false)
+      setDiagramMode(isArchitectureChart(chart.nodes) ? 'architecture' : 'flowchart')
+      // Undo should not step back to the empty canvas that existed before loading.
+      setHistory([{ nodes: flow.nodes, edges: flow.edges }])
+      setHistoryIndex(0)
+      fitAfterLoadRef.current = true
+      return
+    }
+
+    // Live update: keep the selection and briefly highlight what changed.
+    // If the agent added nodes outside the visible area, bring them into view.
+    const wrapper = reactFlowWrapper.current
+    const viewport = getViewport()
+    const isOffscreen = (node: FlowNode) => {
+      if (!wrapper) return false
+      const { width, height } = wrapper.getBoundingClientRect()
+      const abs = getAbsolutePosition(node, flow.nodes)
+      const w = typeof node.style?.width === 'number' ? node.style.width : 180
+      const h = typeof node.style?.height === 'number' ? node.style.height : 80
+      const left = -viewport.x / viewport.zoom
+      const top = -viewport.y / viewport.zoom
+      return abs.x < left || abs.y < top || abs.x + w > left + width / viewport.zoom || abs.y + h > top + height / viewport.zoom
+    }
+    setNodes((current) => {
+      const previousIds = new Set(current.map((n) => n.id))
+      if (current.length === 0 || flow.nodes.some((n) => !previousIds.has(n.id) && isOffscreen(n))) {
+        fitAfterLoadRef.current = true
+      }
+      const changed = changedNodeIds(flowToChart(current, []), chart)
+      const selected = new Set(current.filter((n) => n.selected).map((n) => n.id))
+      return flow.nodes.map((n) => ({
+        ...n,
+        selected: selected.has(n.id),
+        className: changed.has(n.id) ? 'flow-remote-change' : undefined,
+      }))
+    })
+    // Fallback in case the new nodes were measured before the effect above noticed.
+    window.setTimeout(() => {
+      if (!fitAfterLoadRef.current) return
+      fitAfterLoadRef.current = false
+      fitSharedChart()
+    }, 300)
+    setEdges((current) => {
+      const selected = new Set(current.filter((e) => e.selected).map((e) => e.id))
+      return flow.edges.map((e) => (selected.has(e.id) ? { ...e, selected: true } : e))
+    })
+    window.clearTimeout(remoteHighlightTimer.current)
+    remoteHighlightTimer.current = window.setTimeout(() => {
+      setNodes((nds) => nds.map((n) => (n.className === 'flow-remote-change' ? { ...n, className: undefined } : n)))
+    }, 3400)
+  }, [updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, getViewport, fitSharedChart])
+
+  const shared = useSharedFlow({ nodes, edges, applyChart: applySharedChart })
+
   // Compute canvas pan boundaries so the minimap stays locked to the node area.
   // Padding scales with content size but stays tight so you can't pan into empty space.
   const translateExtent = useMemo((): [[number, number], [number, number]] => {
@@ -1334,7 +1438,17 @@ function FlowChartEditor() {
           setEdges(importedEdges)
           if (importedMode) setDiagramMode(importedMode)
         }}
+        share={{
+          isShared: !!shared.state.id,
+          canEdit: shared.state.canEdit,
+          viewUrl: shared.viewUrl,
+          editUrl: shared.editUrl,
+          creating: shared.state.creating,
+          createError: shared.state.createError,
+          onCreate: shared.createShare,
+        }}
       />
+      <ShareStatus shared={shared} />
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
         <ReactFlow
           nodes={nodes}

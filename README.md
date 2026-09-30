@@ -36,6 +36,8 @@ Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
 ## Features
 
 - **AI-powered generation** — describe what you want in plain English, get a structured flowchart in seconds
+- **Works with your AI agent (MCP)** — Claude, Copilot, Cursor, OpenCode or ChatGPT can create a chart, hand you a link, and keep editing it with you
+- **Share links with live sync** — share a chart in one click; edits from you and your agent appear live
 - **Free to use** — no sign-up, no paywall, no limits on the canvas
 - **Export to PNG, SVG & animated GIF** — share diagrams in docs, slides, or README files
 - **Presentation mode** — step through your flowchart with arrow keys, perfect for walkthroughs
@@ -90,6 +92,23 @@ pnpm dev          # http://localhost:3004
 pnpm test         # run tests
 pnpm build        # production build
 ```
+
+## Use it from your AI agent (MCP)
+
+Flowchart AI is also a remote MCP server. Connect it to your agent, ask for a chart, and you get a link to an editable flowchart. Keep editing in the browser while the agent keeps editing the same chart; each side sees the other's changes.
+
+```
+https://flowchart.zeroclickdev.ai/api/mcp
+```
+
+```sh
+# Claude Code
+claude mcp add --transport http flowchart https://flowchart.zeroclickdev.ai/api/mcp
+```
+
+Tools: `create_flowchart`, `get_flowchart`, `update_flowchart`, `list_node_types`, `search_azure_icons`. No account or API key is needed. The dev server also serves the MCP endpoint at `http://localhost:3004/api/mcp`. See **[docs/mcp.md](docs/mcp.md)** for setup in Claude, VS Code, Cursor, OpenCode and ChatGPT, the tool reference, privacy notes, and self-hosting with Upstash Redis.
+
+![An AI agent's edit appearing live in a shared chart](docs/screenshots/mcp-agent-update.png)
 
 ## AI Setup (optional)
 
