@@ -108,6 +108,8 @@ npm test          # run tests
 npm run build     # frontend/API typechecks and production build
 ```
 
+For the two compiled-website local-copy recovery checks, see [browser regression setup and evidence](docs/browser-tests.md).
+
 ## Use it from your AI agent (MCP)
 
 Flowchart AI is also a remote MCP server. Connect it to your agent, ask for a chart, and you get a link to an editable flowchart. Use the private MCP Apps card to edit in the browser. Conversational revisions read the latest chart and create a new copy, preserving the original.

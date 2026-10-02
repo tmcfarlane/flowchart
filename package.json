@@ -8,6 +8,8 @@
     "build": "node scripts/generate-azure-icon-index.mjs && tsc && tsc -p tsconfig.api.json && vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "test:browser": "tsc -p tsconfig.browser-tests.json && playwright test",
+    "test:browser:install": "playwright install chromium",
     "typecheck:api": "tsc -p tsconfig.api.json",
     "icons:index": "node scripts/generate-azure-icon-index.mjs",
     "plugin:ui": "node scripts/build-plugin-ui.mjs",
@@ -31,6 +33,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.20.4",
