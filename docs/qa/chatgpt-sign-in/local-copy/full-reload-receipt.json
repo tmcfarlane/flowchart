@@ -1,6 +1,6 @@
 {
   "result": "PASS",
-  "checkedAt": "2026-10-02T15:58:19.212Z",
+  "checkedAt": "2026-10-02T16:30:43.245Z",
   "test": "an editable shared copy survives full reload, explicit Restore, and another inline edit",
   "transport": "Only same-origin GET/HEAD static/document requests continue. Synthetic GET chart is in-memory only; other APIs and all off-origin requests abort without fallback. No real shared/provider/payment writes.",
   "contextLifecycle": "Fresh context owned and automatically disposed by Playwright after each test.",
@@ -17,8 +17,8 @@
     "source": {
       "git": {
         "available": true,
-        "head": "e452a7a58c12ab79a0ad32e44bc68a3a1d1e7880",
-        "tree": "48e2f520b10c2fce82e841bd10a3c06dc7c0253d",
+        "head": "8bd7669199f278a857c45c2c2b17ab5ca447b215",
+        "tree": "ed1bf26c61340d570e7c0a16c21aee8cbfaa3199",
         "dirty": false,
         "changeCount": 0
       },
@@ -57,7 +57,7 @@
       "path": "/api/flows/DraftCopy1",
       "query": "?since=7",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956680416,
+      "epochMs": 1790958625022,
       "transport": "in-memory mocked chart"
     },
     "edited-copy": {
@@ -68,7 +68,7 @@
       "fullLiveGraphMetadataMatched": true
     },
     "detached-two-poll-windows": {
-      "observationMs": 6539,
+      "observationMs": 6509,
       "requests": 0
     },
     "restored-before-next-edit": {
@@ -86,19 +86,19 @@
       "fullLiveGraphMetadataMatched": true
     },
     "restored-two-poll-windows": {
-      "observationMs": 6519,
+      "observationMs": 6510,
       "requests": 0
     },
     "recovery": {
       "navigation": {
-        "oldTimeOrigin": 1790956677162.2,
-        "newTimeOrigin": 1790956688695.2
+        "oldTimeOrigin": 1790958621898.3,
+        "newTimeOrigin": 1790958632993.1
       },
       "oldBytesSurvivedReloadBeforeExplicitRestore": true,
-      "originalSavedAt": 1790956681513,
-      "originalSha256": "243f15cef4eb2968f9b1805afdd5a2ee4bd5ae87791c3c1765e8dd3abcc63e0b",
-      "finalSavedAt": 1790956691359,
-      "finalSha256": "318f7d7697c2ecd4a82d92f27478ac85b7aea597e232064aeb30b6cc76c7482a",
+      "originalSavedAt": 1790958626038,
+      "originalSha256": "ada63e3dfeb8ea1498a4891a96724c9e6844f47189829b322a5adfca47c9c8bd",
+      "finalSavedAt": 1790958635206,
+      "finalSha256": "389097aebb0d8694524bcc8db79e6276a481d94c784fe29a571bba08fc4064cf",
       "fullGraphMatchedBeforeAndAfterSecondEdit": true
     },
     "identityStatus": {
@@ -106,15 +106,15 @@
       "reads": [
         {
           "phase": "startup",
-          "epochMs": 1790956676936
+          "epochMs": 1790958621778
         },
         {
           "phase": "shared-load-and-observed-poll",
-          "epochMs": 1790956677374
+          "epochMs": 1790958622004
         },
         {
           "phase": "native-full-page-reload",
-          "epochMs": 1790956689020
+          "epochMs": 1790958633135
         }
       ]
     }
@@ -129,7 +129,7 @@
       "path": "/api/flows/DraftCopy1",
       "query": "",
       "phase": "guard-probe",
-      "epochMs": 1790956677139,
+      "epochMs": 1790958621883,
       "transport": "in-memory mocked chart"
     },
     {
@@ -137,7 +137,7 @@
       "path": "/api/guard-probe",
       "query": "",
       "phase": "guard-probe",
-      "epochMs": 1790956677145,
+      "epochMs": 1790958621888,
       "transport": "aborted; no fallback"
     },
     {
@@ -145,7 +145,7 @@
       "path": "/api/flows/DraftCopy1",
       "query": "",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956677376,
+      "epochMs": 1790958622007,
       "transport": "in-memory mocked chart"
     },
     {
@@ -153,7 +153,7 @@
       "path": "/api/flows/DraftCopy1",
       "query": "?since=7",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956680416,
+      "epochMs": 1790958625022,
       "transport": "in-memory mocked chart"
     }
   ],
@@ -164,19 +164,19 @@
       "url": "http://127.0.0.1:4186/",
       "method": "GET",
       "phase": "startup",
-      "epochMs": 1790956676552
+      "epochMs": 1790958621570
     },
     {
       "url": "http://127.0.0.1:4186/f/DraftCopy1",
       "method": "GET",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956677165
+      "epochMs": 1790958621899
     },
     {
       "url": "http://127.0.0.1:4186/",
       "method": "GET",
       "phase": "native-full-page-reload",
-      "epochMs": 1790956688701
+      "epochMs": 1790958632999
     }
   ],
   "naturallyObservedLifecycleEvents": []

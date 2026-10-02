@@ -1,6 +1,6 @@
 {
   "result": "PASS",
-  "checkedAt": "2026-10-02T16:02:56.003Z",
+  "checkedAt": "2026-10-02T16:31:03.474Z",
   "test": "native reload before pending autosave preserves the latest committed copy edit",
   "transport": "Only same-origin GET/HEAD static/document requests continue. Synthetic GET chart is in-memory only; other APIs and all off-origin requests abort without fallback. No real shared/provider/payment writes.",
   "contextLifecycle": "Fresh context owned and automatically disposed by Playwright after each test.",
@@ -17,8 +17,8 @@
     "source": {
       "git": {
         "available": true,
-        "head": "e452a7a58c12ab79a0ad32e44bc68a3a1d1e7880",
-        "tree": "48e2f520b10c2fce82e841bd10a3c06dc7c0253d",
+        "head": "8bd7669199f278a857c45c2c2b17ab5ca447b215",
+        "tree": "ed1bf26c61340d570e7c0a16c21aee8cbfaa3199",
         "dirty": false,
         "changeCount": 0
       },
@@ -57,11 +57,11 @@
       "path": "/api/flows/DraftCopy1",
       "query": "?since=7",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956958429,
+      "epochMs": 1790958647292,
       "transport": "in-memory mocked chart"
     },
     "detached-two-poll-windows": {
-      "observationMs": 6543,
+      "observationMs": 6510,
       "requests": 0
     },
     "lifecycleObserver": "Browser-level CDP Tracing TimeStamp records from native after-hook listeners; prefix-only scalar payloads, no full trace retained.",
@@ -73,43 +73,43 @@
       "fullLiveGraphMetadataMatched": true
     },
     "restored-two-poll-windows": {
-      "observationMs": 6546,
+      "observationMs": 6509,
       "requests": 0
     },
     "earlyUnload": {
       "baseline": {
         "label": "Source API",
-        "savedAt": 1790956959395,
-        "sha256": "5db420a39bf88c1aadff6e39391c655e94dbf28330a2de61f7a38ca3873c336b",
+        "savedAt": 1790958648215,
+        "sha256": "4fb3d878553494a44335b2a2926304d9a0d527c65d0a95a17d9317624122f3a4",
         "naturallySaved": true
       },
-      "enterPressStartedAtMs": 1790956966376,
-      "enterPressCompletedAtMs": 1790956966429,
+      "enterPressStartedAtMs": 1790958654954,
+      "enterPressCompletedAtMs": 1790958654973,
       "trustedEnter": {
         "key": "Enter",
         "isTrusted": true,
         "value": "Early reload API · latest edit",
-        "eventEpochMs": 1790956966413.6,
-        "receivedAtMs": 1790956966414,
-        "timeOrigin": 1790956955203.5
+        "eventEpochMs": 1790958654966,
+        "receivedAtMs": 1790958654966,
+        "timeOrigin": 1790958644099.9
       },
       "committedVisibleLabel": "Early reload API · latest edit",
       "editingInputGone": true,
-      "preReloadStorageReadAtMs": 1790956966438,
+      "preReloadStorageReadAtMs": 1790958654977,
       "preReloadBytesExactlyEqualBaseline": true,
-      "reloadCallAtMs": 1790956966448,
+      "reloadCallAtMs": 1790958654987,
       "reloadRequest": {
         "url": "http://127.0.0.1:4186/",
         "method": "GET",
         "phase": "native-reload-before-pending-autosave",
-        "epochMs": 1790956966459
+        "epochMs": 1790958654999
       },
-      "commitToReloadRequestMs": 45.39990234375,
-      "commitToActualSaveMs": 118.39990234375,
-      "oldTimeOrigin": 1790956955203.5,
-      "newTimeOrigin": 1790956966456.2,
-      "restoredSavedAt": 1790956966532,
-      "restoredSha256": "9028190ac6054f8f6adfe9be91215e68b5c488525aa595b6b166bdbd232b44e7",
+      "commitToReloadRequestMs": 33,
+      "commitToActualSaveMs": 51,
+      "oldTimeOrigin": 1790958644099.9,
+      "newTimeOrigin": 1790958654994.6,
+      "restoredSavedAt": 1790958655017,
+      "restoredSha256": "92750074f8ee86abc21c835aa027ced2090c0a1bffc295a681b9df4e36e70d51",
       "explicitPreviewThenRestore": true,
       "fullGraphAndLatestEditRecovered": true,
       "artificialLifecycleEventsOrFlushCalls": false,
@@ -121,15 +121,15 @@
       "reads": [
         {
           "phase": "startup",
-          "epochMs": 1790956954923
+          "epochMs": 1790958643931
         },
         {
           "phase": "shared-load-and-observed-poll",
-          "epochMs": 1790956955376
+          "epochMs": 1790958644257
         },
         {
           "phase": "native-reload-before-pending-autosave",
-          "epochMs": 1790956966716
+          "epochMs": 1790958655133
         }
       ]
     }
@@ -144,7 +144,7 @@
       "path": "/api/flows/DraftCopy1",
       "query": "",
       "phase": "guard-probe",
-      "epochMs": 1790956955171,
+      "epochMs": 1790958644063,
       "transport": "in-memory mocked chart"
     },
     {
@@ -152,7 +152,7 @@
       "path": "/api/guard-probe",
       "query": "",
       "phase": "guard-probe",
-      "epochMs": 1790956955183,
+      "epochMs": 1790958644068,
       "transport": "aborted; no fallback"
     },
     {
@@ -160,7 +160,7 @@
       "path": "/api/flows/DraftCopy1",
       "query": "",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956955383,
+      "epochMs": 1790958644259,
       "transport": "in-memory mocked chart"
     },
     {
@@ -168,7 +168,7 @@
       "path": "/api/flows/DraftCopy1",
       "query": "?since=7",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956958429,
+      "epochMs": 1790958647292,
       "transport": "in-memory mocked chart"
     }
   ],
@@ -179,38 +179,38 @@
       "url": "http://127.0.0.1:4186/",
       "method": "GET",
       "phase": "startup",
-      "epochMs": 1790956954454
+      "epochMs": 1790958643639
     },
     {
       "url": "http://127.0.0.1:4186/f/DraftCopy1",
       "method": "GET",
       "phase": "shared-load-and-observed-poll",
-      "epochMs": 1790956955206
+      "epochMs": 1790958644101
     },
     {
       "url": "http://127.0.0.1:4186/",
       "method": "GET",
       "phase": "native-reload-before-pending-autosave",
-      "epochMs": 1790956966459
+      "epochMs": 1790958654999
     }
   ],
   "naturallyObservedLifecycleEvents": [
     {
       "kind": "pagehide",
       "isTrusted": true,
-      "observedAtMs": 1790956966534,
-      "timeOrigin": 1790956955203.5,
+      "observedAtMs": 1790958655017,
+      "timeOrigin": 1790958644099.9,
       "visibilityState": "visible",
-      "savedAt": 1790956966532,
+      "savedAt": 1790958655017,
       "savedApiLabel": "Early reload API · latest edit"
     },
     {
       "kind": "visibilitychange",
       "isTrusted": true,
-      "observedAtMs": 1790956966534,
-      "timeOrigin": 1790956955203.5,
+      "observedAtMs": 1790958655018,
+      "timeOrigin": 1790958644099.9,
       "visibilityState": "hidden",
-      "savedAt": 1790956966532,
+      "savedAt": 1790958655017,
       "savedApiLabel": "Early reload API · latest edit"
     }
   ]

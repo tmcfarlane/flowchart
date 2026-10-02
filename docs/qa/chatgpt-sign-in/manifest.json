@@ -1,33 +1,38 @@
 {
-  "capturedSourceHead": "e452a7a58c12ab79a0ad32e44bc68a3a1d1e7880",
-  "capturedSourceTree": "48e2f520b10c2fce82e841bd10a3c06dc7c0253d",
+  "capturedSourceHead": "8bd7669199f278a857c45c2c2b17ab5ca447b215",
+  "capturedSourceTree": "ed1bf26c61340d570e7c0a16c21aee8cbfaa3199",
   "cleanSource": true,
-  "capturedAt": "2026-10-02T16:04:12.777234+00:00",
-  "scope": "Compiled local UI and actual handlers with signed synthetic OIDC; real default-unavailable config. No approved live OpenAI sign-in.",
+  "capturedAt": "2026-10-02T16:32:28.017178+00:00",
+  "scope": "Compiled local UI, actual shared integration dispatcher and exact repository rewrites with signed synthetic OIDC; real default-unavailable config. No approved live OpenAI sign-in.",
   "authCasesPassed": 3,
   "nativeLocalCopyCasesPassed": 2,
-  "unitTestsPassed": 877,
-  "unitFilesPassed": 62,
+  "unitTestsPassed": 904,
+  "unitFilesPassed": 63,
   "sources": {
     "src/App.tsx": "dd24eb0befdb0ee845bb53de43105f73612df5eba2a3c265f7f6f5125a6f3f50",
     "src/components/ChatGPTAccount.tsx": "e7666fb416cd0c9d77c61ac7482a8e5308d255cfecbccfe19d05ef9de2efa466",
     "src/components/ChatGPTAccount.css": "f40e88b119f7a9889892a2e9c7985ff15e18f34b400efe535b8401f670f5e332",
     "src/shared/server/openaiAuthConfig.ts": "1696bb9dd34a29ed92dcddeebfd5a3b4d294b6229da193f0076a96a80db83563",
-    "src/shared/server/openaiAuthHttp.ts": "83db5bdd39e4859922829993a86c032cceba2e8951c3319ba2d0031063ffd9bc",
-    "src/shared/server/openaiAuthService.ts": "6670579ab504f819429560e43126702a27f783d485030ebb4bc176921fca4896",
-    "src/shared/server/openaiAuthStore.ts": "4aaed06546ded51d4a6b885d9dd8de29b0b3edc67a3337a55b168e1053760215",
-    "src/shared/server/nodeAdapter.ts": "6d88a8b8466c5640cd534fb4a6d35e71d905b1559438167543d040d4ef87fcff",
-    "api/auth/openai/start.ts": "ec1b7ef7eb1a208a4bb82b338c41235426af5e0185d1049b64c7902f1b4b7b7b",
-    "api/auth/openai/callback.ts": "11ccbc16d060322f4a6372336374518beced67e7b04624233dd2654a4ed61a58",
-    "api/auth/openai/session.ts": "7bfec482911c1b210659c21f1becccd4fd06473be0a012cfa4a030654c806427",
-    "api/auth/openai/signout.ts": "bd68292c5390dbf587582da4cedee72fafd0d17014e900f0d731093df6934332",
-    "tests/browser/openai-auth-server.ts": "9abc2a98f78879308795717fa3b2e11780465b1c66f11e2a547da987eb910ad9",
-    "tests/browser/openai-sign-in.spec.ts": "3f709366bcc4e00469628284fbb0e48ce68bcc3429ca1cb71e64c6add10721f7",
+    "src/shared/server/openaiAuthHttp.ts": "da091f0a7e357175c7701a225eb4b9fc8b46e5e1bab2604f2da5e44fd99ad3ca",
+    "src/shared/server/openaiAuthService.ts": "664e0d383cd29e46419af7cc05dc2dad903780705cc36afbd75316429da795c0",
+    "src/shared/server/openaiAuthStore.ts": "e8713cdaa583985d1dc13d34e8f428a80a7255c2e708f2e455e70df06c21d5de",
+    "src/shared/server/nodeAdapter.ts": "5deb6d868ee44cec2fd0af40aef15803ab0e7c4fb0a263b82fe18e6ec1ae43ab",
+    "src/shared/server/integrationHttp.ts": "45fe4ad85606b623962fbfa59eebd373ac31821986a7aad923279f591ef1e757",
+    "api/mcp.ts": "76327875df2c3c9e0a7d2c234630f2e74780c13b58a453ea119311bcacb178df",
+    "vercel.json": "e97eea8c127f8a2e84257b0c84252d4157456232919ee3b7b1c4220c47595041",
+    "tests/browser/openai-auth-server.ts": "c48a2f51c431c3fe6d2a438898f6d18b1b843914b97c4c3ba80b442eaba986c8",
+    "tests/browser/openai-sign-in.spec.ts": "058bd4bcbdf3842478c6afa2f2ccc05026660137470588c96a20f26357a3a03f",
     "scripts/serve-auth-browser-fixture.mjs": "1b9ed263548eb720f9e4112db3d99bf3d96f140d515b9c08fa72d4242eea6de1",
     "playwright.auth.config.ts": "9bd4e775c39fa3eaeabb6f429425c676ff8533190cb4ee9ebed1e60954a61678",
     "package.json": "53f152b4872e09c082d88cbd5086d84bb63f02d564972d5d80c2b2652c7e0152",
     "package-lock.json": "62b1a5efbd2262effe03b7cfc579f0a955ae2015101c0081903abcbd9c21ab4a",
-    "tsconfig.browser-tests.json": "be8c11795ee40a3616633e9db6bf8770adcfd4dc6162e83c3c66f70d6586e8f5"
+    "tsconfig.browser-tests.json": "be8c11795ee40a3616633e9db6bf8770adcfd4dc6162e83c3c66f70d6586e8f5",
+    "src/hooks/useSharedFlow.ts": "e8c256409991e93adc8a61d941cb859c609866f0f89bb0fa267a65049201b506",
+    "src/hooks/useLocalDraft.ts": "9f48f34059cbf1745825b1bc691e7d3fa1aed06b86839a6628ce29ed1f28af67",
+    "src/utils/sharedFlow.ts": "5a5b6042463a12496c81bc3bcc0400f548d4646da13c7af2d78848bd99ec7646",
+    "tests/browser/local-copy-fixture.ts": "e4a854782c0521ebede60cc112b9cf5be319fd7ad66c102c1f76595cab7bfe10",
+    "tests/browser/local-copy-reload.spec.ts": "f30c10d4ecaa93b67a21c0721c29fc3751149d3a14a6d90c8caa260100b42eab",
+    "playwright.config.ts": "f659c74d061d876b912129671ad989305affeb5948fd3ac15e1d15e0f2907240"
   },
   "bundle": {
     "path": "/assets/main-DvT4iDkT.js",
@@ -37,12 +42,12 @@
   },
   "assets": {
     "README.md": {
-      "bytes": 4035,
-      "sha256": "052323c0cab9be73541ca4c4965efbd985d43f3b319e630961c731b53e20da6e"
+      "bytes": 5169,
+      "sha256": "179215001784df35b18520fe815ade3a7ee05c79a9076a5a1406ebeccc508bee"
     },
     "local-copy/early-unload-receipt.json": {
-      "bytes": 7733,
-      "sha256": "181246e80fd3db4df2b040d4f3cc8d6587ae508fbaaa2242281386ceb9665d43"
+      "bytes": 7706,
+      "sha256": "abe13a2a4c78d4baf36a0090e62401108e7437d1524b43f8a5efb23042797103"
     },
     "local-copy/edited-copy.json": {
       "bytes": 4770,
@@ -50,7 +55,7 @@
     },
     "local-copy/full-reload-receipt.json": {
       "bytes": 6507,
-      "sha256": "90acf95527ff4127dd159d2a50d772514741e0c78056be1dfa9987e3952a0d6d"
+      "sha256": "87cf70c4b5286622de36547adbcaafec40498e21e7aea6421d2b5212df5a8cdd"
     },
     "local-copy/latest-edit-restored.json": {
       "bytes": 4725,
@@ -65,8 +70,8 @@
       "sha256": "cb9636af3dd5c4d174fdd64a580a9d6f3d60005816194f450a79d8a400935b82"
     },
     "rejected-callback-receipt.json": {
-      "bytes": 3645,
-      "sha256": "c809cdbbd9e88ae41f1c1565ad5732fa28686fe1e1e3233c9ba813d9e1ba8256"
+      "bytes": 3523,
+      "sha256": "8af26fe295ff1290afd5ea87afbe03e373719b529c637f1029e30d46b9b6f72f"
     },
     "rejected-callback.png": {
       "bytes": 188917,
@@ -77,8 +82,8 @@
       "sha256": "9304af9aed0db8e1b4ee48736de1f24f4f7a1e80c8bdffa5a5c139bbe9d48b46"
     },
     "signed-mock-receipt.json": {
-      "bytes": 4349,
-      "sha256": "9bbe4ba0061e865c972d829248d505f9e4120783eb19f5f1913a2911a57d7542"
+      "bytes": 4288,
+      "sha256": "b51b39e1b544a06a1a7d135e7f9b5f1c9330e586b1881261f804e94e2db8336b"
     },
     "signed-out-account.png": {
       "bytes": 186766,
@@ -89,12 +94,12 @@
       "sha256": "ba0b067fdd06d6bdd3a91dc5a88bdd8cf8b31fba8e68ea0697a607710ff66a03"
     },
     "unavailable-mobile.png": {
-      "bytes": 92550,
-      "sha256": "42f6afe344465b9cf43f81e4f6d244a33523a6c1848b0e626a9fbc126f34b6b1"
+      "bytes": 92541,
+      "sha256": "c515223990f5b31d556582a45949d07f7d993a18232065c7fefb0a50d0fab078"
     },
     "unavailable-receipt.json": {
-      "bytes": 3492,
-      "sha256": "63cb66b90e04eaae081772c5e0510df2474f2d8870f434a7e02417158c9707e6"
+      "bytes": 3430,
+      "sha256": "6ef9e562b8a0cab14ce74dcf0ee953ea87f9b9bcc11d3d0049688d26f75310b7"
     }
   }
 }
