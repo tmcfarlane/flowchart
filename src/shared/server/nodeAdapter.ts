@@ -4,6 +4,7 @@
 
 import type { IncomingMessage } from 'node:http'
 import { BODY_TOO_LARGE_FLAG, MCP_MAX_BODY_BYTES } from './http.js'
+import { OPENAI_AUTH_ROUTE_QUERY } from './integrationHttp.js'
 
 export type ApiRouteName = 'mcp' | 'flows' | 'flow' | 'chat' | 'billingSession' | 'billingCheckout' | 'billingPortal' | 'billingWebhook' | 'billingRecovery' | 'billingRestore' | 'images' | 'imageAsset' | 'openaiAuthStart' | 'openaiAuthCallback' | 'openaiAuthSession' | 'openaiAuthSignout'
 
@@ -16,7 +17,7 @@ export function matchApiRoute(pathname: string): { name: ApiRouteName; params: R
     '/api/auth/openai/signout': 'openaiAuthSignout',
   }
   const authRoute = authRoutes[pathname.replace(/\/$/, '')]
-  if (authRoute) return { name: authRoute, params: {} }
+  if (authRoute) return { name: authRoute, params: { [OPENAI_AUTH_ROUTE_QUERY]: pathname.replace(/\/$/, '').split('/').pop()! } }
   const asset = pathname.match(/^\/api\/images\/([^/]+)\/?$/)
   if (asset) return { name: 'imageAsset', params: { id: asset[1] } }
   const extra: Record<string, ApiRouteName> = { '/api/chat': 'chat', '/api/billing/session': 'billingSession', '/api/billing/checkout': 'billingCheckout', '/api/billing/portal': 'billingPortal', '/api/billing/webhook': 'billingWebhook', '/api/billing/recovery': 'billingRecovery', '/api/billing/restore': 'billingRestore', '/api/images': 'images' }
@@ -38,10 +39,10 @@ export function matchApiRoute(pathname: string): { name: ApiRouteName; params: R
 
 /** Module that implements each route (relative to the project root). */
 export const API_ROUTE_MODULES: Record<ApiRouteName, string> = {
-  openaiAuthStart: '/api/auth/openai/start.ts',
-  openaiAuthCallback: '/api/auth/openai/callback.ts',
-  openaiAuthSession: '/api/auth/openai/session.ts',
-  openaiAuthSignout: '/api/auth/openai/signout.ts',
+  openaiAuthStart: '/api/mcp.ts',
+  openaiAuthCallback: '/api/mcp.ts',
+  openaiAuthSession: '/api/mcp.ts',
+  openaiAuthSignout: '/api/mcp.ts',
   chat: '/api/chat.ts',
   billingSession: '/api/billing/session.ts', billingCheckout: '/api/billing/checkout.ts',
   billingPortal: '/api/billing/portal.ts', billingWebhook: '/api/billing/webhook.ts',

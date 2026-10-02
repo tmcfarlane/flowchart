@@ -83,14 +83,16 @@ export async function handleOpenAIAuthStart(req: IncomingMessage, res: ServerRes
 }
 export async function handleOpenAIAuthCallback(req: IncomingMessage, res: ServerResponse, ctx = context()) {
   if (!method(req, res, 'GET')) return
-  setCookie(res, OPENAI_AUTH_TRANSACTION_COOKIE, '', 0)
   if (!ctx.auth || !ctx.config) { redirect(res, '/?chatgpt_signin=error'); return }
   try {
     // Provider callbacks are cross-site top-level navigation. Never apply the
     // website's mutation-origin gate or infer redirect_uri from Host/proxies.
     const params = new URL(req.url ?? '', ctx.config.origin).searchParams
     const result = await ctx.auth.callback(cookie(req, OPENAI_AUTH_TRANSACTION_COOKIE), params, cookie(req, OPENAI_AUTH_SESSION_COOKIE))
-    if (result.sessionToken) setCookie(res, OPENAI_AUTH_SESSION_COOKIE, result.sessionToken, OPENAI_AUTH_SESSION_SECONDS)
+    if (result.mutateCookies) {
+      setCookie(res, OPENAI_AUTH_TRANSACTION_COOKIE, '', 0)
+      if (result.sessionToken) setCookie(res, OPENAI_AUTH_SESSION_COOKIE, result.sessionToken, OPENAI_AUTH_SESSION_SECONDS)
+    }
     redirect(res, `/?chatgpt_signin=${result.result}`)
   } catch { redirect(res, '/?chatgpt_signin=error') }
 }

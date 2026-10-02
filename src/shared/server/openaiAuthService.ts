@@ -80,53 +80,63 @@ export class OpenAIAuthService {
   }
   async start(previousTransactionToken?: string): Promise<{ transactionToken: string; authorizationUrl: string }> {
     const discovery = await this.discover()
-    if (previousTransactionToken) await this.store.consumeTransaction(openAIAuthStorageKey(this.config, previousTransactionToken))
     const token = random()
     const transaction: OpenAIAuthTransaction = { state: random(), nonce: random(), codeVerifier: random(64), redirectUri: this.config.redirectUri, expiresAt: this.now() + OPENAI_AUTH_TRANSACTION_SECONDS * 1000 }
-    if (!await this.store.putTransaction(openAIAuthStorageKey(this.config, token), transaction, OPENAI_AUTH_TRANSACTION_SECONDS)) throw new Error('Identity transaction unavailable')
+    if (!await this.store.putTransaction(openAIAuthStorageKey(this.config, token), transaction, OPENAI_AUTH_TRANSACTION_SECONDS, previousTransactionToken ? openAIAuthStorageKey(this.config, previousTransactionToken) : undefined)) throw new Error('Identity transaction unavailable')
     const url = new URL(discovery.authorization_endpoint)
     // Preserve only the verified discovery endpoint path; discard any existing query.
     url.search = new URLSearchParams({ client_id: this.config.clientId, redirect_uri: transaction.redirectUri, response_type: 'code', scope: 'openid profile email', state: transaction.state, nonce: transaction.nonce, code_challenge: createHash('sha256').update(transaction.codeVerifier).digest('base64url'), code_challenge_method: 'S256' }).toString()
     return { transactionToken: token, authorizationUrl: url.href }
   }
-  async callback(token: string | undefined, params: URLSearchParams, previousSessionToken?: string): Promise<{ result: 'success' | 'error' | 'cancelled'; sessionToken?: string }> {
-    if (!token) return { result: 'error' }
+  async callback(token: string | undefined, params: URLSearchParams, previousSessionToken?: string): Promise<{ result: 'success' | 'error' | 'cancelled'; sessionToken?: string; mutateCookies: boolean }> {
+    if (!token) return { result: 'error', mutateCookies: false }
     // Consumption precedes every validation and provider request; concurrent callbacks
     // can never redeem the same authorization code twice.
-    const transaction = await this.store.consumeTransaction(openAIAuthStorageKey(this.config, token))
-    if (!validTransaction(transaction) || transaction.expiresAt <= this.now() || transaction.redirectUri !== this.config.redirectUri || params.getAll('state').length !== 1 || !authValuesMatch(params.get('state'), transaction.state)) return { result: 'error' }
-    if (params.has('error')) return { result: params.getAll('error').length === 1 && params.get('error') === 'access_denied' ? 'cancelled' : 'error' }
-    const code = params.get('code')
-    if (params.getAll('code').length !== 1 || !code || code.length > 4096 || /[\x00-\x20\x7f]/.test(code)) return { result: 'error' }
-    const discovery = await this.discover()
-    const headers: Record<string, string> = { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' }
-    if (this.config.tokenAuthMethod === 'client_secret_basic') {
-      if (!this.config.clientSecret) throw new Error('Confidential identity client unavailable')
-      const encode = (value: string) => new URLSearchParams({ value }).toString().slice(6)
-      headers.authorization = `Basic ${Buffer.from(`${encode(this.config.clientId)}:${encode(this.config.clientSecret)}`).toString('base64')}`
+    const transactionKey = openAIAuthStorageKey(this.config, token)
+    const transaction = await this.store.consumeTransaction(transactionKey)
+    // Replays and unknown cookies may belong to a response from an older flow;
+    // they must never clear the browser's newer shared transaction cookie.
+    if (!transaction) return { result: 'error', mutateCookies: false }
+    const finishFailure = async (result: 'error' | 'cancelled') => {
+      const owned = await this.store.finishTransaction(transactionKey)
+      return { result: owned ? result : 'error' as const, mutateCookies: owned }
     }
-    const tokens = await this.requestJson(discovery.token_endpoint, { method: 'POST', headers, body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: transaction.redirectUri, client_id: this.config.clientId, code_verifier: transaction.codeVerifier }) })
-    if (typeof tokens.id_token !== 'string' || tokens.id_token.length > 16_384) throw new Error('Invalid identity token response')
-    if (!this.jwks || this.jwks.uri !== discovery.jwks_uri) {
-      this.jwks = { uri: discovery.jwks_uri, resolver: createRemoteJWKSet(new URL(discovery.jwks_uri), { timeoutDuration: 5000, cacheMaxAge: 600_000, cooldownDuration: 30_000, [customFetch]: async (url) => new Response(JSON.stringify(await this.requestJson(url, { headers: { accept: 'application/json' } })), { status: 200, headers: { 'content-type': 'application/json' } }) }) }
-    }
-    const { payload } = await jwtVerify(tokens.id_token, this.jwks.resolver, { issuer: OPENAI_AUTH_ISSUER, audience: this.config.clientId, algorithms: ['RS256', 'ES256'], requiredClaims: ['iss', 'aud', 'sub', 'iat', 'exp', 'nonce'], clockTolerance: 5, currentDate: new Date(this.now()), maxTokenAge: '10m' })
-    if (!authValuesMatch(payload.nonce, transaction.nonce) || typeof payload.sub !== 'string' || !payload.sub.trim() || payload.sub.length > 1024 || typeof payload.iat !== 'number' || typeof payload.exp !== 'number' || payload.exp <= payload.iat || payload.iat > this.now() / 1000 + 5) throw new Error('Invalid identity claims')
-    // OIDC requires azp for a token with multiple audiences, and a supplied azp
-    // must identify our client even when aud also contains it.
-    if ((Array.isArray(payload.aud) && payload.aud.length > 1 && payload.azp !== this.config.clientId) || (payload.azp !== undefined && payload.azp !== this.config.clientId)) throw new Error('Invalid authorized party')
-    const label = (value: unknown, max: number) => typeof value === 'string' && value.trim() && value.length <= max && !/[\x00-\x1f\x7f]/.test(value) ? value.trim() : null
-    const session: OpenAIAuthSession = { identityHash: createHash('sha256').update(JSON.stringify([OPENAI_AUTH_ISSUER, this.config.clientId, payload.sub])).digest('hex'), user: { name: label(payload.name, 200), email: label(payload.email, 320) }, csrfToken: random(), expiresAt: this.now() + OPENAI_AUTH_SESSION_SECONDS * 1000 }
-    const sessionToken = random()
-    const sessionKey = openAIAuthStorageKey(this.config, sessionToken)
-    if (!await this.store.putSession(sessionKey, session, OPENAI_AUTH_SESSION_SECONDS)) throw new Error('Identity session unavailable')
     try {
-      if (previousSessionToken) await this.store.deleteSession(openAIAuthStorageKey(this.config, previousSessionToken))
+      if (!validTransaction(transaction) || transaction.expiresAt <= this.now() || transaction.redirectUri !== this.config.redirectUri || params.getAll('state').length !== 1 || !authValuesMatch(params.get('state'), transaction.state)) return await finishFailure('error')
+      if (params.has('error')) return await finishFailure(params.getAll('error').length === 1 && params.get('error') === 'access_denied' ? 'cancelled' : 'error')
+      const code = params.get('code')
+      if (params.getAll('code').length !== 1 || !code || code.length > 4096 || /[\x00-\x20\x7f]/.test(code)) return await finishFailure('error')
+      const discovery = await this.discover()
+      const headers: Record<string, string> = { accept: 'application/json', 'content-type': 'application/x-www-form-urlencoded' }
+      if (this.config.tokenAuthMethod === 'client_secret_basic') {
+        if (!this.config.clientSecret) throw new Error('Confidential identity client unavailable')
+        const encode = (value: string) => new URLSearchParams({ value }).toString().slice(6)
+        headers.authorization = `Basic ${Buffer.from(`${encode(this.config.clientId)}:${encode(this.config.clientSecret)}`).toString('base64')}`
+      }
+      const tokens = await this.requestJson(discovery.token_endpoint, { method: 'POST', headers, body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: transaction.redirectUri, client_id: this.config.clientId, code_verifier: transaction.codeVerifier }) })
+      if (typeof tokens.id_token !== 'string' || tokens.id_token.length > 16_384) throw new Error('Invalid identity token response')
+      if (!this.jwks || this.jwks.uri !== discovery.jwks_uri) {
+        this.jwks = { uri: discovery.jwks_uri, resolver: createRemoteJWKSet(new URL(discovery.jwks_uri), { timeoutDuration: 5000, cacheMaxAge: 600_000, cooldownDuration: 30_000, [customFetch]: async (url) => new Response(JSON.stringify(await this.requestJson(url, { headers: { accept: 'application/json' } })), { status: 200, headers: { 'content-type': 'application/json' } }) }) }
+      }
+      const { payload } = await jwtVerify(tokens.id_token, this.jwks.resolver, { issuer: OPENAI_AUTH_ISSUER, audience: this.config.clientId, algorithms: ['RS256', 'ES256'], requiredClaims: ['iss', 'aud', 'sub', 'iat', 'exp', 'nonce'], clockTolerance: 5, currentDate: new Date(this.now()), maxTokenAge: '10m' })
+      if (!authValuesMatch(payload.nonce, transaction.nonce) || typeof payload.sub !== 'string' || !payload.sub.trim() || payload.sub.length > 1024 || typeof payload.iat !== 'number' || typeof payload.exp !== 'number' || payload.exp <= payload.iat || payload.iat > this.now() / 1000 + 5) throw new Error('Invalid identity claims')
+      // OIDC requires azp for a token with multiple audiences, and a supplied azp
+      // must identify our client even when aud also contains it.
+      if ((Array.isArray(payload.aud) && payload.aud.length > 1 && payload.azp !== this.config.clientId) || (payload.azp !== undefined && payload.azp !== this.config.clientId)) throw new Error('Invalid authorized party')
+      const label = (value: unknown, max: number) => typeof value === 'string' && value.trim() && value.length <= max && !/[\x00-\x1f\x7f]/.test(value) ? value.trim() : null
+      const session: OpenAIAuthSession = { identityHash: createHash('sha256').update(JSON.stringify([OPENAI_AUTH_ISSUER, this.config.clientId, payload.sub])).digest('hex'), user: { name: label(payload.name, 200), email: label(payload.email, 320) }, csrfToken: random(), expiresAt: this.now() + OPENAI_AUTH_SESSION_SECONDS * 1000 }
+      const sessionToken = random()
+      const sessionKey = openAIAuthStorageKey(this.config, sessionToken)
+      // Ownership check, new-session persistence, previous-session revocation and
+      // owner finalization are one Redis operation across application instances.
+      const owned = await this.store.finishTransaction(transactionKey, { sessionKey, session, ttlSeconds: OPENAI_AUTH_SESSION_SECONDS,
+        ...(previousSessionToken ? { previousSessionKey: openAIAuthStorageKey(this.config, previousSessionToken) } : {}) })
+      return owned ? { result: 'success', sessionToken, mutateCookies: true } : { result: 'error', mutateCookies: false }
     } catch {
-      await this.store.deleteSession(sessionKey)
-      throw new Error('Identity session rotation unavailable')
+      // Provider/JWKS errors also lose cookie authority when a newer start has
+      // superseded this flow. Storage uncertainty never grants cookie authority.
+      try { return await finishFailure('error') } catch { return { result: 'error', mutateCookies: false } }
     }
-    return { result: 'success', sessionToken }
   }
   async session(token: string | undefined): Promise<OpenAIAuthSession | null> {
     if (!token) return null

@@ -20,10 +20,11 @@ import {
 import { matchApiRoute, prepareVercelStyleRequest } from '../../shared/server/nodeAdapter'
 import { MemoryRateLimiter } from '../../shared/server/rateLimit'
 import { MemoryFlowStore, STORAGE_UNAVAILABLE_MESSAGE, StorageUnavailableError } from '../../shared/server/store'
+import { createIntegrationHandler, handleIntegration } from '../../shared/server/integrationHttp'
 import { LIMITS } from '../../shared/flowTypes'
 
 function startServer(ctx: ApiContext): Promise<{ server: Server; base: string }> {
-  const handlers = { mcp: handleMcp, flows: handleFlowsCollection, flow: handleFlowItem }
+  const handlers = { mcp: createIntegrationHandler({ mcpHandler: (req, res) => handleMcp(req, res, ctx) }), flows: handleFlowsCollection, flow: handleFlowItem }
   const server = createServer(async (req, res) => {
     const route = matchApiRoute(new URL(req.url ?? '/', 'http://x').pathname)
     if (!route) {
@@ -67,7 +68,7 @@ describe('HTTP: api/mcp and api/flows', () => {
   afterAll(() => new Promise<void>((resolve) => server.close(() => resolve())))
 
   it('the api/ entry points export the shared handlers', () => {
-    expect(mcpHandler).toBe(handleMcp)
+    expect(mcpHandler).toBe(handleIntegration)
     expect(flowsHandler).toBe(handleFlowsCollection)
     expect(flowHandler).toBe(handleFlowItem)
   })

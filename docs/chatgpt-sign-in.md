@@ -24,6 +24,8 @@ Missing or invalid configuration leaves sign-in unavailable. Discovery is fixed 
 
 ## Application endpoints
 
+The four public authentication URLs share the existing integration function through exact `vercel.json` rewrites. This keeps the project within its existing 12-function hosting limit. Authentication dispatch runs before MCP handling, so account responses retain their own origin, method and cookie rules. The reserved `__flowchart_openai_auth` query value selects a route; it is public routing input, not an authorization credential.
+
 | Endpoint | Behavior |
 | --- | --- |
 | `GET /api/auth/openai/session` | Reports availability and verified first-party identity. Authenticated replies provide the CSRF value needed for sign-out. Plan usage always remains unavailable. |
@@ -32,6 +34,8 @@ Missing or invalid configuration leaves sign-in unavailable. Discovery is fixed 
 | `POST /api/auth/openai/signout` | Requires the configured same-origin website and `X-OpenAI-Auth-CSRF`. Revokes the first-party session and clears its cookie. It does not sign out the user's ChatGPT account or remove billing state. |
 
 Temporary sign-in and session cookies are host-only, `Secure`, `HttpOnly`, `SameSite=Lax`, and `Path=/`. Transactions expire after ten minutes and are atomically consumed across instances. Sessions expire after eight hours. Session secrets are opaque; storage keys use their hashes. Provider tokens, authorization codes and PKCE verifiers are never returned by the session API or retained after authentication. Stable account identity uses the verified issuer, client ID and subject, rather than matching an email address.
+
+An expiring completion owner survives transaction consumption. A replacement start invalidates the owner identified by its presented transaction cookie atomically; that older callback waiting on provider work can no longer create a session or mutate browser cookies, including when its provider request fails. Session persistence and rotation require the surviving owner in one Redis operation. Simultaneous starts presenting the same older cookie can create sibling flows, so this is not a browser-wide ordering guarantee. It also does not serialize delayed browser delivery after a completion has already been authorized.
 
 ## Verification
 

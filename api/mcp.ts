@@ -3,6 +3,8 @@
 // search_icons, list_diagram_templates, get_diagram_template, audit_diagram.
 // See docs/mcp.md. Imports use explicit .js extensions: Vercel runs these files as native ESM.
 
-import { handleMcp } from '../src/shared/server/http.js'
+// Exact website-auth rewrites share this function to stay within the hosting
+// function limit. Ordinary requests still use the unchanged MCP handler.
+import { handleIntegration } from '../src/shared/server/integrationHttp.js'
 
-export default handleMcp
+export default handleIntegration

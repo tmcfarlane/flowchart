@@ -10,7 +10,7 @@ const authorizeEndpoint = 'https://auth.openai.com/api/accounts/authorize'
 const sourcePaths = ['src/App.tsx', 'src/components/ChatGPTAccount.tsx', 'src/components/ChatGPTAccount.css',
   'src/shared/server/openaiAuthConfig.ts', 'src/shared/server/openaiAuthHttp.ts', 'src/shared/server/openaiAuthService.ts',
   'src/shared/server/openaiAuthStore.ts', 'src/shared/server/nodeAdapter.ts',
-  'api/auth/openai/start.ts', 'api/auth/openai/callback.ts', 'api/auth/openai/session.ts', 'api/auth/openai/signout.ts',
+  'src/shared/server/integrationHttp.ts', 'api/mcp.ts', 'vercel.json',
   'tests/browser/openai-auth-server.ts', 'tests/browser/openai-sign-in.spec.ts', 'scripts/serve-auth-browser-fixture.mjs',
   'playwright.auth.config.ts', 'package.json', 'package-lock.json', 'tsconfig.browser-tests.json']
 
@@ -87,6 +87,8 @@ test('unconfigured website reports unavailable without starting OAuth', async ({
   expect(stats.tokenExchanges).toBe(0)
   expect(stats.discovery).toBe(0)
   expect(stats.unexpectedUpstream).toBe(0)
+  expect(stats.unexpectedMcp).toBe(0)
+  expect(stats.rewrittenAuthRequests).toBeGreaterThan(0)
   expect(observed.rejected).toEqual([])
   await sourceReceipt(page, info, { ...observed, fixtureProvider: stats, unavailableStartStatus: start.status(),
     availability: 'Real default-unconfigured handler; no provider discovery, authorization or token call' })
@@ -163,6 +165,8 @@ test('signed mock identity creates a server session and sign-out revokes it', as
   expect(stats.tokenExchanges).toBe(1)
   expect(stats.rejectedExchanges).toBe(0)
   expect(stats.unexpectedUpstream).toBe(0)
+  expect(stats.unexpectedMcp).toBe(0)
+  expect(stats.rewrittenAuthRequests).toBeGreaterThan(0)
   expect(authorization).toHaveLength(1)
   expect(authorization[0]).toMatchObject({ scope: 'openid profile email', challengeMethod: 'S256' })
   expect(observed.rejected).toEqual([])
@@ -192,6 +196,8 @@ test('mismatched browser callback fails before token exchange', async ({ page, b
   const after = await (await page.request.get(observed.origin + '/__test/status')).json()
   expect(after.tokenExchanges).toBe(before.tokenExchanges)
   expect(after.unexpectedUpstream).toBe(0)
+  expect(after.unexpectedMcp).toBe(0)
+  expect(after.rewrittenAuthRequests).toBeGreaterThan(before.rewrittenAuthRequests)
   expect(observed.rejected).toEqual([])
   await sourceReceipt(page, info, { ...observed, authorization, tokenExchangesDuringFailure: 0,
     temporaryCookieCleared: true, authenticatedSessionIssued: false, actionableErrorVisible: true })

@@ -5,14 +5,10 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { exportJWK, generateKeyPair, SignJWT, type JWTPayload } from 'jose'
-import startHandler from '../../../api/auth/openai/start'
-import callbackHandler from '../../../api/auth/openai/callback'
-import sessionHandler from '../../../api/auth/openai/session'
-import signoutHandler from '../../../api/auth/openai/signout'
 import { OPENAI_AUTH_DISCOVERY_URL, OPENAI_AUTH_ISSUER, openAIAuthConfigFromEnv } from '../../shared/server/openaiAuthConfig'
 import { createOpenAIAuthContext, handleOpenAIAuthStart, handleOpenAIAuthCallback, handleOpenAIAuthSession, handleOpenAIAuthSignout, OPENAI_AUTH_TRANSACTION_COOKIE, OPENAI_AUTH_SESSION_COOKIE, OPENAI_AUTH_CSRF_HEADER, type OpenAIAuthContext } from '../../shared/server/openaiAuthHttp'
 import { authValuesMatch, openAIAuthStorageKey } from '../../shared/server/openaiAuthService'
-import { MemoryOpenAIAuthStore, RedisOpenAIAuthStore, OPENAI_AUTH_PUT_SCRIPT, OPENAI_AUTH_CONSUME_SCRIPT, OPENAI_AUTH_READ_SCRIPT, OPENAI_AUTH_DELETE_SCRIPT, type OpenAIAuthSession, type OpenAIAuthTransaction } from '../../shared/server/openaiAuthStore'
+import { MemoryOpenAIAuthStore, RedisOpenAIAuthStore, OPENAI_AUTH_PUT_SCRIPT, OPENAI_AUTH_TRANSACTION_PUT_SCRIPT, OPENAI_AUTH_FINISH_SCRIPT, OPENAI_AUTH_CONSUME_SCRIPT, OPENAI_AUTH_READ_SCRIPT, OPENAI_AUTH_DELETE_SCRIPT, type OpenAIAuthSession, type OpenAIAuthTransaction } from '../../shared/server/openaiAuthStore'
 
 const ENV = { OPENAI_SIGN_IN_ENABLED: 'true', OPENAI_SIGN_IN_CLIENT_ID: 'oaiapp_identity_fixture', OPENAI_SIGN_IN_REDIRECT_URI: 'https://flowchart.example/api/auth/openai/callback', OPENAI_SIGN_IN_TOKEN_AUTH_METHOD: 'none', PUBLIC_BASE_URL: 'https://flowchart.example' }
 const DISCOVERY = { issuer: OPENAI_AUTH_ISSUER, authorization_endpoint: `${OPENAI_AUTH_ISSUER}/api/accounts/authorize`, token_endpoint: `${OPENAI_AUTH_ISSUER}/api/accounts/oauth/token`, jwks_uri: `${OPENAI_AUTH_ISSUER}/.well-known/jwks.json` }
@@ -81,9 +77,6 @@ async function fixture(extraEnv: Record<string, string | undefined> = {}) {
 }
 
 describe('OpenAI website identity configuration and HTTP contract', () => {
-  it('exports the shared handlers from all four API routes', () => {
-    expect([startHandler, callbackHandler, sessionHandler, signoutHandler]).toEqual([handleOpenAIAuthStart, handleOpenAIAuthCallback, handleOpenAIAuthSession, handleOpenAIAuthSignout])
-  })
   it.each([
     {}, { ...ENV, OPENAI_SIGN_IN_ENABLED: 'false' }, { ...ENV, OPENAI_SIGN_IN_CLIENT_ID: 'dynamic_agent_client' },
     { ...ENV, OPENAI_SIGN_IN_TOKEN_AUTH_METHOD: undefined }, { ...ENV, OPENAI_SIGN_IN_TOKEN_AUTH_METHOD: 'client_secret_post' },
@@ -188,9 +181,11 @@ describe('One-time OAuth transactions and real signed identity verification', ()
     const first = await http(handleOpenAIAuthCallback, f.ctx, { url, headers: { cookie: failure === 'wrong_cookie' ? `${OPENAI_AUTH_TRANSACTION_COOKIE}=${'x'.repeat(43)}` : tx.cookie } })
     expect(first.headers.get('location')).toBe('/?chatgpt_signin=error')
     expect(f.state.tokenRequests).toHaveLength(0)
+    expect(first.headers.has('set-cookie')).toBe(failure !== 'wrong_cookie' && failure !== 'expired')
     if (failure !== 'wrong_cookie') {
       const retry = await http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${tx.state}&code=fixture-code`, headers: { cookie: tx.cookie } })
       expect(retry.headers.get('location')).toBe('/?chatgpt_signin=error')
+      expect(retry.headers.has('set-cookie')).toBe(false)
       expect(f.state.tokenRequests).toHaveLength(0)
     }
   })
@@ -203,6 +198,7 @@ describe('One-time OAuth transactions and real signed identity verification', ()
     const cancelled = await f.start()
     const result = await http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${cancelled.state}&error=access_denied&error_description=PRIVATE&returnTo=https://evil.example`, headers: { cookie: cancelled.cookie } })
     expect(result.headers.get('location')).toBe('/?chatgpt_signin=cancelled')
+    expect(result.headers.get('set-cookie')).toEqual([expect.stringContaining(`${OPENAI_AUTH_TRANSACTION_COOKIE}=;`)])
     expect(result.text()).not.toContain('PRIVATE')
     expect((await http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${cancelled.state}&code=fixture-code`, headers: { cookie: cancelled.cookie } })).headers.get('location')).toBe('/?chatgpt_signin=error')
     expect(f.state.tokenRequests).toHaveLength(1)
@@ -218,6 +214,82 @@ describe('One-time OAuth transactions and real signed identity verification', ()
     const old = await f.start()
     await f.start({ cookie: old.cookie })
     expect((await http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${old.state}&code=fixture-code`, headers: { cookie: old.cookie } })).headers.get('location')).toBe('/?chatgpt_signin=error')
+  })
+  it.each(['completed', 'pending', 'provider_failure'] as const)('a consumed callback cannot replace or clear a newer %s flow', async (replacement) => {
+    const f = await fixture()
+    const old = await f.start()
+    f.state.claims = { sub: 'older-fixture-subject', name: 'Older fixture' }
+    const original = vi.mocked(f.fetcher).getMockImplementation()!
+    let release!: () => void
+    const held = new Promise<void>((resolve) => { release = resolve })
+    let arrived!: () => void
+    const entered = new Promise<void>((resolve) => { arrived = resolve })
+    vi.mocked(f.fetcher).mockImplementation(async (input, init) => {
+      const response = await original(input, init)
+      if (String(input) === DISCOVERY.token_endpoint && new URLSearchParams(String(init?.body)).get('code') === 'held-older-code') {
+        arrived()
+        await held
+        if (replacement === 'provider_failure') throw new Error('Fixture held provider failure')
+      }
+      return response
+    })
+    const olderResponse = http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${old.state}&code=held-older-code`, headers: { cookie: old.cookie } })
+    await entered
+    const newer = await f.start({ cookie: old.cookie })
+    f.state.claims = { sub: 'newer-fixture-subject', name: 'Newer fixture' }
+    let newerSession: string | undefined
+    if (replacement === 'completed') {
+      const result = await http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${newer.state}&code=newer-code`, headers: { cookie: newer.cookie } })
+      expect(result.headers.get('location')).toBe('/?chatgpt_signin=success')
+      newerSession = cookieValue(result, OPENAI_AUTH_SESSION_COOKIE)
+    }
+    release()
+    const stale = await olderResponse
+    expect(stale.headers.get('location')).toBe('/?chatgpt_signin=error')
+    expect(stale.headers.has('set-cookie')).toBe(false)
+    const records = (f.store as unknown as { entries: Map<string, { value: string }> }).entries
+    const users = [...records.entries()].filter(([key]) => key.startsWith('session:')).map(([, entry]) => JSON.parse(entry.value).user.name)
+    expect(users).toEqual(replacement === 'completed' ? ['Newer fixture'] : [])
+    if (newerSession) expect((await f.ctx.auth!.session(newerSession))?.user.name).toBe('Newer fixture')
+    else {
+      const next = await http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${newer.state}&code=newer-code`, headers: { cookie: newer.cookie } })
+      expect(next.headers.get('location')).toBe('/?chatgpt_signin=success')
+    }
+  })
+  it.each([false, true])('a separate instance replaces a callback waiting on JWKS (failure=%s)', async (providerFailure) => {
+    const f = await fixture()
+    const old = await f.start()
+    const original = vi.mocked(f.fetcher).getMockImplementation()!
+    let release!: () => void, arrived!: () => void
+    const held = new Promise<void>((resolve) => { release = resolve })
+    const entered = new Promise<void>((resolve) => { arrived = resolve })
+    let firstJwks = true
+    vi.mocked(f.fetcher).mockImplementation(async (input, init) => {
+      const response = await original(input, init)
+      if (String(input) === DISCOVERY.jwks_uri && firstJwks) {
+        firstJwks = false
+        arrived()
+        await held
+        if (providerFailure) throw new Error('Fixture held JWKS failure')
+      }
+      return response
+    })
+    const olderResponse = http(handleOpenAIAuthCallback, f.ctx, { url: `/api/auth/openai/callback?state=${old.state}&code=older-code`, headers: { cookie: old.cookie } })
+    await entered
+    const second = createOpenAIAuthContext(ENV, { store: f.store, fetcher: f.fetcher, now: f.now })
+    const started = await http(handleOpenAIAuthStart, second, { headers: { cookie: old.cookie } })
+    const authorization = new URL(String(started.headers.get('location')))
+    f.state.nonce = authorization.searchParams.get('nonce')!
+    f.state.claims = { sub: 'newer-instance-subject', name: 'Newer instance fixture' }
+    const newer = await http(handleOpenAIAuthCallback, second, { url: `/api/auth/openai/callback?state=${authorization.searchParams.get('state')}&code=newer-code`, headers: { cookie: `${OPENAI_AUTH_TRANSACTION_COOKIE}=${cookieValue(started, OPENAI_AUTH_TRANSACTION_COOKIE)}` } })
+    expect(newer.headers.get('location')).toBe('/?chatgpt_signin=success')
+    release()
+    const stale = await olderResponse
+    expect(stale.headers.get('location')).toBe('/?chatgpt_signin=error')
+    expect(stale.headers.has('set-cookie')).toBe(false)
+    const records = (f.store as unknown as { entries: Map<string, { value: string }> }).entries
+    expect([...records.entries()].filter(([key]) => key.startsWith('session:')).map(([, entry]) => JSON.parse(entry.value).user.name)).toEqual(['Newer instance fixture'])
+    expect((await second.auth!.session(cookieValue(newer, OPENAI_AUTH_SESSION_COOKIE)))?.user.name).toBe('Newer instance fixture')
   })
   it('uses confidential Basic form-encoded credentials, retains PKCE, never sends body secret or falls back after invalid secret', async () => {
     const f = await fixture({ OPENAI_SIGN_IN_TOKEN_AUTH_METHOD: 'client_secret_basic', OPENAI_CLIENT_SECRET: 'fixture:secret with+symbols' })
@@ -416,7 +488,7 @@ describe('Isolated first-party website sessions', () => {
     expect(await f.ctx.auth!.session(signed.sessionToken)).toBeNull()
     expect(vi.mocked(f.fetcher).mock.calls.length).toBe(calls)
   })
-  it('storage outage fails closed without false signout, and failed rotation rolls back new session', async () => {
+  it('storage outage fails closed without false signout, and failed atomic completion retains the old session', async () => {
     const f = await fixture()
     const signed = await f.complete()
     const session = await f.ctx.auth!.session(signed.sessionToken)
@@ -425,7 +497,7 @@ describe('Isolated first-party website sessions', () => {
     expect(result.res.statusCode).toBe(503)
     expect(result.headers.has('set-cookie')).toBe(false)
     expect(result.text()).not.toContain('PRIVATE_REDIS_CREDENTIAL')
-    deletion.mockRejectedValueOnce(new Error('rotation unavailable'))
+    vi.spyOn(f.store, 'finishTransaction').mockRejectedValueOnce(new Error('completion unavailable'))
     const next = await f.complete(signed.sessionToken)
     expect(next.result.headers.get('location')).toBe('/?chatgpt_signin=error')
     expect(next.sessionToken).toBeUndefined()
@@ -448,6 +520,19 @@ describe('Redis atomic consume and TTL contract', () => {
     const entries = new Map<string, string>()
     const evalCall = vi.fn(async (script: string, keys: string[], args: string[]) => {
       const key = keys[0]
+      if (script === OPENAI_AUTH_TRANSACTION_PUT_SCRIPT) {
+        if (entries.has(keys[0]) || entries.has(keys[1])) return 0
+        if (keys.length === 4) { entries.delete(keys[2]); entries.set(keys[3], 'superseded') }
+        entries.set(keys[0], args[0]); entries.set(keys[1], 'active'); return 1
+      }
+      if (script === OPENAI_AUTH_FINISH_SCRIPT) {
+        if (entries.get(key) !== 'active') return 0
+        if (keys.length >= 2) {
+          if (entries.has(keys[1])) return -1
+          entries.set(keys[1], args[0]); if (keys.length === 3) entries.delete(keys[2])
+        }
+        entries.set(key, 'finished'); return 1
+      }
       if (script === OPENAI_AUTH_PUT_SCRIPT) { if (entries.has(key)) return 0; entries.set(key, args[0]); return 1 }
       if (script === OPENAI_AUTH_CONSUME_SCRIPT) { const value = entries.get(key) ?? null; entries.delete(key); return value }
       if (script === OPENAI_AUTH_READ_SCRIPT) return entries.get(key) ?? null
@@ -470,7 +555,68 @@ describe('Redis atomic consume and TTL contract', () => {
     await store.deleteSession(key)
     expect(await store.getSession(key)).toBeNull()
     expect(evalCall.mock.calls.find(([script, keys]) => script === OPENAI_AUTH_PUT_SCRIPT && keys[0].includes(':session:'))?.[2][1]).toBe('28800')
+    const newerKey = 'c'.repeat(64), finalKey = 'd'.repeat(64)
+    expect(await store.putTransaction(newerKey, tx, 600, key)).toBe(true)
+    expect(await store.finishTransaction(key, { sessionKey: finalKey, session, ttlSeconds: 28_800 })).toBe(false)
+    expect(await store.getSession(finalKey)).toBeNull()
+    expect(await store.consumeTransaction(newerKey)).toEqual(tx)
+    expect(await store.putSession(key, session, 28_800)).toBe(true)
+    const before = evalCall.mock.calls.length
+    expect(await store.finishTransaction(newerKey, { sessionKey: finalKey, session, ttlSeconds: 28_800, previousSessionKey: key })).toBe(true)
+    expect(evalCall.mock.calls.slice(before)).toHaveLength(1)
+    expect(evalCall.mock.calls[before]).toEqual([OPENAI_AUTH_FINISH_SCRIPT,
+      [`flowchart:openai-auth:owner:${newerKey}`, `flowchart:openai-auth:session:${finalKey}`, `flowchart:openai-auth:session:${key}`], [JSON.stringify(session), '28800']])
+    expect(await store.getSession(finalKey)).toEqual(session)
+    expect(await store.getSession(key)).toBeNull()
+    expect(await store.finishTransaction(newerKey)).toBe(false)
+    expect(OPENAI_AUTH_TRANSACTION_PUT_SCRIPT).toContain("'superseded'")
+    expect(OPENAI_AUTH_FINISH_SCRIPT).toContain("~= 'active'")
+    expect(OPENAI_AUTH_FINISH_SCRIPT).toContain("'KEEPTTL'")
+    const collisionTx = 'e'.repeat(64)
+    await store.putTransaction(collisionTx, tx, 600)
+    await store.consumeTransaction(collisionTx)
+    await expect(store.finishTransaction(collisionTx, { sessionKey: finalKey, session, ttlSeconds: 28_800, previousSessionKey: finalKey })).rejects.toThrow('Identity session collision')
+    expect(await store.getSession(finalKey)).toEqual(session)
+    expect(await store.finishTransaction(collisionTx)).toBe(true)
+
+
     await expect(store.getSession('raw-cookie')).rejects.toThrow('Invalid auth storage key')
+  })
+  it('ownership survives code consumption but expires, and superseded completion cannot revoke another session', async () => {
+    let now = 1000
+    const store = new MemoryOpenAIAuthStore(() => now)
+    const tx: OpenAIAuthTransaction = { state: 'fixture', nonce: 'fixture', codeVerifier: 'fixture', redirectUri: ENV.OPENAI_SIGN_IN_REDIRECT_URI, expiresAt: 2000 }
+    const session: OpenAIAuthSession = { identityHash: 'a'.repeat(64), user: { name: 'Existing fixture', email: null }, csrfToken: 'x'.repeat(43), expiresAt: 10000 }
+    await store.putSession('existing', session, 9)
+    await store.putTransaction('older', tx, 1)
+    await store.consumeTransaction('older')
+    await store.putTransaction('newer', tx, 1, 'older')
+    expect(await store.finishTransaction('older', { sessionKey: 'stale', session, ttlSeconds: 9, previousSessionKey: 'existing' })).toBe(false)
+    expect(await store.getSession('existing')).toEqual(session)
+    expect(await store.getSession('stale')).toBeNull()
+    expect(await store.consumeTransaction('newer')).toEqual(tx)
+    now = 2001
+    expect(await store.finishTransaction('newer', { sessionKey: 'expired', session, ttlSeconds: 9 })).toBe(false)
+    expect(await store.getSession('expired')).toBeNull()
+  })
+  it('only one concurrent completion rotates a session, and collisions preserve the prior session and owner', async () => {
+    const store = new MemoryOpenAIAuthStore()
+    const tx: OpenAIAuthTransaction = { state: 'fixture', nonce: 'fixture', codeVerifier: 'fixture', redirectUri: ENV.OPENAI_SIGN_IN_REDIRECT_URI, expiresAt: Date.now() + 1000 }
+    const session: OpenAIAuthSession = { identityHash: 'a'.repeat(64), user: { name: null, email: null }, csrfToken: 'x'.repeat(43), expiresAt: Date.now() + 9000 }
+    await store.putTransaction('owner', tx, 1)
+    await store.consumeTransaction('owner')
+    await store.putSession('prior', session, 9)
+    const completed = await Promise.all(['one', 'two'].map(sessionKey => store.finishTransaction('owner', { sessionKey, session, ttlSeconds: 9, previousSessionKey: 'prior' })))
+    expect(completed).toEqual([true, false])
+    expect(await store.getSession('one')).toEqual(session)
+    expect(await store.getSession('two')).toBeNull()
+    expect(await store.getSession('prior')).toBeNull()
+    await store.putTransaction('collision', tx, 1)
+    await store.consumeTransaction('collision')
+    await store.putSession('keep', session, 9)
+    await expect(store.finishTransaction('collision', { sessionKey: 'one', session, ttlSeconds: 9, previousSessionKey: 'keep' })).rejects.toThrow('Identity session collision')
+    expect(await store.getSession('keep')).toEqual(session)
+    expect(await store.finishTransaction('collision')).toBe(true)
   })
   it('session namespaces differ across clients; expired rate entries really reset', async () => {
     const cfg = openAIAuthConfigFromEnv(ENV)!
