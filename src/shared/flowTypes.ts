@@ -72,7 +72,7 @@ export interface ChartNode {
   position: Position
   width?: number
   height?: number
-  /** Stable Azure icon id (see search_azure_icons), e.g. "azure-cosmos-db". */
+  /** Stable local icon id (see search_icons), e.g. "icon-robot" or "azure-cosmos-db". */
   icon?: string
   /** External image (https:// URL) or an image uploaded in the browser (data:image/...). */
   imageUrl?: string
@@ -149,7 +149,7 @@ export const NODE_TYPE_INFO: Record<NodeType, NodeTypeInfo> = {
     type: 'image',
     category: 'flowchart',
     description:
-      'A large icon with a caption, typically an Azure service such as "Azure Cosmos DB". Requires `icon` (an id from search_azure_icons) or `imageUrl` (https).',
+      'A large local illustration with a caption, such as a person, a planet, or an Azure service. Requires `icon` (an id from search_icons or search_azure_icons) or `imageUrl` (https).',
     defaultSize: { width: 140, height: 140 },
     supportsIcon: true,
   },

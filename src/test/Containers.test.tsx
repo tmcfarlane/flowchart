@@ -155,6 +155,36 @@ describe('remapPastedNodes (paste id hardening)', () => {
     expect(edges).toHaveLength(1)
     expect(edges[0]).toMatchObject({ id: 'e5-6', source: '5', target: '6', selected: false })
   })
+
+  it('preserves arbitrary imported ids without inherited object keys', () => {
+    const clipboardNodes = [
+      { id: '__proto__', type: 'container', position: { x: 0, y: 0 }, data: {} },
+      { id: 'constructor', type: 'service', parentNode: '__proto__', extent: 'parent', position: { x: 30, y: 60 }, data: {} },
+    ] as FlowNode[]
+    const clipboardEdges = [
+      { id: 'inside', source: '__proto__', target: 'constructor' },
+      { id: 'outside', source: 'constructor', target: 'toString' },
+    ] as Edge[]
+    const pasted = remapPastedNodes(clipboardNodes, clipboardEdges, 10)
+    expect(pasted.nodes.map(node => node.id)).toEqual(['10', '11'])
+    expect(pasted.nodes[1].parentNode).toBe('10')
+    expect(pasted.edges).toEqual([expect.objectContaining({ id: 'e10-11', source: '10', target: '11' })])
+  })
+
+  it('keeps parallel connections distinct and preserves their semantics', () => {
+    const clipboardNodes = [
+      { id: 'a', type: 'service', position: { x: 0, y: 0 }, data: {} },
+      { id: 'b', type: 'database', position: { x: 300, y: 0 }, data: {} },
+    ] as FlowNode[]
+    const clipboardEdges = [
+      { id: 'query', source: 'a', target: 'b', label: 'Query', sourceHandle: 'right', targetHandle: 'left', data: { protocol: 'SQL', commStyle: 'sync' } },
+      { id: 'events', source: 'a', target: 'b', label: 'Events', animated: true, data: { protocol: 'event', commStyle: 'async' } },
+    ] as Edge[]
+    const { edges } = remapPastedNodes(clipboardNodes, clipboardEdges, 10)
+    expect(new Set(edges.map(edge => edge.id)).size).toBe(2)
+    expect(edges[0]).toMatchObject({ source: '10', target: '11', label: 'Query', sourceHandle: 'right', targetHandle: 'left', data: { protocol: 'SQL', commStyle: 'sync' } })
+    expect(edges[1]).toMatchObject({ source: '10', target: '11', label: 'Events', animated: true, data: { protocol: 'event', commStyle: 'async' } })
+  })
 })
 
 describe('Nesting export/import round-trip', () => {

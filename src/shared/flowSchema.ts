@@ -30,6 +30,7 @@ function idSchema(what: string, maxLength: number = LIMITS.maxIdLength) {
     .min(1, `${what} must not be empty`)
     .max(maxLength, `${what} must be at most ${maxLength} characters`)
     .regex(/^[^\u0000-\u001f\u007f]+$/, `${what} must not contain control characters`)
+    .regex(/\S/, `${what} must not be blank`)
 }
 
 function enumSchema<const T extends readonly [string, ...string[]]>(values: T, what: string) {
@@ -142,11 +143,11 @@ const nodeShape = {
   icon: iconSchema
     .nullish()
     .describe(
-      'Azure icon id from search_azure_icons, e.g. "azure-cosmos-db". Only for image nodes (large icon + caption) and architecture nodes (small glyph).',
+      'Local icon id from search_icons or search_azure_icons, e.g. "icon-robot" or "azure-cosmos-db". Only for image nodes (large icon + caption) and architecture nodes (small glyph).',
     ),
   imageUrl: imageUrlSchema
     .nullish()
-    .describe('https:// image URL for image nodes when no Azure icon fits. Prefer icon.'),
+    .describe('https:// image URL for image nodes when no local icon fits. Prefer icon.'),
   parentNode: idSchema('parentNode')
     .nullish()
     .describe('Id of a "container" node to place this node inside.'),
@@ -197,7 +198,7 @@ export const NodeChangesSchema = strictObject({
   position: PositionSchema.nullish().describe('New position. null lets the server place the node automatically.'),
   width: sizeSchema('width').nullish().describe('null resets to the default size.'),
   height: sizeSchema('height').nullish().describe('null resets to the default size.'),
-  icon: iconSchema.nullish().describe('Azure icon id; null removes the icon.'),
+  icon: iconSchema.nullish().describe('Local icon id; null removes the icon.'),
   imageUrl: imageUrlSchema.nullish().describe('null removes the image URL.'),
   parentNode: idSchema('parentNode')
     .nullish()
@@ -576,9 +577,9 @@ export function validateChart(nodesIn: DraftNode[], edgesIn: EdgeDraft[], option
           issues.push({
             path: `${ref}.icon`,
             message:
-              `unknown Azure icon ${JSON.stringify(node.icon)}.` +
+              `unknown icon ${JSON.stringify(node.icon)}.` +
               (tips.length ? ` Did you mean ${tips.join(', ')}?` : '') +
-              ' Use search_azure_icons to find valid icon ids.',
+              ' Use search_icons or search_azure_icons to find valid local icon ids.',
           })
         }
       }
@@ -595,7 +596,7 @@ export function validateChart(nodesIn: DraftNode[], edgesIn: EdgeDraft[], option
         issues.push({
           path: `${ref}.imageUrl`,
           message:
-            'must be an https:// URL (or a data:image/ URL) without spaces or backslashes. Prefer "icon" with an id from search_azure_icons.',
+            'must be an https:// URL (or a data:image/ URL) without spaces or backslashes. Prefer "icon" with an id from search_icons or search_azure_icons.',
         })
       }
     }
@@ -604,7 +605,7 @@ export function validateChart(nodesIn: DraftNode[], edgesIn: EdgeDraft[], option
       issues.push({
         path: ref,
         message:
-          'image nodes need an "icon" (Azure icon id from search_azure_icons) or an "imageUrl". Use type "step" for a plain box.',
+          'image nodes need an "icon" (local icon id from search_icons or search_azure_icons) or an "imageUrl". Use type "step" for a plain box.',
       })
     }
 

@@ -78,31 +78,41 @@ describe('HTTP: api/mcp and api/flows', () => {
     expect(client.getServerVersion()?.name).toBe('flowchart-ai')
 
     const { tools } = await client.listTools()
-    expect(tools).toHaveLength(5)
+    expect(tools.map((tool) => tool.name)).toEqual(expect.arrayContaining(['create_flowchart', 'get_flowchart', 'list_node_types', 'search_azure_icons', 'search_icons', 'list_diagram_templates', 'get_diagram_template', 'audit_diagram']))
+    expect(tools).toHaveLength(8)
 
-    const created = await client.callTool({ name: 'create_flowchart', arguments: SAMPLE })
+    const created = await client.callTool({ name: 'create_flowchart', arguments: { ...SAMPLE, sharing: 'link-shared' } })
     expect(created.isError).toBeFalsy()
-    const data = created.structuredContent as { id: string; editToken: string; editUrl: string }
-    expect(data.editUrl).toMatch(/^https:\/\/flowchart\.example\/f\/[0-9A-Za-z]{10}#edit=/)
-
-    const updated = await client.callTool({
-      name: 'update_flowchart',
-      arguments: {
-        id: data.id,
-        editToken: data.editToken,
-        expectedVersion: 1,
-        operations: [{ op: 'add_edge', edge: { source: 'known', target: 'noop', label: 'No' } }],
-      },
+    const data = created.structuredContent as { id: string; url: string }
+    const privateData = created._meta?.['flowchart/private'] as { editToken: string; editUrl: string }
+    expect(privateData.editUrl).toMatch(/^https:\/\/flowchart\.example\/f\/[0-9A-Za-z]{10}#edit=/)
+    expect(JSON.stringify({ content: created.content, structuredContent: data })).not.toContain(privateData.editToken)
+    // Real browser REST edit using the capability received only through private metadata.
+    const updated = await fetch(`${base}/api/flows/${data.id}`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${privateData.editToken}` },
+      body: JSON.stringify({ baseVersion: 1, operations: [{ op: 'add_edge', edge: { source: 'known', target: 'noop', label: 'No' } }] }),
     })
-    expect(updated.isError).toBeFalsy()
-
+    expect(updated.status).toBe(200)
     const read = await client.callTool({ name: 'get_flowchart', arguments: { id: data.id } })
     expect((read.structuredContent as { version: number }).version).toBe(2)
-
-    // The same chart is visible through the REST API the browser uses.
     const rest = await fetch(`${base}/api/flows/${data.id}`).then((r) => r.json())
-    expect(rest).toMatchObject({ id: data.id, version: 2, updatedVia: 'mcp' })
+    expect(rest).toMatchObject({ id: data.id, version: 2, updatedVia: 'api' })
     await client.close()
+  })
+
+  it('deletes only with the matching capability and invalidates reads, polls and stale writes', async () => {
+    const created = await fetch(`${base}/api/flows`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(SAMPLE) }).then(r => r.json())
+    const url = `${base}/api/flows/${created.id}`
+    expect((await fetch(url, { method: 'DELETE' })).status).toBe(401)
+    expect((await fetch(url, { method: 'DELETE', headers: { Authorization: 'Bearer wrong' } })).status).toBe(403)
+    expect((await fetch(url)).status).toBe(200)
+    const other = await fetch(`${base}/api/flows`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(SAMPLE) }).then(r => r.json())
+    expect((await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${other.editToken}` } })).status).toBe(403)
+    expect((await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${created.editToken}` } })).status).toBe(200)
+    expect((await fetch(url)).status).toBe(404)
+    expect((await fetch(url + '?since=1')).status).toBe(404)
+    expect((await fetch(url, { method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${created.editToken}` }, body: JSON.stringify({ operations: [{ op: 'update_node', id: 'req', changes: { label: 'Restored?' } }] }) })).status).toBe(404)
+    expect((await fetch(`${base}/api/flows/${other.id}`)).status).toBe(200)
   })
 
   it('is stateless: GET and DELETE on /api/mcp return 405', async () => {
@@ -230,7 +240,38 @@ describe('HTTP: api/mcp and api/flows', () => {
     expect((await fetch(`${base}/api/flows/Nope000000`)).status).toBe(404)
     expect((await fetch(`${base}/api/flows/..%2F..%2Fetc`)).status).toBe(404)
     expect((await fetch(`${base}/api/flows`, { method: 'GET' })).status).toBe(405)
-    expect((await fetch(`${base}/api/flows/Nope000000`, { method: 'DELETE' })).status).toBe(405)
+    expect((await fetch(`${base}/api/flows/Nope000000`, { method: 'DELETE' })).status).toBe(401)
+  })
+
+  it('rejects blank identities on create, replace and atomic patch without trimming valid IDs or captions', async () => {
+    const headers = { 'Content-Type': 'application/json' }
+    const invalid = await fetch(`${base}/api/flows`, { method: 'POST', headers, body: JSON.stringify({ nodes: [{ id: '\u00a0\u2003', type: 'step', label: '' }], edges: [] }) })
+    expect(invalid.status).toBe(400)
+    expect((await invalid.json()).issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: 'nodes[0].id', message: 'node id must not be blank' })]))
+    const draft = { title: 'Exact identities', nodes: [
+      { id: ' node ', type: 'step', label: '', position: { x: 0, y: 0 } },
+      { id: ' next ', type: 'note', label: '   ', position: { x: 240, y: 0 } },
+    ], edges: [{ id: ' edge ', source: ' node ', target: ' next ', label: '   ' }] }
+    const createdResponse = await fetch(`${base}/api/flows`, { method: 'POST', headers, body: JSON.stringify(draft) })
+    expect(createdResponse.status).toBe(201)
+    const created = await createdResponse.json()
+    const url = `${base}/api/flows/${created.id}`
+    const auth = { ...headers, Authorization: `Bearer ${created.editToken}` }
+    const replaced = await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify({ ...draft, nodes: [{ ...draft.nodes[0], id: '   ' }], edges: [], baseVersion: 1 }) })
+    expect(replaced.status).toBe(400)
+    const patched = await fetch(url, { method: 'PATCH', headers: auth, body: JSON.stringify({ baseVersion: 1, operations: [
+      { op: 'update_node', id: ' node ', changes: { label: 'Must not commit' } },
+      { op: 'update_edge', id: ' edge ', changes: { target: '   ' } },
+    ] }) })
+    expect(patched.status).toBe(400)
+    expect((await patched.json()).issues).toEqual(expect.arrayContaining([expect.objectContaining({ path: 'operations[1].changes.target', message: 'edge target must not be blank' })]))
+    const unchanged = await fetch(url).then(response => response.json())
+    expect(unchanged.version).toBe(1)
+    expect(unchanged.nodes.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual([{ id: ' node ', label: '' }, { id: ' next ', label: '   ' }])
+    expect(unchanged.edges[0]).toMatchObject({ id: ' edge ', source: ' node ', target: ' next ', label: '   ' })
+    const updated = await fetch(url, { method: 'PATCH', headers: auth, body: JSON.stringify({ baseVersion: 1, operations: [{ op: 'update_node', id: ' node ', changes: { label: '   ' } }] }) })
+    expect(updated.status).toBe(200)
+    expect(await updated.json()).toMatchObject({ version: 2, nodes: [{ id: ' node ', label: '   ' }, { id: ' next ', label: '   ' }] })
   })
 
   it('rejects oversized bodies', async () => {
@@ -390,7 +431,7 @@ describe('HTTP: rate limits, base URLs and missing storage', () => {
 
     const client = new Client({ name: 'http-test', version: '1.0.0' })
     await client.connect(new StreamableHTTPClientTransport(new URL(`${base}/api/mcp`)))
-    const tool = await client.callTool({ name: 'create_flowchart', arguments: SAMPLE })
+    const tool = await client.callTool({ name: 'create_flowchart', arguments: { ...SAMPLE, sharing: 'link-shared' } })
     expect(tool.isError).toBe(true)
     expect(JSON.stringify(tool.content)).toContain('no chart storage configured')
     await client.close()

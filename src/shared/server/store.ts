@@ -25,6 +25,8 @@ export interface FlowStore {
   readonly description: string
   /** Insert a new chart. Resolves false if the id is already taken. */
   create(record: StoredRecord): Promise<boolean>
+  /** Atomically delete only when the edit capability hash matches. */
+  delete(id: string, tokenHash: string): Promise<'deleted' | 'not_found' | 'unauthorized'>
   get(id: string): Promise<StoredRecord | null>
   /** Cheap lookup of just the version, for polling. */
   getVersion(id: string): Promise<number | null>
@@ -88,6 +90,15 @@ export class MemoryFlowStore implements FlowStore {
     })
     this.persist()
     return true
+  }
+
+  async delete(id: string, tokenHash: string): Promise<'deleted' | 'not_found' | 'unauthorized'> {
+    const entry = this.entries.get(id)
+    if (!entry) return 'not_found'
+    if (entry.tokenHash !== tokenHash) return 'unauthorized'
+    this.entries.delete(id)
+    this.persist()
+    return 'deleted'
   }
 
   async get(id: string): Promise<StoredRecord | null> {
@@ -162,6 +173,14 @@ if ttl and ttl > 0 then redis.call('EXPIRE', KEYS[1], ttl) end
 return 1
 `
 
+export const DELETE_SCRIPT = `
+local token = redis.call('HGET', KEYS[1], 'tokenHash')
+if not token then return -1 end
+if token ~= ARGV[1] then return 0 end
+redis.call('DEL', KEYS[1])
+return 1
+`
+
 export const UPDATE_SCRIPT = `
 local current = redis.call('HGET', KEYS[1], 'version')
 if not current then return {-1} end
@@ -217,6 +236,11 @@ export class UpstashFlowStore implements FlowStore {
       ),
     )
     return Number(result) === 1
+  }
+
+  async delete(id: string, tokenHash: string): Promise<'deleted' | 'not_found' | 'unauthorized'> {
+    const result = Number(await this.call('delete', () => this.redis.eval(DELETE_SCRIPT, [this.key(id)], [tokenHash])))
+    return result === 1 ? 'deleted' : result === 0 ? 'unauthorized' : 'not_found'
   }
 
   async get(id: string): Promise<StoredRecord | null> {

@@ -84,6 +84,8 @@ export interface SharedFlowApi {
   loadLatest: () => Promise<void>
   keepMine: () => Promise<void>
   retryLoad: () => void
+  /** Detach a loaded view into a local canvas; never writes to the source. */
+  detachToLocal: () => boolean
 }
 
 interface Options {
@@ -119,6 +121,8 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
   /** After a 429 or 503 on save, don't retry before this time. */
   const saveNotBeforeRef = useRef(0)
   const loadStartedRef = useRef(false)
+  const loadRequestRef = useRef(0)
+  const creatingRef = useRef<Promise<boolean> | null>(null)
   const statusRef = useRef<ShareStatus>(state.status)
   const conflictVersionRef = useRef<number | undefined>(undefined)
   const nodesRef = useRef(nodes)
@@ -195,16 +199,30 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
     [setStatus, markActive],
   )
 
+  const markUnavailable = useCallback((id: string) => {
+    if (unmountedRef.current || idRef.current !== id) return
+    forgetEditToken(id)
+    tokenRef.current = null
+    loadRequestRef.current += 1
+    setStatus('not-found', {
+      canEdit: false,
+      conflictVersion: undefined,
+      error: 'This shared chart was deleted or is no longer available. Your current canvas is still here; export a copy to keep your work.',
+    })
+  }, [setStatus])
+
   const load = useCallback(
     async (id: string) => {
+      if (unmountedRef.current) return
+      const request = ++loadRequestRef.current
       setStatus('loading', { error: undefined })
       const result = await fetchSharedChart(id)
-      if (idRef.current !== id) return
+      if (unmountedRef.current || idRef.current !== id || request !== loadRequestRef.current) return
       if (result.status === 'ok') adopt(result.chart, 'initial')
-      else if (result.status === 'not_found') setStatus('not-found')
+      else if (result.status === 'not_found') markUnavailable(id)
       else if (result.status === 'error') setStatus('load-error', { error: result.message })
     },
-    [adopt, setStatus],
+    [adopt, markUnavailable, setStatus],
   )
 
   // Open /f/:id: remember the edit token, hide it from the address bar, load.
@@ -227,7 +245,12 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
   useEffect(() => {
     const onPopState = () => {
       const location = parseSharedLocation(window.location)
-      if ((location?.id ?? null) !== idRef.current) window.location.reload()
+      if ((location?.id ?? null) !== idRef.current) {
+        idRef.current = location?.id ?? null
+        tokenRef.current = null
+        loadRequestRef.current += 1
+        window.location.reload()
+      }
     }
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
@@ -267,7 +290,7 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
       baseVersion: versionRef.current,
     })
     savingRef.current = false
-    if (idRef.current !== id) return
+    if (unmountedRef.current || idRef.current !== id || statusRef.current === 'not-found') return
 
     if (result.ok) {
       versionRef.current = result.chart.version
@@ -282,7 +305,9 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
     }
 
     saveAgainRef.current = false
-    if (result.status === 409) {
+    if (result.status === 404) {
+      markUnavailable(id)
+    } else if (result.status === 409) {
       setStatus('conflict', { conflictVersion: result.currentVersion })
     } else if (result.status === 401 || result.status === 403) {
       forgetEditToken(id)
@@ -297,7 +322,7 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
         error: result.status === 0 ? 'Offline. Changes will sync when the connection is back.' : `Couldn't save: ${result.message}`,
       })
     }
-  }, [setStatus, markActive])
+  }, [setStatus, markActive, markUnavailable])
 
   // Debounced autosave of local edits.
   useEffect(() => {
@@ -310,7 +335,7 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
     (chart: Chart) => {
       if (chart.version <= versionRef.current || savingRef.current) return
       const local = contentFingerprint(flowToChart(nodesRef.current, edgesRef.current))
-      const hasUnsavedEdits = local !== syncedFingerprintRef.current
+      const hasUnsavedEdits = local !== syncedFingerprintRef.current || titleDirtyRef.current
       if (!hasUnsavedEdits && statusRef.current !== 'conflict') {
         adopt(chart, 'remote')
       } else {
@@ -378,9 +403,12 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
       } finally {
         inFlight = false
       }
-      if (stopped) return
+      if (stopped || unmountedRef.current || idRef.current !== id) return
       const now = Date.now()
-      if (result.status === 'ok' || result.status === 'unchanged') {
+      if (result.status === 'not_found') {
+        markUnavailable(id)
+        return
+      } else if (result.status === 'ok' || result.status === 'unchanged') {
         poll.errors = 0
         if (result.status === 'ok') handleRemote(result.chart)
       } else {
@@ -442,37 +470,48 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
       window.removeEventListener('online', onOnline)
       for (const type of INPUT_EVENTS) window.removeEventListener(type, onInput, { capture: true })
     }
-  }, [loaded, handleRemote, flushSave, markActive])
+  }, [loaded, handleRemote, flushSave, markActive, markUnavailable])
 
-  const createShare = useCallback(async (): Promise<boolean> => {
-    if (idRef.current) return true
-    setState((s) => ({ ...s, creating: true, createError: undefined }))
-    const content = flowToChart(nodesRef.current, edgesRef.current)
-    const result = await createSharedChart({ title: DEFAULT_SHARED_TITLE, ...content })
-    if (!result.ok) {
-      setState((s) => ({ ...s, creating: false, createError: result.message }))
-      return false
-    }
-    storeEditToken(result.id, result.editToken)
-    idRef.current = result.id
-    tokenRef.current = result.editToken
-    versionRef.current = result.version
-    titleRef.current = result.chart.title
-    syncedFingerprintRef.current = contentFingerprint(content)
-    loadStartedRef.current = true
-    window.history.pushState(window.history.state, '', `/f/${result.id}`)
-    statusRef.current = 'synced'
-    setState((s) => ({
-      ...s,
-      id: result.id,
-      title: result.chart.title,
-      version: result.version,
-      canEdit: true,
-      status: 'synced',
-      creating: false,
-    }))
-    return true
-  }, [])
+  const createShare = useCallback((): Promise<boolean> => {
+    if (unmountedRef.current) return Promise.resolve(false)
+    if (idRef.current) return Promise.resolve(true)
+    if (creatingRef.current) return creatingRef.current
+    const request = (async () => {
+      setState((s) => ({ ...s, creating: true, createError: undefined }))
+      const content = flowToChart(nodesRef.current, edgesRef.current)
+      const result = await createSharedChart({ title: titleRef.current || DEFAULT_SHARED_TITLE, ...content })
+      if (unmountedRef.current || idRef.current) return false
+      if (!result.ok) {
+        setState((s) => ({ ...s, creating: false, createError: result.message }))
+        return false
+      }
+      storeEditToken(result.id, result.editToken)
+      idRef.current = result.id
+      tokenRef.current = result.editToken
+      versionRef.current = result.version
+      titleRef.current = result.chart.title
+      syncedFingerprintRef.current = contentFingerprint(content)
+      loadStartedRef.current = true
+      window.history.pushState(window.history.state, '', `/f/${result.id}`)
+      statusRef.current = 'synced'
+      setState((s) => ({
+        ...s,
+        id: result.id,
+        title: result.chart.title,
+        version: result.version,
+        canEdit: true,
+        status: 'synced',
+        creating: false,
+      }))
+      // Edits made before creation settled had no shared id, so their debounce
+      // could not save. Compare and flush the current canvas now.
+      void flushSave()
+      return true
+    })()
+    creatingRef.current = request
+    void request.finally(() => { if (creatingRef.current === request) creatingRef.current = null })
+    return request
+  }, [flushSave])
 
   const rename = useCallback(
     (title: string) => {
@@ -488,17 +527,35 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
 
   const loadLatest = useCallback(async () => {
     const id = idRef.current
-    if (!id) return
+    if (!id || unmountedRef.current || statusRef.current === 'not-found') return
+    const request = ++loadRequestRef.current
+    const local = contentFingerprint(flowToChart(nodesRef.current, edgesRef.current))
+    const title = titleRef.current
     const result = await fetchSharedChart(id)
-    if (result.status === 'ok') adopt(result.chart, 'remote')
-  }, [adopt])
+    if (unmountedRef.current || idRef.current !== id || request !== loadRequestRef.current) return
+    if (result.status === 'ok') {
+      if (result.chart.version < versionRef.current) return
+      const newestKnown = Math.max(versionRef.current, conflictVersionRef.current ?? 0)
+      const changedWhileLoading = local !== contentFingerprint(flowToChart(nodesRef.current, edgesRef.current)) || title !== titleRef.current
+      if (result.chart.version < newestKnown || changedWhileLoading) {
+        setStatus('conflict', {
+          conflictVersion: Math.max(newestKnown, result.chart.version),
+          error: changedWhileLoading ? 'Your canvas changed while the latest version was loading. Your work is still here. Choose again when ready.' : 'A newer remote version is available. Load latest again to fetch it.',
+        })
+        return
+      }
+      adopt(result.chart, 'remote')
+    } else if (result.status === 'not_found') markUnavailable(id)
+    else if (result.status === 'error') setStatus(statusRef.current === 'conflict' ? 'conflict' : 'error', { error: `Couldn't load the latest version: ${result.message}` })
+  }, [adopt, markUnavailable, setStatus])
 
   const keepMine = useCallback(async () => {
-    if (!idRef.current) return
+    if (!idRef.current || !tokenRef.current || unmountedRef.current || statusRef.current === 'not-found') return
+    loadRequestRef.current += 1
     // Overwrite the remote change with the local canvas, based on the newest version.
     if (conflictVersionRef.current !== undefined) versionRef.current = conflictVersionRef.current
     syncedFingerprintRef.current = null
-    setStatus('synced', { conflictVersion: undefined })
+    setStatus('synced', { conflictVersion: undefined, error: undefined })
     await flushSave()
   }, [flushSave, setStatus])
 
@@ -506,8 +563,30 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
     if (idRef.current) void load(idRef.current)
   }, [load])
 
+  const detachToLocal = useCallback((): boolean => {
+    if (unmountedRef.current || !idRef.current || tokenRef.current || state.canEdit || state.version < 1 ||
+        ['loading', 'load-error'].includes(statusRef.current)) return false
+    // Clear the identity synchronously before changing the route/state so every
+    // in-flight source read, poll and version load fails its existing id fence.
+    // Keep the source's stored capability for other tabs and future visits.
+    idRef.current = null
+    tokenRef.current = null
+    loadRequestRef.current += 1
+    versionRef.current = 0
+    titleRef.current = `${(titleRef.current || DEFAULT_SHARED_TITLE).slice(0, 193)} (copy)`
+    titleDirtyRef.current = false
+    conflictVersionRef.current = undefined
+    syncedFingerprintRef.current = null
+    saveAgainRef.current = false
+    saveNotBeforeRef.current = 0
+    statusRef.current = 'idle'
+    window.history.pushState(window.history.state, '', '/')
+    setState({ id: null, title: titleRef.current, version: 0, canEdit: false, status: 'idle', creating: false })
+    return true
+  }, [state.canEdit, state.version])
+
   const origin = typeof window === 'undefined' ? '' : window.location.origin
-  const links = state.id ? sharePaths(origin, state.id, state.canEdit ? tokenRef.current : null) : undefined
+  const links = state.id && state.status !== 'not-found' ? sharePaths(origin, state.id, state.canEdit ? tokenRef.current : null) : undefined
 
   return {
     state,
@@ -518,5 +597,6 @@ export function useSharedFlow({ nodes, edges, applyChart }: Options): SharedFlow
     loadLatest,
     keepMine,
     retryLoad,
+    detachToLocal,
   }
 }

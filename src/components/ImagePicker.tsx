@@ -1,5 +1,8 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useId, useMemo, useRef } from 'react'
 import './ImagePicker.css'
+import { diagramSvgModules } from '../utils/azureIconIds'
+import { DIAGRAM_ICONS } from '../shared/diagramIcons'
+import { IMAGE_UPLOAD_ACCEPT, prepareImageUpload } from '../utils/imageUpload'
 
 interface ImagePickerProps {
   isOpen: boolean
@@ -46,6 +49,7 @@ interface SelectedAsset {
   imageUrl: string
   label: string
   isUploaded: boolean
+  notice?: string
 }
 
 // List of popular Azure service icon names (partial matches work)
@@ -83,28 +87,61 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   const [activeTab, setActiveTab] = useState<Tab>('library')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFolder, setSelectedFolder] = useState<string>('popular')
-  const [_uploadedImage, setUploadedImage] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [selectedAsset, setSelectedAsset] = useState<SelectedAsset | null>(null)
   const [editableLabel, setEditableLabel] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+  const labelId = useId()
+  const uploadId = useId()
+  const categoriesId = useId()
+  const uploadGeneration = useRef(0)
+  const uploadController = useRef<AbortController | null>(null)
+  const isOpenRef = useRef(isOpen)
+  isOpenRef.current = isOpen
+
+  const cancelUpload = () => {
+    uploadGeneration.current += 1
+    uploadController.current?.abort()
+    uploadController.current = null
+    setIsUploading(false)
+  }
+
+  useEffect(() => {
+    if (!isOpen) {
+      uploadGeneration.current += 1
+      uploadController.current?.abort()
+      uploadController.current = null
+      setIsUploading(false)
+    }
+  }, [isOpen])
+  useEffect(() => () => {
+    uploadGeneration.current += 1
+    uploadController.current?.abort()
+  }, [])
 
   const svgAssets = useMemo<SvgAsset[]>(() => {
-    const modules = import.meta.glob('/assets/icons/**/*.svg', {
+    const azureModules = import.meta.glob('/assets/icons/**/*.svg', {
       eager: true,
       import: 'default',
     })
 
-    return Object.entries(modules).map(([path, url]: [string, any]) => {
+    const metadata = new Map(DIAGRAM_ICONS.map((icon) => [icon.path, icon]))
+    const modules = { ...azureModules, ...diagramSvgModules }
+    return Object.entries(modules).map(([path, url]) => {
+      const original = metadata.get(path)
       const parts = path.split('/')
       // Get the folder (parent directory of the SVG)
-      const folder = parts[parts.length - 2] || 'other'
+      const folder = original ? 'Flowchart originals' : parts[parts.length - 2] || 'other'
       const name = parts[parts.length - 1].replace('.svg', '')
-      const displayName = formatDisplayName(name)
+      const displayName = original?.name ?? formatDisplayName(name)
 
       return {
         path,
-        url,
+        url: String(url),
         folder,
         name,
         displayName,
@@ -123,7 +160,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   const filteredAssets = useMemo(() => {
     let assets = svgAssets
 
-    if (selectedFolder === 'popular') {
+    if (selectedFolder === 'popular' && !searchQuery.trim()) {
       // Filter to popular services and deduplicate by name
       const popularAssets = assets.filter((a) => isPopularService(a.name))
       // Deduplicate by name (keep the first occurrence)
@@ -133,7 +170,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
         seenNames.add(a.name)
         return true
       })
-    } else if (selectedFolder !== 'all') {
+    } else if (selectedFolder !== 'all' && selectedFolder !== 'popular') {
       assets = assets.filter((a) => a.folder === selectedFolder)
     }
 
@@ -161,28 +198,36 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const imageUrl = reader.result as string
-        setUploadedImage(imageUrl)
-        // Automatically open preview for uploaded image
-        const fileName = file.name.replace(/\.[^/.]+$/, '') // Remove extension
-        setSelectedAsset({
-          asset: null,
-          imageUrl,
-          label: fileName,
-          isUploaded: true,
-        })
-        setEditableLabel(fileName)
+    // Allow choosing the same file after a read/decode failure.
+    e.target.value = ''
+    if (!file) return
+    cancelUpload()
+    setUploadError(null)
+    setIsUploading(true)
+    const generation = uploadGeneration.current
+    const controller = new AbortController()
+    uploadController.current = controller
+    try {
+      const uploaded = await prepareImageUpload(file, controller.signal)
+      if (generation !== uploadGeneration.current || !isOpenRef.current) return
+      setSelectedAsset({ asset: null, ...uploaded, isUploaded: true })
+      setEditableLabel(uploaded.label)
+    } catch (error) {
+      if (generation !== uploadGeneration.current || !isOpenRef.current || controller.signal.aborted) return
+      setUploadError(error instanceof Error ? error.message : 'This image could not be opened. Try another file.')
+    } finally {
+      if (generation === uploadGeneration.current) {
+        uploadController.current = null
+        setIsUploading(false)
       }
-      reader.readAsDataURL(file)
     }
   }
 
   const handleSelectLibraryItem = (asset: SvgAsset) => {
+    cancelUpload()
+    setUploadError(null)
     setSelectedAsset({
       asset,
       imageUrl: asset.url,
@@ -200,15 +245,18 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   }
 
   const handleBackToLibrary = () => {
+    cancelUpload()
+    setUploadError(null)
     setSelectedAsset(null)
     setEditableLabel('')
   }
 
   const handleClose = () => {
+    cancelUpload()
+    setUploadError(null)
     setActiveTab('library')
     setSearchQuery('')
     setSelectedFolder('popular')
-    setUploadedImage(null)
     setSelectedAsset(null)
     setEditableLabel('')
     setIsDropdownOpen(false)
@@ -218,20 +266,58 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   const handleFolderSelect = (folder: string) => {
     setSelectedFolder(folder)
     setIsDropdownOpen(false)
+    dropdownRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
   }
 
+  const keyboardState = useRef({ selectedAsset, isDropdownOpen, handleBackToLibrary, handleClose })
+  keyboardState.current = { selectedAsset, isDropdownOpen, handleBackToLibrary, handleClose }
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        if (selectedAsset) {
-          handleBackToLibrary()
-        } else {
-          handleClose()
+    if (!isOpen) return
+    const previousFocus = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
+    const controls = () => Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), a[href], [tabindex="0"]') ?? []).filter((element) => {
+      const style = getComputedStyle(element)
+      return !element.closest('[hidden], [inert], [aria-hidden="true"]') && style.display !== 'none' && style.visibility !== 'hidden' && !(element instanceof HTMLInputElement && element.type === 'hidden')
+    })
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        const current = keyboardState.current
+        if (current.isDropdownOpen) {
+          setIsDropdownOpen(false)
+          dropdownRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+        } else if (current.selectedAsset) current.handleBackToLibrary()
+        else current.handleClose()
+      } else if (event.key === 'Tab') {
+        const focusable = controls()
+        const first = focusable[0], last = focusable[focusable.length - 1]
+        if (!first || !last) return
+        if (!dialogRef.current?.contains(document.activeElement) || (event.shiftKey && document.activeElement === first)) {
+          event.preventDefault()
+          const target = event.shiftKey ? last : first
+          target.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first.focus()
         }
       }
     }
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
+    const containFocus = (event: FocusEvent) => {
+      if (event.target instanceof Node && !dialogRef.current?.contains(event.target)) controls()[0]?.focus()
+    }
+    document.addEventListener('keydown', handleKey, true)
+    document.addEventListener('focusin', containFocus, true)
+    return () => {
+      document.removeEventListener('keydown', handleKey, true)
+      document.removeEventListener('focusin', containFocus, true)
+      if (previousFocus?.isConnected) previousFocus.focus()
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const initial = selectedAsset ? '.preview-label-input' : '.library-search, .upload-label'
+    dialogRef.current?.querySelector<HTMLElement>(initial)?.focus()
   }, [isOpen, selectedAsset])
 
   if (!isOpen) return null
@@ -240,7 +326,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
   if (selectedAsset) {
     return (
       <div className="image-picker-overlay" onClick={handleClose}>
-        <div className="image-picker-dialog preview-dialog" onClick={(e) => e.stopPropagation()}>
+        <div ref={dialogRef} className="image-picker-dialog preview-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
           <div className="image-picker-header">
             <button
               className="image-picker-back"
@@ -256,7 +342,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
               </svg>
               <span>Back</span>
             </button>
-            <h2 className="image-picker-title">Customize Icon</h2>
+            <h2 id={titleId} className="image-picker-title">Customize Icon</h2>
             <button
               className="image-picker-close"
               onClick={handleClose}
@@ -281,16 +367,18 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
             </div>
 
             <div className="preview-details">
-              <label className="preview-label-title">Label</label>
+              <label htmlFor={labelId} className="preview-label-title">Label</label>
               <input
+                id={labelId}
                 type="text"
                 className="preview-label-input"
                 value={editableLabel}
                 onChange={(e) => setEditableLabel(e.target.value)}
                 placeholder="Enter a label for this icon"
-                autoFocus
+                maxLength={500}
               />
               <p className="preview-hint">This label will appear below the icon on your flowchart</p>
+              {selectedAsset.notice && <p className="upload-notice" role="note">{selectedAsset.notice}</p>}
             </div>
           </div>
 
@@ -315,9 +403,9 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
 
   return (
     <div className="image-picker-overlay" onClick={handleClose}>
-      <div className="image-picker-dialog" onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} className="image-picker-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={(e) => e.stopPropagation()}>
         <div className="image-picker-header">
-          <h2 className="image-picker-title">Add Image</h2>
+          <h2 id={titleId} className="image-picker-title">Add Image</h2>
           <button
             className="image-picker-close"
             onClick={handleClose}
@@ -333,19 +421,21 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
           </button>
         </div>
 
-        <div className="image-picker-tabs">
+        <div className="image-picker-tabs" role="group" aria-label="Image source">
           <button
             className={`image-picker-tab ${activeTab === 'library' ? 'active' : ''}`}
-            onClick={() => setActiveTab('library')}
+            onClick={() => { cancelUpload(); setUploadError(null); setActiveTab('library') }}
+            aria-pressed={activeTab === 'library'}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M14 4.5V14a2 2 0 01-2 2H4a2 2 0 01-2-2V2a2 2 0 012-2h5.5L14 4.5zm-3 0A1.5 1.5 0 019.5 3V1H4a1 1 0 00-1 1v12a1 1 0 001 1h8a1 1 0 001-1V4.5h-2z" />
             </svg>
-            Azure Icons
+            Icon library
           </button>
           <button
             className={`image-picker-tab ${activeTab === 'upload' ? 'active' : ''}`}
-            onClick={() => setActiveTab('upload')}
+            onClick={() => { cancelUpload(); setUploadError(null); setActiveTab('upload') }}
+            aria-pressed={activeTab === 'upload'}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M.5 9.9a.5.5 0 01.5.5v2.5a1 1 0 001 1h12a1 1 0 001-1v-2.5a.5.5 0 011 0v2.5a2 2 0 01-2 2H2a2 2 0 01-2-2v-2.5a.5.5 0 01.5-.5z" />
@@ -366,7 +456,8 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                   <input
                     type="text"
                     className="library-search"
-                    placeholder="Search Azure services..."
+                    placeholder="Search services, concepts, or dream symbols…"
+                    aria-label="Search icon library"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -377,6 +468,9 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                     className="library-dropdown-trigger"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     type="button"
+                    aria-expanded={isDropdownOpen}
+                    aria-controls={categoriesId}
+                    aria-label="Icon category"
                   >
                     <span className="library-dropdown-text">
                       {selectedFolder === 'popular' && (
@@ -398,7 +492,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                   </button>
 
                   {isDropdownOpen && (
-                    <div className="library-dropdown-menu">
+                    <div id={categoriesId} className="library-dropdown-menu" role="group" aria-label="Icon categories">
                       {folders.map((folder) => (
                         <button
                           key={folder}
@@ -442,6 +536,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                       className="library-item"
                       onClick={() => handleSelectLibraryItem(asset)}
                       title={`${formatFolderName(asset.folder)} - ${asset.displayName}`}
+                      aria-label={asset.displayName}
                     >
                       <div className="library-item-icon">
                         <img src={asset.url} alt={asset.displayName} />
@@ -462,7 +557,7 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                   rel="noopener noreferrer"
                   className="library-footer-source"
                 >
-                  Microsoft Azure Icons
+                  Azure + Flowchart originals
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
                     <path d="M3.5 3a.5.5 0 00-.5.5v5a.5.5 0 00.5.5h5a.5.5 0 00.5-.5V6.5a.5.5 0 011 0V8.5A1.5 1.5 0 018.5 10h-5A1.5 1.5 0 012 8.5v-5A1.5 1.5 0 013.5 2H5.5a.5.5 0 010 1H3.5z" />
                     <path d="M6.5 1a.5.5 0 000 1H9.293L5.146 6.146a.5.5 0 10.708.708L10 2.707V5.5a.5.5 0 001 0v-4a.5.5 0 00-.5-.5h-4z" />
@@ -472,15 +567,20 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
             </div>
           ) : (
             <div className="upload-panel">
-              <div className="upload-area">
+              <div className="upload-area" aria-busy={isUploading}>
                 <input
                   type="file"
-                  id="image-upload"
-                  accept="image/*"
+                  id={uploadId}
+                  accept={IMAGE_UPLOAD_ACCEPT}
                   onChange={handleFileUpload}
                   className="upload-input"
                 />
-                <label htmlFor="image-upload" className="upload-label">
+                <label htmlFor={uploadId} className="upload-label" role="button" tabIndex={0} onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    dialogRef.current?.querySelector<HTMLInputElement>('input[type="file"]')?.click()
+                  }
+                }}>
                   <svg
                     width="48"
                     height="48"
@@ -506,9 +606,11 @@ function ImagePicker({ isOpen, onClose, onSelectImage }: ImagePickerProps) {
                   <span className="upload-text">
                     Click to upload an image
                   </span>
-                  <span className="upload-hint">PNG, JPG, SVG supported</span>
+                  <span className="upload-hint">PNG, JPEG, GIF, WebP, AVIF, or SVG · up to 5 MB</span>
                 </label>
               </div>
+              {isUploading && <p className="upload-progress" role="status">Opening your image…</p>}
+              {uploadError && <p className="upload-error" role="alert">{uploadError}</p>}
             </div>
           )}
         </div>

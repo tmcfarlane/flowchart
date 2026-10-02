@@ -1,558 +1,191 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { Node, Edge } from 'reactflow'
-import './AIChat.css'
-import { BaseFlowNode, BaseFlowEdge, EdgeStyle, DiagramMode } from '../App'
+import type { Node, Edge } from 'reactflow'
+import type { FlowProposal, DiagramMode } from '../App'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
-import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
-import { parseFlowJson } from '../utils/exportUtils'
+import { createThread, getMessages, addMessage, type ChatMessage } from '../utils/conversationStore'
+import { MAX_DIAGRAM_IMPORT_BYTES, parseFlowJson } from '../utils/importFlow'
+import { flowToChart, contentFingerprint } from '../utils/sharedFlow'
+import { contextForAI, parseAIProposal, preserveCanvasImages, getPreservedImageNodeIds } from '../shared/aiProposal'
+import './AIChat.css'
 
-const LOADING_MESSAGES = [
-  'Thinking about your flowchart...',
-  'Analyzing the structure...',
-  'Generating ideas...',
-  'Working on it...',
-  'Processing your request...',
-  'Designing the flow...',
+export type ProposalIntent = 'insert' | 'edit'
+
+const STARTERS = [
+  { emoji: '✦', text: 'A dream factory that turns ideas into constellations' },
+  { emoji: '☁', text: 'A resilient cloud architecture for an AI assistant' },
+  { emoji: '↗', text: 'Customer onboarding with a payment approval branch' },
+  { emoji: '◈', text: 'A creative project from first spark to launch' },
 ]
-
-// Pre-loaded starter prompts across categories
-const ALL_STARTER_PROMPTS = [
-  // Casual / Everyday
-  { emoji: '\u{1F96A}', text: 'Make a PB&J sandwich' },
-  { emoji: '\u{1F5FA}\uFE0F', text: 'Plan a weekend road trip' },
-  { emoji: '\u{1F382}', text: 'Organize a birthday party' },
-  { emoji: '\u{2615}', text: 'My morning routine' },
-  { emoji: '\u{1F3E0}', text: 'Moving to a new apartment' },
-  // Fitness / Health
-  { emoji: '\u{1F4AA}', text: 'Plan my afternoon workout' },
-  { emoji: '\u{1F957}', text: 'Weekly meal prep plan' },
-  { emoji: '\u{1F3C3}', text: '30-day fitness challenge' },
-  // Technical
-  { emoji: '\u{1F680}', text: 'CI/CD deployment pipeline' },
-  { emoji: '\u{1F510}', text: 'User authentication flow' },
-  { emoji: '\u{1F41B}', text: 'Debug a production issue' },
-  { emoji: '\u{26A1}', text: 'Microservices architecture' },
-  { emoji: '\u{1F4E1}', text: 'API request lifecycle' },
-  { emoji: '\u{1F500}', text: 'Git branching strategy' },
-  { emoji: '\u{1F6E1}\uFE0F', text: 'Incident response runbook' },
-  // Business
-  { emoji: '\u{1F4CB}', text: 'Customer onboarding process' },
-  { emoji: '\u{1F4E6}', text: 'Product launch checklist' },
-  { emoji: '\u{1F4CA}', text: 'Quarterly planning cycle' },
-  { emoji: '\u{1F465}', text: 'Hiring pipeline' },
-  { emoji: '\u{1F3C3}\u200D\u2642\uFE0F', text: 'Sprint planning workflow' },
-  { emoji: '\u{1F6D2}', text: 'E-commerce checkout flow' },
-  { emoji: '\u{1F4A1}', text: 'Design thinking process' },
-  { emoji: '\u{1F4C8}', text: 'Sales funnel optimization' },
-  { emoji: '\u{1F91D}', text: 'Client proposal workflow' },
-]
-
-function pickRandomPrompts(count: number) {
-  const shuffled = [...ALL_STARTER_PROMPTS].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, count)
-}
-
-interface FlowProposal {
-  summary?: string
-  nodes: BaseFlowNode[]
-  edges: BaseFlowEdge[]
-}
+const EDIT_STARTERS = ['Add a failure and recovery path', 'Make the labels clearer and shorter', 'Add a decision before the final step', 'Simplify this diagram without losing its meaning']
 
 interface AIChatProps {
   nodes: Node[]
   edges: Edge[]
-  onProposalReady: (proposal: FlowProposal, threadId?: string) => void
+  onProposalReady: (proposal: FlowProposal, threadId?: string, intent?: ProposalIntent, baseFingerprint?: string) => void
   isOpen: boolean
   onClose: () => void
   variant?: 'welcome' | 'full'
   onDismiss?: () => void
   onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode) => void
+  onOpenTemplates?: () => void
+  canEdit?: boolean
+  diagramMode?: DiagramMode
 }
 
-function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson }: AIChatProps) {
+function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onOpenTemplates, canEdit = true, diagramMode = 'flowchart' }: AIChatProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [importError, setImportError] = useState<string | null>(null)
-  const welcomeFileInputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
-  const [starterPrompts] = useState(() => pickRandomPrompts(4))
-
   const [threadId, setThreadId] = useState<string | null>(null)
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState('')
-  const [loadingProgress, setLoadingProgress] = useState(0)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [intent, setIntent] = useState<ProposalIntent>(() => nodes.length && canEdit ? 'edit' : 'insert')
+  const [elapsed, setElapsed] = useState(0)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const abortRef = useRef<AbortController | null>(null)
+  const requestRef = useRef(0)
+  const canRefine = canEdit && nodes.length > 0
+  const effectiveIntent = intent === 'edit' && canRefine ? 'edit' : 'insert'
+
+  useEffect(() => () => { abortRef.current?.abort() }, [])
+  useEffect(() => {
+    if (isOpen) {
+      setIntent(nodes.length && canEdit ? 'edit' : 'insert')
+      const timer = window.setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 60)
+      return () => window.clearTimeout(timer)
+    }
+    abortRef.current?.abort()
+    requestRef.current += 1
+    setIsLoading(false)
+  }, [isOpen]) // Opening a chat selects the most useful default for that canvas.
 
   useEffect(() => {
-    if (!isLoading) {
-      setCurrentLoadingMessage('')
-      setLoadingProgress(0)
-      return
-    }
-
-    // Calibrated for ~15-18 second API calls.
-    // Uses an ease-out curve: fast initial progress, then gradual slowdown.
-    const EXPECTED_DURATION_MS = 18_000
-    const MAX_PROGRESS = 94
-    const startTime = Date.now()
-
-    setCurrentLoadingMessage(LOADING_MESSAGES[0])
-    setLoadingProgress(2)
-
-    // Rotate loading messages every 3.5s (slower to feel calmer over 18s)
-    let messageIndex = 0
-    const messageInterval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % LOADING_MESSAGES.length
-      setCurrentLoadingMessage(LOADING_MESSAGES[messageIndex])
-    }, 3500)
-
-    // Update progress on an ease-out curve tied to elapsed time
-    const progressInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime
-      const t = Math.min(elapsed / EXPECTED_DURATION_MS, 1) // 0 → 1 over expected duration
-      // Ease-out cubic: fast start, gradual slowdown approaching MAX_PROGRESS
-      const eased = 1 - Math.pow(1 - t, 3)
-      setLoadingProgress(Math.min(eased * MAX_PROGRESS, MAX_PROGRESS))
-    }, 200)
-
-    return () => {
-      clearInterval(messageInterval)
-      clearInterval(progressInterval)
-    }
+    if (!isLoading) return
+    const start = Date.now()
+    setElapsed(0)
+    const timer = window.setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000)
+    return () => window.clearInterval(timer)
   }, [isLoading])
 
-  // Parse flow proposal from assistant message
-  // With structured outputs, the API returns raw JSON directly (no code block wrapper)
-  const parseFlowProposal = (content: string, finishReason?: string): FlowProposal | null => {
-    // Check for truncation due to token limit
-    if (finishReason === 'length') {
-      console.error('Response was truncated due to token limit')
-      return null
-    }
-
-    let parsed: unknown = null
-
-    // Try direct JSON parse first (structured outputs return raw JSON)
-    try {
-      parsed = JSON.parse(content)
-    } catch {
-      // Fall back to code block extraction for backward compatibility
-      try {
-        let jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/)
-        if (!jsonMatch) {
-          jsonMatch = content.match(/```\s*\n([\s\S]*?)\n```/)
-        }
-        
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[1].trim()
-          parsed = JSON.parse(jsonStr)
-        }
-      } catch (e) {
-        console.error('Failed to parse JSON from code block:', e)
-      }
-    }
-
-    if (!parsed || typeof parsed !== 'object') {
-      console.error('Could not parse response as JSON:', content)
-      return null
-    }
-
-    const proposal = parsed as Record<string, unknown>
-
-    // Validate the structure - nodes and edges are required
-    if (!proposal.nodes || !Array.isArray(proposal.nodes)) {
-      console.error('Invalid proposal: missing or invalid nodes array', proposal)
-      return null
-    }
-    
-    if (!proposal.edges || !Array.isArray(proposal.edges)) {
-      console.error('Invalid proposal: missing or invalid edges array', proposal)
-      return null
-    }
-
-    // Validate each node has required fields
-    for (const node of proposal.nodes) {
-      if (!node.id || !node.type || !node.label || !node.position) {
-        console.error('Invalid node structure:', node)
-        return null
-      }
-    }
-
-    return {
-      summary: (proposal.summary as string) || (proposal.explanation as string) || 'Flowchart proposal',
-      nodes: proposal.nodes as BaseFlowNode[],
-      edges: proposal.edges as BaseFlowEdge[],
-    }
-  }
-
-  const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
-    if (edge.animated) return 'animated'
-    if (edge.type === 'step') return 'step'
-    return 'default'
+  const cancel = useCallback(() => {
+    abortRef.current?.abort()
+    requestRef.current += 1
+    setIsLoading(false)
   }, [])
+  const close = useCallback(() => { cancel(); onClose() }, [cancel, onClose])
 
-  const sendMessage = useCallback(async (overrideText?: string) => {
-    const userPrompt = (overrideText || inputValue).trim()
-    if (!userPrompt || isLoading) return
+  useEffect(() => {
+    if (!isOpen) return
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') close() }
+    window.addEventListener('keydown', escape)
+    return () => window.removeEventListener('keydown', escape)
+  }, [isOpen, close])
 
-    setInputValue('')
+  const sendMessage = useCallback(async () => {
+    const prompt = inputValue.trim()
+    if (!prompt || isLoading) return
+    const requestId = ++requestRef.current
+    const controller = new AbortController()
+    abortRef.current = controller
+    const original = flowToChart(nodes, edges)
+    const baseline = contentFingerprint(original)
+    const currentThreadId = threadId ?? createThread()
+    setThreadId(currentThreadId)
+    const history = getMessages(currentThreadId).filter((m) => m.role !== 'system')
     setIsLoading(true)
     setError(null)
-
     try {
-      // Build context about the current flowchart
-      const flowContext = {
-        nodes: nodes.map((n) => ({
-          id: n.id,
-          type: n.type,
-          label: n.data.label,
-          position: n.position,
-          width: typeof n.style?.width === 'number' ? n.style.width : undefined,
-          height: typeof n.style?.height === 'number' ? n.style.height : undefined,
-          imageUrl: typeof n.data.imageUrl === 'string' ? n.data.imageUrl : undefined,
-        })),
-        edges: edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          style: getEdgeStyleFromEdge(e),
-          sourceHandle: typeof e.sourceHandle === 'string' ? e.sourceHandle : undefined,
-          targetHandle: typeof e.targetHandle === 'string' ? e.targetHandle : undefined,
-          label: typeof e.label === 'string' ? e.label : undefined,
-        })),
-      }
-
-      // Create or reuse a conversation thread
-      let currentThreadId = threadId
-      if (!currentThreadId) {
-        currentThreadId = createThread()
-        setThreadId(currentThreadId)
-      }
-
-      // Add user message to thread
-      addThreadMessage(currentThreadId, { role: 'user', content: userPrompt })
-
-      // Build full message history from thread
-      const threadMessages = getMessages(currentThreadId)
-
-      // Call our serverless function proxy at /api/chat
-      // The API uses structured outputs to guarantee valid JSON matching our schema
       const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
         body: JSON.stringify({
-          messages: threadMessages.map((m) => ({ role: m.role, content: m.content })),
-          flowContext,
+          messages: [...history, { role: 'user', content: prompt }].slice(-20),
+          mode: effectiveIntent === 'edit' ? 'refine' : 'generate',
+          diagramMode,
+          flowContext: contextForAI(original),
+          selectedNodeIds: effectiveIntent === 'edit' ? nodes.filter((node) => node.selected).map((node) => node.id) : [],
         }),
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-          errorData.error || `API request failed with status ${response.status}`
-        )
-      }
-
-      const data = await response.json()
-      const content = data.message || 'No response received.'
-      const finishReason = data.finishReason as string | undefined
-
-      console.log('AI Response:', content, 'Finish reason:', finishReason)
-
-      // Parse the flow proposal (with structured outputs, this should always succeed)
-      const proposal = parseFlowProposal(content, finishReason)
-
-      if (!proposal) {
-        // Handle specific error cases
-        if (finishReason === 'length') {
-          throw new Error('The AI response was cut off due to length limits. Try a simpler request.')
-        }
-        throw new Error('Could not parse AI response. Please try again or rephrase your request.')
-      }
-
-      // Enrich proposal with Azure icons (local-only, no API calls)
-      const enrichedProposal = resolveAzureIcons(proposal)
-
-      // Save assistant summary to thread
-      if (currentThreadId && proposal) {
-        addThreadMessage(currentThreadId, {
-          role: 'assistant',
-          content: proposal.summary || 'Generated flowchart',
-        })
-      }
-
-      // Notify parent with the enriched proposal
-      onProposalReady(enrichedProposal, currentThreadId || undefined)
-      
-      // Close the bubble after successful proposal
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'The assistant could not complete this request. Please try again.')
+      let proposal = parseAIProposal(data.message || '', data.finishReason, effectiveIntent === 'edit', { preservedImageNodeIds: effectiveIntent === 'edit' ? getPreservedImageNodeIds(original.nodes) : [] })
+      if (effectiveIntent === 'edit') proposal = preserveCanvasImages(proposal, original.nodes)
+      if (controller.signal.aborted || requestId !== requestRef.current) return
+      const enriched = resolveAzureIcons(proposal, { intent: effectiveIntent })
+      addMessage(currentThreadId, { role: 'user', content: prompt })
+      addMessage(currentThreadId, { role: 'assistant', content: proposal.summary })
+      setMessages(getMessages(currentThreadId))
+      setInputValue('')
+      onProposalReady(enriched, currentThreadId, effectiveIntent, baseline)
       onClose()
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-      setError(errorMessage)
-      console.error('AI Chat error:', err)
+      if (controller.signal.aborted || requestId !== requestRef.current) return
+      setError(err instanceof Error ? err.message : 'The request failed. Please try again.')
     } finally {
-      setIsLoading(false)
+      if (requestId === requestRef.current) setIsLoading(false)
     }
-  }, [inputValue, isLoading, nodes, edges, getEdgeStyleFromEdge, onProposalReady, onClose, threadId])
+  }, [inputValue, isLoading, nodes, edges, effectiveIntent, diagramMode, onProposalReady, onClose, threadId])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
-  }
-
-  // Handle ESC key to close
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose()
-      }
-    }
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
-
-  const handleWelcomeImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file || !onImportJson) return
-
+    if (file.size > MAX_DIAGRAM_IMPORT_BYTES) {
+      setError('This diagram file is too large to import (maximum 10 MB).')
+      return
+    }
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = () => {
       try {
-        const result = parseFlowJson(event.target?.result as string)
-        onImportJson(result.nodes, result.edges, result.mode)
-        setImportError(null)
-      } catch (err) {
-        setImportError(err instanceof Error ? err.message : 'Failed to import file.')
-      }
+        const flow = parseFlowJson(String(reader.result))
+        onImportJson(flow.nodes, flow.edges, flow.mode)
+        setError(null)
+      } catch (err) { setError(err instanceof Error ? err.message : 'This file could not be imported.') }
     }
-    reader.onerror = () => {
-      setImportError('Could not read the selected file.')
-    }
+    reader.onerror = () => setError('This file could not be read.')
     reader.readAsText(file)
-    e.target.value = ''
   }
-
+  const useSuggestion = (prompt: string) => { setInputValue(prompt); inputRef.current?.focus() }
   if (!isOpen) return null
-
-  if (variant === 'welcome') {
-    return (
-      <div className="ai-welcome-prompt" role="dialog" aria-labelledby="ai-welcome-title">
-        <div className="ai-bubble-header">
-          <img src="/logo/logo_color.svg" alt="Zero Click Dev" className="ai-bubble-logo" />
-          <span id="ai-welcome-title" className="ai-bubble-title">
-            FlowChart
-            <span className="ai-bubble-subtitle">by <a href="https://zeroclickdev.ai" target="_blank" rel="noopener noreferrer" className="ai-bubble-subtitle-link">Zero Click Dev</a></span>
-          </span>
-          <button
-            className="ai-bubble-import"
-            onClick={() => welcomeFileInputRef.current?.click()}
-            title="Import from JSON"
-            aria-label="Import from JSON"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 2v8" />
-              <path d="M4 6l4-4 4 4" />
-              <path d="M2 10v3a1 1 0 001 1h10a1 1 0 001-1v-3" />
-            </svg>
-          </button>
-          <input
-            ref={welcomeFileInputRef}
-            type="file"
-            accept=".json,application/json"
-            onChange={handleWelcomeImport}
-            style={{ display: 'none' }}
-            aria-label="Import JSON file"
-          />
-          <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M1 1l12 12M13 1L1 13" />
-            </svg>
-          </button>
+  const welcome = variant === 'welcome'
+  const contents = (
+    <section className={welcome ? 'ai-welcome-prompt' : 'ai-bubble-prompt'} role="dialog" aria-modal={!welcome} aria-labelledby={welcome ? 'ai-welcome-title' : 'ai-bubble-title'}>
+      <div className="ai-bubble-header">
+        <span className="ai-assistant-mark" aria-hidden="true">✦</span>
+        <div className="ai-assistant-heading">
+          <span id={welcome ? 'ai-welcome-title' : 'ai-bubble-title'} className="ai-bubble-title">{welcome ? 'Give your ideas a shape' : 'Diagram copilot'}</span>
+          <span className="ai-bubble-subtitle">{welcome ? 'A little structure. A lot of possibility.' : `${nodes.length} nodes · ${edges.length} connections on your canvas`}</span>
         </div>
-
-        <div className="ai-bubble-content">
-          {!isLoading && (
-            <p className="ai-welcome-news">
-              <span className="ai-welcome-news-tag">New</span>
-              <a href="/mcp" target="_blank" rel="noopener" className="ai-welcome-news-link">
-                Connect your AI agent (MCP)
-              </a>
-              <a href="/mcp#trailer" target="_blank" rel="noopener" className="ai-welcome-news-link ai-welcome-news-trailer">
-                <svg width="9" height="10" viewBox="0 0 9 10" fill="currentColor" aria-hidden="true">
-                  <path d="M0 0.8v8.4a.6.6 0 00.9.5l7.4-4.2a.6.6 0 000-1L.9.3A.6.6 0 000 .8z" />
-                </svg>
-                Watch the trailer
-              </a>
-            </p>
-          )}
-          {!isLoading && <p className="ai-welcome-heading">What's your flow?</p>}
-
-          {isLoading ? (
-            <div className="loading-indicator">
-              <div className="loading-message">{currentLoadingMessage}</div>
-              <div className="loading-progress-bar">
-                <div className="loading-progress-fill" style={{ width: `${loadingProgress}%` }}></div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="ai-prompt-suggestions">
-                {starterPrompts.map((prompt, i) => (
-                  <button
-                    key={i}
-                    className="ai-prompt-chip"
-                    onClick={() => sendMessage(prompt.text)}
-                  >
-                    <span className="ai-prompt-emoji">{prompt.emoji}</span>
-                    <span className="ai-prompt-text">{prompt.text}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="ai-prompt-divider">
-                <span>or describe your own</span>
-              </div>
-
-              <textarea
-                className="ai-bubble-input"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe any process, workflow, or plan..."
-                rows={2}
-                autoFocus
-              />
-              <button
-                className="ai-bubble-send"
-                onClick={() => sendMessage()}
-                disabled={!inputValue.trim()}
-              >
-                Generate Flowchart
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
-                </svg>
-              </button>
-            </>
-          )}
-
-          {error && (
-            <div className="ai-bubble-error">
-              {error}
-            </div>
-          )}
-
-          {!isLoading && (
-            <button className="ai-welcome-dismiss" onClick={onDismiss}>
-              No, thank you
-            </button>
-          )}
-        </div>
-        {importError && (
-          <div
-            className="confirm-overlay"
-            onClick={() => setImportError(null)}
-            role="dialog"
-            aria-modal="true"
-          >
-            <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-              <h2 className="confirm-title">Invalid JSON Format</h2>
-              <p className="confirm-body">{importError}</p>
-              <div className="confirm-actions">
-                <button className="confirm-button confirm-cancel" onClick={() => setImportError(null)}>
-                  OK
-                </button>
-              </div>
-            </div>
+        {welcome && onImportJson && <button className="ai-bubble-import" onClick={() => fileRef.current?.click()} aria-label="Import from JSON" title="Import from JSON">↥</button>}
+        <button className="ai-bubble-close" onClick={close} aria-label="Close" title="Close">×</button>
+      </div>
+      <div className="ai-bubble-content">
+        {welcome ? (
+          <>
+            <div className="ai-welcome-orbit" aria-hidden="true"><i /><i /><i /><span>✦</span></div>
+            <p className="ai-welcome-heading">From a spark to a whole system.</p>
+            <p className="ai-context-hint">Describe a workflow, map an architecture, or build something wonderfully strange.</p>
+          </>
+        ) : (
+          <div className="ai-intent-switch" aria-label="Assistant action">
+            <button className={effectiveIntent === 'edit' ? 'active' : ''} onClick={() => setIntent('edit')} disabled={!canRefine || isLoading} aria-pressed={effectiveIntent === 'edit'}>Edit current diagram</button>
+            <button className={effectiveIntent === 'insert' ? 'active' : ''} onClick={() => setIntent('insert')} disabled={isLoading} aria-pressed={effectiveIntent === 'insert'}>Create a new diagram</button>
           </div>
         )}
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className="ai-bubble-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="ai-bubble-title"
-    >
-      <div className="ai-bubble-prompt" onClick={(e) => e.stopPropagation()}>
-        <div className="ai-bubble-header">
-          <img src="/logo/logo_color.svg" alt="Zero Click Dev" className="ai-bubble-logo" />
-          <span id="ai-bubble-title" className="ai-bubble-title">
-            FlowChart
-            <span className="ai-bubble-subtitle">by <a href="https://zeroclickdev.ai" target="_blank" rel="noopener noreferrer" className="ai-bubble-subtitle-link">Zero Click Dev</a></span>
-          </span>
-          <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M1 1l12 12M13 1L1 13" />
-            </svg>
-          </button>
+        {!welcome && <p className="ai-context-hint">{effectiveIntent === 'edit' ? 'Ask for a change. Review the full result before applying it. Unchanged parts stay in place.' : 'Create a diagram to insert alongside your existing work.'}{effectiveIntent === 'edit' && nodes.some((n) => n.selected) ? ` Focus: ${nodes.filter((n) => n.selected).length} selected nodes.` : ''}</p>}
+        {messages.length > 0 && <div className="ai-conversation" aria-label="Conversation history">{messages.slice(-6).map((message, index) => <div key={index} className={`ai-conversation-message ${message.role}`}><span>{message.role === 'user' ? 'You' : 'Copilot'}</span><p>{message.content}</p></div>)}</div>}
+        <div className="ai-prompt-suggestions">
+          {(effectiveIntent === 'edit' && !welcome ? EDIT_STARTERS.map((text) => ({ emoji: '↳', text })) : STARTERS).map((prompt) => <button key={prompt.text} className="ai-prompt-chip" onClick={() => useSuggestion(prompt.text)} disabled={isLoading}><span className="ai-prompt-emoji" aria-hidden="true">{prompt.emoji}</span><span className="ai-prompt-text">{prompt.text}</span></button>)}
         </div>
-
-        <div className="ai-bubble-content">
-          {!isLoading && <p className="ai-welcome-heading">What's the vibe today?</p>}
-
-          {isLoading ? (
-            <div className="loading-indicator">
-              <div className="loading-message">{currentLoadingMessage}</div>
-              <div className="loading-progress-bar">
-                <div className="loading-progress-fill" style={{ width: `${loadingProgress}%` }}></div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="ai-prompt-suggestions">
-                {starterPrompts.map((prompt, i) => (
-                  <button
-                    key={i}
-                    className="ai-prompt-chip"
-                    onClick={() => sendMessage(prompt.text)}
-                  >
-                    <span className="ai-prompt-emoji">{prompt.emoji}</span>
-                    <span className="ai-prompt-text">{prompt.text}</span>
-                  </button>
-                ))}
-              </div>
-
-              <div className="ai-prompt-divider">
-                <span>or describe your own</span>
-              </div>
-
-              <textarea
-                className="ai-bubble-input"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Describe any process, workflow, or plan..."
-                rows={2}
-                autoFocus
-              />
-              <button
-                className="ai-bubble-send"
-                onClick={() => sendMessage()}
-                disabled={!inputValue.trim()}
-              >
-                Generate Flowchart
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
-                </svg>
-              </button>
-            </>
-          )}
-
-          {error && (
-            <div className="ai-bubble-error">
-              {error}
-            </div>
-          )}
-        </div>
+        <label className="ai-input-label" htmlFor={welcome ? 'ai-welcome-input' : 'ai-chat-input'}>{effectiveIntent === 'edit' && !welcome ? 'What would you like to change?' : 'What would you like to map?'}</label>
+        <textarea ref={inputRef} id={welcome ? 'ai-welcome-input' : 'ai-chat-input'} className="ai-bubble-input" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void sendMessage() } }} placeholder={effectiveIntent === 'edit' && !welcome ? 'Add a review step before publishing…' : 'An idea, a process, a world…'} maxLength={10000} rows={3} disabled={isLoading} />
+        {isLoading ? <div className="ai-request-status" role="status"><span className="ai-thinking-spark" aria-hidden="true">✦</span><div><strong>{effectiveIntent === 'edit' ? 'Shaping your changes…' : 'Building your diagram…'}</strong><small>{elapsed > 20 ? 'Still working. Complex diagrams can take a little longer.' : 'Preparing a complete diagram for you to review.'}</small></div><button onClick={cancel}>Stop</button></div> : <button className="ai-bubble-send" onClick={() => void sendMessage()} disabled={!inputValue.trim()}>{effectiveIntent === 'edit' && !welcome ? 'Preview changes' : 'Generate Flowchart'}<span aria-hidden="true">↗</span></button>}
+        {error && <div className="ai-bubble-error" role="alert">{error}</div>}
+        {welcome && <div className="ai-welcome-links">{onOpenTemplates && <button onClick={onOpenTemplates}>Browse templates <span aria-hidden="true">→</span></button>}<a href="/mcp" target="_blank" rel="noopener noreferrer">Connect your AI agent</a><button onClick={onDismiss ?? close}>Start with a blank canvas</button></div>}
+        <input ref={fileRef} type="file" accept=".json,application/json" onChange={handleImport} hidden aria-label="Import JSON file" />
       </div>
-    </div>
+    </section>
   )
+  return welcome ? contents : <div className="ai-bubble-overlay" onClick={close}><div className="ai-dialog-position" onClick={(event) => event.stopPropagation()}>{contents}</div></div>
 }
 
 export default AIChat

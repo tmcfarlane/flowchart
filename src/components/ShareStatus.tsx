@@ -7,7 +7,7 @@ const FLASH_MS = 4000
 
 function statusText(api: SharedFlowApi, flashing: boolean): { text: string; flash?: boolean; warning?: boolean } {
   const { state } = api
-  if (flashing && state.lastRemoteUpdate) {
+  if (state.status === 'synced' && flashing && state.lastRemoteUpdate) {
     return {
       text: state.lastRemoteUpdate.via === 'mcp' ? 'Updated by AI agent' : 'Updated elsewhere',
       flash: true,
@@ -22,6 +22,8 @@ function statusText(api: SharedFlowApi, flashing: boolean): { text: string; flas
       return { text: state.canEdit ? 'Not saved' : 'View only', warning: state.canEdit }
     case 'conflict':
       return { text: 'Changed elsewhere', warning: true }
+    case 'not-found':
+      return { text: 'Link unavailable', warning: true }
     default:
       return { text: state.canEdit ? 'Saved' : 'Read-only link' }
   }
@@ -68,7 +70,7 @@ function TitleEditor({ title, canEdit, onRename }: { title: string; canEdit: boo
   )
 }
 
-export default function ShareStatus({ shared }: { shared: SharedFlowApi }) {
+export default function ShareStatus({ shared, onMakeLocalCopy, copyError }: { shared: SharedFlowApi; onMakeLocalCopy?: () => void; copyError?: string | null }) {
   const { state } = shared
   const [copied, setCopied] = useState(false)
   const [now, setNow] = useState(() => Date.now())
@@ -89,7 +91,7 @@ export default function ShareStatus({ shared }: { shared: SharedFlowApi }) {
 
   if (!state.id) return null
 
-  if (state.status === 'not-found') {
+  if (state.status === 'not-found' && state.version === 0) {
     return (
       <div className="share-overlay">
         <div className="share-overlay-card" role="alert">
@@ -140,7 +142,7 @@ export default function ShareStatus({ shared }: { shared: SharedFlowApi }) {
         <span className="share-badge-dot" aria-hidden="true" />
         <span className="share-badge-kind">{state.canEdit ? 'Shared' : 'View only'}</span>
         <span className="share-badge-sep" aria-hidden="true" />
-        <TitleEditor key={state.title} title={state.title} canEdit={state.canEdit} onRename={shared.rename} />
+        <TitleEditor key={`${state.id}:${state.canEdit}`} title={state.title} canEdit={state.canEdit} onRename={shared.rename} />
         <span
           className={`share-badge-status ${status.flash ? 'flash' : ''} ${status.warning ? 'is-warning' : ''}`}
           title={state.error ?? `Version ${state.version}`}
@@ -168,6 +170,8 @@ export default function ShareStatus({ shared }: { shared: SharedFlowApi }) {
             {copied ? 'Copied' : 'Copy link'}
           </button>
         )}
+        {!state.canEdit && state.version > 0 && onMakeLocalCopy && <div className="share-local-copy"><p>Edits here are temporary and aren’t saved to the original.</p><button type="button" className="share-primary-button" onClick={onMakeLocalCopy}>Make editable copy</button></div>}
+        {copyError && <p className="share-local-copy-error" role="alert">{copyError}</p>}
       </div>
 
       {state.status === 'conflict' && (
@@ -175,6 +179,7 @@ export default function ShareStatus({ shared }: { shared: SharedFlowApi }) {
           <span className="share-notice-text">
             This chart was changed elsewhere{state.conflictVersion ? ` (version ${state.conflictVersion})` : ''} while you had
             unsaved edits. Nothing has been overwritten.
+            {state.error && <span> {state.error}</span>}
           </span>
           <span className="share-notice-actions">
             <button type="button" className="share-primary-button" onClick={() => void shared.loadLatest()}>
@@ -189,7 +194,7 @@ export default function ShareStatus({ shared }: { shared: SharedFlowApi }) {
         </div>
       )}
 
-      {state.status === 'error' && state.error && (
+      {(state.status === 'error' || state.status === 'not-found') && state.error && (
         <div className="share-notice" role="alert">
           <span className="share-notice-text">{state.error}</span>
         </div>

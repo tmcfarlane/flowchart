@@ -18,6 +18,7 @@ const nodeTable = NODE_TYPES.map((type) => {
 }).join('\n')
 
 const EXAMPLE_CREATE = {
+  sharing: 'link-shared',
   title: 'SaaS signup to onboarding',
   nodes: [
     { id: 'visit', type: 'step', label: 'Visitor clicks "Start free trial"' },
@@ -49,19 +50,6 @@ const EXAMPLE_CREATE = {
   ],
 }
 
-const EXAMPLE_UPDATE = {
-  id: 'Ab3dE5fG7h',
-  editToken: '<editToken from create_flowchart>',
-  expectedVersion: 3,
-  operations: [
-    { op: 'add_node', node: { id: 'welcome', type: 'step', label: 'Send welcome email' } },
-    { op: 'add_edge', edge: { source: 'onboard', target: 'welcome' } },
-    { op: 'update_node', id: 'plan', changes: { label: 'Pick Starter, Pro or Team' } },
-    { op: 'update_edge', id: 'epaid-retry', changes: { label: 'Declined' } },
-    { op: 'remove_node', id: 'tip' },
-  ],
-}
-
 export const FLOWCHART_GUIDE = `# Flowchart AI: authoring guide for AI agents
 
 Flowchart AI (https://flowchart.zeroclickdev.ai) turns the JSON you write into a
@@ -72,16 +60,23 @@ LLM itself.
 ## Workflow
 
 1. Plan the steps, decisions and outcomes of the process you are diagramming.
-2. For Azure services, call \`search_azure_icons\` to get icon ids (e.g. "cosmos" -> \`azure-cosmos-db\`).
-3. Call \`create_flowchart\` with a \`title\`, \`nodes\` and \`edges\`. **Omit positions**: the server lays the chart out.
-4. **Give the user the \`editUrl\`** from the result as a clickable link. It opens the chart in the
-   browser, where they can drag, edit and present it. Anyone with that link can edit, so share it only
-   with the user. The \`url\` is a view link.
-5. To change the chart later: call \`get_flowchart\` first (the user may have edited it in the browser),
-   then \`update_flowchart\` with small \`operations\` and \`expectedVersion\` set to the version you just read.
-   Their open browser tab updates live within a few seconds.
-6. If a call returns an error, it lists every problem with its location (e.g. \`nodes[3].icon\`). Fix them
-   all and call again.
+2. Browse \`list_diagram_templates\` for practical or imaginative starting points; \`get_diagram_template\`
+   returns an editable draft without saving or sharing it. Use \`search_icons\` for local illustrations,
+   or \`search_azure_icons\` for Azure services (e.g. "cosmos" -> \`azure-cosmos-db\`).
+3. Before saving, explain that anyone with the view link can read the chart, anyone with the private edit
+   link can edit or delete it, charts have no account ownership, and retention is indefinite unless the
+   server configures retention or the user deletes the chart. Obtain deliberate consent to link sharing.
+4. Call \`create_flowchart\` with \`sharing: "link-shared"\`, a \`title\`, \`nodes\` and \`edges\`.
+   **Omit positions** for automatic layout. Give the user the returned view \`url\`.
+   The private MCP Apps card opens the browser editor or deletes the chart. In hosts without UI, only
+   the view link is available; do not recover or paste an edit capability into chat.
+5. For a conversational revision, read the latest \`get_flowchart\` using the chart id only, revise its
+   nodes and edges, then create a new link-shared copy with consent. The original remains available.
+   Never ask for an edit token or edit link. Same-chart MCP writes are unavailable until secure authorization exists.
+6. Run \`audit_diagram\` on a draft before saving when useful. It checks references, icons, nesting,
+   decision labels, and disconnected nodes without storing a chart or contacting image hosts.
+   Fix every blocking error and review design suggestions; it does not verify factual claims.
+   Other validation errors list their locations (e.g. \`nodes[3].icon\`); fix them all before retrying.
 
 ## Designing a good flowchart
 
@@ -116,16 +111,29 @@ React Flow fields such as \`data\` or \`style\`.
   Omit them and the server chooses from the layout; decision branches leave the diamond's side corners.
 - Architecture edges can set \`protocol\` (${EDGE_PROTOCOLS.join(', ')}) and \`commStyle\` (\`sync\` solid, \`async\` dashed).
 
-## Icons (Azure)
+## Local icons and illustrations
 
 - Call \`search_azure_icons\` with a service name ("key vault", "aks", "functions") and use the returned \`id\`.
   The server also accepts common names and aliases ("Cosmos DB", "k8s") and normalizes them.
+- Call \`search_icons\` for people, business, infrastructure, science, nature, and surreal illustrations.
+  Examples include \`icon-credit-card\`, \`icon-robot\`, \`icon-moon\`, \`icon-crystal\`, and \`icon-portal\`.
+  These are original local SVGs; no remote image service is used. Optional provider and category filters
+  narrow the fixed local catalog. Stable ids work in both the browser and the MCP server.
 - \`image\` nodes show the icon large with the label as a caption. They are good for the Azure services in a
   process flow.
 - Architecture nodes (service, database, queue, cache, apiGateway, externalActor) show the icon as a small glyph.
 - step, decision, note and container nodes don't show icons.
-- If no Azure icon fits, use a plain \`step\`, or an \`image\` node with an https \`imageUrl\`
-  (e.g. \`https://api.iconify.design/mdi/cart.svg\`).
+- If no local icon fits, use a plain \`step\`. External https \`imageUrl\` values are accepted, but viewing
+  them may disclose the viewer's network address to that image host. Prefer a local illustration.
+
+## Templates
+
+\`flowchart://templates\` and \`list_diagram_templates\` list curated process, business, cloud and creative
+starting points. \`get_diagram_template\` returns the nodes, edges and direction for one id. Adapt a
+template to the user's actual task rather than presenting an example as verified business logic.
+Creative templates such as Dream Observatory and Memory Garden are imaginative prompts, not claims
+about real systems. Reading or choosing a template creates no stored chart and requires no sharing consent.
+Saving it still follows the explicit sharing-consent workflow above.
 
 ## Containers (architecture diagrams)
 
@@ -140,34 +148,22 @@ header needs about 56px at the top.
 - Omit every \`position\` in \`create_flowchart\` and the chart is laid out automatically: top-to-bottom by
   default, or \`direction: "LR"\` for left-to-right (better for architecture).
 - If you do give positions (top-left corner, in pixels; y grows downward), they are kept.
-- In \`update_flowchart\`, new nodes without a position are placed next to the nodes they connect to, so the
-  user's hand-made arrangement is kept. Pass \`relayout: true\` to re-lay out the whole chart after a big change.
+- To preserve the latest browser arrangement in a revised copy, keep the returned positions.
+  To arrange the revised chart anew, omit positions consistently.
 
-## Editing with update_flowchart
+## Browser editing and deletion
 
-Operations run in order and are all-or-nothing:
-
-- \`add_node\` { node }. Omit node.position to place it automatically.
-- \`update_node\` { id, changes } changes any node fields. \`null\` clears optional fields; \`parentNode: null\`
-  moves a node out of its container; \`position: null\` re-places it.
-- \`remove_node\` { id } also removes its edges. Children of a removed container stay on the canvas.
-- \`add_edge\` { edge }
-- \`update_edge\` { id, changes } changes label, style, source, target, handles, protocol or commStyle.
-- \`remove_edge\` { id }
-
-Use \`replace\` { nodes, edges } only to rebuild the chart from scratch; it needs \`expectedVersion\`.
-You can pass \`title\` to rename the chart.
-
-## Versions and conflicts
-
-Every change increments \`version\`. The user edits the same chart in the browser, and those edits are saved
-back automatically. Always pass \`expectedVersion\` (from \`get_flowchart\` or your last result). If it no
-longer matches, you get a conflict error instead of overwriting the user's work. Call \`get_flowchart\`
-again, re-apply your change to what you see, and retry.
+The private card receives edit access through tool-result \`_meta\` only. Use it to open the existing
+browser editor, where edits save with version checks and live sync. The card and browser Share panel
+also offer confirmed permanent deletion. The view URL never grants mutation access.
+Deleting the stored chart invalidates its links but cannot remove copies in chat or downloaded files.
+The server's \`FLOW_TTL_DAYS\` setting optionally expires Redis charts after inactivity; it does not
+retroactively expire existing records until they are updated. There is no account library or recovery
+of a lost edit capability.
 
 ## Limits
 
-Up to ${LIMITS.maxNodes} nodes, ${LIMITS.maxEdges} edges and ${LIMITS.maxOperations} operations per call. Labels are
+Up to ${LIMITS.maxNodes} nodes and ${LIMITS.maxEdges} edges per chart. Labels are
 at most ${LIMITS.maxLabelLength} characters and titles ${LIMITS.maxTitleLength}. The stored chart is limited to
 ${Math.round(LIMITS.maxChartBytes / 1024)} KB. The service is free and rate-limited; a refused call says how long to wait before retrying.
 
@@ -177,14 +173,12 @@ ${Math.round(LIMITS.maxChartBytes / 1024)} KB. The service is free and rate-limi
 ${JSON.stringify(EXAMPLE_CREATE, null, 2)}
 \`\`\`
 
-## Example: update_flowchart arguments
-
-\`\`\`json
-${JSON.stringify(EXAMPLE_UPDATE, null, 2)}
-\`\`\`
 `
 
-export const SERVER_INSTRUCTIONS = `Flowchart AI creates shareable, editable flowcharts from JSON that you compose.
-Call create_flowchart with a title, nodes and edges (omit positions for automatic layout), then give the user the returned editUrl so they can open and edit the chart in their browser.
-Before changing an existing chart, call get_flowchart, because the user may have edited it in the browser. Then call update_flowchart with operations and expectedVersion.
-Use search_azure_icons for Azure service icons and list_node_types for the node vocabulary. Read the resource flowchart://guide for design rules and examples.`
+export const SERVER_INSTRUCTIONS = `Flowchart AI saves link-shared flowcharts from JSON you compose.
+Before create_flowchart, disclose view-link reading, edit-link editing/deletion, no account ownership and indefinite retention unless configured or deleted; obtain deliberate sharing consent and pass sharing: "link-shared".
+Return the view url. Private UI controls open the browser editor or delete the chart; never ask for or send edit capabilities in chat/tool arguments.
+For conversational revisions, get_flowchart by id, then create a revised copy with consent. Same-chart MCP updates are unavailable.
+Use search_icons for local illustrations, search_azure_icons for Azure services, and list_node_types for vocabulary.
+Browse list_diagram_templates and get_diagram_template for editable starting points; audit_diagram checks drafts without storing them.
+Read flowchart://guide for design rules and examples.`

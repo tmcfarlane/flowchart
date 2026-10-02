@@ -91,6 +91,7 @@ describe('Architecture Mode', () => {
 describe('Versioned flow document (export/import)', () => {
   const nodes: FlowNode[] = [
     { id: '1', type: 'service', position: { x: 0, y: 0 }, data: { label: 'API' } },
+    { id: '2', type: 'service', position: { x: 240, y: 0 }, data: { label: 'Worker' } },
   ]
   const edges: Edge[] = [
     { id: 'e1-2', source: '1', target: '2', data: { protocol: 'gRPC', commStyle: 'async' } },
@@ -100,7 +101,7 @@ describe('Versioned flow document (export/import)', () => {
     const parsed = JSON.parse(serializeFlow(nodes, edges, 'architecture'))
     expect(parsed.version).toBe(2)
     expect(parsed.mode).toBe('architecture')
-    expect(parsed.nodes).toHaveLength(1)
+    expect(parsed.nodes).toHaveLength(2)
     expect(parsed.nodes[0].id).toBe('1')
     expect(parsed.edges[0].data.protocol).toBe('gRPC')
     expect(parsed.edges[0].data.commStyle).toBe('async')

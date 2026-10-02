@@ -187,6 +187,7 @@ describe('FlowService updates', () => {
       kind: inner.kind,
       description: inner.description,
       create: (r) => inner.create(r),
+      delete: (id, hash) => inner.delete(id, hash),
       get: (id) => inner.get(id),
       getVersion: (id) => inner.getVersion(id),
       async update(id, expected, next) {
