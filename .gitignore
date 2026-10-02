@@ -8,6 +8,9 @@ pnpm-lock.yaml
 # Build output
 dist
 dist-ssr
+.browser-test-dist/
+test-results/
+playwright-report/
 *.local
 
 # Environment
