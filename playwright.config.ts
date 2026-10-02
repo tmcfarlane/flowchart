@@ -8,13 +8,13 @@ const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './tests/browser',
-  testMatch: '**/*.spec.ts',
+  testMatch: '**/local-copy-reload.spec.ts',
   fullyParallel: false,
   workers: 1,
   retries: 0,
   timeout: 90_000,
   expect: { timeout: 10_000 },
-  outputDir: './test-results',
+  outputDir: './test-results/local-copy',
   reporter: [['list']],
   use: {
     browserName: 'chromium',

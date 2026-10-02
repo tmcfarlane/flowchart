@@ -5,6 +5,10 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/auth/openai/start", "destination": "/api/mcp?__flowchart_openai_auth=start" },
+    { "source": "/api/auth/openai/callback", "destination": "/api/mcp?__flowchart_openai_auth=callback" },
+    { "source": "/api/auth/openai/session", "destination": "/api/mcp?__flowchart_openai_auth=session" },
+    { "source": "/api/auth/openai/signout", "destination": "/api/mcp?__flowchart_openai_auth=signout" },
     { "source": "/f/:path*", "destination": "/index.html" },
     { "source": "/mcp", "destination": "/mcp.html" }
   ]

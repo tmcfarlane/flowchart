@@ -1,0 +1,106 @@
+{
+  "result": "PASS",
+  "checkedAt": "2026-10-02T16:29:37.028Z",
+  "test": "signed mock identity creates a server session and sign-out revokes it",
+  "evidenceScope": "Compiled local UI and real server handlers with a signed mock OIDC transport. Live OpenAI client authorization was not attempted or verified. No plan usage or paid fallback.",
+  "git": {
+    "head": "8bd7669199f278a857c45c2c2b17ab5ca447b215",
+    "dirty": false
+  },
+  "runtime": {
+    "node": "v25.6.0",
+    "browser": "153.0.8010.12"
+  },
+  "sources": {
+    "src/App.tsx": "dd24eb0befdb0ee845bb53de43105f73612df5eba2a3c265f7f6f5125a6f3f50",
+    "src/components/ChatGPTAccount.tsx": "e7666fb416cd0c9d77c61ac7482a8e5308d255cfecbccfe19d05ef9de2efa466",
+    "src/components/ChatGPTAccount.css": "f40e88b119f7a9889892a2e9c7985ff15e18f34b400efe535b8401f670f5e332",
+    "src/shared/server/openaiAuthConfig.ts": "1696bb9dd34a29ed92dcddeebfd5a3b4d294b6229da193f0076a96a80db83563",
+    "src/shared/server/openaiAuthHttp.ts": "da091f0a7e357175c7701a225eb4b9fc8b46e5e1bab2604f2da5e44fd99ad3ca",
+    "src/shared/server/openaiAuthService.ts": "664e0d383cd29e46419af7cc05dc2dad903780705cc36afbd75316429da795c0",
+    "src/shared/server/openaiAuthStore.ts": "e8713cdaa583985d1dc13d34e8f428a80a7255c2e708f2e455e70df06c21d5de",
+    "src/shared/server/nodeAdapter.ts": "5deb6d868ee44cec2fd0af40aef15803ab0e7c4fb0a263b82fe18e6ec1ae43ab",
+    "src/shared/server/integrationHttp.ts": "45fe4ad85606b623962fbfa59eebd373ac31821986a7aad923279f591ef1e757",
+    "api/mcp.ts": "76327875df2c3c9e0a7d2c234630f2e74780c13b58a453ea119311bcacb178df",
+    "vercel.json": "e97eea8c127f8a2e84257b0c84252d4157456232919ee3b7b1c4220c47595041",
+    "tests/browser/openai-auth-server.ts": "c48a2f51c431c3fe6d2a438898f6d18b1b843914b97c4c3ba80b442eaba986c8",
+    "tests/browser/openai-sign-in.spec.ts": "058bd4bcbdf3842478c6afa2f2ccc05026660137470588c96a20f26357a3a03f",
+    "scripts/serve-auth-browser-fixture.mjs": "1b9ed263548eb720f9e4112db3d99bf3d96f140d515b9c08fa72d4242eea6de1",
+    "playwright.auth.config.ts": "9bd4e775c39fa3eaeabb6f429425c676ff8533190cb4ee9ebed1e60954a61678",
+    "package.json": "53f152b4872e09c082d88cbd5086d84bb63f02d564972d5d80c2b2652c7e0152",
+    "package-lock.json": "62b1a5efbd2262effe03b7cfc579f0a955ae2015101c0081903abcbd9c21ab4a",
+    "tsconfig.browser-tests.json": "be8c11795ee40a3616633e9db6bf8770adcfd4dc6162e83c3c66f70d6586e8f5"
+  },
+  "bundle": {
+    "path": "/assets/main-DvT4iDkT.js",
+    "bytes": 865987,
+    "sha256": "df352b37bc51ab132dc26f4c340878a43700293db1a4e8f630d0fd3a2674cff6",
+    "compiledBytesMatch": true
+  },
+  "details": {
+    "origin": "http://127.0.0.1:4187",
+    "calls": [
+      {
+        "method": "GET",
+        "path": "/api/auth/openai/session"
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/openai/session"
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/openai/start"
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/openai/callback"
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/openai/session"
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/openai/session"
+      },
+      {
+        "method": "POST",
+        "path": "/api/auth/openai/signout"
+      },
+      {
+        "method": "GET",
+        "path": "/api/auth/openai/session"
+      }
+    ],
+    "rejected": [],
+    "authorization": [
+      {
+        "scope": "openid profile email",
+        "challengeMethod": "S256",
+        "browserProvider": "Local start redirect checked but never followed; signed fixture page substituted",
+        "originalRedirectStatus": 302
+      }
+    ],
+    "fixtureProvider": {
+      "discovery": 1,
+      "jwks": 1,
+      "tokenExchanges": 1,
+      "issuedCodes": 1,
+      "rejectedExchanges": 0,
+      "unexpectedUpstream": 0,
+      "proxyBlocks": 0,
+      "rewrittenAuthRequests": 13,
+      "unexpectedMcp": 0,
+      "transport": "Injected signed OIDC fixture; zero real provider requests"
+    },
+    "sessionCookie": {
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Lax",
+      "temporaryCookieCleared": true,
+      "revokedCookieCannotAuthenticate": true
+    },
+    "providerCompletion": "Signed mock only; no issued OpenAI client configured or real authorization attempted"
+  }
+}

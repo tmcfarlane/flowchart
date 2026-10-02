@@ -1,57 +1,66 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react'
 import App from '../App'
 
+const identitySession = { ok: true, json: async () => ({ available: false, authenticated: false, planUsageAvailable: false }) }
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url === '/api/auth/openai/session') return identitySession
+    throw new Error(`Unexpected test request: ${url}`)
+  }))
+})
+afterEach(() => vi.unstubAllGlobals())
+
 describe('FlowChart Designer', () => {
-  it('renders the app with toolbar', () => {
-    render(<App />)
+  it('renders the app with toolbar', async () => {
+    await act(async () => { render(<App />) })
     expect(screen.getByLabelText('Selection Tool')).toBeInTheDocument()
   })
 
-  it('has a toolbar with add node buttons', () => {
-    render(<App />)
+  it('has a toolbar with add node buttons', async () => {
+    await act(async () => { render(<App />) })
     expect(screen.getByLabelText('Add Step Node')).toBeInTheDocument()
     expect(screen.getByLabelText('Add Decision Node')).toBeInTheDocument()
     expect(screen.getByLabelText('Add Note')).toBeInTheDocument()
   })
 
-  it('has clear and preview buttons', () => {
-    render(<App />)
+  it('has clear and preview buttons', async () => {
+    await act(async () => { render(<App />) })
     expect(screen.getByLabelText('Clear All')).toBeInTheDocument()
     expect(screen.getByLabelText('Enter Preview Mode')).toBeInTheDocument()
   })
 
-  it('shows the welcome AI prompt on an empty canvas', () => {
-    render(<App />)
+  it('shows the welcome AI prompt on an empty canvas', async () => {
+    await act(async () => { render(<App />) })
     expect(screen.getByText("From a spark to a whole system.")).toBeInTheDocument()
   })
 
-  it('can add a new step node', () => {
-    render(<App />)
+  it('can add a new step node', async () => {
+    await act(async () => { render(<App />) })
     const addStepButton = screen.getByLabelText('Add Step Node')
     fireEvent.click(addStepButton)
 
     expect(screen.getByText('Step')).toBeInTheDocument()
   })
 
-  it('can add a new decision node', () => {
-    render(<App />)
+  it('can add a new decision node', async () => {
+    await act(async () => { render(<App />) })
     const addDecisionButton = screen.getByLabelText('Add Decision Node')
     fireEvent.click(addDecisionButton)
 
     expect(screen.getByText('Decision?')).toBeInTheDocument()
   })
 
-  it('can add a new note node', () => {
-    render(<App />)
+  it('can add a new note node', async () => {
+    await act(async () => { render(<App />) })
     const addNoteButton = screen.getByLabelText('Add Note')
     fireEvent.click(addNoteButton)
 
     expect(screen.getByText('Note')).toBeInTheDocument()
   })
 
-  it('can enter preview mode', () => {
-    render(<App />)
+  it('can enter preview mode', async () => {
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     const previewButton = screen.getByLabelText('Enter Preview Mode')
     fireEvent.click(previewButton)
@@ -60,8 +69,8 @@ describe('FlowChart Designer', () => {
     expect(screen.getByText('✕')).toBeInTheDocument()
   })
 
-  it('shows navigation buttons in preview mode', () => {
-    render(<App />)
+  it('shows navigation buttons in preview mode', async () => {
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     const previewButton = screen.getByLabelText('Enter Preview Mode')
     fireEvent.click(previewButton)
@@ -70,8 +79,8 @@ describe('FlowChart Designer', () => {
     expect(screen.getByText('→')).toBeInTheDocument()
   })
 
-  it('can exit preview mode', () => {
-    render(<App />)
+  it('can exit preview mode', async () => {
+    await act(async () => { render(<App />) })
 
     // Enter preview mode
     const previewButton = screen.getByLabelText('Enter Preview Mode')
@@ -81,13 +90,13 @@ describe('FlowChart Designer', () => {
 
     // Exit preview mode
     const exitButton = screen.getByText('✕')
-    fireEvent.click(exitButton)
+    await act(async () => { fireEvent.click(exitButton) })
     expect(screen.queryByText('1 / 1')).not.toBeInTheDocument()
     expect(screen.getByLabelText('Selection Tool')).toBeInTheDocument()
   })
 
-  it('shows confirmation modal when clicking Clear All and can cancel', () => {
-    render(<App />)
+  it('shows confirmation modal when clicking Clear All and can cancel', async () => {
+    await act(async () => { render(<App />) })
 
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     expect(screen.getByText('Step')).toBeInTheDocument()
@@ -109,8 +118,8 @@ describe('FlowChart Designer', () => {
     expect(screen.getByText('Step')).toBeInTheDocument()
   })
 
-  it('clears the board when confirming Clear All', () => {
-    render(<App />)
+  it('clears the board when confirming Clear All', async () => {
+    await act(async () => { render(<App />) })
 
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     expect(screen.getByText('Step')).toBeInTheDocument()
@@ -135,20 +144,25 @@ describe('FlowChart Designer', () => {
 })
 
 describe('AI Flowchart Assistant', () => {
-  let fetchMock: any
+  let fetchMock: ReturnType<typeof vi.fn>
+  let chatMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
-    // Mock global fetch
-    fetchMock = vi.fn()
-    global.fetch = fetchMock
+    chatMock = vi.fn()
+    fetchMock = vi.fn((url: string, options?: RequestInit) => {
+      if (url === '/api/auth/openai/session') return Promise.resolve(identitySession)
+      if (url === '/api/chat') return chatMock(url, options)
+      throw new Error(`Unexpected test request: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchMock)
   })
 
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('shows welcome prompt first, then the AI floating pill after dismiss', () => {
-    render(<App />)
+  it('shows welcome prompt first, then the AI floating pill after dismiss', async () => {
+    await act(async () => { render(<App />) })
     expect(screen.getByText("From a spark to a whole system.")).toBeInTheDocument()
     expect(screen.queryByLabelText('Open AI Assistant')).not.toBeInTheDocument()
 
@@ -156,8 +170,8 @@ describe('AI Flowchart Assistant', () => {
     expect(screen.getByLabelText('Open AI Assistant')).toBeInTheDocument()
   })
 
-  it('opens the AI bubble when clicking the floating pill', () => {
-    render(<App />)
+  it('opens the AI bubble when clicking the floating pill', async () => {
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByText('Start with a blank canvas'))
     const aiButton = screen.getByLabelText('Open AI Assistant')
     fireEvent.click(aiButton)
@@ -166,8 +180,8 @@ describe('AI Flowchart Assistant', () => {
     expect(screen.getByPlaceholderText(/An idea, a process, a world/i)).toBeInTheDocument()
   })
 
-  it('closes the AI bubble when clicking close button', () => {
-    render(<App />)
+  it('closes the AI bubble when clicking close button', async () => {
+    await act(async () => { render(<App />) })
     
     // Open bubble
     fireEvent.click(screen.getByText('Start with a blank canvas'))
@@ -183,7 +197,7 @@ describe('AI Flowchart Assistant', () => {
 
   it('shows preview dialog when AI returns a valid proposal', async () => {
     // Mock successful API response with flowchart JSON
-    fetchMock.mockResolvedValueOnce({
+    chatMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         message: `Here's a simple login flow:
@@ -206,7 +220,7 @@ describe('AI Flowchart Assistant', () => {
       }),
     })
 
-    render(<App />)
+    await act(async () => { render(<App />) })
 
     // Type a prompt
     const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
@@ -231,7 +245,7 @@ describe('AI Flowchart Assistant', () => {
 
   it('inserts nodes when clicking Insert button', async () => {
     // Mock successful API response
-    fetchMock.mockResolvedValueOnce({
+    chatMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         message: `\`\`\`json
@@ -247,7 +261,7 @@ describe('AI Flowchart Assistant', () => {
       }),
     })
 
-    render(<App />)
+    await act(async () => { render(<App />) })
 
     // Generate via welcome prompt
     const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
@@ -275,7 +289,7 @@ describe('AI Flowchart Assistant', () => {
 
   it('does not insert nodes when clicking Cancel button', async () => {
     // Mock successful API response
-    fetchMock.mockResolvedValueOnce({
+    chatMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         message: `\`\`\`json
@@ -291,7 +305,7 @@ describe('AI Flowchart Assistant', () => {
       }),
     })
 
-    render(<App />)
+    await act(async () => { render(<App />) })
 
     // Generate via welcome prompt
     const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
@@ -319,7 +333,7 @@ describe('AI Flowchart Assistant', () => {
 
   it('shows error message when AI response is invalid', async () => {
     // Mock API response without JSON
-    fetchMock.mockResolvedValueOnce({
+    chatMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         message: 'Sorry, I cannot help with that.',
@@ -327,7 +341,7 @@ describe('AI Flowchart Assistant', () => {
       }),
     })
 
-    render(<App />)
+    await act(async () => { render(<App />) })
 
     // Generate via welcome prompt
     const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
@@ -345,7 +359,7 @@ describe('AI Flowchart Assistant', () => {
   })
 
   it('sends flow context to API', async () => {
-    fetchMock.mockResolvedValueOnce({
+    chatMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         message: `\`\`\`json
@@ -359,7 +373,7 @@ describe('AI Flowchart Assistant', () => {
       }),
     })
 
-    render(<App />)
+    await act(async () => { render(<App />) })
 
     // Generate via welcome prompt
     const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
@@ -380,10 +394,12 @@ describe('AI Flowchart Assistant', () => {
     })
 
     // Verify flowContext exists (empty canvas)
-    const callArgs = fetchMock.mock.calls[0]
-    const body = JSON.parse(callArgs[1].body)
+    const callArgs = fetchMock.mock.calls.find(([url]) => url === '/api/chat')
+    expect(callArgs).toBeDefined()
+    const body = JSON.parse(callArgs![1]!.body as string)
     expect(body.flowContext).toBeDefined()
     expect(body.flowContext.nodes).toEqual([])
     expect(body.flowContext.edges).toEqual([])
+    expect(fetchMock.mock.calls.filter(([url]) => url === '/api/auth/openai/session')).toHaveLength(1)
   })
 })

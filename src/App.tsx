@@ -36,6 +36,7 @@ import AIChat, { type ProposalIntent } from './components/AIChat'
 import TemplateGallery from './components/TemplateGallery'
 import PremiumStudio from './components/PremiumStudio'
 import CommandPalette from './components/CommandPalette'
+import ChatGPTAccount from './components/ChatGPTAccount'
 import { getIconUrl } from './utils/azureIconIds'
 import { parseAIProposal, contextForAI, preserveCanvasImages, getPreservedImageNodeIds } from './shared/aiProposal'
 import type { DiagramTemplate } from './shared/diagramTemplates'
@@ -1607,7 +1608,7 @@ function FlowChartEditor() {
   return (
     <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
       <div className="workspace-brand"><span aria-hidden="true">✦</span><div><strong>Flowchart</strong><small>Ideas, in their element.</small></div></div>
-      <div className="workspace-status"><span role="status">{layoutBusy ? 'Arranging your diagram…' : templateLoading ? 'Arranging your template…' : layoutNotice ?? templateError ?? `${nodes.length} nodes · ${edges.length} connections`}</span><button className="workspace-search" onClick={() => setCommandOpen(true)} aria-label="Find nodes and actions" title="Find nodes and actions (⌘/Ctrl K)">⌕ <span>Find</span></button><button className="workspace-premium" onClick={() => setPremiumOpen(true)}>✧ Image studio</button></div>
+      <div className="workspace-status"><span role="status">{layoutBusy ? 'Arranging your diagram…' : templateLoading ? 'Arranging your template…' : layoutNotice ?? templateError ?? `${nodes.length} nodes · ${edges.length} connections`}</span><button className="workspace-search" onClick={() => setCommandOpen(true)} aria-label="Find nodes and actions" title="Find nodes and actions (⌘/Ctrl K)">⌕ <span>Find</span></button><button className="workspace-premium" onClick={() => setPremiumOpen(true)}>✧ Image studio</button><ChatGPTAccount /></div>
       <Toolbar
         onOpenTemplates={() => setTemplatesOpen(true)}
         onOpenChat={() => setIsAIBubbleOpen(true)}

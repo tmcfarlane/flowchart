@@ -9,6 +9,7 @@ pnpm-lock.yaml
 dist
 dist-ssr
 .browser-test-dist/
+.browser-auth-test-dist/
 test-results/
 playwright-report/
 *.local
