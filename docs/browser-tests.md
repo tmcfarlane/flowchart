@@ -36,3 +36,5 @@ Screenshots, sanitized JSON receipts and actual exports are written under ignore
 The early-reload test records native lifecycle observations with `console.timeStamp` and Chromium's browser timeline, which retains those records when the old document is destroyed. It keeps only the harness's prefixed scalar payloads, ends recording after reload, and releases its debugging session even on failure. It does not retain the full browser timeline.
 
 The tests verify client persistence and detachment using mocked shared HTTP. They do not establish remote chart persistence, actual ChatGPT host installation, image-provider operation or physical-device behavior. Server title, ID, version, timestamps and private capabilities are outside the browser draft contract. The ordinary Vitest command remains scoped to `src/test/` and does not load Playwright tests.
+
+See the [committed clean-checkout screenshots, receipts and exports](qa/browser-reload/README.md) for an actual passing run.

@@ -1,0 +1,237 @@
+{
+  "version": 2,
+  "mode": "architecture",
+  "nodes": [
+    {
+      "id": "region",
+      "type": "container",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "label": "Mocked shared region",
+        "containerKind": "region"
+      },
+      "style": {
+        "width": 520,
+        "height": 340
+      },
+      "width": 520,
+      "height": 340
+    },
+    {
+      "id": "vpc",
+      "type": "container",
+      "position": {
+        "x": 24,
+        "y": 50
+      },
+      "parentNode": "region",
+      "extent": "parent",
+      "data": {
+        "label": "Nested private network",
+        "containerKind": "vpc"
+      },
+      "style": {
+        "width": 460,
+        "height": 255
+      },
+      "width": 460,
+      "height": 255
+    },
+    {
+      "id": "api",
+      "type": "service",
+      "position": {
+        "x": 28,
+        "y": 56
+      },
+      "parentNode": "vpc",
+      "extent": "parent",
+      "data": {
+        "label": "Copied API · before reload",
+        "imageUrl": "/assets/icon-robot-B5QirMAh.svg",
+        "icon": "icon-robot"
+      },
+      "style": {
+        "width": 180,
+        "height": 100
+      },
+      "width": 180,
+      "height": 100,
+      "selected": true,
+      "dragging": false
+    },
+    {
+      "id": "queue",
+      "type": "queue",
+      "position": {
+        "x": 244,
+        "y": 56
+      },
+      "parentNode": "vpc",
+      "extent": "parent",
+      "data": {
+        "label": "Event queue"
+      },
+      "style": {
+        "width": 180,
+        "height": 100
+      },
+      "width": 180,
+      "height": 100
+    },
+    {
+      "id": "archive",
+      "type": "database",
+      "position": {
+        "x": 620,
+        "y": 170
+      },
+      "data": {
+        "label": "Long-term archive"
+      },
+      "style": {
+        "width": 160,
+        "height": 100
+      },
+      "width": 160,
+      "height": 100
+    },
+    {
+      "id": "client",
+      "type": "externalActor",
+      "position": {
+        "x": -220,
+        "y": 140
+      },
+      "data": {
+        "label": "Mocked client"
+      },
+      "style": {
+        "width": 160,
+        "height": 100
+      },
+      "width": 160,
+      "height": 100
+    }
+  ],
+  "edges": [
+    {
+      "id": "request",
+      "source": "client",
+      "target": "api",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Read request",
+      "type": "default",
+      "animated": false,
+      "style": {
+        "stroke": "#78fcd6"
+      },
+      "data": {
+        "protocol": "HTTPS",
+        "commStyle": "sync"
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "width": 20,
+        "height": 20,
+        "color": "#78fcd6"
+      },
+      "labelStyle": {
+        "fill": "#e7eceb",
+        "fontWeight": 500,
+        "fontSize": 12
+      },
+      "labelBgStyle": {
+        "fill": "rgba(15, 18, 17, 0.9)",
+        "stroke": "rgba(120, 252, 214, 0.3)",
+        "strokeWidth": 1
+      },
+      "labelBgPadding": [
+        6,
+        4
+      ],
+      "labelBgBorderRadius": 4
+    },
+    {
+      "id": "enqueue",
+      "source": "api",
+      "target": "queue",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Queue event",
+      "type": "smoothstep",
+      "animated": true,
+      "style": {
+        "strokeDasharray": "5 5",
+        "stroke": "#78fcd6"
+      },
+      "data": {
+        "protocol": "event",
+        "commStyle": "async"
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "width": 20,
+        "height": 20,
+        "color": "#78fcd6"
+      },
+      "labelStyle": {
+        "fill": "#e7eceb",
+        "fontWeight": 500,
+        "fontSize": 12
+      },
+      "labelBgStyle": {
+        "fill": "rgba(15, 18, 17, 0.9)",
+        "stroke": "rgba(120, 252, 214, 0.3)",
+        "strokeWidth": 1
+      },
+      "labelBgPadding": [
+        6,
+        4
+      ],
+      "labelBgBorderRadius": 4
+    },
+    {
+      "id": "archive-write",
+      "source": "queue",
+      "target": "archive",
+      "sourceHandle": "bottom",
+      "targetHandle": "left",
+      "label": "Archive write",
+      "type": "default",
+      "animated": true,
+      "style": {
+        "strokeDasharray": "5 5",
+        "stroke": "#78fcd6"
+      },
+      "data": {
+        "protocol": "SQL"
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "width": 20,
+        "height": 20,
+        "color": "#78fcd6"
+      },
+      "labelStyle": {
+        "fill": "#e7eceb",
+        "fontWeight": 500,
+        "fontSize": 12
+      },
+      "labelBgStyle": {
+        "fill": "rgba(15, 18, 17, 0.9)",
+        "stroke": "rgba(120, 252, 214, 0.3)",
+        "strokeWidth": 1
+      },
+      "labelBgPadding": [
+        6,
+        4
+      ],
+      "labelBgBorderRadius": 4
+    }
+  ]
+}

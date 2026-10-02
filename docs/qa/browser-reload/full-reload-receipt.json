@@ -1,0 +1,166 @@
+{
+  "result": "PASS",
+  "checkedAt": "2026-10-02T12:21:18.428Z",
+  "test": "an editable shared copy survives full reload, explicit Restore, and another inline edit",
+  "transport": "Only same-origin GET/HEAD static/document requests continue. Synthetic GET chart is in-memory only; other APIs and all off-origin requests abort without fallback. No real shared/provider/payment writes.",
+  "contextLifecycle": "Fresh context owned and automatically disposed by Playwright after each test.",
+  "pollMs": 3000,
+  "debounceMs": 800,
+  "draftMetadataContract": "version/savedAt/diagramMode plus allowlisted graph; server title/id/version/timestamps and capabilities are intentionally excluded.",
+  "fixture": {
+    "nodes": 6,
+    "nestingLevels": 2,
+    "edges": 3,
+    "sha256": "d7e7c9c93fac99d99ddc99d70a628fdb0719bb30f8b08163ef0e835e36557248"
+  },
+  "details": {
+    "source": {
+      "git": {
+        "available": true,
+        "head": "6c07f0c5701f3f0b89d881b7298ae36db4d6478d",
+        "tree": "576e1d31b4ccf34aad01380335753043bf0c8910",
+        "dirty": false,
+        "changeCount": 0
+      },
+      "files": {
+        "src/App.tsx": "446e9a101ef4fba25cf4b6eb3bfb9e80860fbb9e633febc8be59fbe86e10a540",
+        "src/hooks/useSharedFlow.ts": "e8c256409991e93adc8a61d941cb859c609866f0f89bb0fa267a65049201b506",
+        "src/hooks/useLocalDraft.ts": "9f48f34059cbf1745825b1bc691e7d3fa1aed06b86839a6628ce29ed1f28af67",
+        "src/utils/sharedFlow.ts": "5a5b6042463a12496c81bc3bcc0400f548d4646da13c7af2d78848bd99ec7646",
+        "tests/browser/local-copy-fixture.ts": "28346394ce2a517b44ec38777be44e75d21f3a8c25e415cea7bc11f7d14be997",
+        "tests/browser/local-copy-reload.spec.ts": "f30c10d4ecaa93b67a21c0721c29fc3751149d3a14a6d90c8caa260100b42eab",
+        "playwright.config.ts": "19ccf8474927e130499665cf705243282d51d52ea78a9a9ce90a2b4a19664804",
+        "package.json": "f2ca182718331969129e065d99b7233bbc95b5642fb56c2b633233fbc11180f1",
+        "package-lock.json": "1c534490f68420409de8f541b0b8caf49892b1d0b30485fac40e8739b6668f10",
+        "tsconfig.browser-tests.json": "8109af371fb48c76d3b64df803757a35b13767177a5763898e46f7d5c52fea0b"
+      }
+    },
+    "runtime": {
+      "node": "v24.19.0",
+      "browser": "153.0.8010.12",
+      "playwright": "1.63.0"
+    },
+    "build": {
+      "origin": "http://127.0.0.1:4186",
+      "bundle": "/assets/main-DKPx-jS-.js",
+      "bytes": 858018,
+      "servedSha256": "40a0cb2a78162029d91b6927216cdbc6fed33390a06d0e7a1adbec5410289d60",
+      "localCompiledSha256": "40a0cb2a78162029d91b6927216cdbc6fed33390a06d0e7a1adbec5410289d60",
+      "identityRequest": "Validated loopback static bundle GET with redirects disabled"
+    },
+    "guardProbe": {
+      "marker": "local-copy-reload-browser-fixture-v1",
+      "blocked": true
+    },
+    "observedScheduledPoll": {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "?since=7",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790943659758,
+      "transport": "in-memory mocked chart"
+    },
+    "edited-copy": {
+      "file": "edited-copy.json",
+      "bytes": 4770,
+      "sha256": "62e1c40607d8a4469ca82bc5120187f36230ee9025fc7cb1d2132696765ea9b1",
+      "suggestedName": "flowchart.json",
+      "fullLiveGraphMetadataMatched": true
+    },
+    "detached-two-poll-windows": {
+      "observationMs": 6747,
+      "requests": 0
+    },
+    "restored-before-next-edit": {
+      "file": "restored-before-next-edit.json",
+      "bytes": 4721,
+      "sha256": "82a2597a0cea6da04ab6262e098441dfcdab3292540d0713b51f79aacff43524",
+      "suggestedName": "flowchart.json",
+      "fullLiveGraphMetadataMatched": true
+    },
+    "restored-edited": {
+      "file": "restored-edited.json",
+      "bytes": 4771,
+      "sha256": "cb9636af3dd5c4d174fdd64a580a9d6f3d60005816194f450a79d8a400935b82",
+      "suggestedName": "flowchart.json",
+      "fullLiveGraphMetadataMatched": true
+    },
+    "restored-two-poll-windows": {
+      "observationMs": 6511,
+      "requests": 0
+    },
+    "recovery": {
+      "navigation": {
+        "oldTimeOrigin": 1790943656626,
+        "newTimeOrigin": 1790943668307.1
+      },
+      "oldBytesSurvivedReloadBeforeExplicitRestore": true,
+      "originalSavedAt": 1790943660984,
+      "originalSha256": "f9e1be3a070fec4d366ce6bfae9854263ce3167711a438f49756c3cf4b3a598b",
+      "finalSavedAt": 1790943670610,
+      "finalSha256": "2844c68b3ee2a4847b434cc20a8ab7b3846a9ae0600cdcf1e777cb1118573f61",
+      "fullGraphMatchedBeforeAndAfterSecondEdit": true
+    }
+  },
+  "requestCounts": {
+    "GET /api/flows/DraftCopy1": 3,
+    "GET /api/guard-probe": 1
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "",
+      "phase": "guard-probe",
+      "epochMs": 1790943656608,
+      "transport": "in-memory mocked chart"
+    },
+    {
+      "method": "GET",
+      "path": "/api/guard-probe",
+      "query": "",
+      "phase": "guard-probe",
+      "epochMs": 1790943656613,
+      "transport": "aborted; no fallback"
+    },
+    {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790943656739,
+      "transport": "in-memory mocked chart"
+    },
+    {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "?since=7",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790943659758,
+      "transport": "in-memory mocked chart"
+    }
+  ],
+  "blockedExternalRequests": [],
+  "blockedNonStaticRequests": [],
+  "documentRequests": [
+    {
+      "url": "http://127.0.0.1:4186/",
+      "method": "GET",
+      "phase": "startup",
+      "epochMs": 1790943656111
+    },
+    {
+      "url": "http://127.0.0.1:4186/f/DraftCopy1",
+      "method": "GET",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790943656627
+    },
+    {
+      "url": "http://127.0.0.1:4186/",
+      "method": "GET",
+      "phase": "native-full-page-reload",
+      "epochMs": 1790943668321
+    }
+  ],
+  "naturallyObservedLifecycleEvents": []
+}
