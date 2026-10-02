@@ -147,6 +147,8 @@ For Vercel, add the same variables in your project settings and configure the sh
 
 Website chat currently uses the operator's Azure deployment. Using each user's own ChatGPT AI allowance requires separate plan-usage consent and approved hosted application configuration; it is not enabled here. The current ChatGPT plan-usage preview excludes image generation. See [ChatGPT plan usage](docs/chatgpt-plan-usage.md).
 
+The website account control supports [ChatGPT identity sign-in](docs/chatgpt-sign-in.md) when an approved hosted OAuth client is configured. Without that configuration it explicitly reports unavailability. Signed mock-provider tests verify the implementation; live OpenAI sign-in remains unverified.
+
 To configure paid image generation, follow [Premium setup](docs/premium.md). Checkout uses Stripe-hosted pages; paid access comes from verified payment state, and image requests use a separately configured OpenAI Images API project. The studio reports missing configuration instead of granting paid access or inventing output.
 
 <details>

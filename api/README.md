@@ -119,6 +119,8 @@ Only an explicit unsupported structured-output format triggers one JSON-object f
 
 ## ChatGPT allowance and Premium images
 
+Website identity is a separate optional integration under `/api/auth/openai/`. See [ChatGPT sign-in](../docs/chatgpt-sign-in.md) for approved client configuration, callback/session contracts and local verification. It does not grant ChatGPT plan usage or Premium billing ownership.
+
 Website chat currently uses the operator's Azure budget. Using each user's own ChatGPT allowance is a separate, unenabled integration requiring approved hosted provisioning and plan-usage consent. Arbitrary consumer tokens are not accepted. See [ChatGPT plan usage](../docs/chatgpt-plan-usage.md).
 
 Premium images use a separately configured OpenAI Images API project. Checkout success URLs and browser-paid flags do not grant access: the backend verifies Stripe customer/price ownership, positive paid invoices and current subscription/risk state before reserving image quota. Signed webhooks, proof revisions and account reservations coordinate cancellation and payment holds. Follow [Premium configuration, endpoint contracts and verification](../docs/premium.md). Missing configuration reports unavailability without fabricating access or generated output.

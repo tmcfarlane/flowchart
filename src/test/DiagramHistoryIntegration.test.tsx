@@ -12,6 +12,7 @@ vi.mock('reactflow', async (importOriginal) => {
 })
 
 const backup = { version: 1, savedAt: 1790917171000, diagramMode: 'architecture', flow: { nodes: [{ id: 'saved-api', type: 'service', label: 'Saved observatory API', position: { x: 120, y: 160 }, icon: 'icon-cloud' }], edges: [] } }
+const identitySession = { ok: true, json: async () => ({ available: false, authenticated: false, planUsageAvailable: false }) }
 const advance = (ms = 500) => act(() => { vi.advanceTimersByTime(ms) })
 function rename(label: string, next: string) {
   const text = screen.getByText(label)
@@ -22,7 +23,15 @@ function rename(label: string, next: string) {
   fireEvent.change(input, { target: { value: next } })
   fireEvent.keyDown(input, { key: 'Enter' })
 }
-beforeEach(() => { vi.useFakeTimers(); window.history.replaceState({}, '', '/'); localStorage.clear() })
+beforeEach(() => {
+  vi.useFakeTimers()
+  window.history.replaceState({}, '', '/')
+  localStorage.clear()
+  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    if (url === '/api/auth/openai/session') return identitySession
+    throw new Error(`Unexpected test request: ${url}`)
+  }))
+})
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); layout.arrange.mockReset(); localStorage.clear(); sessionStorage.clear() })
 
 describe('Editor content history integration', () => {
@@ -30,7 +39,7 @@ describe('Editor content history integration', () => {
     let release!: (value: unknown) => void
     const pending = new Promise((resolve) => { release = resolve })
     layout.arrange.mockReturnValue(pending)
-    render(<App />)
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Open template gallery'))
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Use The dream observatory template' })) })
     await vi.waitFor(() => expect(layout.arrange).toHaveBeenCalledOnce())
@@ -49,8 +58,8 @@ describe('Editor content history integration', () => {
     expect(screen.getByText('Template result')).toBeInTheDocument()
   })
 
-  it('ignores theme and node selection changes while preserving the redo branch', () => {
-    render(<App />)
+  it('ignores theme and node selection changes while preserving the redo branch', async () => {
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Toggle Dark Mode'))
     advance()
     expect(screen.getByLabelText('Undo')).toBeDisabled()
@@ -74,8 +83,8 @@ describe('Editor content history integration', () => {
     expect(screen.getByText('Still editable after Redo')).toBeInTheDocument()
   })
 
-  it('restores the prior mode and live label callbacks when undoing a mode change', () => {
-    render(<App />)
+  it('restores the prior mode and live label callbacks when undoing a mode change', async () => {
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     advance()
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
@@ -90,8 +99,8 @@ describe('Editor content history integration', () => {
     expect(screen.getByText('Edited again after Redo')).toBeInTheDocument()
   })
 
-  it('recognizes uppercase Shift+Ctrl+Z for Redo after keyboard Undo', () => {
-    render(<App />)
+  it('recognizes uppercase Shift+Ctrl+Z for Redo after keyboard Undo', async () => {
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     fireEvent.keyDown(window, { key: 'z', ctrlKey: true })
     expect(screen.queryByText('Step')).not.toBeInTheDocument()
@@ -99,8 +108,8 @@ describe('Editor content history integration', () => {
     expect(screen.getByText('Step')).toBeInTheDocument()
   })
 
-  it('keeps the welcome prompt from stealing keyboard Redo after undoing the first manual node', () => {
-    render(<App />)
+  it('keeps the welcome prompt from stealing keyboard Redo after undoing the first manual node', async () => {
+    await act(async () => { render(<App />) })
     advance(60)
     expect(screen.getByPlaceholderText('An idea, a process, a world…')).toHaveFocus()
     fireEvent.click(screen.getByLabelText('Add Step Node'))
@@ -115,7 +124,7 @@ describe('Editor content history integration', () => {
 
   it('keeps the selected canvas intact when Delete is pressed on a proposal heading', async () => {
     localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(backup))
-    render(<App />)
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     fireEvent.click(screen.getByLabelText('Find nodes and actions'))
     fireEvent.change(screen.getByRole('combobox', { name: 'Find a node or action' }), { target: { value: 'Step' } })
@@ -130,13 +139,13 @@ describe('Editor content history integration', () => {
     expect(screen.getByRole('button', { name: 'Restore saved draft' })).toBeInTheDocument()
   })
 
-  it('cuts a selected node with its incident connection and restores both with Undo', () => {
+  it('cuts a selected node with its incident connection and restores both with Undo', async () => {
     const connected = { ...backup, diagramMode: 'flowchart', flow: {
       nodes: [{ id: 'source', type: 'step', label: 'Source step', position: { x: 0, y: 0 } }, { id: 'sink', type: 'step', label: 'Sink step', position: { x: 240, y: 0 } }],
       edges: [{ id: 'request', source: 'source', target: 'sink', label: 'Send request', protocol: 'HTTPS', commStyle: 'sync', style: 'default' }],
     } }
     localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(connected))
-    render(<App />)
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByRole('button', { name: 'Preview saved draft' }))
     fireEvent.click(screen.getByRole('button', { name: 'Restore saved draft' }))
     fireEvent.click(screen.getByLabelText('Find nodes and actions'))
@@ -157,14 +166,14 @@ describe('Editor content history integration', () => {
     expect(restored.edges).toEqual([expect.objectContaining({ id: 'request', source: 'source', target: 'sink', protocol: 'HTTPS', commStyle: 'sync' })])
   })
 
-  it('moves container descendants with Cut so Paste does not duplicate the original child', () => {
+  it('moves container descendants with Cut so Paste does not duplicate the original child', async () => {
     const nested = { ...backup, flow: { nodes: [
       { id: 'box', type: 'container', label: 'Cloud boundary', position: { x: 100, y: 100 }, width: 420, height: 300, containerKind: 'group' },
       { id: 'child', type: 'service', label: 'Unique child service', parentNode: 'box', position: { x: 40, y: 80 } },
       { id: 'outside', type: 'note', label: 'Outside note', position: { x: 620, y: 100 } },
     ], edges: [] } }
     localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(nested))
-    render(<App />)
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByRole('button', { name: 'Preview saved draft' }))
     fireEvent.click(screen.getByRole('button', { name: 'Restore saved draft' }))
     fireEvent.click(screen.getByLabelText('Find nodes and actions'))
@@ -193,9 +202,9 @@ describe('Editor content history integration', () => {
     expect(screen.getByText('Unique child service')).toBeInTheDocument()
   })
 
-  it('keeps Cancel out of history and makes draft restoration immediately undoable and redoable', () => {
+  it('keeps Cancel out of history and makes draft restoration immediately undoable and redoable', async () => {
     localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(backup))
-    render(<App />)
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     advance()
     fireEvent.click(screen.getByRole('button', { name: 'Preview saved draft' }))
@@ -218,9 +227,9 @@ describe('Editor content history integration', () => {
     expect(screen.getByLabelText('Architecture Mode')).toHaveAttribute('aria-pressed', 'true')
   })
 
-  it('cancels delayed history and draft writes when the restored board is cleared', () => {
+  it('cancels delayed history and draft writes when the restored board is cleared', async () => {
     localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(backup))
-    render(<App />)
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByRole('button', { name: 'Preview saved draft' }))
     fireEvent.click(screen.getByRole('button', { name: 'Restore saved draft' }))
     rename('Saved observatory API', 'A pending final edit')
@@ -238,9 +247,13 @@ describe('Editor content history integration', () => {
   })
 
   it('restores mode and editable callbacks after undoing a locally mocked reviewed AI edit', async () => {
-    const fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ message: JSON.stringify({ summary: 'Convert to an API', nodes: [{ id: '2', type: 'service', label: 'Reviewed API', position: { x: 10, y: 20 } }], edges: [] }), finishReason: 'stop' }) })
+    const fetch = vi.fn(async (url: string) => {
+      if (url === '/api/auth/openai/session') return identitySession
+      if (url === '/api/chat') return { ok: true, json: async () => ({ message: JSON.stringify({ summary: 'Convert to an API', nodes: [{ id: '2', type: 'service', label: 'Reviewed API', position: { x: 10, y: 20 } }], edges: [] }), finishReason: 'stop' }) }
+      throw new Error(`Unexpected test request: ${url}`)
+    })
     vi.stubGlobal('fetch', fetch)
-    render(<App />)
+    await act(async () => { render(<App />) })
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     fireEvent.click(screen.getByLabelText('Open diagram chat'))
     fireEvent.change(screen.getByLabelText('What would you like to change?'), { target: { value: 'Convert the step to an API' } })
@@ -253,6 +266,7 @@ describe('Editor content history integration', () => {
     fireEvent.click(screen.getByLabelText('Redo'))
     rename('Reviewed API', 'Editable reviewed API')
     expect(screen.getByText('Editable reviewed API')).toBeInTheDocument()
-    expect(fetch).toHaveBeenCalledOnce()
+    expect(fetch.mock.calls.filter(([url]) => url === '/api/chat')).toHaveLength(1)
+    expect(fetch.mock.calls.filter(([url]) => url === '/api/auth/openai/session')).toHaveLength(1)
   })
 })

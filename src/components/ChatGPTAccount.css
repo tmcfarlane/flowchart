@@ -1,0 +1,36 @@
+.chatgpt-account { flex-shrink: 0; }
+.workspace-status .chatgpt-account-trigger, .chatgpt-account-trigger { display: flex; align-items: center; justify-content: center; gap: 7px; min-height: 32px; padding: 6px 10px; border: 1px solid var(--workspace-line, #dce1ee); border-radius: 8px; background: var(--workspace-raised, #fff); color: var(--workspace-text, #202942); font-family: inherit; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.chatgpt-account-symbol { display: none; flex-shrink: 0; }
+.workspace-status .chatgpt-account-trigger.is-authenticated { color: var(--workspace-teal, #197c78); }
+.chatgpt-account-backdrop { position: fixed; inset: 0; z-index: 1300; background: rgba(12, 17, 36, 0.28); backdrop-filter: blur(3px); }
+.chatgpt-account-panel { position: fixed; width: min(390px, calc(100vw - 24px)); overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--workspace-line, #dce1ee); border-radius: 17px; background: var(--workspace-surface, #fbfcff); color: var(--workspace-text, #202942); box-shadow: var(--workspace-shadow, 0 20px 65px rgba(12, 17, 36, 0.24)); scrollbar-width: thin; }
+.chatgpt-account-heading { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px 8px 20px; background: var(--workspace-surface, #fbfcff); }
+.chatgpt-account-heading h2 { margin: 0; font-size: 17px; line-height: 1.4; font-weight: 650; letter-spacing: -0.025em; }
+.chatgpt-account-close { width: 44px; min-height: 44px; flex-shrink: 0; display: grid; place-items: center; border: 1px solid var(--workspace-line, #dce1ee); border-radius: 10px; background: transparent; color: var(--workspace-muted, #626c82); font-size: 24px; cursor: pointer; }
+.chatgpt-account-content { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 8px 20px 22px; }
+.chatgpt-account-content p { margin: 0; color: var(--workspace-muted, #626c82); font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+.chatgpt-account-content .chatgpt-account-message { color: var(--workspace-text, #202942); font-weight: 600; }
+.chatgpt-account-content .chatgpt-account-caption { font-size: 11px; }
+.chatgpt-account-identity { display: flex; flex-direction: column; gap: 6px; width: 100%; margin-top: -9px; overflow-wrap: anywhere; }
+.chatgpt-account-identity strong { font-size: 16px; font-weight: 600; line-height: 1.5; }
+.chatgpt-account-identity span { color: var(--workspace-muted, #626c82); font-size: 13px; line-height: 1.5; }
+.chatgpt-account-action { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px; border: 1px solid var(--workspace-line, #dce1ee); border-radius: 10px; background: var(--workspace-raised, #fff); color: var(--workspace-text, #202942); font-family: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.chatgpt-account-action.chatgpt-account-primary { width: 100%; border-color: var(--workspace-accent, #6850bb); background: var(--workspace-accent, #6850bb); color: var(--workspace-surface, #fff); }
+.chatgpt-account-action:hover:not(:disabled), .chatgpt-account-close:hover { background: var(--workspace-accent-soft, #eee9fa); color: var(--workspace-accent, #6850bb); }
+.chatgpt-account-action:disabled { opacity: 0.6; cursor: wait; }
+.chatgpt-account-panel button:focus-visible, .chatgpt-account-panel a:focus-visible, .chatgpt-account-trigger:focus-visible { outline: 2px solid var(--workspace-accent, #6850bb); outline-offset: 3px; }
+.chatgpt-account-content .chatgpt-account-help { width: 100%; padding-top: 16px; border-top: 1px solid var(--workspace-line, #dce1ee); font-size: 12px; }
+.chatgpt-account-content .chatgpt-account-notice { color: var(--workspace-teal, #197c78); }
+.chatgpt-account-content .chatgpt-account-error { color: var(--workspace-error, #af344c); }
+@media (max-width: 760px) {
+  .chatgpt-account-trigger > span { display: none; }
+  .chatgpt-account-symbol { display: block; }
+  .workspace-status .chatgpt-account-trigger { min-width: 44px; min-height: 44px; padding: 9px; }
+}
+@media (max-width: 600px) {
+  .workspace-status:has(.chatgpt-account) { max-width: calc(100vw - 120px); gap: 3px; }
+}
+@media (max-width: 380px) {
+  .workspace-status:has(.chatgpt-account) .workspace-search > span { display: none; }
+  .workspace-status:has(.chatgpt-account) .workspace-premium { font-size: 10px; padding-left: 5px; padding-right: 5px; }
+}

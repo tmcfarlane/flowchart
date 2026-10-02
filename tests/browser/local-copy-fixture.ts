@@ -81,6 +81,7 @@ function sourceNumber(source: string, name: string) {
 /** A disposable client fixture: all APIs are mocked or aborted, never forwarded. */
 export class LocalCopyFixture {
   readonly calls: ApiCall[] = []
+  readonly identityStatusReads: Array<{ phase: string; epochMs: number }> = []
   readonly blockedExternal: Array<{ method: string; path: string; phase: string; epochMs: number; transport: string }> = []
   readonly blockedNonStatic: Array<{ method: string; path: string; phase: string; epochMs: number }> = []
   readonly documents: DocumentRequest[] = []
@@ -142,6 +143,15 @@ export class LocalCopyFixture {
         if (request.method() === 'GET' || request.method() === 'HEAD') return route.continue()
         this.blockedNonStatic.push({ method: request.method(), path: url.pathname, phase: this.phase, epochMs: Date.now() })
         return route.abort('blockedbyclient')
+      }
+      // Identity status is independent of chart polling. Keep it explicitly
+      // unavailable in this chart fixture; never forward an authentication API.
+      if (request.method() === 'GET' && url.pathname === '/api/auth/openai/session' && url.search === '') {
+        this.identityStatusReads.push({ phase: this.phase, epochMs: Date.now() })
+        return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({
+          available: false, authenticated: false, planUsageAvailable: false,
+          message: 'ChatGPT sign-in is not available on this website yet.',
+        }) })
       }
       const allowed = request.method() === 'GET' && url.pathname === `/api/flows/${MOCK_CHART.id}` && (url.search === '' || url.search === `?since=${MOCK_CHART.version}`)
       const safeQuery = url.search === '' ? '' : url.search === `?since=${MOCK_CHART.version}` ? url.search : '[redacted]'
@@ -384,6 +394,7 @@ export class LocalCopyFixture {
   }
   async attachReceipt() {
     const requestCounts: Record<string, number> = {}
+    this.details.identityStatus = { transport: 'Explicit unavailable in-memory fixture; no authentication request forwarded', reads: this.identityStatusReads }
     for (const call of this.calls) { const key = `${call.method} ${call.path}`; requestCounts[key] = (requestCounts[key] ?? 0) + 1 }
     const receipt = { result: this.passed ? 'PASS' : 'FAIL', failure: this.failure, checkedAt: new Date().toISOString(), test: this.testInfo.title, transport: 'Only same-origin GET/HEAD static/document requests continue. Synthetic GET chart is in-memory only; other APIs and all off-origin requests abort without fallback. No real shared/provider/payment writes.', contextLifecycle: 'Fresh context owned and automatically disposed by Playwright after each test.', pollMs: this.pollMs, debounceMs: this.debounceMs, draftMetadataContract: 'version/savedAt/diagramMode plus allowlisted graph; server title/id/version/timestamps and capabilities are intentionally excluded.', fixture: { nodes: 6, nestingLevels: 2, edges: 3, sha256: hash(chartRaw) }, details: this.details, requestCounts, requests: this.calls, blockedExternalRequests: this.blockedExternal, blockedNonStaticRequests: this.blockedNonStatic, documentRequests: this.documents, naturallyObservedLifecycleEvents: this.lifecycle }
     const path = this.testInfo.outputPath('receipt.json')

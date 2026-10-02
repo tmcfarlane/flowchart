@@ -11,5 +11,5 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["playwright.config.ts", "tests/browser/**/*.ts"]
+  "include": ["playwright.config.ts", "playwright.auth.config.ts", "tests/browser/**/*.ts"]
 }
