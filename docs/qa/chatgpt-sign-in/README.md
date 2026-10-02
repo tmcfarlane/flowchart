@@ -1,0 +1,20 @@
+# ChatGPT website identity verification
+
+The five native screenshots show the changed website behavior on clean source commit `e452a7a58c12ab79a0ad32e44bc68a3a1d1e7880`. The authentication server is the real application handler implementation with an injected signed test provider. The compiled browser bundle is `main-DvT4iDkT.js`, SHA-256 `df352b37bc51ab132dc26f4c340878a43700293db1a4e8f630d0fd3a2674cff6`; its served bytes match the local build. These results do not establish live OpenAI sign-in. An approved issued client, registered callback and intended-environment verification remain outstanding. ChatGPT-funded AI requests remain unavailable.
+
+- [Unavailable desktop](unavailable-desktop.png) and [mobile](unavailable-mobile.png): real configuration-disabled session/start handlers, no OAuth discovery or token exchange.
+- [Signed mock identity](signed-mock-account.png): real PKCE/code exchange and genuinely signed synthetic ID-token verification create a Secure, HttpOnly, SameSite=Lax first-party session. `Test Diagrammer` and the `.test` email are fixtures.
+- [Signed out](signed-out-account.png): the native browser sends the session CSRF header; the cookie is cleared and the old capability cannot authenticate.
+- [Rejected callback](rejected-callback.png): mismatched state consumes the temporary transaction and fails before token exchange.
+
+The three authentication receipts include 19 source hashes, clean commit identity, compiled/served bundle equality, allowed request paths and fixture assertions. They exclude raw tokens, authorization codes, transaction state, cookie values and CSRF secrets. The backend/UI independent review passed 77 focused tests (59 server, 18 UI). The complete suite passed 877 tests in 62 files with two workers and unchanged timeouts. Production Redis behavior was reviewed with atomic Lua fixtures; no live Redis or issued-client completion was exercised.
+
+The separate local-copy receipts and actual JSON exports retain existing diagram recovery checks after adding the identity status request. The full reload case passed, followed by the strict early-unload case: reload request 45.4 ms and actual save 118.4 ms after trusted Enter, both below the unchanged 800 ms debounce. The tests use native reload and explicit Preview/Restore, retain all graph metadata, and observe two real polling windows without chart API writes. Identity reads are explicitly mocked unavailable and recorded separately.
+
+## Preserved failures
+
+The initial browser harness allowed a synthetic-client authorization redirect to reach OpenAI (307/403). No real account authorization completed. That run and its trace were retained; it is not evidence of an offline run. The corrected harness fetches the local start response with redirects disabled, checks its 302 and provider URL, and substitutes an explicitly labeled mock provider page. An owned loopback proxy refuses all non-loopback browser traffic, including missed redirect interception. Its injected server transport has no network fallback and validates the original PKCE challenge before signing a fixture JWT.
+
+Subsequent harness checks exposed HTTP cookie filtering differences: native Secure-cookie metadata must be read without an HTTP URL filter, and authenticated loopback status must use the native browser fetch. Those failures were retained before correction. Eight old editor fixtures initially consumed the new identity status request as a chat reply; their routing was corrected while preserving preview/apply/cancel/history assertions. A resource-contended full run and browser-startup timeout were retained before the successful bounded/sequential runs. One early-reload run saved the correct latest edit at 808.3 ms, missing the strict 800 ms proof boundary; its failed receipt was retained and the unchanged timing case then passed.
+
+No client application was submitted, credentials or provider/production settings changed, paid inference invoked, or deployment initiated during this continuation. This PR targets only `v0.8`.

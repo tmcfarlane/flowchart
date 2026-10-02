@@ -1,0 +1,217 @@
+{
+  "result": "PASS",
+  "checkedAt": "2026-10-02T16:02:56.003Z",
+  "test": "native reload before pending autosave preserves the latest committed copy edit",
+  "transport": "Only same-origin GET/HEAD static/document requests continue. Synthetic GET chart is in-memory only; other APIs and all off-origin requests abort without fallback. No real shared/provider/payment writes.",
+  "contextLifecycle": "Fresh context owned and automatically disposed by Playwright after each test.",
+  "pollMs": 3000,
+  "debounceMs": 800,
+  "draftMetadataContract": "version/savedAt/diagramMode plus allowlisted graph; server title/id/version/timestamps and capabilities are intentionally excluded.",
+  "fixture": {
+    "nodes": 6,
+    "nestingLevels": 2,
+    "edges": 3,
+    "sha256": "d7e7c9c93fac99d99ddc99d70a628fdb0719bb30f8b08163ef0e835e36557248"
+  },
+  "details": {
+    "source": {
+      "git": {
+        "available": true,
+        "head": "e452a7a58c12ab79a0ad32e44bc68a3a1d1e7880",
+        "tree": "48e2f520b10c2fce82e841bd10a3c06dc7c0253d",
+        "dirty": false,
+        "changeCount": 0
+      },
+      "files": {
+        "src/App.tsx": "dd24eb0befdb0ee845bb53de43105f73612df5eba2a3c265f7f6f5125a6f3f50",
+        "src/hooks/useSharedFlow.ts": "e8c256409991e93adc8a61d941cb859c609866f0f89bb0fa267a65049201b506",
+        "src/hooks/useLocalDraft.ts": "9f48f34059cbf1745825b1bc691e7d3fa1aed06b86839a6628ce29ed1f28af67",
+        "src/utils/sharedFlow.ts": "5a5b6042463a12496c81bc3bcc0400f548d4646da13c7af2d78848bd99ec7646",
+        "tests/browser/local-copy-fixture.ts": "e4a854782c0521ebede60cc112b9cf5be319fd7ad66c102c1f76595cab7bfe10",
+        "tests/browser/local-copy-reload.spec.ts": "f30c10d4ecaa93b67a21c0721c29fc3751149d3a14a6d90c8caa260100b42eab",
+        "playwright.config.ts": "f659c74d061d876b912129671ad989305affeb5948fd3ac15e1d15e0f2907240",
+        "package.json": "53f152b4872e09c082d88cbd5086d84bb63f02d564972d5d80c2b2652c7e0152",
+        "package-lock.json": "62b1a5efbd2262effe03b7cfc579f0a955ae2015101c0081903abcbd9c21ab4a",
+        "tsconfig.browser-tests.json": "be8c11795ee40a3616633e9db6bf8770adcfd4dc6162e83c3c66f70d6586e8f5"
+      }
+    },
+    "runtime": {
+      "node": "v25.6.0",
+      "browser": "153.0.8010.12",
+      "playwright": "1.63.0"
+    },
+    "build": {
+      "origin": "http://127.0.0.1:4186",
+      "bundle": "/assets/main-DvT4iDkT.js",
+      "bytes": 865987,
+      "servedSha256": "df352b37bc51ab132dc26f4c340878a43700293db1a4e8f630d0fd3a2674cff6",
+      "localCompiledSha256": "df352b37bc51ab132dc26f4c340878a43700293db1a4e8f630d0fd3a2674cff6",
+      "identityRequest": "Validated loopback static bundle GET with redirects disabled"
+    },
+    "guardProbe": {
+      "marker": "local-copy-reload-browser-fixture-v1",
+      "blocked": true
+    },
+    "observedScheduledPoll": {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "?since=7",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790956958429,
+      "transport": "in-memory mocked chart"
+    },
+    "detached-two-poll-windows": {
+      "observationMs": 6543,
+      "requests": 0
+    },
+    "lifecycleObserver": "Browser-level CDP Tracing TimeStamp records from native after-hook listeners; prefix-only scalar payloads, no full trace retained.",
+    "latest-edit-restored": {
+      "file": "latest-edit-restored.json",
+      "bytes": 4725,
+      "sha256": "34c8e95e17cae18f3681466eb7d54a7cc48ac1a355d9186a983b3bc3081e8068",
+      "suggestedName": "flowchart.json",
+      "fullLiveGraphMetadataMatched": true
+    },
+    "restored-two-poll-windows": {
+      "observationMs": 6546,
+      "requests": 0
+    },
+    "earlyUnload": {
+      "baseline": {
+        "label": "Source API",
+        "savedAt": 1790956959395,
+        "sha256": "5db420a39bf88c1aadff6e39391c655e94dbf28330a2de61f7a38ca3873c336b",
+        "naturallySaved": true
+      },
+      "enterPressStartedAtMs": 1790956966376,
+      "enterPressCompletedAtMs": 1790956966429,
+      "trustedEnter": {
+        "key": "Enter",
+        "isTrusted": true,
+        "value": "Early reload API · latest edit",
+        "eventEpochMs": 1790956966413.6,
+        "receivedAtMs": 1790956966414,
+        "timeOrigin": 1790956955203.5
+      },
+      "committedVisibleLabel": "Early reload API · latest edit",
+      "editingInputGone": true,
+      "preReloadStorageReadAtMs": 1790956966438,
+      "preReloadBytesExactlyEqualBaseline": true,
+      "reloadCallAtMs": 1790956966448,
+      "reloadRequest": {
+        "url": "http://127.0.0.1:4186/",
+        "method": "GET",
+        "phase": "native-reload-before-pending-autosave",
+        "epochMs": 1790956966459
+      },
+      "commitToReloadRequestMs": 45.39990234375,
+      "commitToActualSaveMs": 118.39990234375,
+      "oldTimeOrigin": 1790956955203.5,
+      "newTimeOrigin": 1790956966456.2,
+      "restoredSavedAt": 1790956966532,
+      "restoredSha256": "9028190ac6054f8f6adfe9be91215e68b5c488525aa595b6b166bdbd232b44e7",
+      "explicitPreviewThenRestore": true,
+      "fullGraphAndLatestEditRecovered": true,
+      "artificialLifecycleEventsOrFlushCalls": false,
+      "harnessStorageWritesOrSeeds": false,
+      "appTimersOverridden": false
+    },
+    "identityStatus": {
+      "transport": "Explicit unavailable in-memory fixture; no authentication request forwarded",
+      "reads": [
+        {
+          "phase": "startup",
+          "epochMs": 1790956954923
+        },
+        {
+          "phase": "shared-load-and-observed-poll",
+          "epochMs": 1790956955376
+        },
+        {
+          "phase": "native-reload-before-pending-autosave",
+          "epochMs": 1790956966716
+        }
+      ]
+    }
+  },
+  "requestCounts": {
+    "GET /api/flows/DraftCopy1": 3,
+    "GET /api/guard-probe": 1
+  },
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "",
+      "phase": "guard-probe",
+      "epochMs": 1790956955171,
+      "transport": "in-memory mocked chart"
+    },
+    {
+      "method": "GET",
+      "path": "/api/guard-probe",
+      "query": "",
+      "phase": "guard-probe",
+      "epochMs": 1790956955183,
+      "transport": "aborted; no fallback"
+    },
+    {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790956955383,
+      "transport": "in-memory mocked chart"
+    },
+    {
+      "method": "GET",
+      "path": "/api/flows/DraftCopy1",
+      "query": "?since=7",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790956958429,
+      "transport": "in-memory mocked chart"
+    }
+  ],
+  "blockedExternalRequests": [],
+  "blockedNonStaticRequests": [],
+  "documentRequests": [
+    {
+      "url": "http://127.0.0.1:4186/",
+      "method": "GET",
+      "phase": "startup",
+      "epochMs": 1790956954454
+    },
+    {
+      "url": "http://127.0.0.1:4186/f/DraftCopy1",
+      "method": "GET",
+      "phase": "shared-load-and-observed-poll",
+      "epochMs": 1790956955206
+    },
+    {
+      "url": "http://127.0.0.1:4186/",
+      "method": "GET",
+      "phase": "native-reload-before-pending-autosave",
+      "epochMs": 1790956966459
+    }
+  ],
+  "naturallyObservedLifecycleEvents": [
+    {
+      "kind": "pagehide",
+      "isTrusted": true,
+      "observedAtMs": 1790956966534,
+      "timeOrigin": 1790956955203.5,
+      "visibilityState": "visible",
+      "savedAt": 1790956966532,
+      "savedApiLabel": "Early reload API · latest edit"
+    },
+    {
+      "kind": "visibilitychange",
+      "isTrusted": true,
+      "observedAtMs": 1790956966534,
+      "timeOrigin": 1790956955203.5,
+      "visibilityState": "hidden",
+      "savedAt": 1790956966532,
+      "savedApiLabel": "Early reload API · latest edit"
+    }
+  ]
+}
