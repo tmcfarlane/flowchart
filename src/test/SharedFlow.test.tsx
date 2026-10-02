@@ -132,7 +132,7 @@ describe('App on a shared link', () => {
     expect(badge).toHaveTextContent('SaaS signup')
     expect(badge).toHaveTextContent('Saved')
     // No welcome prompt over a shared chart.
-    expect(screen.queryByText("What's your flow?")).not.toBeInTheDocument()
+    expect(screen.queryByText("From a spark to a whole system.")).not.toBeInTheDocument()
     // Architecture content switches the palette.
     expect(screen.getByLabelText('Architecture Mode')).toHaveAttribute('aria-pressed', 'true')
   })
@@ -263,7 +263,7 @@ describe('Share button', () => {
     global.fetch = fetchMock as unknown as typeof fetch
 
     render(<App />)
-    fireEvent.click(screen.getByText('No, thank you'))
+    fireEvent.click(screen.getByText('Start with a blank canvas'))
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     fireEvent.click(screen.getByLabelText('Share'))
     expect(screen.getByRole('dialog', { name: 'Share flowchart' })).toBeInTheDocument()

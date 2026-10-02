@@ -1,0 +1,44 @@
+{
+  "capturedAtUtcDate": "2026-10-02",
+  "reviewedSourceCommit": "778525fa5636a9249c4a85fe77ebfbfd6b880f84",
+  "baseCommit": "7fb1570bba89a813659c0bfe97f3ac3f99bd5945",
+  "compiledMcpCardSha256": "8dad880cf7d0b20685753b731eb55a7938290cbbd2d1d5193e8e38174ac046b2",
+  "websiteBundle": "main-DKPx-jS-.js",
+  "tests": {
+    "passed": 800,
+    "files": 60
+  },
+  "images": {
+    "template-favorites-desktop.png": {
+      "sha256": "fa4bb96551b201afbd8793c76938265a2bbfa72d4bac5ea6d2fc230757e29cae",
+      "bytes": 184213
+    },
+    "template-favorites-mobile.png": {
+      "sha256": "b566e5ec223ac095a811f8f6912af647a79dfcfb33268c9ff247b3d3cdcf91db",
+      "bytes": 112785
+    },
+    "template-favorites-short-mobile.png": {
+      "sha256": "6bcbff468ef59ed24792f84fe0f2e9017aed36f4152a0eeeca93c68a3c36dfbe",
+      "bytes": 61291
+    },
+    "mcp-pr-v3-cloud-desktop.png": {
+      "sha256": "bac21c6dfd799eaf9d3e481100305274d549f068011ca704ffe0a39bf301cc22",
+      "bytes": 68304
+    },
+    "mcp-pr-v3-creative-mobile.png": {
+      "sha256": "a806c8a36fcc4b1d13af6dc0ba8d04fad61ab7cb4548b4174b095888b684573b",
+      "bytes": 45951
+    },
+    "gif-budget-native-3sec-first-frame.png": {
+      "sha256": "3f37a509f5b4226606a234cbfb58e50d324f1d76628c9281dee85eb420fb73d0",
+      "bytes": 169184
+    }
+  },
+  "evidenceLimitations": [
+    "MCP screenshots use an explicitly labeled simulated MCP Apps host with synthetic charts and the actual bundled card; actual ChatGPT staging is unverified.",
+    "Premium image recovery uses controlled local image output; an OpenAI Images key is not configured.",
+    "Stripe payment validation used a real isolated test-mode Checkout, Portal, invoice and cancellation lifecycle; no production payment was taken.",
+    "Website AI uses the operator Azure deployment. User ChatGPT-plan usage is disabled pending hosted application approval and consent configuration.",
+    "The 64 MiB GIF budget bounds copied RGBA frame buffers, not the complete browser heap."
+  ]
+}

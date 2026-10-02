@@ -356,14 +356,14 @@ export async function handleFlowsCollection(req: ApiRequest, res: ServerResponse
 // ---------------------------------------------------------------------------
 
 export async function handleFlowItem(req: ApiRequest, res: ServerResponse, ctx?: ApiContext): Promise<void> {
-  const allow = 'GET, HEAD, PUT, PATCH, OPTIONS'
+  const allow = 'GET, HEAD, PUT, PATCH, DELETE, OPTIONS'
   applyCors(req, res, allow)
   if (req.method === 'OPTIONS') {
     res.statusCode = 204
     res.end()
     return
   }
-  if (!['GET', 'HEAD', 'PUT', 'PATCH'].includes(req.method ?? '')) return methodNotAllowed(res, allow)
+  if (!['GET', 'HEAD', 'PUT', 'PATCH', 'DELETE'].includes(req.method ?? '')) return methodNotAllowed(res, allow)
 
   const context = ctx ?? getDefaultContext()
   const id = routeId(req)
@@ -391,7 +391,7 @@ export async function handleFlowItem(req: ApiRequest, res: ServerResponse, ctx?:
       return sendJson(res, 200, sinceRaw !== undefined ? { ...payload, changed: true } : payload)
     }
 
-    // PUT (replace) and PATCH (operations) need the chart's edit token.
+    // PUT (replace), PATCH (operations) and DELETE need the chart's edit token.
     if (await enforceRateLimit(context, 'write', req, res)) return
     if (!isValidChartId(id)) return notFound()
     const token = bearerToken(req)
@@ -402,6 +402,11 @@ export async function handleFlowItem(req: ApiRequest, res: ServerResponse, ctx?:
         { error: 'Missing edit token. Send "Authorization: Bearer <editToken>".', code: 'unauthorized' },
         { 'WWW-Authenticate': 'Bearer' },
       )
+    }
+    if (req.method === 'DELETE') {
+      const result = await context.getService().delete(id, token)
+      if (!result.ok) return sendServiceError(res, result)
+      return sendJson(res, 200, { id, deleted: true })
     }
     const body = readJsonBody(req)
     if (!body.ok) return sendJson(res, body.status, { error: body.error, code: body.status === 413 ? 'too_large' : 'invalid_json' })

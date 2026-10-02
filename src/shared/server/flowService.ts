@@ -102,7 +102,7 @@ const unauthorized: ServiceError = {
   ok: false,
   code: 'unauthorized',
   message:
-    'The edit token is missing or does not match this chart. Use the editToken returned by create_flowchart (the part after "#edit=" in the edit link).',
+    'The edit token is missing or does not match this chart. Open the private browser edit link for this chart.',
 }
 
 function conflict(expected: number, current: number): ServiceError {
@@ -244,6 +244,13 @@ export class FlowService {
     const result = await this.write(record, arranged, input.title, input.source, charges)
     if (!result.ok) return result
     return { ...result, summary: [`replaced the chart (${arranged.nodes.length} nodes, ${arranged.edges.length} edges)`] }
+  }
+
+  async delete(id: string, token: string | undefined): Promise<{ ok: true } | ServiceError> {
+    if (!isValidChartId(id)) return notFound(id)
+    if (!token) return unauthorized
+    const result = await this.store.delete(id, hashToken(token))
+    return result === 'deleted' ? { ok: true } : result === 'unauthorized' ? unauthorized : notFound(id)
   }
 
   /** Apply incremental operations (update_flowchart with `operations`, PATCH). */

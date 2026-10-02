@@ -33,6 +33,11 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
   const [currentStep, setCurrentStep] = useState(0)
   const { fitView } = useReactFlow()
   const fitViewTimeoutRef = useRef<number>()
+  const exitButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    exitButtonRef.current?.focus()
+  }, [])
 
   // Presentation order follows the nodes array (JSON/Explorer order)
   const orderedNodeIds = useMemo(() => {
@@ -165,12 +170,20 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return
+      const target = e.target instanceof HTMLElement ? e.target : null
+      if (target?.closest('input, textarea, [contenteditable="true"]')) return
+      // Space activates the focused control through the browser. It advances
+      // the presentation only when focus is elsewhere on the presentation.
+      if (e.key === ' ' && target?.closest('button')) return
       if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault()
         handleNext()
       } else if (e.key === 'ArrowLeft') {
+        e.preventDefault()
         handlePrevious()
       } else if (e.key === 'Escape') {
+        e.preventDefault()
         onExit()
       }
     }
@@ -180,7 +193,7 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
   }, [handleNext, handlePrevious, onExit])
 
   return (
-    <div className={`preview-mode fullscreen ${darkMode ? 'dark' : 'light'}`}>
+    <div className={`preview-mode fullscreen ${darkMode ? 'dark' : 'light'}`} role="region" aria-label="Diagram presentation">
       <ReactFlow
         nodes={highlightedNodes}
         edges={visibleEdges}
@@ -192,6 +205,10 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
+        nodesFocusable={false}
+        edgesFocusable={false}
+        panActivationKeyCode={null}
+        deleteKeyCode={null}
         zoomOnScroll={true}
         panOnDrag={true}
         proOptions={{ hideAttribution: true }}
@@ -208,22 +225,26 @@ function PreviewModeContent({ nodes, edges, darkMode, onExit }: PreviewModeProps
         <div className="floating-bar">
           <button
             className="nav-button nav-button-sm"
+            type="button"
+            aria-label="Previous presentation step"
             onClick={handlePrevious}
             disabled={currentStep === 0}
           >
             ←
           </button>
-          <span className="floating-counter">
+          <span className="floating-counter" role="status" aria-live="polite" aria-atomic="true" aria-label="Presentation progress">
             {totalSteps === 0 ? 0 : currentStep + 1} / {totalSteps}
           </span>
           <button
             className="nav-button nav-button-sm"
+            type="button"
+            aria-label="Next presentation step"
             onClick={handleNext}
             disabled={currentStep >= totalSteps - 1}
           >
             →
           </button>
-          <button className="exit-button exit-button-sm" onClick={onExit}>
+          <button ref={exitButtonRef} className="exit-button exit-button-sm" type="button" aria-label="Exit presentation mode" title="Exit presentation mode (Escape)" onClick={onExit}>
             ✕
           </button>
         </div>

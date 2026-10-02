@@ -5,41 +5,47 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+:root {
+  font-family: 'Avenir Next', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-width: 320px;
+  font-family: inherit;
   touch-action: manipulation;
+  background: #f7f7fc;
+  color: #202942;
 }
 
-body.dark-mode {
-  background: #0f1211;
-  color: #e7eceb;
-}
-
-body.light-mode {
-  background: #ffffff;
-  color: #000000;
-}
+body.dark-mode { background: #0e1424; color: #eef1fb; color-scheme: dark; }
+body.light-mode { background: #f7f7fc; color: #202942; color-scheme: light; }
+button, input, textarea, select { font-family: inherit; }
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible { outline: 2px solid #7357cb; outline-offset: 3px; }
+body.dark-mode button:focus-visible, body.dark-mode a:focus-visible { outline-color: #b6a0ff; }
+::selection { background: rgba(139, 115, 240, 0.24); }
 
 #root {
-  width: 100vw;
+  width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
-/* Touch-friendly improvements */
-@media (hover: none) and (pointer: coarse) {
-  button,
-  [role="button"] {
-    min-height: 44px;
-    min-width: 44px;
-  }
+/* Scrollable panels use stable gutters so searching never shifts their cards. */
+:where(.explorer-content, .template-gallery-scroll) { scrollbar-width: thin; scrollbar-color: #c0b9d5 transparent; scrollbar-gutter: stable; }
+:where(.explorer-content, .template-gallery-scroll)::-webkit-scrollbar { width: 6px; }
+:where(.explorer-content, .template-gallery-scroll)::-webkit-scrollbar-thumb { background: #c0b9d5; border: 1px solid transparent; border-radius: 8px; background-clip: padding-box; }
 
-  input,
-  textarea {
-    font-size: 16px;
-  }
+@media (hover: none) and (pointer: coarse) {
+  button, [role='button'] { min-height: 44px; min-width: 44px; }
+  input, textarea, select { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
 }

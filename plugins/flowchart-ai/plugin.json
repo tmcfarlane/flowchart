@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "flowchart-ai",
+  "version": "0.1.0",
+  "description": "Create link-shared flowcharts and architecture diagrams, then revise them as new copies.",
+  "author": { "name": "tmcfarlane", "url": "https://github.com/tmcfarlane" },
+  "homepage": "https://flowchart.zeroclickdev.ai",
+  "repository": "https://github.com/tmcfarlane/flowchart",
+  "license": "MIT",
+  "keywords": ["flowchart", "diagram", "architecture"],
+  "extensions": { "com.openai": { "interface": {
+    "displayName": "Flowchart AI",
+    "shortDescription": "Create diagrams and revised copies",
+    "longDescription": "Create link-shared diagrams using ChatGPT reasoning and deterministic diagram tools. Anyone with the view link can read the chart; anyone with its private edit link can edit or delete it. No account ownership; indefinite retention unless server retention is configured or the chart is deleted. Browser edit access is available through a private MCP Apps card in supported hosts.",
+    "developerName": "tmcfarlane",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://flowchart.zeroclickdev.ai",
+    "privacyPolicyURL": "https://flowchart.zeroclickdev.ai/privacy.html",
+    "termsOfServiceURL": "https://flowchart.zeroclickdev.ai/terms.html",
+    "defaultPrompt": ["Diagram a signup process. Explain sharing before saving it."]
+  } } }
+}

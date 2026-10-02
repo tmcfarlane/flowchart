@@ -1,10 +1,48 @@
-import { useState, useEffect, useRef } from 'react'
+import { Component, lazy, Suspense, useState, useEffect, useRef, type ReactNode } from 'react'
 import './Toolbar.css'
-import { SidebarMode, ToolMode, DiagramMode, PaletteNodeType } from '../App'
-import ImagePicker from './ImagePicker'
+import type { SidebarMode, ToolMode, DiagramMode, PaletteNodeType } from '../App'
 import ShareMenu, { type ShareMenuProps } from './ShareMenu'
-import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
+import { exportToPng, exportToSvg, exportToGif, exportToJson, type GifExportMetadata } from '../utils/exportUtils'
+import { MAX_DIAGRAM_IMPORT_BYTES, parseFlowJson } from '../utils/importFlow'
 import type { Node as FlowNode, Edge } from 'reactflow'
+
+const ImagePicker = lazy(() => import('./ImagePicker'))
+
+function ImagePickerLoading({ onClose, failed = false }: { onClose: () => void; failed?: boolean }) {
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const latestClose = useRef(onClose)
+  latestClose.current = onClose
+  useEffect(() => {
+    closeRef.current?.focus()
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        latestClose.current()
+      } else if (event.key === 'Tab') {
+        event.preventDefault()
+        closeRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKey, true)
+    return () => document.removeEventListener('keydown', handleKey, true)
+  }, [])
+  return (
+    <div className="confirm-overlay picker-loading-overlay" onClick={onClose}>
+      <div className="confirm-dialog picker-loading-dialog" role="dialog" aria-modal="true" aria-labelledby="picker-loading-title" onClick={(event) => event.stopPropagation()}>
+        <h2 className="confirm-title" id="picker-loading-title">{failed ? 'Image library unavailable' : 'Opening the image library'}</h2>
+        <p className="confirm-body" role={failed ? 'alert' : 'status'} aria-busy={!failed}>{failed ? 'The library could not load. Close this dialog and reload the page to try again.' : 'Gathering icons and illustrations…'}</p>
+        <div className="confirm-actions"><button ref={closeRef} className="confirm-button confirm-cancel" onClick={onClose}>Close</button></div>
+      </div>
+    </div>
+  )
+}
+
+class ImagePickerBoundary extends Component<{ onClose: () => void; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  render() { return this.state.failed ? <ImagePickerLoading onClose={this.props.onClose} failed /> : this.props.children }
+}
 
 interface ToolbarProps {
   onAddNode: (type: PaletteNodeType) => void
@@ -29,6 +67,8 @@ interface ToolbarProps {
   edges: Edge[]
   onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode) => void
   share?: ShareMenuProps
+  onOpenTemplates?: () => void
+  onOpenChat?: () => void
 }
 
 function Toolbar({
@@ -54,16 +94,40 @@ function Toolbar({
   edges,
   onImportJson,
   share,
+  onOpenTemplates,
+  onOpenChat,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [exportArea, setExportArea] = useState<'diagram' | 'viewport'>('diagram')
+  const [activeExport, setActiveExport] = useState<'PNG' | 'SVG' | 'GIF' | null>(null)
   const [gifDuration, setGifDuration] = useState(2)
-  const [gifProgress, setGifProgress] = useState<{ frame: number; total: number } | null>(null)
+  const [gifProgress, setGifProgress] = useState<{ frame: number; total: number; metadata?: GifExportMetadata } | null>(null)
   const [isEncoding, setIsEncoding] = useState(false)
+  const [exportNotice, setExportNotice] = useState<string | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
+  const [errorTitle, setErrorTitle] = useState('Invalid JSON Format')
+  const exportInFlight = useRef(false)
+  const exportSequence = useRef(0)
   const exportRef = useRef<HTMLDivElement>(null)
+  const exportButtonRef = useRef<HTMLButtonElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+  const imagePickerOpener = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    if (!exportNotice) return
+    const timer = setTimeout(() => setExportNotice(null), 8000)
+    return () => clearTimeout(timer)
+  }, [exportNotice])
+
+  useEffect(() => {
+    if (!isImagePickerOpen) return
+    // The open lifetime includes the loading fallback. Changing its contents
+    // must not briefly return keyboard focus to the canvas behind the dialog.
+    return () => { if (imagePickerOpener.current?.isConnected) imagePickerOpener.current.focus() }
+  }, [isImagePickerOpen])
 
   const handleClearClick = () => {
     setIsClearConfirmOpen(true)
@@ -78,59 +142,67 @@ function Toolbar({
     onClearAll()
   }
 
-  const handleExportPng = async () => {
-    if (!reactFlowWrapper.current) return
-    setExportError(null)
-    try {
-      await exportToPng(reactFlowWrapper.current, darkMode)
-      setIsExportOpen(false)
-    } catch {
-      setExportError('Export failed')
-    }
+  const closeExportPopover = () => {
+    if (exportRef.current?.contains(document.activeElement)) exportButtonRef.current?.focus()
+    setIsExportOpen(false)
   }
 
-  const handleExportSvg = async () => {
-    if (!reactFlowWrapper.current) return
+  const handleImageExport = async (format: 'PNG' | 'SVG' | 'GIF') => {
+    // React state can lag a rapid second activation. Lock synchronously first.
+    if (exportInFlight.current || !reactFlowWrapper.current) return
+    // Chromium blurs a focused menu control when it becomes disabled. Keep
+    // focus on the enabled opener before React disables the capture controls.
+    if (exportRef.current?.contains(document.activeElement)) exportButtonRef.current?.focus()
+    exportInFlight.current = true
+    const sequence = ++exportSequence.current
+    setActiveExport(format)
     setExportError(null)
+    setExportNotice(null)
+    setErrorTitle('Export unavailable')
+    const options = { area: exportArea, nodes }
+    let gifMetadata: GifExportMetadata | undefined
     try {
-      await exportToSvg(reactFlowWrapper.current, darkMode)
+      if (format === 'PNG') await exportToPng(reactFlowWrapper.current, darkMode, options)
+      else if (format === 'SVG') await exportToSvg(reactFlowWrapper.current, darkMode, options)
+      else {
+        setGifProgress({ frame: 0, total: Math.round(gifDuration * 10) })
+        await exportToGif(reactFlowWrapper.current, darkMode, gifDuration, (frame, total, metadata) => {
+          if (!exportInFlight.current || exportSequence.current !== sequence) return
+          if (metadata) gifMetadata = metadata
+          setGifProgress(previous => ({ frame, total, metadata: metadata ?? previous?.metadata }))
+          if (frame === total) setIsEncoding(true)
+        }, options)
+        if (gifMetadata?.resolutionAdjusted) {
+          setExportNotice(`GIF exported at ${gifMetadata.pixelWidth} × ${gifMetadata.pixelHeight} px with reduced resolution. Duration and frame rate were kept.`)
+        }
+      }
+      closeExportPopover()
+    } catch (error) {
       setIsExportOpen(false)
-    } catch {
-      setExportError('Export failed')
-    }
-  }
-
-  const handleExportGif = async () => {
-    if (!reactFlowWrapper.current) return
-    setExportError(null)
-    setGifProgress({ frame: 0, total: Math.round(gifDuration * 10) })
-    try {
-      await exportToGif(
-        reactFlowWrapper.current,
-        darkMode,
-        gifDuration,
-        (frame, total) => {
-          setGifProgress({ frame, total })
-          if (frame === total) {
-            setIsEncoding(true)
-          }
-        },
-      )
-      setIsExportOpen(false)
-    } catch {
-      setExportError('GIF export failed')
+      setExportError(error instanceof Error && error.message ? error.message : `${format} export failed. Please try again.`)
     } finally {
+      exportInFlight.current = false
+      setActiveExport(null)
       setGifProgress(null)
       setIsEncoding(false)
     }
   }
 
   const handleExportJson = () => {
-    exportToJson(nodes, edges, diagramMode)
-    setIsExportOpen(false)
+    if (exportInFlight.current) return
+    setExportNotice(null)
+    try {
+      exportToJson(nodes, edges, diagramMode)
+      closeExportPopover()
+    } catch (error) {
+      setErrorTitle('Export unavailable')
+      setExportError(error instanceof Error && error.message ? error.message : 'JSON export failed. Please try again.')
+    }
   }
 
   const handleImportJson = () => {
+    if (exportInFlight.current) return
+    setErrorTitle('Invalid JSON Format')
     setExportError(null)
     fileInputRef.current?.click()
   }
@@ -138,6 +210,13 @@ function Toolbar({
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setErrorTitle('Invalid JSON Format')
+    if (file.size > MAX_DIAGRAM_IMPORT_BYTES) {
+      setIsExportOpen(false)
+      setExportError('This diagram file is too large to import (maximum 10 MB).')
+      e.target.value = ''
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = (event) => {
@@ -179,7 +258,10 @@ function Toolbar({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isClearConfirmOpen) setIsClearConfirmOpen(false)
-        if (isExportOpen) setIsExportOpen(false)
+        if (isExportOpen) {
+          setIsExportOpen(false)
+          if (exportRef.current?.contains(document.activeElement)) exportButtonRef.current?.focus()
+        }
         if (exportError) setExportError(null)
       }
     }
@@ -187,10 +269,45 @@ function Toolbar({
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isClearConfirmOpen, isExportOpen, exportError])
 
+  useEffect(() => {
+    if (!isClearConfirmOpen && !exportError) return
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    modalRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+    const handleTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return
+      const buttons = modalRef.current?.querySelectorAll<HTMLButtonElement>('button')
+      if (!buttons?.length) return
+      const first = buttons[0]
+      const last = buttons[buttons.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleTab)
+    return () => {
+      document.removeEventListener('keydown', handleTab)
+      if (previousFocus?.isConnected && previousFocus !== document.body) previousFocus.focus()
+      else exportButtonRef.current?.focus()
+    }
+  }, [isClearConfirmOpen, exportError])
+
   return (
     <>
-      <div className="floating-toolbar">
+      <div className="floating-toolbar" role="region" aria-label="Diagram workspace tools">
         <div className="toolbar-row">
+          {onOpenTemplates ? (
+            <>
+              <button className="toolbar-button toolbar-action templates-launch" type="button" onClick={onOpenTemplates} title="Explore diagram templates" aria-label="Open template gallery">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1.5" /><rect x="12" y="2" width="6" height="6" rx="1.5" /><rect x="2" y="12" width="6" height="6" rx="1.5" /><path d="M15 11v8M11 15h8" /></svg>
+                <span>Templates</span>
+              </button>
+              <div className="toolbar-separator" />
+            </>
+          ) : null}
           <div className="toolbar-group mode-switcher" role="group" aria-label="Diagram mode">
             <button
               className={`toolbar-button mode-option ${diagramMode === 'flowchart' ? 'active' : ''}`}
@@ -231,6 +348,7 @@ function Toolbar({
               onClick={() => onSetToolMode('select')}
               title="Select Tool (V)"
               aria-label="Selection Tool"
+              aria-pressed={toolMode === 'select'}
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M2 1l10 8-4 1-2 4-1-5-3-8z" />
@@ -241,6 +359,7 @@ function Toolbar({
               onClick={() => onSetToolMode('hand')}
               title="Hand Tool (H) - Pan canvas"
               aria-label="Hand Tool"
+              aria-pressed={toolMode === 'hand'}
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path d="M6.4 3.2c.5 0 1 .4 1 1v6.4h.8V3.8c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v6.8h.8V4.6c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v6.3h.8V6.8c0-.6.5-1.1 1.1-1.1s1.1.5 1.1 1.1v6.5c0 2.2-1.5 3.7-3.8 3.7H9.1c-2.1 0-3.5-1.4-3.8-3.6L4.7 9.9c-.2-1 .5-1.9 1.5-2.1.1 0 .2 0 .2 0z" />
@@ -251,6 +370,7 @@ function Toolbar({
               onClick={() => onSetToolMode('arrow')}
               title="Arrow Tool (A) - Connect nodes only"
               aria-label="Arrow Tool"
+              aria-pressed={toolMode === 'arrow'}
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 10h10" />
@@ -381,7 +501,7 @@ function Toolbar({
             )}
             <button
               className="toolbar-button add-image"
-              onClick={() => setIsImagePickerOpen(true)}
+              onClick={(event) => { imagePickerOpener.current = event.currentTarget; setIsImagePickerOpen(true) }}
               title="Add Image (I)"
               aria-label="Add Image"
             >
@@ -438,6 +558,7 @@ function Toolbar({
               onClick={onToggleDarkMode}
               title={darkMode ? "Light Mode" : "Dark Mode"}
               aria-label="Toggle Dark Mode"
+              aria-pressed={darkMode}
             >
               {darkMode ? (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -471,17 +592,28 @@ function Toolbar({
               onClick={onToggleExplorer}
               title="Explorer Panel"
               aria-label="Toggle Explorer"
+              aria-pressed={sidebarMode === 'explorer'}
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
               </svg>
             </button>
+            {onOpenChat ? (
+              <button className="toolbar-button toolbar-action chat-launch" type="button" onClick={onOpenChat} title="Edit your diagram with AI" aria-label="Open diagram chat">
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M11 2 9.5 6.5 5 8l4.5 1.5L11 14l1.5-4.5L17 8l-4.5-1.5L11 2ZM4 12l-.8 2.2L1 15l2.2.8L4 18l.8-2.2L7 15l-2.2-.8L4 12Z" /></svg>
+                <span>AI edit</span>
+              </button>
+            ) : null}
             <div className="export-wrapper" ref={exportRef}>
               <button
+                ref={exportButtonRef}
                 className={`toolbar-button export ${isExportOpen ? 'active' : ''}`}
                 onClick={() => setIsExportOpen(!isExportOpen)}
                 title="Export"
                 aria-label="Export"
+                aria-expanded={isExportOpen}
+                aria-controls="toolbar-export-options"
+                aria-busy={Boolean(activeExport)}
               >
                 <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M8 10V2" />
@@ -490,32 +622,30 @@ function Toolbar({
                 </svg>
               </button>
               {isExportOpen && (
-                <div className="export-dropdown">
-                  {gifProgress || isEncoding ? (
-                    <div className="export-progress">
-                      {isEncoding ? (
-                        <span>Encoding...</span>
-                      ) : (
-                        <span>Capturing... {gifProgress!.frame}/{gifProgress!.total}</span>
-                      )}
-                    </div>
-                  ) : (
-                    <>
-                      <button className="export-option export-import-btn" onClick={handleImportJson}>
+                <div className="export-dropdown" id="toolbar-export-options" aria-label="Import and export options">
+                      <button className="export-option export-import-btn" onClick={handleImportJson} disabled={Boolean(activeExport)}>
                         Import from JSON
                       </button>
                       <div className="export-divider" />
-                      <button className="export-option" onClick={handleExportJson}>
+                      <button className="export-option" onClick={handleExportJson} disabled={Boolean(activeExport)}>
                         Export as JSON
                       </button>
-                      <button className="export-option" onClick={handleExportPng}>
+                      <div className="export-divider" />
+                      <label className="export-area-label" htmlFor="toolbar-export-area">Image export area</label>
+                      <select id="toolbar-export-area" className="export-area-select" value={exportArea} disabled={Boolean(activeExport)} onChange={(event) => setExportArea(event.target.value as 'diagram' | 'viewport')}>
+                        <option value="diagram">Entire diagram</option>
+                        <option value="viewport">Current view</option>
+                      </select>
+                      <p className="export-area-hint">PNG, SVG, and GIF use this area. JSON always keeps the entire diagram.</p>
+                      <button className="export-option" onClick={() => void handleImageExport('PNG')} disabled={Boolean(activeExport)}>
                         Export as PNG
                       </button>
-                      <button className="export-option" onClick={handleExportSvg}>
+                      <button className="export-option" onClick={() => void handleImageExport('SVG')} disabled={Boolean(activeExport)}>
                         Export as SVG
                       </button>
                       <div className="export-divider" />
                       <div className="export-gif-section">
+                        <p className="export-area-hint">Longer animations may use reduced resolution. Duration and frame rate stay the same.</p>
                         <div className="export-gif-row">
                           <span className="export-gif-label">Duration</span>
                           <input
@@ -529,10 +659,11 @@ function Toolbar({
                             min={1}
                             max={10}
                             aria-label="GIF duration in seconds"
+                            disabled={Boolean(activeExport)}
                           />
                           <span className="export-gif-unit">sec</span>
                         </div>
-                        <button className="export-option export-gif-btn" onClick={handleExportGif}>
+                        <button className="export-option export-gif-btn" onClick={() => void handleImageExport('GIF')} disabled={Boolean(activeExport)}>
                           Record GIF
                         </button>
                       </div>
@@ -544,8 +675,6 @@ function Toolbar({
                         style={{ display: 'none' }}
                         aria-label="Import JSON file"
                       />
-                    </>
-                  )}
                 </div>
               )}
             </div>
@@ -586,6 +715,19 @@ function Toolbar({
         </div>
       </div>
 
+      {activeExport && (
+        <div className="export-job-status" role="status" aria-live="polite">
+          {activeExport === 'GIF'
+            ? isEncoding ? 'Encoding GIF…' : `Capturing GIF… ${gifProgress?.frame ?? 0}/${gifProgress?.total ?? Math.round(gifDuration * 10)}`
+            : `Exporting ${activeExport}…`}
+          {activeExport === 'GIF' && gifProgress?.metadata && (
+            <div>{gifProgress.metadata.pixelWidth} × {gifProgress.metadata.pixelHeight} px{gifProgress.metadata.resolutionAdjusted ? ' · Reduced resolution keeps the full animation.' : ''}</div>
+          )}
+        </div>
+      )}
+
+      {!activeExport && exportNotice && <div className="export-job-status" role="status" aria-live="polite">{exportNotice}</div>}
+
       {isClearConfirmOpen && (
         <div
           className="confirm-overlay"
@@ -594,7 +736,7 @@ function Toolbar({
           aria-modal="true"
           aria-labelledby="clear-confirm-title"
         >
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+          <div ref={modalRef} className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <h2 id="clear-confirm-title" className="confirm-title">Clear the entire board?</h2>
             <p className="confirm-body">This cannot be undone.</p>
             <div className="confirm-actions">
@@ -623,8 +765,8 @@ function Toolbar({
           aria-modal="true"
           aria-labelledby="import-error-title"
         >
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <h2 id="import-error-title" className="confirm-title">Invalid JSON Format</h2>
+          <div ref={modalRef} className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <h2 id="import-error-title" className="confirm-title">{errorTitle}</h2>
             <p className="confirm-body">{exportError}</p>
             <div className="confirm-actions">
               <button
@@ -639,11 +781,15 @@ function Toolbar({
       )}
 
       {isImagePickerOpen && (
-        <ImagePicker
-          isOpen={isImagePickerOpen}
-          onClose={() => setIsImagePickerOpen(false)}
-          onSelectImage={onAddImage}
-        />
+        <ImagePickerBoundary onClose={() => setIsImagePickerOpen(false)}>
+          <Suspense fallback={<ImagePickerLoading onClose={() => setIsImagePickerOpen(false)} />}>
+            <ImagePicker
+              isOpen={isImagePickerOpen}
+              onClose={() => setIsImagePickerOpen(false)}
+              onSelectImage={onAddImage}
+            />
+          </Suspense>
+        </ImagePickerBoundary>
       )}
     </>
   )

@@ -12,6 +12,23 @@
   backdrop-filter: blur(4px);
 }
 
+.image-picker-dialog { overflow: hidden; }
+.image-picker-header { flex-shrink: 0; }
+.image-picker-dialog .preview-content { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.image-picker-dialog .preview-actions { flex-shrink: 0; }
+.image-picker-dialog :is(button, input, a, .upload-label):focus-visible { outline: 2px solid var(--workspace-accent, #6850bb); outline-offset: 3px; }
+
+@media (max-width: 600px) {
+  .image-picker-dialog .image-picker-close { min-width: 44px; min-height: 44px; }
+  .image-picker-dialog :is(.preview-cancel, .preview-confirm, .image-picker-tab) { min-height: 44px; }
+  .image-picker-dialog :is(.library-search, .preview-label-input) { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-picker-dialog { animation: none !important; }
+  .image-picker-dialog * { transition: none !important; }
+}
+
 .app.dark-mode .image-picker-overlay {
   background: rgba(0, 0, 0, 0.7);
 }
@@ -1109,7 +1126,7 @@
 @media (max-width: 480px) {
   .image-picker-dialog {
     width: 100%;
-    max-height: 100vh;
+    max-height: 100dvh;
     border-radius: 0;
   }
 
@@ -1182,3 +1199,12 @@
     gap: 8px;
   }
 }
+.upload-error, .upload-notice, .upload-progress {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+.upload-error { color: #ffd2d7; background: #552732; border: 1px solid #a95668; padding: 12px; border-radius: 10px; }
+.upload-notice { color: #ffedbc; background: #433a26; border: 1px solid #857143; padding: 12px; border-radius: 10px; }
+.upload-progress { color: #d6d9e6; }

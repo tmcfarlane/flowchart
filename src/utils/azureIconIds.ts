@@ -4,6 +4,7 @@
 
 import { iconIdFromPath } from '../shared/iconIds'
 import { svgModules } from './azureIconRegistry'
+import { DIAGRAM_ICONS } from '../shared/diagramIcons'
 
 const idToUrl = new Map<string, string>()
 const urlToId = new Map<string, string>()
@@ -18,6 +19,18 @@ for (const path of Object.keys(svgModules).sort()) {
   if (!urlToId.has(url)) urlToId.set(url, id)
 }
 
+export const diagramSvgModules = import.meta.glob('/assets/diagram-icons/**/*.svg', {
+  eager: true,
+  import: 'default',
+}) as Record<string, string>
+
+for (const icon of DIAGRAM_ICONS) {
+  const url = diagramSvgModules[icon.path]
+  if (!url) continue
+  idToUrl.set(icon.id, url)
+  urlToId.set(url, icon.id)
+}
+
 export function getAzureIconUrl(id: string): string | undefined {
   return idToUrl.get(id)
 }
@@ -25,3 +38,8 @@ export function getAzureIconUrl(id: string): string | undefined {
 export function getAzureIconId(url: string): string | undefined {
   return urlToId.get(url)
 }
+
+// Existing names stay compatible with saved charts and callers. New callers can
+// use these names for the unified Azure + original illustrations registry.
+export const getIconUrl = getAzureIconUrl
+export const getIconId = getAzureIconId

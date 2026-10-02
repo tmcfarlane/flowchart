@@ -1,9 +1,10 @@
-// Azure icon lookup for server code (MCP server, REST validation). The browser
-// resolves the same ids from Vite's import.meta.glob via iconIdFromPath().
+// Local icon lookup for MCP and REST validation. Azure ids remain compatible;
+// the original Flowchart set adds general-purpose and imaginative illustrations.
 
 import iconIndex from './generated/azure-icon-index.json' with { type: 'json' }
 import { AZURE_ALIASES } from './azureIconAliases.js'
 import { slugifyIconName } from './iconIds.js'
+import { DIAGRAM_ICONS } from './diagramIcons.js'
 
 export { iconIdFromPath, iconNameFromFile, slugifyIconName } from './iconIds.js'
 
@@ -19,6 +20,28 @@ export interface AzureIcon {
 }
 
 export const AZURE_ICONS: readonly AzureIcon[] = (iconIndex as { icons: AzureIcon[] }).icons
+
+export interface CatalogIcon extends AzureIcon {
+  provider: 'azure' | 'flowchart'
+  keywords?: readonly string[]
+}
+
+export const ICON_CATALOG: readonly CatalogIcon[] = [
+  ...DIAGRAM_ICONS,
+  ...AZURE_ICONS.map((icon) => ({ ...icon, provider: 'azure' as const })),
+]
+
+const diagramById = new Map(DIAGRAM_ICONS.map((icon) => [icon.id, icon]))
+const diagramByName = new Map(DIAGRAM_ICONS.map((icon) => [slugifyIconName(icon.name), icon]))
+const diagramByShortId = new Map(DIAGRAM_ICONS.map((icon) => [icon.id.replace(/^icon-/, ''), icon]))
+
+/** Exact stable-id lookup only. No input is treated as a URL or filesystem path. */
+export function getIcon(id: string): CatalogIcon | undefined {
+  const diagram = diagramById.get(id)
+  if (diagram) return diagram
+  const azure = byId.get(id)
+  return azure ? { ...azure, provider: 'azure' } : undefined
+}
 
 const byId = new Map(AZURE_ICONS.map((icon) => [icon.id, icon]))
 
@@ -173,8 +196,13 @@ export interface IconResolution {
 export function resolveIconRef(ref: string, options: { suggest?: boolean } = {}): IconResolution {
   const raw = ref.trim()
   if (!raw) return { suggestions: [] }
-  const direct = byId.get(raw) ?? byId.get(slugifyIconName(raw))
+  const slug = slugifyIconName(raw)
+  // Saved stable ids must win over display-name and short-name aliases. For
+  // example, Azure's "browser" must not become the newer "icon-browser".
+  const direct = diagramById.get(raw) ?? byId.get(raw) ?? diagramById.get(slug) ?? byId.get(slug)
   if (direct) return { icon: direct, suggestions: [] }
+  const diagram = diagramByName.get(slug) ?? diagramByShortId.get(slug)
+  if (diagram) return { icon: diagram, suggestions: [] }
 
   const aliasIds = aliasIndex.get(tokenize(raw).join(' '))
   if (aliasIds?.length) {
@@ -191,9 +219,55 @@ export function resolveIconRef(ref: string, options: { suggest?: boolean } = {})
     if (again) return { icon: again, suggestions: [] }
   }
 
-  return { suggestions: options.suggest === false ? [] : searchAzureIcons(raw, { limit: 3 }) }
+  if (options.suggest === false) return { suggestions: [] }
+  // Preserve the established Azure correction ordering for legacy documents.
+  // Unified search may also match imaginative keywords such as "cosmos".
+  const azureSuggestions = searchAzureIcons(raw, { limit: 3 })
+  const ids = new Set(azureSuggestions.map((icon) => icon.id))
+  return { suggestions: [...azureSuggestions, ...searchIcons(raw, { limit: 3 }).filter((icon) => !ids.has(icon.id))].slice(0, 3) }
 }
 
 export function listIconCategories(): string[] {
   return Array.from(new Set(AZURE_ICONS.map((i) => i.category))).sort()
+}
+
+export interface CatalogIconSearchResult extends CatalogIcon { score: number }
+
+/** Ranked search across the fixed local catalog, preserving Azure alias search. */
+export function searchIcons(
+  query: string,
+  options: { limit?: number; category?: string; provider?: 'azure' | 'flowchart' } = {},
+): CatalogIconSearchResult[] {
+  const limit = Math.max(1, Math.min(options.limit ?? 12, 50))
+  const tokens = tokenize(query.trim())
+  const category = options.category?.trim().toLowerCase()
+  if (!tokens.length && !category) return []
+  const results: CatalogIconSearchResult[] = options.provider === 'flowchart' ? [] :
+    searchAzureIcons(query, { category, limit: 50 }).map((icon) => ({ ...icon, provider: 'azure' as const }))
+  if (options.provider !== 'azure') {
+    for (const icon of DIAGRAM_ICONS) {
+      if (category && !icon.category.includes(category)) continue
+      const names = tokenize(icon.name)
+      const words = [...names, ...icon.keywords, ...tokenize(icon.id)]
+      let score = slugifyIconName(query) === icon.id ? 100 : 0
+      if (slugifyIconName(query) === slugifyIconName(icon.name)) score += 60
+      let matches = 0
+      for (const token of tokens) {
+        if (names.includes(token)) { score += 12; matches++ }
+        else if (icon.keywords.includes(token)) { score += 9; matches++ }
+        else if (words.some((word) => token.length >= 2 && word.startsWith(token))) { score += 7; matches++ }
+        else if (fuzzyTokenMatch(token, words)) { score += 5; matches++ }
+        else if (icon.category.includes(token)) score += 2
+      }
+      if (tokens.length && matches === tokens.length) score += 10
+      if (tokens.length && matches === 0 && score < 60) continue
+      if (!tokens.length && category) score = 1
+      if (score > 0) results.push({ ...icon, score })
+    }
+  }
+  return results.sort((a, b) => b.score - a.score || a.name.length - b.name.length || a.id.localeCompare(b.id)).slice(0, limit)
+}
+
+export function listAllIconCategories(): string[] {
+  return Array.from(new Set(ICON_CATALOG.map((icon) => icon.category))).sort()
 }

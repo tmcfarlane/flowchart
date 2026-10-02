@@ -217,19 +217,20 @@ export function isAzureRelatedFlow(
 }
 
 /**
- * Post-processes an AI proposal: for any node whose label matches an
- * Azure service icon, upgrades it to an image node with the local SVG URL.
- * Only runs if the flow appears Azure-related (to avoid false positives).
+ * Adds illustrations to eligible plain steps in new Azure-related proposals.
+ * Architecture types, decisions, notes, explicit artwork and complete edits
+ * preserve their authored structure and metadata.
  * Returns a new proposal object (does not mutate the input).
  */
-export function resolveAzureIcons(proposal: FlowProposal): FlowProposal {
-  if (!isAzureRelatedFlow(proposal.nodes, proposal.summary)) {
+export function resolveAzureIcons(proposal: FlowProposal, options: { intent?: 'insert' | 'edit' } = {}): FlowProposal {
+  if (options.intent === 'edit' || !isAzureRelatedFlow(proposal.nodes, proposal.summary)) {
     return proposal
   }
 
   const enrichedNodes = proposal.nodes.map((node) => {
-    // Skip nodes that already have an imageUrl set
-    if (node.imageUrl) return node
+    // Never infer a different shape for a boundary, architecture component,
+    // decision or note, or replace the author's explicit local illustration.
+    if (node.icon || node.imageUrl || (node.type !== 'step' && node.type !== 'image')) return node
 
     const iconUrl = resolveAzureIcon(node.label)
     if (iconUrl) {

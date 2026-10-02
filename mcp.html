@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Flowchart AI MCP server — Your agent draws. You iterate.</title>
-  <meta name="description" content="Connect Claude, ChatGPT, VS Code, Cursor or OpenCode to the free Flowchart AI MCP server. Your agent creates a flowchart, hands you a link to edit it, and keeps editing the same chart with you. No account, no API key, open source." />
+  <meta name="description" content="Connect Claude, ChatGPT, VS Code, Cursor or OpenCode to the free Flowchart AI MCP server. Your agent creates a flowchart, hands you a link to edit it, and creates revised copies. No account, no API key, open source." />
   <link rel="canonical" href="https://flowchart.zeroclickdev.ai/mcp" />
   <meta name="theme-color" content="#0f1211" />
   <meta name="color-scheme" content="dark" />
@@ -18,7 +18,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Flowchart AI" />
   <meta property="og:title" content="Flowchart AI MCP server — Your agent draws. You iterate." />
-  <meta property="og:description" content="Let your AI agent create a flowchart, hand you a link, and keep editing it with you. Free remote MCP server for Claude, ChatGPT, VS Code, Cursor and OpenCode. No account, no API key." />
+  <meta property="og:description" content="Let your AI agent create a flowchart, hand you a link, and revise it as a new copy. Free remote MCP server for Claude, ChatGPT, VS Code, Cursor and OpenCode. No account, no API key." />
   <meta property="og:url" content="https://flowchart.zeroclickdev.ai/mcp" />
   <meta property="og:image" content="https://flowchart.zeroclickdev.ai/media/og-image-mcp.jpg" />
   <meta property="og:image:secure_url" content="https://flowchart.zeroclickdev.ai/media/og-image-mcp.jpg" />
@@ -33,7 +33,7 @@
   <meta property="og:video:height" content="1080" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Flowchart AI MCP server — Your agent draws. You iterate." />
-  <meta name="twitter:description" content="Let your AI agent create a flowchart, hand you a link, and keep editing it with you. Free, no account, open source." />
+  <meta name="twitter:description" content="Let your AI agent create a flowchart, hand you a link, and revise it as a new copy. Free, no account, open source." />
   <meta name="twitter:image" content="https://flowchart.zeroclickdev.ai/media/og-image-mcp.jpg" />
   <meta name="twitter:image:alt" content="Flowchart AI MCP server: Your agent draws. You iterate." />
 
@@ -42,7 +42,7 @@
       "@context": "https://schema.org",
       "@type": "VideoObject",
       "name": "Flowchart AI trailer",
-      "description": "Describe your idea, get a flowchart. Then an AI agent creates a chart over MCP and updates it live while it is open in the browser.",
+      "description": "Earlier Flowchart AI integration demo. The current MCP creates charts and revised copies with links to open in the browser.",
       "thumbnailUrl": "https://flowchart.zeroclickdev.ai/media/flowchart-ai-trailer-poster.jpg",
       "uploadDate": "2026-09-30",
       "duration": "PT56S",
@@ -80,8 +80,7 @@
           <div class="hero-copy">
             <p class="lede">
               Ask Claude, ChatGPT, Copilot, Cursor or OpenCode for a flowchart and get back a link to a real,
-              editable chart. Change it in the browser while your agent keeps editing the same chart. Each of you
-              sees the other’s changes within seconds.
+              link-shared chart. Open the private card to edit in the browser. Ask for a conversational revision to create a new copy.
             </p>
             <ul class="facts" aria-label="At a glance">
               <li>Free</li>
@@ -177,7 +176,7 @@
           </script>
           <figcaption id="trailer-caption">
             <span class="caption-meta">Sound on.</span>
-            A prompt becomes a chart. Then an agent creates one over MCP and updates it while it’s open in the browser.
+            Earlier integration demo. The current MCP creates charts and revised copies; browser editing remains available through private UI controls.
           </figcaption>
         </figure>
       </div>
@@ -193,11 +192,11 @@
           </li>
           <li class="step">
             <h3>Ask for a chart</h3>
-            <p>“Draw our signup → payment → onboarding flow.” Your agent calls <code>create_flowchart</code>, the server lays the chart out, and you get a link to open it.</p>
+            <p>“Draw our signup → payment → onboarding flow.” After you consent to link sharing and retention, your agent calls <code>create_flowchart</code>, the server lays the chart out, and you get a view link with private browser controls in supported hosts.</p>
           </li>
           <li class="step">
             <h3>Iterate together</h3>
-            <p>Drag, rename or add steps in the browser; your edits save automatically. Ask your agent for a change and it calls <code>update_flowchart</code>. Your open tab shows it within seconds, marked <span class="ui-label">Updated by AI agent</span>.</p>
+            <p>Drag, rename or add steps in the browser; your edits save automatically. Ask your agent for a change and it reads the latest chart, then creates a revised copy. The original stays available.</p>
           </li>
         </ol>
       </div>
@@ -341,21 +340,17 @@
     <section class="tools" id="tools" aria-labelledby="tools-title">
       <div class="container split">
         <div class="split-head">
-          <h2 id="tools-title">Five tools</h2>
-          <p>Your agent finds these on its own. The server also gives it an authoring guide and a JSON schema, and invalid input comes back with a list of exact fixes.</p>
+          <h2 id="tools-title">From a spark to a clear diagram</h2>
+          <p>Eight focused tools help your agent find a starting point, choose local illustrations, check the details, and create a diagram. Reading templates and checking drafts never saves or shares anything.</p>
         </div>
         <dl class="tool-list">
           <div class="tool">
             <dt><code>create_flowchart</code></dt>
-            <dd>Creates a chart from nodes and edges, lays it out, and returns a view link and an edit link.</dd>
+            <dd>Creates a chart from nodes and edges, lays it out, and returns a view link. The private MCP Apps card opens the browser editor or deletes the chart.</dd>
           </div>
           <div class="tool">
             <dt><code>get_flowchart</code></dt>
             <dd>Reads the latest version of a chart, including your edits in the browser.</dd>
-          </div>
-          <div class="tool">
-            <dt><code>update_flowchart</code></dt>
-            <dd>Adds, changes or removes nodes and edges in place, and checks the version it last read so it doesn’t overwrite your newer edits.</dd>
           </div>
           <div class="tool">
             <dt><code>list_node_types</code></dt>
@@ -364,6 +359,22 @@
           <div class="tool">
             <dt><code>search_azure_icons</code></dt>
             <dd>Finds official Azure service icons by name or alias, like “cosmos” or “aks”.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>search_icons</code></dt>
+            <dd>Explores Azure icons and 65 original local illustrations: people, payments, AI, nature, planets, crystals and impossible doors.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>list_diagram_templates</code></dt>
+            <dd>Finds 20 editable starting points for everyday processes, business journeys, cloud architecture and flights of imagination.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>get_diagram_template</code></dt>
+            <dd>Returns a draft to make your own, from a checkout journey to the Dream Observatory. Nothing is saved until you choose to share it.</dd>
+          </div>
+          <div class="tool">
+            <dt><code>audit_diagram</code></dt>
+            <dd>Checks a draft for broken connections, missing decision labels and other structural problems, with clear suggestions before saving.</dd>
           </div>
         </dl>
       </div>
@@ -377,12 +388,12 @@
         </div>
         <div class="faq-list">
           <details>
-            <summary>Is it free? Do I need an account?</summary>
-            <p>It’s free, and there’s no account, sign-up or API key. Access to each chart comes from its link instead.</p>
+            <summary>Are the MCP diagram tools free?</summary>
+            <p>The MCP chart tools need no account, sign-up or inference API key. Access to each chart comes from its link. Website AI and premium image features are separate from these diagram tools.</p>
           </details>
           <details>
             <summary>Who can see my chart?</summary>
-            <p>Anyone with its view link (<code>/f/&lt;id&gt;</code>) can see it. The edit link adds <code>#edit=…</code> and lets whoever has it, including your agent, change the chart, so share it only with people and agents you trust. Chart ids are random and can’t practically be guessed, but don’t put passwords or keys in a chart.</p>
+            <p>Anyone with its view link (<code>/f/&lt;id&gt;</code>) can see it. The edit link adds <code>#edit=…</code> and lets whoever has it edit or delete the chart. Keep it private and never paste it into AI chat. There is no account ownership. Charts remain indefinitely unless retention is configured or an edit-link holder deletes them. Delete through the private card or browser Share panel. Do not include confidential information. <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a>.</p>
           </details>
           <details>
             <summary>Does Flowchart AI use AI on its side?</summary>
@@ -390,11 +401,11 @@
           </details>
           <details>
             <summary>What are the limits?</summary>
-            <p>A chart can have up to 500 nodes and 1,000 edges (256 KB). Agents can create up to 300 charts and make 1,200 updates an hour from one network, and a daily budget shared by everyone keeps the free service from being overrun. See the <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md#limits">full list</a>.</p>
+            <p>A chart can have up to 500 nodes and 1,000 edges (256 KB). Agents can create up to 300 charts an hour from one network. Shared work and storage budgets keep the service available; refused requests include retry guidance. Conversational revisions create a new copy after sharing consent. See <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md#hosting">the hosting and rate-limit details</a>.</p>
           </details>
           <details>
             <summary>Can I host it myself?</summary>
-            <p>Yes. The code is MIT-licensed. Deploy it to Vercel with Upstash Redis for storage, or run <code>npm run dev</code> to serve the app and <code>/api/mcp</code> locally. See <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md#self-hosting">self-hosting</a>.</p>
+            <p>Yes. The code is MIT-licensed. Deploy it to Vercel with Upstash Redis for storage, or run <code>npm run dev</code> to serve the app and <code>/api/mcp</code> locally. See <a href="https://github.com/tmcfarlane/flowchart/blob/main/docs/mcp.md#hosting">the hosting guide</a>.</p>
           </details>
         </div>
       </div>

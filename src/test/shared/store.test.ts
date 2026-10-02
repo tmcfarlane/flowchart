@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   CREATE_SCRIPT,
+  DELETE_SCRIPT,
   FileFlowStore,
   MemoryFlowStore,
   STORAGE_UNAVAILABLE_MESSAGE,
@@ -54,6 +55,13 @@ class FakeRedis implements RedisLike {
       hash.set('version', args[2])
       if (ttl > 0) this.expirations.set(key, ttl)
       return [1]
+    }
+    if (script === DELETE_SCRIPT) {
+      if (!hash) return -1
+      if (hash.get('tokenHash') !== args[0]) return 0
+      this.hashes.delete(key)
+      this.expirations.delete(key)
+      return 1
     }
     throw new Error('unexpected script')
   }
@@ -174,6 +182,25 @@ describe('UpstashFlowStore', () => {
     expect(error).toHaveBeenCalledTimes(1)
     expect(String(error.mock.calls[0][0])).toContain('Upstash plan limit')
     error.mockRestore()
+  })
+})
+
+describe('atomic capability deletion', () => {
+  it.each(['memory', 'file', 'redis'])('deletes and persists deletion in %s', async (kind) => {
+    const dir = mkdtempSync(join(tmpdir(), 'flowchart-delete-'))
+    try {
+      const file = join(dir, 'flows.json')
+      const store: FlowStore = kind === 'memory' ? new MemoryFlowStore() : kind === 'file' ? new FileFlowStore(file) : new UpstashFlowStore(new FakeRedis(), 'test')
+      await store.create({ chart: chart('Aaaaaaaaa1'), tokenHash: 'hash' })
+      expect(await store.delete('Aaaaaaaaa1', 'other')).toBe('unauthorized')
+      expect(await store.getVersion('Aaaaaaaaa1')).toBe(1)
+      expect(await store.delete('Aaaaaaaaa1', 'hash')).toBe('deleted')
+      expect(await store.get('Aaaaaaaaa1')).toBeNull()
+      expect(await store.getVersion('Aaaaaaaaa1')).toBeNull()
+      expect(await store.update('Aaaaaaaaa1', 1, chart('Aaaaaaaaa1', 2))).toEqual({ ok: false, reason: 'not_found' })
+      expect(await store.delete('Aaaaaaaaa1', 'hash')).toBe('not_found')
+      if (kind === 'file') expect(await new FileFlowStore(file).get('Aaaaaaaaa1')).toBeNull()
+    } finally { rmSync(dir, { recursive: true, force: true }) }
   })
 })
 

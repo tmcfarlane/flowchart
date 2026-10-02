@@ -9,9 +9,14 @@
     "preview": "vite preview",
     "test": "vitest",
     "typecheck:api": "tsc -p tsconfig.api.json",
-    "icons:index": "node scripts/generate-azure-icon-index.mjs"
+    "icons:index": "node scripts/generate-azure-icon-index.mjs",
+    "plugin:ui": "node scripts/build-plugin-ui.mjs",
+    "predev": "npm run plugin:ui",
+    "prebuild": "npm run plugin:ui",
+    "pretest": "npm run plugin:ui"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
     "@modelcontextprotocol/sdk": "^1.31.0",
     "@reactflow/node-resizer": "^2.2.14",
     "@upstash/redis": "^1.39.0",
@@ -22,6 +27,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "reactflow": "^11.11.4",
+    "stripe": "23.0.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -32,6 +38,7 @@
     "@types/react-dom": "^18.3.1",
     "@vercel/node": "^5.5.28",
     "@vitejs/plugin-react": "^4.3.4",
+    "esbuild": "0.27.0",
     "jsdom": "^25.0.1",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",

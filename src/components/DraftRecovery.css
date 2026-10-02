@@ -1,0 +1,24 @@
+.draft-recovery { position: fixed; bottom: 84px; left: 24px; z-index: 110; max-width: min(480px, calc(100vw - 48px)); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 15px 17px; border: 1px solid var(--workspace-line); border-radius: 16px; background: var(--workspace-surface); color: var(--workspace-text); box-shadow: var(--workspace-shadow); }
+.draft-recovery > div { flex: 1 1 100%; }
+.draft-recovery strong { font-size: 12px; }
+.draft-recovery p { margin: 5px 0 0; font-size: 10px; line-height: 1.6; color: var(--workspace-muted); overflow-wrap: anywhere; }
+.draft-recovery button { border: 1px solid var(--workspace-line); border-radius: 8px; background: var(--workspace-accent-soft); color: var(--workspace-text); padding: 9px 12px; font: inherit; font-size: 11px; cursor: pointer; }
+.draft-recovery .draft-discard { background: transparent; color: var(--workspace-muted); }
+.draft-error { border-color: #c9788859; }
+@media (max-width: 600px) { .draft-recovery { left: 12px; right: 12px; max-width: none; bottom: 76px; padding: 13px; } .draft-recovery button { min-height: 40px; } }
+
+.draft-recovery { width: 296px; box-sizing: border-box; }
+.draft-recovery button { transition: background 150ms ease, border-color 150ms ease; }
+.draft-recovery button:hover { border-color: var(--workspace-accent); background: var(--workspace-accent-soft); }
+.draft-recovery button:focus-visible { outline: 2px solid var(--workspace-accent); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .draft-recovery { width: auto; }
+  .draft-recovery:not(.draft-error) { top: 184px; bottom: auto; left: 14px; right: 14px; }
+  .app:has(.draft-recovery:not(.draft-error)) .ai-welcome-prompt { top: 316px; max-height: calc(100dvh - 334px); }
+}
+@media (max-width: 600px) and (hover: none) and (pointer: coarse) {
+  .draft-recovery:not(.draft-error) { top: 200px; }
+  .draft-recovery button { min-height: 44px; }
+  .app:has(.draft-recovery:not(.draft-error)) .ai-welcome-prompt { top: 336px; max-height: calc(100dvh - 354px); }
+}
+@media (prefers-reduced-motion: reduce) { .draft-recovery button { transition: none; } }

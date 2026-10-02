@@ -33,6 +33,32 @@ describe('zod input schemas', () => {
     expect(nodeFromInput(parsed)).toEqual({ id: '1', type: 'step', label: 'Start' })
   })
 
+  it('rejects whitespace-only node, edge, parent and operation identities without changing valid IDs or labels', () => {
+    for (const blank of ['   ', '\u00a0\u2003\ufeff']) {
+      const inputs = [
+        [NodeInputSchema, { id: blank, type: 'step', label: '' }],
+        [NodeInputSchema, { id: 'a', type: 'service', label: '', parentNode: blank }],
+        [EdgeInputSchema, { id: blank, source: 'a', target: 'b' }],
+        [EdgeInputSchema, { source: blank, target: 'b' }],
+        [EdgeInputSchema, { source: 'a', target: blank }],
+        [OperationSchema, { op: 'update_node', id: blank, changes: { label: '' } }],
+        [OperationSchema, { op: 'remove_node', id: blank }],
+        [OperationSchema, { op: 'update_edge', id: blank, changes: { source: 'a' } }],
+        [OperationSchema, { op: 'remove_edge', id: blank }],
+        [OperationSchema, { op: 'update_node', id: 'a', changes: { parentNode: blank } }],
+        [OperationSchema, { op: 'update_edge', id: 'edge', changes: { target: blank } }],
+      ] as const
+      for (const [schema, input] of inputs) {
+        const parsed = schema.safeParse(input)
+        expect(parsed.success).toBe(false)
+        expect(issuesFromZod(parsed.error!)).toEqual(expect.arrayContaining([expect.objectContaining({ message: expect.stringContaining('must not be blank') })]))
+      }
+    }
+    expect(NodeInputSchema.parse({ id: ' node ', type: 'step', label: '   ' })).toMatchObject({ id: ' node ', label: '   ' })
+    expect(EdgeInputSchema.parse({ id: ' edge ', source: ' node ', target: ' next ', label: '' })).toMatchObject({ id: ' edge ', source: ' node ', target: ' next ', label: '' })
+    expect(OperationSchema.parse({ op: 'update_node', id: ' node ', changes: { label: '' } })).toMatchObject({ id: ' node ', changes: { label: '' } })
+  })
+
   it('names the invalid node type and lists the valid ones', () => {
     const result = NodeInputSchema.safeParse({ id: '1', type: 'proces', label: 'x' })
     expect(result.success).toBe(false)
@@ -134,7 +160,7 @@ describe('validateChart', () => {
     ])
     const text = messages(result)
     expect(text[0]).toContain('nodes[0].icon: "step" nodes don\'t show icons')
-    expect(text[1]).toContain('unknown Azure icon "cosmoss". Did you mean "azure-cosmos-db"')
+    expect(text[1]).toContain('unknown icon "cosmoss". Did you mean "azure-cosmos-db"')
     expect(text[2]).toContain('nodes[2]: image nodes need an "icon"')
     expect(result.nodes[3].icon).toBe('kubernetes-services')
   })
@@ -146,7 +172,7 @@ describe('validateChart', () => {
       { id: 'c', type: 'image', label: 'z', icon: 'key vault', imageUrl: 'https://example.com/x.png' },
     ])
     expect(messages(result)).toEqual([
-      'nodes[0].imageUrl: must be an https:// URL (or a data:image/ URL) without spaces or backslashes. Prefer "icon" with an id from search_azure_icons.',
+      'nodes[0].imageUrl: must be an https:// URL (or a data:image/ URL) without spaces or backslashes. Prefer "icon" with an id from search_icons or search_azure_icons.',
     ])
     expect(result.nodes[2]).toMatchObject({ icon: 'key-vaults' })
     expect(result.nodes[2].imageUrl).toBeUndefined()

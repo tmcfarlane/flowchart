@@ -9,12 +9,16 @@ import ReactFlow, {
   ReactFlowProvider,
   MarkerType,
   useReactFlow,
+  useNodesInitialized,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { nodeTypes, edgeTypes } from '../flow/registry'
 import { sortParentsFirst } from '../utils/nesting'
-import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
+import { getIconUrl } from '../utils/azureIconIds'
+import type { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
 import './AIInsertPreviewDialog.css'
+
+const MIN_PREVIEW_ZOOM = 0.05
 
 // Estimate rendered size of a node based on its type and explicit dimensions.
 // Uses tight estimates matching CSS min-width/min-height to avoid over-spacing.
@@ -123,6 +127,9 @@ interface AIInsertPreviewDialogProps {
   onRefine: (instruction: string) => Promise<string | undefined>
   isRefining?: boolean
   darkMode: boolean
+  applyLabel?: string
+  changeSummary?: string
+  applyError?: string
 }
 
 interface ChatBubble {
@@ -130,14 +137,19 @@ interface ChatBubble {
   content: string
 }
 
-function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, isRefining, darkMode }: AIInsertPreviewDialogProps) {
+function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, isRefining, darkMode, applyLabel, changeSummary, applyError }: AIInsertPreviewDialogProps) {
   const [isFullscreen, setIsFullscreen] = useState(proposal.nodes.length >= 8)
   const [refinementInput, setRefinementInput] = useState('')
   const [showChat, setShowChat] = useState(true)
   const [chatMessages, setChatMessages] = useState<ChatBubble[]>([])
   const { fitView } = useReactFlow()
+  const nodesInitialized = useNodesInitialized()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const chatBodyRef = useRef<HTMLDivElement>(null)
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const titleRef = useRef<HTMLHeadingElement>(null)
+  const cancelRef = useRef(onCancel)
 
   // Convert proposal nodes/edges to React Flow format
   const getEdgeStyleProps = useCallback((style?: EdgeStyle) => {
@@ -160,7 +172,8 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
       extent: node.parentNode ? ('parent' as const) : undefined,
       data: {
         label: node.label,
-        imageUrl: node.imageUrl,
+        imageUrl: node.icon ? getIconUrl(node.icon) : node.imageUrl,
+        icon: node.icon,
         containerKind: node.containerKind,
         onLabelChange: () => { }, // Read-only, no-op
       },
@@ -177,13 +190,24 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
     }
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    const byId = new Map(nodes.map((node) => [node.id, node]))
     for (const node of nodes) {
-      const w = typeof node.style?.width === 'number' ? node.style.width : (node.type === 'decision' ? 160 : 180)
-      const h = typeof node.style?.height === 'number' ? node.style.height : (node.type === 'decision' ? 160 : 80)
-      minX = Math.min(minX, node.position.x)
-      minY = Math.min(minY, node.position.y)
-      maxX = Math.max(maxX, node.position.x + w)
-      maxY = Math.max(maxY, node.position.y + h)
+      const { w, h } = estimateNodeSize(node)
+      let x = node.position.x, y = node.position.y
+      let parent = node.parentNode
+      const visited = new Set([node.id])
+      while (parent && !visited.has(parent)) {
+        visited.add(parent)
+        const container = byId.get(parent)
+        if (!container) break
+        x += container.position.x
+        y += container.position.y
+        parent = container.parentNode
+      }
+      minX = Math.min(minX, x)
+      minY = Math.min(minY, y)
+      maxX = Math.max(maxX, x + w)
+      maxY = Math.max(maxY, y + h)
     }
 
     const contentW = maxX - minX
@@ -192,7 +216,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
     return [[minX - padding, minY - padding], [maxX + padding, maxY + padding]]
   }, [nodes])
 
-  const strokeColor = darkMode ? '#78fcd6' : '#555'
+  const strokeColor = darkMode ? '#b6a0ff' : '#6850bb'
 
   const edges: Edge[] = proposal.edges.map((edge) => ({
     id: edge.id || `e${edge.source}-${edge.target}`,
@@ -213,37 +237,74 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
       strokeWidth: 2,
     },
     labelStyle: {
-      fill: darkMode ? '#e7eceb' : '#333',
+      fill: darkMode ? '#eef1fb' : '#202942',
       fontWeight: 500,
       fontSize: 12,
     },
     labelBgStyle: {
-      fill: darkMode ? 'rgba(15, 18, 17, 0.9)' : 'rgba(255, 255, 255, 0.9)',
-      stroke: darkMode ? 'rgba(120, 252, 214, 0.3)' : 'rgba(0, 0, 0, 0.1)',
+      fill: darkMode ? '#1c2540' : '#ffffff',
+      stroke: darkMode ? '#313d59' : '#dce1ee',
       strokeWidth: 1,
     },
     labelBgPadding: [6, 4] as [number, number],
     labelBgBorderRadius: 4,
   }))
 
-  // Handle ESC key to cancel
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onCancel()
-      }
-    }
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [onCancel])
+  useEffect(() => { cancelRef.current = onCancel }, [onCancel])
 
-  // Refit view when nodes change (e.g., after refinement)
+  // Modal navigation stays in the proposal while the canvas remains keyboard accessible.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fitView({ padding: 0.15, maxZoom: 1.5, duration: 300 })
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [nodes, fitView])
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    titleRef.current?.focus({ preventScroll: true })
+    const handleEscape = (e: KeyboardEvent) => {
+      if (!dialogRef.current?.contains(document.activeElement)) return
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        cancelRef.current()
+      }
+      if (e.key !== 'Tab') return
+      const controls = dialogRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), [tabindex="0"]')
+      if (!controls.length) return
+      const first = controls[0], last = controls[controls.length - 1]
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === titleRef.current)) { e.preventDefault(); last.focus() }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+    }
+    document.addEventListener('keydown', handleEscape, true)
+    return () => {
+      document.removeEventListener('keydown', handleEscape, true)
+      if (previousFocus?.isConnected) previousFocus.focus()
+    }
+  }, [])
+
+  // Fit after nodes are measured, and again when the actual canvas changes size.
+  // This covers phone rotation, the refinement drawer, and fullscreen transitions.
+  useEffect(() => {
+    if (!nodesInitialized || !canvasRef.current) return
+    let frame: number | undefined
+    let previousWidth = 0, previousHeight = 0
+    const scheduleFit = () => {
+      if (frame !== undefined) cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        frame = undefined
+        fitView({ padding: 0.15, minZoom: MIN_PREVIEW_ZOOM, maxZoom: 1.5, duration: 0 })
+      })
+    }
+    const observer = new ResizeObserver((entries) => {
+      const size = entries[0]?.contentRect
+      if (!size || size.width <= 0 || size.height <= 0) return
+      if (Math.abs(size.width - previousWidth) < 1 && Math.abs(size.height - previousHeight) < 1) return
+      previousWidth = size.width
+      previousHeight = size.height
+      scheduleFit()
+    })
+    observer.observe(canvasRef.current)
+    scheduleFit()
+    return () => {
+      observer.disconnect()
+      if (frame !== undefined) cancelAnimationFrame(frame)
+    }
+  }, [nodes, nodesInitialized, fitView])
 
   // Auto-scroll chat to bottom when new messages arrive
   useEffect(() => {
@@ -258,10 +319,12 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
     // Show user message immediately
     setChatMessages((prev) => [...prev, { role: 'user', content: instruction }])
     setRefinementInput('')
-    const summary = await onRefine(instruction)
-    // Show AI response after refinement completes
-    if (summary) {
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }])
+    try {
+      const summary = await onRefine(instruction)
+      if (summary) setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }])
+    } catch (error) {
+      setRefinementInput(instruction)
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: error instanceof Error ? error.message : 'The refinement could not finish. Please try again.' }])
     }
   }, [refinementInput, isRefining, onRefine])
 
@@ -273,10 +336,10 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
       aria-modal="true"
       aria-labelledby="ai-preview-title"
     >
-      <div className={`ai-preview-dialog ${isFullscreen ? 'fullscreen' : ''}`} onClick={(e) => e.stopPropagation()}>
+      <div ref={dialogRef} className={`ai-preview-dialog ${isFullscreen ? 'fullscreen' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="ai-preview-header">
           <div>
-            <h2 id="ai-preview-title" className="ai-preview-title">Preview AI Proposal</h2>
+            <h2 ref={titleRef} tabIndex={-1} id="ai-preview-title" className="ai-preview-title">Preview AI Proposal</h2>
             {proposal.summary && (
               <p className="ai-preview-summary">{proposal.summary}</p>
             )}
@@ -314,14 +377,15 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
 
         <div className="ai-preview-content">
           <div className="ai-preview-content-row">
-            <div className="ai-preview-flow">
+            <div ref={canvasRef} className="ai-preview-flow">
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 fitView
-                fitViewOptions={{ padding: 0.15, maxZoom: 1.5 }}
+                fitViewOptions={{ padding: 0.15, minZoom: MIN_PREVIEW_ZOOM, maxZoom: 1.5 }}
+                minZoom={MIN_PREVIEW_ZOOM}
                 nodesDraggable={false}
                 elementsSelectable={false}
                 nodesConnectable={false}
@@ -340,12 +404,12 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
                 />
                 <Controls showInteractive={false} />
                 <MiniMap
-                  nodeColor={darkMode ? '#78fcd6' : '#10b981'}
-                  nodeStrokeColor={darkMode ? 'rgba(120, 252, 214, 0.5)' : '#059669'}
-                  maskColor={darkMode ? 'rgba(15, 18, 17, 0.85)' : 'rgba(240, 240, 240, 0.85)'}
+                  nodeColor={darkMode ? '#b6a0ff' : '#8a73c9'}
+                  nodeStrokeColor={darkMode ? '#b6a0ff' : '#6850bb'}
+                  maskColor={darkMode ? 'rgba(14, 20, 36, 0.85)' : 'rgba(245, 245, 251, 0.85)'}
                   style={{
-                    background: darkMode ? '#1a1d1c' : '#f9fafb',
-                    border: darkMode ? '1px solid rgba(120, 252, 214, 0.2)' : '1px solid #e5e7eb',
+                    background: darkMode ? '#1c2540' : '#ffffff',
+                    border: darkMode ? '1px solid #313d59' : '1px solid #dce1ee',
                     borderRadius: 6,
                     width: 120,
                     height: 90,
@@ -390,10 +454,12 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
                     ref={textareaRef}
                     className="ai-preview-chat-input"
                     placeholder="Describe how to refine this flowchart…"
+                    aria-label="Refinement instruction"
+                    maxLength={10000}
                     value={refinementInput}
                     onChange={(e) => setRefinementInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
+                      if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                         e.preventDefault()
                         handleRefine()
                       }
@@ -435,6 +501,8 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
 
         </div>
 
+        {changeSummary && <p className="ai-change-summary">{changeSummary}</p>}
+        {applyError && <p className="ai-apply-error" role="alert">{applyError}</p>}
         <div className="ai-preview-actions">
           <span className="ai-preview-meta">
             {proposal.nodes.length} nodes · {proposal.edges.length} edges
@@ -457,11 +525,12 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
           <button
             className="ai-preview-button insert"
             onClick={onInsert}
+            disabled={isRefining}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
-            Insert into Canvas
+            {applyLabel ?? 'Insert into Canvas'}
           </button>
         </div>
       </div>

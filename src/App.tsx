@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react'
 import ReactFlow, {
   Node as FlowNode,
   Edge,
@@ -27,20 +27,34 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import 'reactflow/dist/base.css'
 import './App.css'
+import './components/DraftRecovery.css'
 import Toolbar from './components/Toolbar'
 import { nodeTypes, edgeTypes } from './flow/registry'
 import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
-import AIChat from './components/AIChat'
+import AIChat, { type ProposalIntent } from './components/AIChat'
+import TemplateGallery from './components/TemplateGallery'
+import PremiumStudio from './components/PremiumStudio'
+import CommandPalette from './components/CommandPalette'
+import { getIconUrl } from './utils/azureIconIds'
+import { parseAIProposal, contextForAI, preserveCanvasImages, getPreservedImageNodeIds } from './shared/aiProposal'
+import type { DiagramTemplate } from './shared/diagramTemplates'
 import AIInsertPreviewDialog from './components/AIInsertPreviewDialog'
 import { resolveAzureIcons } from './utils/azureIconRegistry'
 import { getMessages, addMessage as addThreadMessage } from './utils/conversationStore'
 import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from './utils/nesting'
+import { arrangeSelectedNodes, getSelectionArrangementAvailability, type SelectionArrangeAction } from './utils/selectionArrangement'
 import ShareStatus from './components/ShareStatus'
+import LocalCopyDialog from './components/LocalCopyDialog'
 import { useSharedFlow, type ApplyReason } from './hooks/useSharedFlow'
-import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
+import { LOCAL_DRAFT_KEY, useLocalDraft } from './hooks/useLocalDraft'
+import { prepareDraftBackup, type DraftBackup } from './utils/localDraftBackup'
+import { useDiagramHistory } from './hooks/useDiagramHistory'
+import { chartToFlow, changedNodeIds, flowToChart, contentFingerprint, type ChartContentShape } from './utils/sharedFlow'
 import { parseSharedLocation } from './utils/shareApi'
 import { isArchitectureChart, nextNumericNodeId, type Chart } from './shared/flowTypes'
+
+const DiagramInsights = lazy(() => import('./components/DiagramInsights'))
 
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
@@ -80,6 +94,7 @@ export interface BaseFlowNode {
   width?: number
   height?: number
   imageUrl?: string
+  icon?: string
   parentNode?: string
   containerKind?: string
 }
@@ -92,6 +107,8 @@ export interface BaseFlowEdge {
   sourceHandle?: HandlePosition
   targetHandle?: HandlePosition
   label?: string
+  protocol?: EdgeProtocol
+  commStyle?: CommStyle
 }
 
 export interface BaseFlow {
@@ -99,10 +116,11 @@ export interface BaseFlow {
   edges: BaseFlowEdge[]
 }
 
-interface HistoryState {
-  nodes: FlowNode[]
-  edges: Edge[]
+interface DiagramHistoryState {
+  content: ChartContentShape
+  diagramMode: DiagramMode
 }
+const diagramHistoryKey = (state: DiagramHistoryState) => `${state.diagramMode}:${contentFingerprint(state.content)}`
 
 const ARCH_NODE_DIMENSIONS: Record<ArchNodeType, { width: number; height: number }> = {
   service: { width: 180, height: 90 },
@@ -231,6 +249,7 @@ function FlowChartEditor() {
   }, [setNodes])
 
   const [previewMode, setPreviewMode] = useState(false)
+  const wasPreviewMode = useRef(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(2)
   const [diagramMode, setDiagramMode] = useState<DiagramMode>('flowchart')
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
@@ -241,174 +260,52 @@ function FlowChartEditor() {
   const [pasteCount, setPasteCount] = useState(0)
   const [darkMode, setDarkMode] = useState(true)
   const [isAIBubbleOpen, setIsAIBubbleOpen] = useState(false)
-  const [aiProposal, setAIProposal] = useState<FlowProposal | null>(null)
+  const [activeAIProposal, setActiveAIProposal] = useState<{ proposal: FlowProposal; intent: ProposalIntent; baseline: string | null; threadId: string | null; requestId: number; source?: 'draft' } | null>(null)
+  const aiProposal = activeAIProposal?.proposal ?? null
+  const aiIntent = activeAIProposal?.intent ?? 'insert'
+  const aiBaseline = activeAIProposal?.baseline ?? null
+  const aiThreadId = activeAIProposal?.threadId ?? null
+  const aiRequestSequence = useRef(0)
+  const refinementAbort = useRef<AbortController | null>(null)
+  const [aiApplyError, setAIApplyError] = useState<string | null>(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [insightsOpen, setInsightsOpen] = useState(false)
+  const [layoutBusy, setLayoutBusy] = useState(false)
+  const [layoutNotice, setLayoutNotice] = useState<string | null>(null)
+  const layoutSequence = useRef(0)
+  const canvasFingerprint = contentFingerprint(flowToChart(nodes, edges))
+  const latestCanvasFingerprint = useRef(canvasFingerprint)
+  latestCanvasFingerprint.current = canvasFingerprint
+  const [premiumOpen, setPremiumOpen] = useState(() => ['success', 'cancelled'].includes(new URLSearchParams(window.location.search).get('premium') ?? ''))
+  const [templateLoading, setTemplateLoading] = useState(false)
+  const [templateError, setTemplateError] = useState<string | null>(null)
   // A shared link (/f/:id) opens a chart, so skip the empty-canvas welcome prompt.
   const [showWelcomeAI, setShowWelcomeAI] = useState(() => !parseSharedLocation(window.location))
   const [isRefining, setIsRefining] = useState(false)
-  const [aiThreadId, setAIThreadId] = useState<string | null>(null)
   const [proposalPreview, setProposalPreview] = useState<{ nodes: FlowNode[]; edges: Edge[] } | null>(null)
   const [showMinimap, setShowMinimap] = useState(false)
+  const draft = useLocalDraft({ nodes, edges, diagramMode, enabled: !parseSharedLocation(window.location) })
+  const [localCopyReview, setLocalCopyReview] = useState<({ raw: string } & DraftBackup) | null>(null)
+  const [localCopyError, setLocalCopyError] = useState<string | null>(null)
+  const focusAfterLocalCopy = useRef(false)
 
-  const addImageNode = useCallback(
-    (imageUrl: string, label: string) => {
-      let position = { x: 200, y: 200 }
-      if (reactFlowWrapper.current) {
-        const rect = reactFlowWrapper.current.getBoundingClientRect()
-        position = screenToFlowPosition({
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-        })
-        const nodeWidth = 180
-        const nodeHeight = 80
-        position.x -= nodeWidth / 2
-        position.y -= nodeHeight / 2
-      }
-
-      const size = { width: 140, height: 140 }
-      const adjustedPosition = findAvailablePosition(position, size, nodes)
-
-      const newNode: FlowNode = {
-        id: nodeIdCounter.toString(),
-        type: 'image',
-        position: adjustedPosition,
-        data: {
-          label,
-          imageUrl,
-          onLabelChange: updateNodeLabel,
-        },
-        style: {
-          width: size.width,
-          height: size.height
-        },
-      }
-      setNodes((nds) => [...nds, newNode])
-      setNodeIdCounter((id) => id + 1)
-
-      // Center on the new image node
-      setCenter(
-        adjustedPosition.x + size.width / 2,
-        adjustedPosition.y + size.height / 2,
-        { duration: 300, zoom: 1 }
-      )
-    },
-    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, setCenter]
-  )
-
-  // Undo/Redo history management
-  const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: [] }])
-  const [historyIndex, setHistoryIndex] = useState(0)
-  const isRestoringHistory = useRef(false)
-  const MAX_HISTORY = 10
-
-  // Save current state to history
-  const saveToHistory = useCallback(() => {
-    if (isRestoringHistory.current) return
-
-    setHistory((prev) => {
-      // Remove any future states if we're not at the end
-      const newHistory = prev.slice(0, historyIndex + 1)
-      // Add new state
-      newHistory.push({ nodes: [...nodes], edges: [...edges] })
-      // Keep only last MAX_HISTORY states
-      if (newHistory.length > MAX_HISTORY) {
-        newHistory.shift()
-        setHistoryIndex(MAX_HISTORY - 1)
-        return newHistory
-      }
-      setHistoryIndex(newHistory.length - 1)
-      return newHistory
-    })
-  }, [nodes, edges, historyIndex])
-
-  // Undo handler
-  const undo = useCallback(() => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1
-      const state = history[newIndex]
-      isRestoringHistory.current = true
-      setNodes(state.nodes)
-      setEdges(state.edges)
-      setHistoryIndex(newIndex)
-      setTimeout(() => {
-        isRestoringHistory.current = false
-      }, 0)
-    }
-  }, [historyIndex, history, setNodes, setEdges])
-
-  // Redo handler
-  const redo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1
-      const state = history[newIndex]
-      isRestoringHistory.current = true
-      setNodes(state.nodes)
-      setEdges(state.edges)
-      setHistoryIndex(newIndex)
-      setTimeout(() => {
-        isRestoringHistory.current = false
-      }, 0)
-    }
-  }, [historyIndex, history, setNodes, setEdges])
-
-  // Track when to save history - save after changes stabilize
-  const lastChangeTime = useRef<number>(0)
-  const saveTimeoutRef = useRef<number>()
-
-  useEffect(() => {
-    if (isRestoringHistory.current) return
-
-    // Debounce history saves to avoid saving too frequently
-    lastChangeTime.current = Date.now()
-
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-
-    saveTimeoutRef.current = window.setTimeout(() => {
-      const currentState = history[historyIndex]
-      const hasChanged =
-        JSON.stringify(currentState?.nodes) !== JSON.stringify(nodes) ||
-        JSON.stringify(currentState?.edges) !== JSON.stringify(edges)
-
-      if (hasChanged) {
-        saveToHistory()
-      }
-    }, 500) // Save after 500ms of no changes
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
-      }
-    }
-  }, [nodes, edges, history, historyIndex, saveToHistory])
-
-  // Handle node changes (dragging, selection, etc.).
-  // When a container is removed (e.g., via the Delete key), its children are
-  // detached first so they survive at their absolute positions.
-  const onNodesChange = useCallback(
-    (changes: NodeChange[]) => {
-      const removedIds = new Set(
-        changes.filter((c) => c.type === 'remove').map((c) => (c as { id: string }).id)
-      )
-      setNodes((nds) => {
-        const base = removedIds.size === 0
-          ? nds
-          : nds.map((n) =>
-              n.parentNode && removedIds.has(n.parentNode) && !removedIds.has(n.id)
-                ? { ...n, position: getAbsolutePosition(n, nds), parentNode: undefined, extent: undefined }
-                : n
-            )
-        return applyNodeChanges(changes, base)
-      })
-    },
-    [setNodes]
-  )
-
-  // Handle edge changes
-  const onEdgesChange = useCallback(
-    (changes: EdgeChange[]) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
-  )
+  const installAIProposal = useCallback((proposal: FlowProposal, intent: ProposalIntent, baseline?: string, threadId?: string, source?: 'draft') => {
+    refinementAbort.current?.abort()
+    const requestId = ++aiRequestSequence.current
+    setActiveAIProposal({ proposal, intent, baseline: baseline ?? null, threadId: threadId ?? null, requestId, source })
+    setIsRefining(false)
+    setAIApplyError(null)
+  }, [])
+  const clearAIProposal = useCallback(() => {
+    refinementAbort.current?.abort()
+    ++aiRequestSequence.current
+    setActiveAIProposal(null)
+    setIsRefining(false)
+    setAIApplyError(null)
+  }, [])
+  useEffect(() => () => { refinementAbort.current?.abort(); ++aiRequestSequence.current }, [])
+  useEffect(() => () => { ++layoutSequence.current }, [])
 
   const getEdgeStyleProps = useCallback((
     style: EdgeStyle,
@@ -449,9 +346,110 @@ function FlowChartEditor() {
     }
   }, [darkMode, updateEdgeLabel])
 
+  const historySnapshot = useMemo(() => ({ content: flowToChart(nodes, edges), diagramMode }), [nodes, edges, diagramMode])
+  const restoreHistory = useCallback((snapshot: DiagramHistoryState) => {
+    const flow = chartToFlow(snapshot.content, { onLabelChange: updateNodeLabel, edgeProps: getEdgeStyleProps })
+    setNodes(current => {
+      const selectedIds = new Set(current.filter(node => node.selected).map(node => node.id))
+      return flow.nodes.map(node => selectedIds.has(node.id) ? { ...node, selected: true } : node)
+    })
+    setEdges(flow.edges)
+    setDiagramMode(snapshot.diagramMode)
+    setNodeIdCounter((counter) => Math.max(counter, nextNumericNodeId(flow.nodes)))
+  }, [updateNodeLabel, getEdgeStyleProps, setNodes, setEdges])
+  const { capture: saveToHistory, undo, redo, canUndo, canRedo, reset: resetHistory } = useDiagramHistory({
+    value: historySnapshot, fingerprint: diagramHistoryKey, onRestore: restoreHistory,
+  })
+
+  const changeDiagramMode = useCallback((mode: DiagramMode) => {
+    if (mode === diagramMode) return
+    saveToHistory()
+    setDiagramMode(mode)
+  }, [diagramMode, saveToHistory])
+
+  const addImageNode = useCallback(
+    (imageUrl: string, label: string) => {
+      saveToHistory()
+      setShowWelcomeAI(false)
+      let position = { x: 200, y: 200 }
+      if (reactFlowWrapper.current) {
+        const rect = reactFlowWrapper.current.getBoundingClientRect()
+        position = screenToFlowPosition({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        })
+        const nodeWidth = 180
+        const nodeHeight = 80
+        position.x -= nodeWidth / 2
+        position.y -= nodeHeight / 2
+      }
+
+      const size = { width: 140, height: 140 }
+      const adjustedPosition = findAvailablePosition(position, size, nodes)
+
+      const newNode: FlowNode = {
+        id: nodeIdCounter.toString(),
+        type: 'image',
+        position: adjustedPosition,
+        data: {
+          label,
+          imageUrl,
+          onLabelChange: updateNodeLabel,
+        },
+        style: {
+          width: size.width,
+          height: size.height
+        },
+      }
+      setNodes((nds) => [...nds, newNode])
+      setNodeIdCounter((id) => id + 1)
+
+      // Center on the new image node
+      setCenter(
+        adjustedPosition.x + size.width / 2,
+        adjustedPosition.y + size.height / 2,
+        { duration: 300, zoom: 1 }
+      )
+    },
+    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, setCenter, saveToHistory]
+  )
+
+  // Handle node changes (dragging, selection, etc.).
+  // When a container is removed (e.g., via the Delete key), its children are
+  // detached first so they survive at their absolute positions.
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      const removedIds = new Set(
+        changes.filter((c) => c.type === 'remove').map((c) => (c as { id: string }).id)
+      )
+      if (removedIds.size) saveToHistory()
+      setNodes((nds) => {
+        const base = removedIds.size === 0
+          ? nds
+          : nds.map((n) =>
+              n.parentNode && removedIds.has(n.parentNode) && !removedIds.has(n.id)
+                ? { ...n, position: getAbsolutePosition(n, nds), parentNode: undefined, extent: undefined }
+                : n
+            )
+        return applyNodeChanges(changes, base)
+      })
+    },
+    [setNodes, saveToHistory]
+  )
+
+  // Handle edge changes
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      if (changes.some(change => change.type === 'remove')) saveToHistory()
+      setEdges((eds) => applyEdgeChanges(changes, eds))
+    },
+    [setEdges, saveToHistory]
+  )
+
   // Handle new connections. Architecture mode defaults to solid synchronous edges.
   const onConnect = useCallback(
     (connection: Connection) => {
+      saveToHistory()
       const newEdge = {
         ...connection,
         ...(diagramMode === 'architecture'
@@ -460,20 +458,23 @@ function FlowChartEditor() {
       }
       setEdges((eds) => addEdge(newEdge as Edge, eds))
     },
-    [setEdges, defaultEdgeStyle, getEdgeStyleProps, diagramMode]
+    [setEdges, defaultEdgeStyle, getEdgeStyleProps, diagramMode, saveToHistory]
   )
 
   // Handle edge reconnection
   const onReconnect = useCallback(
     (oldEdge: Edge, newConnection: Connection) => {
+      saveToHistory()
       setEdges((els) => reconnectEdge(oldEdge, newConnection, els))
     },
-    [setEdges]
+    [setEdges, saveToHistory]
   )
 
   // Add a new node
   const addNode = useCallback(
     (type: PaletteNodeType) => {
+      saveToHistory()
+      setShowWelcomeAI(false)
       const size = getNodeDimensions(type)
 
       // Calculate center of the current viewport
@@ -514,12 +515,14 @@ function FlowChartEditor() {
         { duration: 300, zoom: 1 }
       )
     },
-    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, getNodeDimensions, setCenter]
+    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, getNodeDimensions, setCenter, saveToHistory]
   )
 
   // Add an empty container at the viewport center. Containers are prepended so
   // they render behind existing nodes and keep the parents-first ordering valid.
   const addContainer = useCallback(() => {
+    saveToHistory()
+    setShowWelcomeAI(false)
     const size = { ...CONTAINER_DEFAULT_SIZE }
 
     let position = { x: 200, y: 200 }
@@ -552,7 +555,7 @@ function FlowChartEditor() {
       position.y + size.height / 2,
       { duration: 300, zoom: 1 }
     )
-  }, [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, setCenter])
+  }, [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, setCenter, saveToHistory])
 
   // Wrap the selected nodes in a new container sized to their bounding box.
   // Positions are converted to parent-relative; nested selections keep their
@@ -560,6 +563,7 @@ function FlowChartEditor() {
   const wrapSelectionInContainer = useCallback(() => {
     const selectedNodes = nodes.filter((n) => n.selected)
     if (selectedNodes.length === 0) return
+    saveToHistory()
 
     const selectedIds = new Set(selectedNodes.map((n) => n.id))
     const toWrap = selectedNodes.filter((n) => !(n.parentNode && selectedIds.has(n.parentNode)))
@@ -612,10 +616,11 @@ function FlowChartEditor() {
       return sortParentsFirst([container, ...updated])
     })
     setNodeIdCounter((id) => id + 1)
-  }, [nodes, nodeIdCounter, getNodeDimensions, updateNodeLabel, setNodes])
+  }, [nodes, nodeIdCounter, getNodeDimensions, updateNodeLabel, setNodes, saveToHistory])
 
   // Detach selected nodes from their container, keeping them in place
   const detachSelection = useCallback(() => {
+    saveToHistory()
     setNodes((nds) =>
       nds.map((n) =>
         n.selected && n.parentNode
@@ -623,10 +628,11 @@ function FlowChartEditor() {
           : n
       )
     )
-  }, [setNodes])
+  }, [setNodes, saveToHistory])
 
   // Change the kind of the selected container(s)
   const changeContainerKind = useCallback((kind: ContainerKind) => {
+    saveToHistory()
     setNodes((nds) =>
       nds.map((n) =>
         n.selected && n.type === 'container'
@@ -634,13 +640,14 @@ function FlowChartEditor() {
           : n
       )
     )
-  }, [setNodes])
+  }, [setNodes, saveToHistory])
 
   // Delete selected nodes and edges. Children of deleted containers are
   // detached (kept at absolute positions), not cascade-deleted.
   const deleteSelected = useCallback(() => {
+    saveToHistory()
+    const removedIds = new Set(nodes.filter((node) => node.selected).map((node) => node.id))
     setNodes((nds) => {
-      const removedIds = new Set(nds.filter((n) => n.selected).map((n) => n.id))
       return nds
         .map((n) =>
           n.parentNode && removedIds.has(n.parentNode) && !removedIds.has(n.id)
@@ -649,14 +656,17 @@ function FlowChartEditor() {
         )
         .filter((n) => !n.selected)
     })
-    setEdges((eds) => eds.filter((edge) => !edge.selected))
-  }, [setNodes, setEdges])
+    setEdges((eds) => eds.filter((edge) => !edge.selected && !removedIds.has(edge.source) && !removedIds.has(edge.target)))
+  }, [nodes, setNodes, setEdges, saveToHistory])
 
   // Clear all nodes and edges
   const clearAll = useCallback(() => {
+    draft.clearDraft()
     setNodes([])
     setEdges([])
-  }, [setNodes, setEdges])
+    resetHistory({ content: { nodes: [], edges: [] }, diagramMode })
+    clearAIProposal()
+  }, [setNodes, setEdges, draft.clearDraft, resetHistory, diagramMode, clearAIProposal])
 
   // Get selected nodes and edges
   const getSelectedItems = useCallback(() => {
@@ -672,14 +682,12 @@ function FlowChartEditor() {
     const { selectedNodes, selectedEdges } = getSelectedItems()
 
     const copiedIds = new Set(selectedNodes.map((n) => n.id))
-    const autoAddedIds = new Set<string>()
     let grew = true
     while (grew) {
       grew = false
       for (const n of nodes) {
         if (n.parentNode && copiedIds.has(n.parentNode) && !copiedIds.has(n.id)) {
           copiedIds.add(n.id)
-          autoAddedIds.add(n.id)
           grew = true
         }
       }
@@ -693,19 +701,23 @@ function FlowChartEditor() {
           : n
       )
 
-    // Include edges internal to auto-added container contents; explicitly
-    // selected edges keep today's behavior.
+    // A copied container keeps connections among its contents even when a
+    // user explicitly selected those children as well as their container.
+    // Independent nodes still include only explicitly selected connections.
+    const containerContentsIds = new Set(copiedNodes.filter(node => node.parentNode && copiedIds.has(node.parentNode)).map(node => node.id))
     const selectedEdgeIds = new Set(selectedEdges.map((e) => e.id))
     const internalEdges = edges.filter(
       (e) =>
         !selectedEdgeIds.has(e.id) &&
         copiedIds.has(e.source) &&
         copiedIds.has(e.target) &&
-        (autoAddedIds.has(e.source) || autoAddedIds.has(e.target))
+        (containerContentsIds.has(e.source) || containerContentsIds.has(e.target))
     )
 
-    setClipboard({ nodes: sortParentsFirst(copiedNodes), edges: [...selectedEdges, ...internalEdges] })
+    const copied = { nodes: sortParentsFirst(copiedNodes), edges: [...selectedEdges, ...internalEdges] }
+    setClipboard(copied)
     setPasteCount(0)
+    return copied
   }, [getSelectedItems, nodes, edges])
 
   // Paste nodes and edges from clipboard. Fresh ids come from counter
@@ -713,6 +725,8 @@ function FlowChartEditor() {
   // parentNode references are remapped and nesting is preserved.
   const pasteSelection = useCallback(() => {
     if (clipboard.nodes.length === 0) return
+    saveToHistory()
+    setShowWelcomeAI(false)
 
     const offset = 3
     const { nodes: remappedNodes, edges: pastedEdges, nextCounter } = remapPastedNodes(
@@ -759,16 +773,43 @@ function FlowChartEditor() {
         { duration: 300, zoom: 1 }
       )
     }
-  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel, pasteCount, nodes, findAvailablePosition, getNodeDimensions, setCenter])
+  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel, pasteCount, nodes, findAvailablePosition, getNodeDimensions, setCenter, saveToHistory])
 
-  // Cut selected nodes and edges (copy + delete)
+  // Cut moves exactly the copied subtree. Delete alone keeps container children.
   const cutSelection = useCallback(() => {
-    copySelection()
-    deleteSelected()
-  }, [copySelection, deleteSelected])
+    const copied = copySelection()
+    if (!copied.nodes.length && !copied.edges.length) return
+    saveToHistory()
+    const removedIds = new Set(copied.nodes.map(node => node.id))
+    setNodes(current => current.filter(node => !removedIds.has(node.id)))
+    setEdges(current => current.filter(edge => !edge.selected && !removedIds.has(edge.source) && !removedIds.has(edge.target)))
+  }, [copySelection, saveToHistory, setNodes, setEdges])
+
+  useEffect(() => {
+    // React Flow listens on document itself, so protect the canvas before its
+    // Delete handler runs when focus is on a dialog heading or button.
+    const protectModal = (event: KeyboardEvent) => {
+      if (!['Delete', 'Backspace'].includes(event.key) || !document.querySelector('[aria-modal="true"]')) return
+      const target = event.target
+      if (target instanceof HTMLElement && (target.matches('input, textarea') || target.isContentEditable)) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+    document.addEventListener('keydown', protectModal, true)
+    return () => document.removeEventListener('keydown', protectModal, true)
+  }, [])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (previewMode || proposalPreview) return
+      const key = e.key.toLowerCase()
+      if ((e.ctrlKey || e.metaKey) && key === 'k') {
+        if (document.querySelector('[aria-modal="true"]')) return
+        e.preventDefault()
+        setCommandOpen((open) => !open)
+        return
+      }
+      if (document.querySelector('[aria-modal="true"]')) return
       const target = e.target as HTMLElement
       if (
         target.tagName === 'INPUT' ||
@@ -780,33 +821,33 @@ function FlowChartEditor() {
 
       const isMod = e.ctrlKey || e.metaKey
 
-      if (isMod && e.key === 'c') {
+      if (isMod && key === 'c') {
         e.preventDefault()
         copySelection()
-      } else if (isMod && e.key === 'v') {
+      } else if (isMod && key === 'v') {
         e.preventDefault()
         pasteSelection()
-      } else if (isMod && e.key === 'x') {
+      } else if (isMod && key === 'x') {
         e.preventDefault()
         cutSelection()
-      } else if (isMod && e.key === 'z' && !e.shiftKey) {
+      } else if (isMod && key === 'z' && !e.shiftKey) {
         e.preventDefault()
         undo()
-      } else if (isMod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      } else if (isMod && (key === 'y' || (key === 'z' && e.shiftKey))) {
         e.preventDefault()
         redo()
-      } else if (e.key === 'v' && !isMod) {
+      } else if (key === 'v' && !isMod) {
         setToolMode('select')
-      } else if (e.key === 'h' && !isMod) {
+      } else if (key === 'h' && !isMod) {
         setToolMode('hand')
-      } else if (e.key === 'a' && !isMod) {
+      } else if (key === 'a' && !isMod) {
         setToolMode('arrow')
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [copySelection, pasteSelection, cutSelection, undo, redo])
+  }, [previewMode, proposalPreview, copySelection, pasteSelection, cutSelection, undo, redo])
 
   // Control + Scroll to Zoom
   useEffect(() => {
@@ -838,6 +879,13 @@ function FlowChartEditor() {
   const togglePreview = useCallback(() => {
     setPreviewMode((prev) => !prev)
   }, [])
+
+  useEffect(() => {
+    if (wasPreviewMode.current && !previewMode) {
+      document.querySelector<HTMLButtonElement>('[aria-label="Enter Preview Mode"]')?.focus({ preventScroll: true })
+    }
+    wasPreviewMode.current = previewMode
+  }, [previewMode])
 
   const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
     if (edge.animated) return 'animated'
@@ -939,18 +987,18 @@ function FlowChartEditor() {
   }, [fitView, getViewport, setViewport])
 
   // Handle AI proposal ready - open preview dialog
-  const handleAIProposalReady = useCallback((proposal: FlowProposal, threadId?: string) => {
-    setAIProposal(proposal)
-    if (threadId) setAIThreadId(threadId)
-  }, [])
+  const handleAIProposalReady = useCallback((proposal: FlowProposal, threadId?: string, intent: ProposalIntent = 'insert', baseline?: string) => {
+    installAIProposal(proposal, intent, baseline, threadId)
+  }, [installAIProposal])
 
   // Insert AI proposal into canvas (insert-as-new algorithm)
   const insertAIProposal = useCallback(() => {
     if (!aiProposal) return
+    saveToHistory()
 
     // 1. Generate unique IDs for the new nodes
     const idMap = new Map<string, string>()
-    let currentCounter = nodeIdCounter
+    let currentCounter = Math.max(nodeIdCounter, nextNumericNodeId(nodes))
 
     aiProposal.nodes.forEach((node) => {
       const newId = currentCounter.toString()
@@ -1012,7 +1060,8 @@ function FlowChartEditor() {
         extent: newParent ? ('parent' as const) : undefined,
         data: {
           label: node.label,
-          imageUrl: node.imageUrl,
+          imageUrl: node.icon ? getIconUrl(node.icon) : node.imageUrl,
+          icon: node.icon,
           containerKind: node.containerKind,
           onLabelChange: updateNodeLabel,
         },
@@ -1021,7 +1070,7 @@ function FlowChartEditor() {
     })
 
     // 7. Create new edges with remapped IDs and default handles
-    const newEdges: Edge[] = aiProposal.edges.map((edge) => {
+    const newEdges: Edge[] = aiProposal.edges.map((edge, index) => {
       const newSource = idMap.get(edge.source)!
       const newTarget = idMap.get(edge.target)!
       
@@ -1030,13 +1079,13 @@ function FlowChartEditor() {
       const targetHandle = edge.targetHandle || 'top'
       
       return {
-        id: edge.id ? `${idMap.get(edge.id.split('-')[0]) || 'e'}-${newSource}-${newTarget}` : `e${newSource}-${newTarget}`,
+        id: `ai-edge-${newSource}-${newTarget}-${index}`,
         source: newSource,
         target: newTarget,
         sourceHandle,
         targetHandle,
         label: edge.label,
-        ...getEdgeStyleProps(edge.style || 'animated'),
+        ...getEdgeStyleProps(edge.style || 'animated', { protocol: edge.protocol, commStyle: edge.commStyle }),
       }
     })
 
@@ -1044,17 +1093,17 @@ function FlowChartEditor() {
     setNodes((nds) => sortParentsFirst([...nds, ...newNodes]))
     setEdges((eds) => [...eds, ...newEdges])
     setNodeIdCounter(currentCounter)
+    setDiagramMode(isArchitectureChart([...flowToChart(nodes, []).nodes, ...aiProposal.nodes]) ? 'architecture' : 'flowchart')
 
     // 9. Close preview dialog
-    setAIProposal(null)
-    setAIThreadId(null)
-  }, [aiProposal, nodeIdCounter, reactFlowWrapper, screenToFlowPosition, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges])
+    clearAIProposal()
+  }, [aiProposal, nodes, nodeIdCounter, reactFlowWrapper, screenToFlowPosition, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, clearAIProposal, saveToHistory])
 
   // Cancel AI proposal
   const cancelAIProposal = useCallback(() => {
-    setAIProposal(null)
-    setAIThreadId(null)
-  }, [])
+    clearAIProposal()
+    setAIApplyError(null)
+  }, [clearAIProposal])
 
   // Dismiss welcome AI prompt
   const dismissWelcomeAI = useCallback(() => {
@@ -1063,43 +1112,30 @@ function FlowChartEditor() {
 
   // Refine AI proposal via chat sidebar
   const handleRefineProposal = useCallback(async (instruction: string): Promise<string | undefined> => {
-    if (!aiProposal) return undefined
+    if (!activeAIProposal || !aiProposal || isRefining) return undefined
+    refinementAbort.current?.abort()
+    const requestId = ++aiRequestSequence.current
+    const controller = new AbortController()
+    refinementAbort.current = controller
+    setActiveAIProposal((current) => current ? { ...current, requestId } : current)
     setIsRefining(true)
     try {
       // Build messages: use thread history if available, otherwise single message
       let messages: { role: string; content: string }[]
       if (aiThreadId) {
-        addThreadMessage(aiThreadId, { role: 'user', content: instruction })
-        messages = getMessages(aiThreadId).map((m) => ({ role: m.role, content: m.content }))
+        messages = [...getMessages(aiThreadId).filter(message => message.role !== 'system'), { role: 'user', content: instruction }].slice(-20)
       } else {
         messages = [{ role: 'user', content: instruction }]
       }
 
       const response = await fetch('/api/chat', {
         method: 'POST',
+        signal: controller.signal,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages,
           mode: 'refine',
-          flowContext: {
-            nodes: aiProposal.nodes.map((n) => ({
-              id: n.id,
-              type: n.type,
-              label: n.label,
-              position: n.position,
-              width: n.width,
-              height: n.height,
-            })),
-            edges: aiProposal.edges.map((e) => ({
-              id: e.id,
-              source: e.source,
-              target: e.target,
-              style: e.style,
-              sourceHandle: e.sourceHandle,
-              targetHandle: e.targetHandle,
-              label: e.label,
-            })),
-          },
+          flowContext: contextForAI(aiProposal),
         }),
       })
 
@@ -1109,86 +1145,57 @@ function FlowChartEditor() {
       }
 
       const data = await response.json()
+      if (controller.signal.aborted || requestId !== aiRequestSequence.current) return undefined
       const content = data.message || ''
 
-      let parsed: Record<string, unknown> | null = null
-      try {
-        parsed = JSON.parse(content) as Record<string, unknown>
-      } catch {
-        // Try extracting from code block
-        const jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/) || content.match(/```\s*\n([\s\S]*?)\n```/)
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[1].trim()) as Record<string, unknown>
-          } catch { /* noop */ }
-        }
+      const refinedProposal = resolveAzureIcons(preserveCanvasImages(parseAIProposal(content, data.finishReason, aiIntent === 'edit', { preservedImageNodeIds: getPreservedImageNodeIds(aiProposal.nodes) }), aiProposal.nodes), { intent: aiIntent })
+      setActiveAIProposal((current) => current?.requestId === requestId ? { ...current, proposal: refinedProposal } : current)
+      if (aiThreadId) {
+        addThreadMessage(aiThreadId, { role: 'user', content: instruction })
+        addThreadMessage(aiThreadId, { role: 'assistant', content: refinedProposal.summary || 'Refined diagram' })
       }
-
-      if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
-        const refinedProposal = resolveAzureIcons({
-          summary: (parsed.summary as string) || (parsed.explanation as string) || 'Refined flowchart',
-          nodes: parsed.nodes as BaseFlowNode[],
-          edges: parsed.edges as BaseFlowEdge[],
-        })
-        setAIProposal(refinedProposal)
-
-        // Save assistant summary to thread
-        if (aiThreadId) {
-          addThreadMessage(aiThreadId, {
-            role: 'assistant',
-            content: refinedProposal.summary || 'Refined flowchart',
-          })
-        }
-        return refinedProposal.summary
-      }
+      return refinedProposal.summary
     } catch (err) {
-      console.error('Refinement error:', err)
+      if (controller.signal.aborted || requestId !== aiRequestSequence.current) return undefined
+      throw err instanceof Error ? err : new Error('The refinement could not finish. Please try again.')
     } finally {
-      setIsRefining(false)
+      if (requestId === aiRequestSequence.current) setIsRefining(false)
     }
     return undefined
-  }, [aiProposal, aiThreadId])
+  }, [activeAIProposal, aiProposal, aiThreadId, aiIntent, isRefining])
 
   // Preview proposal in presentation mode
   const handlePreviewProposal = useCallback(() => {
     if (!aiProposal) return
 
-    const strokeColor = darkMode ? '#78fcd6' : '#555'
-
-    const previewNodes: FlowNode[] = aiProposal.nodes.map((node) => ({
+    const previewNodes: FlowNode[] = sortParentsFirst(aiProposal.nodes).map((node) => ({
       id: node.id,
       type: node.type,
       position: node.position,
+      parentNode: node.parentNode,
+      extent: node.parentNode ? ('parent' as const) : undefined,
       data: {
         label: node.label,
-        imageUrl: node.imageUrl,
+        imageUrl: node.icon ? getIconUrl(node.icon) : node.imageUrl,
+        icon: node.icon,
+        containerKind: node.containerKind,
         onLabelChange: () => {},
       },
       style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
     }))
 
-    const previewEdges: Edge[] = aiProposal.edges.map((edge) => ({
-      id: edge.id || `e${edge.source}-${edge.target}`,
+    const previewEdges: Edge[] = aiProposal.edges.map((edge, index) => ({
+      id: edge.id || `ai-edge-${index}`,
       source: edge.source,
       target: edge.target,
       sourceHandle: edge.sourceHandle || 'bottom',
       targetHandle: edge.targetHandle || 'top',
       label: edge.label,
-      type: 'default' as const,
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        width: 20,
-        height: 20,
-        color: strokeColor,
-      },
-      style: {
-        stroke: strokeColor,
-        strokeWidth: 2,
-      },
+      ...getEdgeStyleProps(edge.style || 'default', { protocol: edge.protocol, commStyle: edge.commStyle }),
     }))
 
     setProposalPreview({ nodes: previewNodes, edges: previewEdges })
-  }, [aiProposal, darkMode])
+  }, [aiProposal, getEdgeStyleProps])
 
   useEffect(() => {
     document.body.className = darkMode ? 'dark-mode' : 'light-mode'
@@ -1203,7 +1210,8 @@ function FlowChartEditor() {
       extent: node.parentNode ? ('parent' as const) : undefined,
       data: {
         label: node.label,
-        imageUrl: node.imageUrl,
+        imageUrl: node.icon ? getIconUrl(node.icon) : node.imageUrl,
+        icon: node.icon,
         containerKind: node.containerKind,
         onLabelChange: updateNodeLabel,
       },
@@ -1217,7 +1225,7 @@ function FlowChartEditor() {
       sourceHandle: edge.sourceHandle,
       targetHandle: edge.targetHandle,
       label: edge.label,
-      ...getEdgeStyleProps(edge.style || 'default'),
+      ...getEdgeStyleProps(edge.style || 'default', { protocol: edge.protocol, commStyle: edge.commStyle }),
     }))
 
     setNodes(nodesWithCallbacks)
@@ -1268,8 +1276,7 @@ function FlowChartEditor() {
       setShowWelcomeAI(false)
       setDiagramMode(isArchitectureChart(chart.nodes) ? 'architecture' : 'flowchart')
       // Undo should not step back to the empty canvas that existed before loading.
-      setHistory([{ nodes: flow.nodes, edges: flow.edges }])
-      setHistoryIndex(0)
+      resetHistory({ content: { nodes: chart.nodes, edges: chart.edges }, diagramMode: isArchitectureChart(chart.nodes) ? 'architecture' : 'flowchart' })
       fitAfterLoadRef.current = true
       return
     }
@@ -1315,9 +1322,197 @@ function FlowChartEditor() {
     remoteHighlightTimer.current = window.setTimeout(() => {
       setNodes((nds) => nds.map((n) => (n.className === 'flow-remote-change' ? { ...n, className: undefined } : n)))
     }, 3400)
-  }, [updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, getViewport, fitSharedChart])
+  }, [updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, getViewport, fitSharedChart, resetHistory])
 
   const shared = useSharedFlow({ nodes, edges, applyChart: applySharedChart })
+
+  const makeLocalCopy = useCallback((approvedRaw?: string) => {
+    if (!shared.state.id || shared.state.canEdit || shared.state.version === 0) return
+    let raw: string | null
+    try { raw = window.localStorage.getItem(LOCAL_DRAFT_KEY) }
+    catch { setLocalCopyError('Your saved browser draft could not be checked. Nothing has been replaced. Try again when browser storage is available.'); return }
+    if (raw !== null && approvedRaw !== raw) {
+      setLocalCopyReview({ raw, ...prepareDraftBackup(raw) })
+      setLocalCopyError(approvedRaw === undefined ? null : 'The saved draft changed while you were reviewing it. Review this backup before replacing it.')
+      return
+    }
+    // Only the exact reviewed backup can be removed. Re-read above also catches
+    // a new draft written by another tab while the confirmation was open.
+    if (raw !== null) {
+      try { window.localStorage.removeItem(LOCAL_DRAFT_KEY) }
+      catch { setLocalCopyError('The existing backup could not be replaced. Your shared canvas and saved draft are unchanged.'); return }
+    }
+    if (!shared.detachToLocal()) {
+      if (raw !== null) {
+        try { if (window.localStorage.getItem(LOCAL_DRAFT_KEY) === null) window.localStorage.setItem(LOCAL_DRAFT_KEY, raw) }
+        catch { setLocalCopyError('This chart could not be copied. The reviewed backup is still available to download from this dialog.'); return }
+      }
+      setLocalCopyError('This chart is not ready to become a local copy. Nothing on the canvas has changed.')
+      return
+    }
+    focusAfterLocalCopy.current = true
+    setLocalCopyReview(null)
+    setLocalCopyError(null)
+    setShowWelcomeAI(false)
+    setLayoutNotice('Editing a local copy. Changes are not saved to the original shared chart.')
+  }, [shared.state.id, shared.state.canEdit, shared.state.version, shared.detachToLocal])
+
+  const downloadPreviousDraft = useCallback(() => {
+    if (!localCopyReview) return
+    let url: string | undefined
+    let anchor: HTMLAnchorElement | undefined
+    try {
+      url = URL.createObjectURL(new Blob([localCopyReview.content], { type: localCopyReview.portable ? 'application/json' : 'text/plain' }))
+      anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = localCopyReview.filename
+      document.body.appendChild(anchor)
+      anchor.click()
+    } catch { setLocalCopyError('The backup could not be downloaded. The saved draft is still unchanged.') }
+    finally {
+      anchor?.remove()
+      if (url) {
+        const revoke = URL.revokeObjectURL.bind(URL)
+        window.setTimeout(() => revoke(url!), 1000)
+      }
+    }
+  }, [localCopyReview])
+
+  useEffect(() => {
+    if (!shared.state.id && focusAfterLocalCopy.current) {
+      focusAfterLocalCopy.current = false
+      document.querySelector<HTMLButtonElement>('[aria-label="Find nodes and actions"]')?.focus()
+    }
+  }, [shared.state.id])
+
+  const importDiagram = useCallback((importedNodes: FlowNode[], importedEdges: Edge[], importedMode?: DiagramMode) => {
+    saveToHistory()
+    const content = flowToChart(importedNodes, importedEdges)
+    const hydrated = chartToFlow(content, { onLabelChange: updateNodeLabel, edgeProps: getEdgeStyleProps })
+    setNodes(hydrated.nodes)
+    setEdges(hydrated.edges)
+    setNodeIdCounter((counter) => Math.max(counter, nextNumericNodeId(hydrated.nodes)))
+    setDiagramMode(importedMode ?? (isArchitectureChart(content.nodes) ? 'architecture' : 'flowchart'))
+    setShowWelcomeAI(false)
+    clearAIProposal()
+    fitAfterLoadRef.current = true
+  }, [saveToHistory, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, clearAIProposal])
+
+  const focusNode = useCallback((id: string) => {
+    const node = nodes.find((item) => item.id === id)
+    if (!node) return
+    setNodes((current) => current.map((item) => ({ ...item, selected: item.id === id })))
+    const position = getAbsolutePosition(node, nodes)
+    const size = getNodeDimensions(node.type, node.style)
+    setCenter(position.x + size.width / 2, position.y + size.height / 2, { zoom: 1, duration: 350 })
+  }, [nodes, setNodes, getNodeDimensions, setCenter])
+
+  const autoLayout = useCallback(async (direction: 'TB' | 'LR') => {
+    if (!nodes.length || layoutBusy) return
+    if (shared.state.id && !shared.state.canEdit) {
+      setLayoutNotice('Make an editable copy or open the private edit link to rearrange this diagram.')
+      return
+    }
+    const before = flowToChart(nodes, edges)
+    const baseline = contentFingerprint(before)
+    const requestId = ++layoutSequence.current
+    setLayoutBusy(true)
+    setLayoutNotice(null)
+    try {
+      const { arrangeChart } = await import('./shared/layout')
+      const arranged = await arrangeChart(before.nodes, before.edges, { direction, relayout: true })
+      if (requestId !== layoutSequence.current) return
+      if (baseline !== latestCanvasFingerprint.current) {
+        setLayoutNotice('Your diagram changed while arranging it. Try again with the latest canvas.')
+        return
+      }
+      saveToHistory()
+      applyBaseFlow(arranged)
+      fitAfterLoadRef.current = true
+      window.setTimeout(() => { if (requestId === layoutSequence.current) fitSharedChart() }, 100)
+      setLayoutNotice('Diagram arranged. You can undo this change.')
+    } catch {
+      if (requestId === layoutSequence.current) setLayoutNotice('This diagram could not be arranged. Your canvas is unchanged.')
+    } finally {
+      if (requestId === layoutSequence.current) setLayoutBusy(false)
+    }
+  }, [nodes, edges, layoutBusy, shared.state.id, shared.state.canEdit, saveToHistory, applyBaseFlow, fitSharedChart])
+
+  const arrangementAvailability = useMemo(() => {
+    if (shared.state.id && !shared.state.canEdit) {
+      const unavailable = { enabled: false, reason: 'Make an editable copy or open the private edit link to arrange nodes.' }
+      return { align: unavailable, horizontal: unavailable, vertical: unavailable }
+    }
+    return getSelectionArrangementAvailability(nodes, { getNodeDimensions: node => getNodeDimensions(node.type, node.style) })
+  }, [nodes, getNodeDimensions, shared.state.id, shared.state.canEdit])
+
+  const arrangeSelection = useCallback((action: SelectionArrangeAction) => {
+    if (shared.state.id && !shared.state.canEdit) {
+      setLayoutNotice('Make an editable copy or open the private edit link to arrange nodes.')
+      return
+    }
+    const result = arrangeSelectedNodes(nodes, action, { getNodeDimensions: node => getNodeDimensions(node.type, node.style) })
+    if (result.error) { setLayoutNotice(result.error); return }
+    if (!result.changed) { setLayoutNotice('Your selection is already arranged this way.'); return }
+    saveToHistory()
+    setNodes(result.nodes)
+    setLayoutNotice(action.startsWith('align-') ? 'Selection aligned. You can undo this change.' : 'Selection spaced evenly. You can undo this change.')
+  }, [nodes, getNodeDimensions, shared.state.id, shared.state.canEdit, saveToHistory, setNodes])
+
+  const applyAIChanges = useCallback(() => {
+    if (!aiProposal) return
+    if (shared.state.id && !shared.state.canEdit) {
+      setAIApplyError('Make an editable copy or open the private edit link to apply changes.')
+      return
+    }
+    if (!aiBaseline || aiBaseline !== contentFingerprint(flowToChart(nodes, edges))) {
+      setAIApplyError('Your canvas changed after this request. Cancel this proposal and ask again using the latest diagram.')
+      return
+    }
+    saveToHistory()
+    applyBaseFlow(aiProposal)
+    setNodeIdCounter((counter) => Math.max(counter, nextNumericNodeId(aiProposal.nodes)))
+    const restored = activeAIProposal?.source === 'draft' ? draft.restoreDraft() : null
+    setDiagramMode(restored?.diagramMode ?? (isArchitectureChart(aiProposal.nodes) ? 'architecture' : 'flowchart'))
+    clearAIProposal()
+    setAIApplyError(null)
+    setShowWelcomeAI(false)
+  }, [aiProposal, aiBaseline, activeAIProposal?.source, draft.restoreDraft, shared.state.id, shared.state.canEdit, nodes, edges, saveToHistory, applyBaseFlow, clearAIProposal])
+
+  const previewSavedDraft = useCallback(() => {
+    if (!draft.recovery) return
+    installAIProposal({ summary: 'Saved browser draft', nodes: draft.recovery.flow.nodes, edges: draft.recovery.flow.edges }, 'edit', contentFingerprint(flowToChart(nodes, edges)), undefined, 'draft')
+  }, [draft.recovery, installAIProposal, nodes, edges])
+
+  const selectTemplate = useCallback(async (template: DiagramTemplate) => {
+    const requestId = ++aiRequestSequence.current
+    refinementAbort.current?.abort()
+    setIsRefining(false)
+    setTemplateLoading(true)
+    setTemplateError(null)
+    try {
+      const [layout, schema] = await Promise.all([import('./shared/layout'), import('./shared/flowSchema')])
+      const arranged = await layout.arrangeChart(
+        template.nodes.map(schema.nodeFromInput),
+        template.edges.map((edge, index) => ({ ...schema.edgeFromInput(edge), id: edge.id ?? `template-edge-${index}` })),
+        { direction: template.direction },
+      )
+      if (requestId !== aiRequestSequence.current) return
+      installAIProposal({ summary: template.title, nodes: arranged.nodes, edges: arranged.edges }, 'insert')
+      setShowWelcomeAI(false)
+    } catch {
+      setTemplateError('This template could not be arranged. Please try another one.')
+    } finally { setTemplateLoading(false) }
+  }, [installAIProposal])
+
+  const editChangeSummary = useMemo(() => {
+    if (!aiProposal || aiIntent !== 'edit') return undefined
+    const old = new Set(nodes.map((node) => node.id))
+    const next = new Set(aiProposal.nodes.map((node) => node.id))
+    const added = aiProposal.nodes.filter((node) => !old.has(node.id)).length
+    const removed = nodes.filter((node) => !next.has(node.id)).length
+    return `Apply to the current diagram · ${added} nodes added · ${removed} removed. You can undo after applying.`
+  }, [aiProposal, aiIntent, nodes])
 
   // Compute canvas pan boundaries so the minimap stays locked to the node area.
   // Padding scales with content size but stays tight so you can't pan into empty space.
@@ -1411,7 +1606,11 @@ function FlowChartEditor() {
 
   return (
     <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
+      <div className="workspace-brand"><span aria-hidden="true">✦</span><div><strong>Flowchart</strong><small>Ideas, in their element.</small></div></div>
+      <div className="workspace-status"><span role="status">{layoutBusy ? 'Arranging your diagram…' : templateLoading ? 'Arranging your template…' : layoutNotice ?? templateError ?? `${nodes.length} nodes · ${edges.length} connections`}</span><button className="workspace-search" onClick={() => setCommandOpen(true)} aria-label="Find nodes and actions" title="Find nodes and actions (⌘/Ctrl K)">⌕ <span>Find</span></button><button className="workspace-premium" onClick={() => setPremiumOpen(true)}>✧ Image studio</button></div>
       <Toolbar
+        onOpenTemplates={() => setTemplatesOpen(true)}
+        onOpenChat={() => setIsAIBubbleOpen(true)}
         onAddNode={addNode}
         onAddContainer={addContainer}
         onAddImage={addImageNode}
@@ -1420,24 +1619,19 @@ function FlowChartEditor() {
         sidebarMode={sidebarMode}
         onUndo={undo}
         onRedo={redo}
-        canUndo={historyIndex > 0}
-        canRedo={historyIndex < history.length - 1}
+        canUndo={canUndo}
+        canRedo={canRedo}
         onClearAll={clearAll}
         toolMode={toolMode}
         onSetToolMode={setToolMode}
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         diagramMode={diagramMode}
-        onSetDiagramMode={setDiagramMode}
+        onSetDiagramMode={changeDiagramMode}
         reactFlowWrapper={reactFlowWrapper}
         nodes={nodes}
         edges={edges}
-        onImportJson={(importedNodes, importedEdges, importedMode) => {
-          saveToHistory()
-          setNodes(sortParentsFirst(importedNodes))
-          setEdges(importedEdges)
-          if (importedMode) setDiagramMode(importedMode)
-        }}
+        onImportJson={importDiagram}
         share={{
           isShared: !!shared.state.id,
           canEdit: shared.state.canEdit,
@@ -1448,7 +1642,10 @@ function FlowChartEditor() {
           onCreate: shared.createShare,
         }}
       />
-      <ShareStatus shared={shared} />
+      <ShareStatus shared={shared} onMakeLocalCopy={() => makeLocalCopy()} copyError={localCopyReview ? null : localCopyError} />
+      {localCopyReview && <LocalCopyDialog draft={localCopyReview.draft} portableBackup={localCopyReview.portable} nodeCount={nodes.length} edgeCount={edges.length} error={localCopyError} onCancel={() => { setLocalCopyReview(null); setLocalCopyError(null) }} onDownload={downloadPreviousDraft} onConfirm={() => makeLocalCopy(localCopyReview.raw)} />}
+      {draft.recovery && <aside className="draft-recovery" aria-label="Saved diagram recovery"><div><strong>A thought is waiting for you.</strong><p>{draft.recovery.flow.nodes.length} saved nodes · {new Date(draft.recovery.savedAt).toLocaleString()}</p></div><button onClick={previewSavedDraft}>Preview saved draft</button><button className="draft-discard" onClick={draft.discardDraft}>Discard</button></aside>}
+      {draft.error && <aside className="draft-recovery draft-error" role="alert"><p>{draft.error}</p></aside>}
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
         <ReactFlow
           nodes={nodes}
@@ -1457,6 +1654,7 @@ function FlowChartEditor() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onReconnect={onReconnect}
+          onNodeDragStart={saveToHistory}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}
           connectionMode={ConnectionMode.Loose}
@@ -1705,13 +1903,10 @@ function FlowChartEditor() {
           isOpen={true}
           onClose={dismissWelcomeAI}
           variant="welcome"
+          onOpenTemplates={() => setTemplatesOpen(true)}
+          diagramMode={diagramMode}
           onDismiss={dismissWelcomeAI}
-          onImportJson={(importedNodes, importedEdges, importedMode) => {
-            saveToHistory()
-            setNodes(importedNodes)
-            setEdges(importedEdges)
-            if (importedMode) setDiagramMode(importedMode)
-          }}
+          onImportJson={importDiagram}
         />
       )}
       {/* Full AI chat overlay (triggered by pill button) */}
@@ -1722,11 +1917,16 @@ function FlowChartEditor() {
         isOpen={isAIBubbleOpen}
         onClose={() => setIsAIBubbleOpen(false)}
         variant="full"
+        canEdit={!shared.state.id || shared.state.canEdit}
+        diagramMode={diagramMode}
       />
       {aiProposal && (
         <AIInsertPreviewDialog
           proposal={aiProposal}
-          onInsert={insertAIProposal}
+          onInsert={aiIntent === 'edit' ? applyAIChanges : insertAIProposal}
+          applyLabel={activeAIProposal?.source === 'draft' ? 'Restore saved draft' : aiIntent === 'edit' ? 'Apply changes' : 'Insert into Canvas'}
+          changeSummary={editChangeSummary}
+          applyError={aiApplyError ?? undefined}
           onCancel={cancelAIProposal}
           onPreview={handlePreviewProposal}
           onRefine={handleRefineProposal}
@@ -1734,6 +1934,10 @@ function FlowChartEditor() {
           darkMode={darkMode}
         />
       )}
+      <PremiumStudio isOpen={premiumOpen} onClose={() => setPremiumOpen(false)} onInsertImage={addImageNode} />
+      <CommandPalette isOpen={commandOpen} onClose={() => setCommandOpen(false)} nodes={nodes} onFocusNode={focusNode} onOpenTemplates={() => setTemplatesOpen(true)} onOpenChat={() => setIsAIBubbleOpen(true)} onOpenImageStudio={() => setPremiumOpen(true)} onOpenInsights={() => setInsightsOpen(true)} onAutoLayout={(direction) => { void autoLayout(direction) }} onArrangeSelection={arrangeSelection} arrangementAvailability={arrangementAvailability} />
+      {insightsOpen && <Suspense fallback={<div className="workspace-status" role="status">Reading your diagram…</div>}><DiagramInsights nodes={nodes} edges={edges} onFocusNode={focusNode} onClose={() => setInsightsOpen(false)} /></Suspense>}
+      <TemplateGallery isOpen={templatesOpen} onClose={() => setTemplatesOpen(false)} onSelect={(template) => { void selectTemplate(template) }} />
       {/* Show pill when welcome prompt is not visible and AI bubble is not open */}
       {!isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
         <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">

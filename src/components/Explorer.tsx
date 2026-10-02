@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
-import { Node, Edge } from 'reactflow'
+import type { Node, Edge } from 'reactflow'
 import './Explorer.css'
-import { BaseFlow, BaseFlowEdge, BaseFlowNode, EdgeStyle, HandlePosition } from '../App'
+import type { BaseFlow, BaseFlowEdge, BaseFlowNode, EdgeStyle, HandlePosition } from '../App'
+import { getIconId } from '../utils/azureIconIds'
+import { parseDiagramJson } from '../utils/importFlow'
 
 interface ExplorerProps {
   nodes: Node[]
@@ -18,11 +20,62 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
   const [baseText, setBaseText] = useState('')
   const [baseError, setBaseError] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
+  const [query, setQuery] = useState('')
+  const [baseCopied, setBaseCopied] = useState(false)
+  const [isModal, setIsModal] = useState(() => window.innerWidth <= 600)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
+  const onCloseRef = useRef(onClose)
+  const nodeById = useMemo(() => new Map(nodes.map((node) => [node.id, node])), [nodes])
+  const normalizedQuery = query.trim().toLocaleLowerCase()
+  const visibleNodes = nodes.map((node, index) => ({ node, index })).filter(({ node }) =>
+    `${node.data.label ?? ''} ${node.type ?? ''} ${node.id}`.toLocaleLowerCase().includes(normalizedQuery),
+  )
+  const visibleEdges = edges.filter((edge) =>
+    `${edge.label ?? ''} ${nodeById.get(edge.source)?.data.label ?? edge.source} ${nodeById.get(edge.target)?.data.label ?? edge.target}`.toLocaleLowerCase().includes(normalizedQuery),
+  )
+
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  useEffect(() => {
+    const handleResize = () => setIsModal(window.innerWidth <= 600)
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    searchRef.current?.focus()
+    const handleEscape = (event: KeyboardEvent) => {
+      if (!panelRef.current?.contains(document.activeElement)) return
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        onCloseRef.current()
+      }
+      if (event.key !== 'Tab' || window.innerWidth > 600) return
+      const controls = panelRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), input, textarea')
+      if (!controls.length) return
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', handleEscape, true)
+    return () => {
+      document.removeEventListener('keydown', handleEscape, true)
+      if (previousFocus?.isConnected) previousFocus.focus()
+    }
+  }, [])
 
   // Drag and drop state
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
-  const dragNodeRef = useRef<HTMLDivElement | null>(null)
 
   const handleNodeNameChange = (nodeId: string, newLabel: string) => {
     onUpdateNodeLabel(nodeId, newLabel)
@@ -32,12 +85,6 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
     setDraggedIndex(index)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/plain', index.toString())
-    // Add a slight delay to apply dragging class for visual feedback
-    setTimeout(() => {
-      if (dragNodeRef.current) {
-        dragNodeRef.current.classList.add('dragging')
-      }
-    }, 0)
   }, [])
 
   const handleDragEnd = useCallback(() => {
@@ -85,6 +132,7 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
         width,
         height,
         imageUrl: typeof node.data.imageUrl === 'string' ? node.data.imageUrl : undefined,
+        icon: typeof node.data.icon === 'string' ? node.data.icon : typeof node.data.imageUrl === 'string' ? getIconId(node.data.imageUrl) : undefined,
         parentNode: typeof node.parentNode === 'string' ? node.parentNode : undefined,
         containerKind: typeof node.data.containerKind === 'string' ? node.data.containerKind : undefined,
       }
@@ -98,6 +146,8 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
       sourceHandle: typeof edge.sourceHandle === 'string' ? (edge.sourceHandle as HandlePosition) : undefined,
       targetHandle: typeof edge.targetHandle === 'string' ? (edge.targetHandle as HandlePosition) : undefined,
       label: typeof edge.label === 'string' ? edge.label : undefined,
+      protocol: edge.data?.protocol,
+      commStyle: edge.data?.commStyle,
     }))
 
     return { nodes: baseNodes, edges: baseEdges }
@@ -108,49 +158,14 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
   useEffect(() => {
     if (viewMode === 'json' && !isDirty) {
       setBaseText(baseFlowText)
+      setBaseCopied(false)
     }
   }, [baseFlowText, isDirty, viewMode])
-
-  const isEdgeStyle = (value: unknown): value is EdgeStyle => {
-    return value === 'default' || value === 'animated' || value === 'step'
-  }
-
-  const isHandlePosition = (value: unknown): value is HandlePosition => {
-    return value === 'top' || value === 'right' || value === 'bottom' || value === 'left'
-  }
-
-  const normalizeNode = (node: BaseFlowNode): BaseFlowNode | null => {
-    if (!node || typeof node.id !== 'string') return null
-    if (!node.position || typeof node.position.x !== 'number' || typeof node.position.y !== 'number') return null
-    return {
-      id: node.id,
-      type: node.type || 'step',
-      label: node.label || '',
-      position: node.position,
-      width: typeof node.width === 'number' ? node.width : undefined,
-      height: typeof node.height === 'number' ? node.height : undefined,
-      imageUrl: typeof node.imageUrl === 'string' ? node.imageUrl : undefined,
-      parentNode: typeof node.parentNode === 'string' ? node.parentNode : undefined,
-      containerKind: typeof node.containerKind === 'string' ? node.containerKind : undefined,
-    }
-  }
-
-  const normalizeEdge = (edge: BaseFlowEdge): BaseFlowEdge | null => {
-    if (!edge || typeof edge.source !== 'string' || typeof edge.target !== 'string') return null
-    return {
-      id: typeof edge.id === 'string' ? edge.id : undefined,
-      source: edge.source,
-      target: edge.target,
-      style: isEdgeStyle(edge.style) ? edge.style : undefined,
-      sourceHandle: isHandlePosition(edge.sourceHandle) ? edge.sourceHandle : undefined,
-      targetHandle: isHandlePosition(edge.targetHandle) ? edge.targetHandle : undefined,
-      label: typeof edge.label === 'string' ? edge.label : undefined,
-    }
-  }
 
   const handleCopyBase = async () => {
     try {
       await navigator.clipboard.writeText(baseText)
+      setBaseCopied(true)
     } catch (error) {
       setBaseError('Unable to copy to clipboard. Select and copy manually.')
     }
@@ -158,35 +173,23 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
 
   const handleApplyBase = () => {
     try {
-      const parsed = JSON.parse(baseText) as BaseFlow
-      if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-        throw new Error('Invalid JSON format')
-      }
-
-      const normalizedNodes = parsed.nodes
-        .map((node) => normalizeNode(node as BaseFlowNode))
-        .filter((node): node is BaseFlowNode => node !== null)
-
-      const normalizedEdges = parsed.edges
-        .map((edge) => normalizeEdge(edge as BaseFlowEdge))
-        .filter((edge): edge is BaseFlowEdge => edge !== null)
-
-      onApplyFlow({ nodes: normalizedNodes, edges: normalizedEdges })
+      const { flow } = parseDiagramJson(baseText)
+      onApplyFlow(flow)
       setIsDirty(false)
       setBaseError(null)
     } catch (error) {
-      setBaseError('Invalid JSON. Please check the format and try again.')
+      setBaseError(`Invalid JSON. ${error instanceof Error ? error.message : 'Please check the format and try again.'}`)
     }
   }
 
   return (
     <>
       <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" />
-      <div className="explorer-sidebar">
+      <aside ref={panelRef} className="explorer-sidebar" role={isModal ? 'dialog' : undefined} aria-modal={isModal || undefined} aria-label="Diagram explorer">
         <div className="explorer-header">
           <div className="explorer-header-content">
-            <h3>Explorer</h3>
-            <div className="explorer-view-toggle" role="tablist" aria-label="Explorer view mode">
+            <div className="explorer-heading"><span className="explorer-eyebrow">Your diagram, in detail</span><h3>Explorer</h3></div>
+            <div className="explorer-view-toggle" role="group" aria-label="Explorer view mode">
               <button
                 className={`explorer-toggle-button ${viewMode === 'visual' ? 'active' : ''}`}
                 onClick={() => {
@@ -194,6 +197,7 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
                   setBaseError(null)
                 }}
                 type="button"
+                aria-pressed={viewMode === 'visual'}
               >
                 Visual
               </button>
@@ -205,12 +209,13 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
                   setBaseError(null)
                 }}
                 type="button"
+                aria-pressed={viewMode === 'json'}
               >
                 JSON
               </button>
             </div>
           </div>
-          <button className="explorer-close" onClick={onClose} title="Close sidebar">
+          <button className="explorer-close" onClick={onClose} title="Close sidebar" aria-label="Close explorer" type="button">
             ×
           </button>
         </div>
@@ -218,13 +223,15 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
         <div className="explorer-content">
           {viewMode === 'visual' ? (
             <>
+              <div className="explorer-overview"><span><strong>{nodes.length}</strong> nodes</span><span><strong>{edges.length}</strong> connections</span></div>
+              <label className="explorer-search"><svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg><input ref={searchRef} type="search" aria-label="Search diagram explorer" placeholder="Find a node or connection…" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+              {normalizedQuery ? <p className="explorer-search-results" role="status">{visibleNodes.length} nodes and {visibleEdges.length} connections match</p> : null}
               <div className="explorer-section">
                 <h4>Nodes ({nodes.length})</h4>
                 <div className="explorer-list">
-                  {nodes.map((node, index) => (
+                  {visibleNodes.map(({ node, index }) => (
                     <div
                       key={node.id}
-                      ref={draggedIndex === index ? dragNodeRef : null}
                       className={`explorer-item draggable ${draggedIndex === index ? 'dragging' : ''
                         } ${dragOverIndex === index ? 'drag-over' : ''}`}
                       draggable
@@ -251,11 +258,16 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
                         value={node.data.label || ''}
                         onChange={(e) => handleNodeNameChange(node.id, e.target.value)}
                         placeholder="Node name"
+                        aria-label={`Name for node ${index + 1}`}
                       />
+                      <span className="explorer-reorder" role="group" aria-label={`Reorder ${node.data.label || 'node'}`}>
+                        <button type="button" aria-label={`Move node ${index + 1} up`} disabled={index === 0} onClick={() => onReorderNodes(index, index - 1)}>↑</button>
+                        <button type="button" aria-label={`Move node ${index + 1} down`} disabled={index === nodes.length - 1} onClick={() => onReorderNodes(index, index + 1)}>↓</button>
+                      </span>
                     </div>
                   ))}
-                  {nodes.length === 0 && (
-                    <div className="explorer-empty">No nodes yet</div>
+                  {visibleNodes.length === 0 && (
+                    <div className="explorer-empty">{normalizedQuery ? 'No matching nodes' : 'Your first node starts the story.'}</div>
                   )}
                 </div>
               </div>
@@ -263,9 +275,9 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
               <div className="explorer-section">
                 <h4>Edges ({edges.length})</h4>
                 <div className="explorer-list">
-                  {edges.map((edge, index) => {
-                    const sourceNode = nodes.find((n) => n.id === edge.source)
-                    const targetNode = nodes.find((n) => n.id === edge.target)
+                  {visibleEdges.map((edge, index) => {
+                    const sourceNode = nodeById.get(edge.source)
+                    const targetNode = nodeById.get(edge.target)
                     return (
                       <div key={edge.id || index} className="explorer-item edge-item">
                         <div className="edge-info">
@@ -279,6 +291,7 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
                           value={typeof edge.label === 'string' ? edge.label : ''}
                           onChange={(e) => onUpdateEdgeLabel(edge.id, e.target.value)}
                           placeholder="Add label..."
+                          aria-label={`Connection label from ${sourceNode?.data.label || edge.source} to ${targetNode?.data.label || edge.target}`}
                         />
                         <div className="edge-badges">
                           {edge.animated && <span className="edge-style-badge">animated</span>}
@@ -289,8 +302,8 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
                       </div>
                     )
                   })}
-                  {edges.length === 0 && (
-                    <div className="explorer-empty">No edges yet</div>
+                  {visibleEdges.length === 0 && (
+                    <div className="explorer-empty">{normalizedQuery ? 'No matching connections' : 'Connect two nodes to build momentum.'}</div>
                   )}
                 </div>
               </div>
@@ -307,13 +320,15 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
                   setBaseText(e.target.value)
                   setIsDirty(true)
                   setBaseError(null)
+                  setBaseCopied(false)
                 }}
                 spellCheck={false}
+                aria-label="Diagram JSON"
               />
-              {baseError && <div className="explorer-json-error">{baseError}</div>}
+              {baseError && <div className="explorer-json-error" role="alert">{baseError}</div>}
               <div className="explorer-json-actions">
                 <button className="explorer-json-button" onClick={handleCopyBase} type="button">
-                  Copy
+                  {baseCopied ? 'Copied ✓' : 'Copy'}
                 </button>
                 <button className="explorer-json-button primary" onClick={handleApplyBase} type="button">
                   Apply Changes
@@ -322,7 +337,7 @@ function Explorer({ nodes, edges, onUpdateNodeLabel, onUpdateEdgeLabel, onReorde
             </div>
           )}
         </div>
-      </div>
+      </aside>
     </>
   )
 }

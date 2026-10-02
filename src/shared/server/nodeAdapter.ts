@@ -5,10 +5,14 @@
 import type { IncomingMessage } from 'node:http'
 import { BODY_TOO_LARGE_FLAG, MCP_MAX_BODY_BYTES } from './http.js'
 
-export type ApiRouteName = 'mcp' | 'flows' | 'flow'
+export type ApiRouteName = 'mcp' | 'flows' | 'flow' | 'chat' | 'billingSession' | 'billingCheckout' | 'billingPortal' | 'billingWebhook' | 'billingRecovery' | 'billingRestore' | 'images' | 'imageAsset'
 
 /** Map a path to the api/ function Vercel would run for it. */
 export function matchApiRoute(pathname: string): { name: ApiRouteName; params: Record<string, string> } | null {
+  const asset = pathname.match(/^\/api\/images\/([^/]+)\/?$/)
+  if (asset) return { name: 'imageAsset', params: { id: asset[1] } }
+  const extra: Record<string, ApiRouteName> = { '/api/chat': 'chat', '/api/billing/session': 'billingSession', '/api/billing/checkout': 'billingCheckout', '/api/billing/portal': 'billingPortal', '/api/billing/webhook': 'billingWebhook', '/api/billing/recovery': 'billingRecovery', '/api/billing/restore': 'billingRestore', '/api/images': 'images' }
+  if (extra[pathname.replace(/\/$/, '')]) return { name: extra[pathname.replace(/\/$/, '')], params: {} }
   if (pathname === '/api/mcp' || pathname === '/api/mcp/') return { name: 'mcp', params: {} }
   if (pathname === '/api/flows' || pathname === '/api/flows/') return { name: 'flows', params: {} }
   const match = pathname.match(/^\/api\/flows\/([^/]+)\/?$/)
@@ -26,6 +30,11 @@ export function matchApiRoute(pathname: string): { name: ApiRouteName; params: R
 
 /** Module that implements each route (relative to the project root). */
 export const API_ROUTE_MODULES: Record<ApiRouteName, string> = {
+  chat: '/api/chat.ts',
+  billingSession: '/api/billing/session.ts', billingCheckout: '/api/billing/checkout.ts',
+  billingPortal: '/api/billing/portal.ts', billingWebhook: '/api/billing/webhook.ts',
+  billingRecovery: '/api/billing/recovery.ts', billingRestore: '/api/billing/restore.ts',
+  images: '/api/images.ts', imageAsset: '/api/images/[id].ts',
   mcp: '/api/mcp.ts',
   flows: '/api/flows/index.ts',
   flow: '/api/flows/[id].ts',
@@ -33,6 +42,7 @@ export const API_ROUTE_MODULES: Record<ApiRouteName, string> = {
 
 type MutableRequest = IncomingMessage & {
   body?: unknown
+  rawBody?: Buffer
   query?: Record<string, string | string[] | undefined>
 }
 
@@ -67,7 +77,8 @@ export async function prepareVercelStyleRequest(
     return
   }
 
-  const raw = Buffer.concat(chunks).toString('utf8')
+  request.rawBody = Buffer.concat(chunks)
+  const raw = request.rawBody.toString('utf8')
   if (!raw) {
     request.body = undefined
     return

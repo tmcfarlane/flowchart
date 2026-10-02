@@ -68,31 +68,37 @@ export function remapPastedNodes(
   clipboardEdges: Edge[],
   startCounter: number,
 ): { nodes: FlowNode[]; edges: Edge[]; nextCounter: number } {
-  const idMapping: Record<string, string> = {}
+  const idMapping = new Map<string, string>()
   clipboardNodes.forEach((node, i) => {
-    idMapping[node.id] = (startCounter + i).toString()
+    idMapping.set(node.id, (startCounter + i).toString())
   })
 
   const nodes = clipboardNodes.map((node) => {
-    const newParent = node.parentNode ? idMapping[node.parentNode] : undefined
+    const newParent = node.parentNode ? idMapping.get(node.parentNode) : undefined
     return {
       ...node,
-      id: idMapping[node.id],
+      id: idMapping.get(node.id)!,
       parentNode: newParent,
       extent: newParent ? node.extent : undefined,
       selected: false,
     }
   })
 
+  const connections = new Map<string, number>()
   const edges = clipboardEdges
-    .filter((edge) => idMapping[edge.source] && idMapping[edge.target])
-    .map((edge) => ({
-      ...edge,
-      id: `e${idMapping[edge.source]}-${idMapping[edge.target]}`,
-      source: idMapping[edge.source],
-      target: idMapping[edge.target],
-      selected: false,
-    }))
+    .filter((edge) => idMapping.has(edge.source) && idMapping.has(edge.target))
+    .map((edge) => {
+      const source = idMapping.get(edge.source)!
+      const target = idMapping.get(edge.target)!
+      const base = `e${source}-${target}`
+      const ordinal = connections.get(base) ?? 0
+      connections.set(base, ordinal + 1)
+      return {
+        ...edge,
+        id: ordinal ? `${base}-${ordinal}` : base,
+        source, target, selected: false,
+      }
+    })
 
   return { nodes, edges, nextCounter: startCounter + clipboardNodes.length }
 }

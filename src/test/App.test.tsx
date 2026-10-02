@@ -23,7 +23,7 @@ describe('FlowChart Designer', () => {
 
   it('shows the welcome AI prompt on an empty canvas', () => {
     render(<App />)
-    expect(screen.getByText("What's your flow?")).toBeInTheDocument()
+    expect(screen.getByText("From a spark to a whole system.")).toBeInTheDocument()
   })
 
   it('can add a new step node', () => {
@@ -129,6 +129,8 @@ describe('FlowChart Designer', () => {
     // Modal should close and starter node should be removed
     expect(screen.queryByText('Clear the entire board?')).not.toBeInTheDocument()
     expect(screen.queryByText('Step')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Undo')).toBeDisabled()
+    expect(screen.getByLabelText('Redo')).toBeDisabled()
   })
 })
 
@@ -147,36 +149,36 @@ describe('AI Flowchart Assistant', () => {
 
   it('shows welcome prompt first, then the AI floating pill after dismiss', () => {
     render(<App />)
-    expect(screen.getByText("What's your flow?")).toBeInTheDocument()
+    expect(screen.getByText("From a spark to a whole system.")).toBeInTheDocument()
     expect(screen.queryByLabelText('Open AI Assistant')).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('No, thank you'))
+    fireEvent.click(screen.getByText('Start with a blank canvas'))
     expect(screen.getByLabelText('Open AI Assistant')).toBeInTheDocument()
   })
 
   it('opens the AI bubble when clicking the floating pill', () => {
     render(<App />)
-    fireEvent.click(screen.getByText('No, thank you'))
+    fireEvent.click(screen.getByText('Start with a blank canvas'))
     const aiButton = screen.getByLabelText('Open AI Assistant')
     fireEvent.click(aiButton)
 
-    expect(screen.getByText("What's the vibe today?")).toBeInTheDocument()
-    expect(screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)).toBeInTheDocument()
+    expect(screen.getByText("Diagram copilot")).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/An idea, a process, a world/i)).toBeInTheDocument()
   })
 
   it('closes the AI bubble when clicking close button', () => {
     render(<App />)
     
     // Open bubble
-    fireEvent.click(screen.getByText('No, thank you'))
+    fireEvent.click(screen.getByText('Start with a blank canvas'))
     const aiButton = screen.getByLabelText('Open AI Assistant')
     fireEvent.click(aiButton)
-    expect(screen.getByText("What's the vibe today?")).toBeInTheDocument()
+    expect(screen.getByText("Diagram copilot")).toBeInTheDocument()
 
     // Close bubble
     const closeButton = screen.getByLabelText('Close')
     fireEvent.click(closeButton)
-    expect(screen.queryByText("What's the vibe today?")).not.toBeInTheDocument()
+    expect(screen.queryByText("Diagram copilot")).not.toBeInTheDocument()
   })
 
   it('shows preview dialog when AI returns a valid proposal', async () => {
@@ -207,7 +209,7 @@ describe('AI Flowchart Assistant', () => {
     render(<App />)
 
     // Type a prompt
-    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
+    const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
     fireEvent.change(input, { target: { value: 'Create a login flow' } })
 
     // Click generate
@@ -248,7 +250,7 @@ describe('AI Flowchart Assistant', () => {
     render(<App />)
 
     // Generate via welcome prompt
-    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
+    const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
     fireEvent.change(input, { target: { value: 'Add a test node' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
@@ -292,7 +294,7 @@ describe('AI Flowchart Assistant', () => {
     render(<App />)
 
     // Generate via welcome prompt
-    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
+    const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
     fireEvent.change(input, { target: { value: 'Add a test node' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
@@ -328,14 +330,14 @@ describe('AI Flowchart Assistant', () => {
     render(<App />)
 
     // Generate via welcome prompt
-    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
+    const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
     fireEvent.change(input, { target: { value: 'Invalid request' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
 
     // Wait for error message
     await waitFor(() => {
-      expect(screen.getByText(/could not parse ai response/i)).toBeInTheDocument()
+      expect(screen.getByText(/unreadable diagram/i)).toBeInTheDocument()
     })
 
     // Preview dialog should NOT appear
@@ -360,7 +362,7 @@ describe('AI Flowchart Assistant', () => {
     render(<App />)
 
     // Generate via welcome prompt
-    const input = screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)
+    const input = screen.getByPlaceholderText(/An idea, a process, a world/i)
     fireEvent.change(input, { target: { value: 'Add something' } })
     const generateButton = screen.getByText('Generate Flowchart')
     fireEvent.click(generateButton)
