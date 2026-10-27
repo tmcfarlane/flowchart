@@ -7,6 +7,10 @@ import { aiEnabled, readAiConfig, providerEndpoint, type AiConfig, type AiEnv } 
 import { createAiAdmission, type AiAdmission, type AdmissionReason } from './aiAdmission.js'
 import { ChatRequestSchema, ProposalSchema, PROPOSAL_RESPONSE_FORMAT, type ChatRequest } from './chatSchema.js'
 import { BODY_TOO_LARGE_FLAG, clientIp, sendJson, type ApiRequest } from './http.js'
+import { edgeFromInput, nodeFromInput } from '../flowSchema.js'
+import type { ChartEdge, ChartNode } from '../flowTypes.js'
+import { validateSelectionEdit } from '../selectionEdit.js'
+import { getAzureIcon } from '../icons.js'
 
 interface ChatDependencies {
   fetch: typeof fetch
@@ -49,6 +53,24 @@ class ChatFailure extends Error {
 const unavailable = () => new ChatFailure(503, 'unavailable', 'AI is temporarily unavailable. Please try again later.')
 
 function buildMessages(request: ChatRequest, skill: string) {
+  if (request.mode === 'edit') {
+    // Sparse JSON edits use json_object: making every optional patch property
+    // required and filling it with null would REMOVE unchanged metadata.
+    const system = `You edit only an explicitly selected part of a ${request.diagramMode} diagram. Return ONLY JSON with this exact envelope: {"summary":"Short explanation","operations":[...]}.
+Do not return a replacement diagram, nodes array, or edges array. Preserve existing IDs. Preserve all geometry, size, icons, hierarchy and connections unless the user explicitly asks to change them. Emit sparse changes: omit untouched fields; null explicitly removes an optional field.
+Supported operations:
+- {"op":"update_node","id":"selected existing node ID","changes":{"label":"new label"}}. Changes may also include type, position:{x,y}, width, height, icon, imageUrl, parentNode, containerKind.
+- {"op":"remove_node","id":"selected existing node ID"}. This removes incident connections and detaches its children; do not use it if that would change unselected children or connections outside the approved edge IDs.
+- {"op":"add_node","node":{"id":"new unique ID","type":"step|decision|note|image|service|database|queue|cache|apiGateway|externalActor|container","label":"label","position":{"x":0,"y":0}}}. Supply an explicit position; optional fields are width,height,icon,imageUrl,parentNode,containerKind. Parents must be selected or newly added containers.
+- {"op":"update_edge","id":"approved existing edge ID","changes":{"label":"new label"}}. Changes may also include source,target,style,sourceHandle,targetHandle,protocol,commStyle.
+- {"op":"remove_edge","id":"approved existing edge ID"}.
+- {"op":"add_edge","edge":{"id":"new unique ID","source":"node ID","target":"node ID"}}. Optional fields: label,style,sourceHandle,targetHandle,protocol,commStyle. At least one endpoint must be selected/new. Other endpoints must belong to explicitly approved boundary edges.
+Node types and protocol names are exact enums. Edge style is default|animated|step; handle is top|right|bottom|left; protocol is HTTPS|gRPC|REST|SQL|WebSocket|event; communication style is sync|async. Child positions are parent-relative. Never request automatic layout or null positions. Do not change an unselected node, even if it is shown as read-only context. Existing selected/new IDs are the only writable node scope; only the listed edge IDs are writable connection scope.
+FROZEN EDIT SCOPE: ${JSON.stringify(request.selection)}
+DIAGRAM CONTEXT (unselected nodes and unapproved edges are READ ONLY): ${JSON.stringify(request.flowContext)}
+The user will preview and apply these operations atomically. If the requested change cannot fit this scope, explain that in summary and return an empty operations array; do not expand the scope yourself.`
+    return [{ role: 'system', content: system }, ...request.messages]
+  }
   let system = skill
   system += request.diagramMode === 'architecture' || request.diagramMode === 'draw'
     ? '\nCreate an architecture diagram. Use service, database, queue, cache, apiGateway, externalActor and container nodes as appropriate. Preserve parentNode, containerKind, protocol and commStyle metadata. Child positions are relative to their container. Include all schema fields and use null for unused optional values.'
@@ -173,7 +195,7 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
     const doFetch = context.dependencies?.fetch ?? fetch
     const route = config.route
     const endpoint = providerEndpoint(route)
-    let responseFormat: unknown = PROPOSAL_RESPONSE_FORMAT
+    let responseFormat: unknown = request.mode === 'edit' ? { type: 'json_object' } : PROPOSAL_RESPONSE_FORMAT
     for (let attempt = 0; attempt < 2; attempt++) {
       if (!aiEnabled(context.env)) throw new ChatFailure(503, 'disabled', 'AI is currently disabled. You can still edit the canvas.')
       const body = JSON.stringify({ messages, max_completion_tokens: config.maxOutputTokens, ...(config.reasoningEffort ? { reasoning_effort: config.reasoningEffort } : {}), response_format: responseFormat })
@@ -204,7 +226,7 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
         const data = await bounded(readBoundedResponse(response, config.maxResponseBytes))
         finished = true
         if (!response.ok) {
-          if (attempt === 0 && formatUnsupported(response.status, data)) {
+          if (request.mode !== 'edit' && attempt === 0 && formatUnsupported(response.status, data)) {
             responseFormat = { type: 'json_object' }
             continue
           }
@@ -225,13 +247,25 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
         if (choice.finish_reason === 'length') throw new ChatFailure(502, 'truncated', 'AI reached its response limit. Try a simpler diagram.')
         let proposal: unknown
         try { proposal = JSON.parse(choice.message?.content || '') as unknown } catch { throw new ChatFailure(502, 'invalid_diagram', 'AI returned an invalid diagram. Please try again.') }
-        const validated = ProposalSchema.safeParse(proposal)
-        if (!validated.success) throw new ChatFailure(502, 'invalid_diagram', 'AI returned an invalid diagram. Please try again.')
+        let message: string
+        if (request.mode === 'edit' && request.selection && request.flowContext) {
+          const validated = validateSelectionEdit(request.flowContext.nodes.map(node => nodeFromInput(node) as ChartNode), request.flowContext.edges.map(edge => edgeFromInput(edge) as ChartEdge), request.selection, proposal)
+          if (!validated.ok) throw new ChatFailure(502, 'invalid_edit', validated.error)
+          for (const operation of validated.proposal.operations) {
+            const icon = operation.op === 'add_node' ? operation.node.icon : operation.op === 'update_node' ? operation.changes.icon : undefined
+            if (icon && !getAzureIcon(icon.trim())) throw new ChatFailure(502, 'invalid_edit', 'AI proposed an unknown Azure icon. Please try a different icon.')
+          }
+          message = JSON.stringify(validated.proposal)
+        } else {
+          const validated = ProposalSchema.safeParse(proposal)
+          if (!validated.success) throw new ChatFailure(502, 'invalid_diagram', 'AI returned an invalid diagram. Please try again.')
+          message = JSON.stringify(validated.data)
+        }
         await bounded(allowance.release())
         finished = false
         event.status = 200
         event.outcome = 'success'
-        sendJson(res, 200, { message: JSON.stringify(validated.data), role: 'assistant', finishReason: choice.finish_reason || 'stop' }, { 'X-Request-Id': requestId })
+        sendJson(res, 200, { message, role: 'assistant', finishReason: choice.finish_reason || 'stop' }, { 'X-Request-Id': requestId })
         return
       } finally {
         if (finished && !timedOut) await bounded(allowance.release())

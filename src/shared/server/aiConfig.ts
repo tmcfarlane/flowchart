@@ -3,10 +3,11 @@ import { z } from 'zod'
 export type AiEnv = Record<string, string | undefined>
 
 const segment = z.string().trim().min(1).max(200).regex(/^[a-zA-Z0-9_-]+$/)
+const deploymentName = z.string().trim().min(1).max(200).regex(/^[a-zA-Z0-9_-][a-zA-Z0-9_.-]*$/)
 const secret = z.string().trim().min(1)
 const azureSchema = z.object({
   resource: segment,
-  deployment: segment,
+  deployment: deploymentName,
   apiVersion: z.string().regex(/^\d{4}-\d{2}-\d{2}(?:-preview)?$/),
   apiKey: secret,
 })

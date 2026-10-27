@@ -70,9 +70,11 @@ interface AIChatProps {
   diagramMode?: DiagramMode
   onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
   onImportFile?: (file: File) => void
+  selectedCount?: number
+  onEditSelection?: () => void
 }
 
-function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, diagramMode = 'flowchart' }: AIChatProps) {
+function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, diagramMode = 'flowchart', selectedCount = 0, onEditSelection }: AIChatProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -509,6 +511,9 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
 
         <div className="ai-bubble-content">
           {!isLoading && <p className="ai-welcome-heading">What's the vibe today?</p>}
+          {!isLoading && onEditSelection && <button className="ai-selection-action" onClick={onEditSelection} disabled={selectedCount === 0}>
+            <span>✦ Edit selected nodes</span><span>{selectedCount} node{selectedCount === 1 ? '' : 's'}</span>
+          </button>}
 
           {isLoading ? (
             <div className="loading-indicator">
