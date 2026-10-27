@@ -133,6 +133,7 @@ interface ChatBubble {
 function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, isRefining, darkMode }: AIInsertPreviewDialogProps) {
   const [isFullscreen, setIsFullscreen] = useState(proposal.nodes.length >= 8)
   const [refinementInput, setRefinementInput] = useState('')
+  const [refinementError, setRefinementError] = useState<string | null>(null)
   const [showChat, setShowChat] = useState(true)
   const [chatMessages, setChatMessages] = useState<ChatBubble[]>([])
   const { fitView } = useReactFlow()
@@ -140,16 +141,10 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
   const chatBodyRef = useRef<HTMLDivElement>(null)
 
   // Convert proposal nodes/edges to React Flow format
-  const getEdgeStyleProps = useCallback((style?: EdgeStyle) => {
-    switch (style) {
-      case 'animated':
-        return { animated: true, type: 'default' as const }
-      case 'step':
-        return { type: 'step' as const }
-      default:
-        return { type: 'default' as const }
-    }
-  }, [])
+  const getEdgeStyleProps = useCallback((style?: EdgeStyle, commStyle?: 'sync' | 'async') => ({
+    animated: commStyle ? commStyle === 'async' : style === 'animated',
+    type: style === 'step' ? 'smoothstep' : 'default',
+  }), [])
 
   const nodes: FlowNode[] = useMemo(() => {
     const rawNodes: FlowNode[] = proposal.nodes.map((node) => ({
@@ -201,7 +196,8 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
     sourceHandle: edge.sourceHandle || 'bottom',
     targetHandle: edge.targetHandle || 'top',
     label: edge.label,
-    ...getEdgeStyleProps(edge.style),
+    ...getEdgeStyleProps(edge.style, edge.commStyle),
+    data: { protocol: edge.protocol, commStyle: edge.commStyle },
     markerEnd: {
       type: MarkerType.ArrowClosed,
       width: 20,
@@ -258,10 +254,12 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
     // Show user message immediately
     setChatMessages((prev) => [...prev, { role: 'user', content: instruction }])
     setRefinementInput('')
-    const summary = await onRefine(instruction)
-    // Show AI response after refinement completes
-    if (summary) {
-      setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }])
+    setRefinementError(null)
+    try {
+      const summary = await onRefine(instruction)
+      if (summary) setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }])
+    } catch (error) {
+      setRefinementError(error instanceof Error ? error.message : 'AI is temporarily unavailable.')
     }
   }, [refinementInput, isRefining, onRefine])
 
@@ -371,6 +369,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
                   </button>
                 </div>
                 <div className="ai-preview-chat-body" ref={chatBodyRef}>
+                  {refinementError && <p role="alert">{refinementError}</p>}
                   {proposal.summary && (
                     <div className="ai-preview-chat-summary">{proposal.summary}</div>
                   )}

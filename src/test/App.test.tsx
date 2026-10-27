@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import App from '../App'
+import { resolveAzureIcons } from '../utils/azureIconRegistry'
 
 describe('FlowChart Designer', () => {
   it('renders the app with toolbar', () => {
@@ -396,5 +397,53 @@ describe('AI Flowchart Assistant', () => {
     expect(body.flowContext).toBeDefined()
     expect(body.flowContext.nodes).toEqual([])
     expect(body.flowContext.edges).toEqual([])
+  })
+
+  it('sends architecture metadata for refinement and displays rate-limit feedback', async () => {
+    const proposal = {
+      summary: 'Order system',
+      nodes: [
+        { id: 'api', type: 'service', label: 'Order API', position: { x: 0, y: 0 } },
+        { id: 'db', type: 'database', label: 'Orders', position: { x: 0, y: 150 } },
+      ],
+      edges: [{ id: 'write', source: 'api', target: 'db', label: 'Save', protocol: 'SQL', commStyle: 'async' }],
+    }
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ message: JSON.stringify(proposal), role: 'assistant' }) })
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 429, json: async () => ({ error: 'AI has reached its daily usage limit. Please try again tomorrow.' }) })
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Architecture Mode'))
+    fireEvent.click(screen.getByLabelText('Open AI Assistant'))
+    fireEvent.change(screen.getByPlaceholderText(/Describe any process, workflow, or plan/i), { target: { value: 'Draw an order system' } })
+    fireEvent.click(screen.getByText('Generate Flowchart'))
+    await screen.findByText('Preview AI Proposal')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).diagramMode).toBe('architecture')
+    fireEvent.change(screen.getByPlaceholderText(/Describe how to refine/i), { target: { value: 'Add a retry' } })
+    fireEvent.click(screen.getByText('Regenerate'))
+    expect(await screen.findByRole('alert')).toHaveTextContent('AI has reached its daily usage limit')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const refinement = JSON.parse(fetchMock.mock.calls[1][1].body)
+    expect(refinement).toMatchObject({ mode: 'refine', diagramMode: 'architecture', flowContext: { edges: [expect.objectContaining({ protocol: 'SQL', commStyle: 'async' })] } })
+    expect(screen.getByText('Insert into Canvas')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Insert into Canvas'))
+    expect(screen.getByText('Order API')).toBeInTheDocument()
+    expect(screen.getByText('Orders')).toBeInTheDocument()
+  })
+
+})
+
+
+describe('Architecture AI icons', () => {
+  it('adds local icons without replacing semantic types or container boundaries', () => {
+    const proposal = resolveAzureIcons({
+      summary: 'Azure services',
+      nodes: [
+        { id: 'boundary', type: 'container', label: 'Azure Cosmos DB', containerKind: 'vpc', position: { x: 0, y: 0 } },
+        { id: 'db', type: 'database', label: 'Azure Cosmos DB', parentNode: 'boundary', position: { x: 40, y: 50 } },
+      ],
+      edges: [],
+    })
+    expect(proposal.nodes[0]).toMatchObject({ type: 'container', containerKind: 'vpc' })
+    expect(proposal.nodes[1]).toMatchObject({ type: 'database', parentNode: 'boundary', imageUrl: expect.any(String) })
+    expect(proposal.nodes[1].width).toBeUndefined()
   })
 })

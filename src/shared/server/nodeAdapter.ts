@@ -6,10 +6,11 @@ import { MAX_ARCHITECTURE_DOCUMENT_BYTES } from '../architectureScene.js'
 import type { IncomingMessage } from 'node:http'
 import { BODY_TOO_LARGE_FLAG, MCP_MAX_BODY_BYTES } from './http.js'
 
-export type ApiRouteName = 'mcp' | 'flows' | 'flow'
+export type ApiRouteName = 'mcp' | 'flows' | 'flow' | 'chat'
 
 /** Map a path to the api/ function Vercel would run for it. */
 export function matchApiRoute(pathname: string): { name: ApiRouteName; params: Record<string, string> } | null {
+  if (pathname === '/api/chat' || pathname === '/api/chat/') return { name: 'chat', params: {} }
   if (pathname === '/api/mcp' || pathname === '/api/mcp/') return { name: 'mcp', params: {} }
   if (pathname === '/api/flows' || pathname === '/api/flows/') return { name: 'flows', params: {} }
   const match = pathname.match(/^\/api\/flows\/([^/]+)\/?$/)
@@ -27,6 +28,7 @@ export function matchApiRoute(pathname: string): { name: ApiRouteName; params: R
 
 /** Module that implements each route (relative to the project root). */
 export const API_ROUTE_MODULES: Record<ApiRouteName, string> = {
+  chat: '/api/chat.ts',
   mcp: '/api/mcp.ts',
   flows: '/api/flows/index.ts',
   flow: '/api/flows/[id].ts',
