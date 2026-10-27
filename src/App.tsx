@@ -46,7 +46,7 @@ import { validateArchitectureScene, serializedByteLength, MAX_ARCHITECTURE_DOCUM
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
-import { prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
+import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 
 const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
 const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
@@ -472,16 +472,16 @@ function FlowChartEditor() {
       const before = importTarget.current
       let scene = destination === 'open' ? prepareSceneOpen(pendingImport.scene) : pendingImport.scene
       if (destination === 'insert') {
-        const signature = JSON.stringify(flowToChart(before.nodes, before.edges, before.architectureScene))
-        const [{ mergeGraphElements }, { restoreElements }] = await Promise.all([import('./utils/architectureBridge'), import('@excalidraw/excalidraw')])
+        const signature = JSON.stringify(flowToChart(before.nodes, before.edges, before.architectureScene, before.diagramMode))
+        const { mergeGraphElements } = await import('./utils/architectureBridge')
         if (request !== importRequest.current) return
         const current = importTarget.current
-        if (current.diagramMode !== before.diagramMode || JSON.stringify(flowToChart(current.nodes, current.edges, current.architectureScene)) !== signature) {
+        if (current.diagramMode !== before.diagramMode || JSON.stringify(flowToChart(current.nodes, current.edges, current.architectureScene, current.diagramMode)) !== signature) {
           throw new Error('The diagram changed while preparing the import. Try inserting again to use its latest contents.')
         }
-        const existing = before.diagramMode === 'architecture' && architectureApi.current ? architectureApi.current.getScene() : before.architectureScene
-        const nativeElements = mergeGraphElements(restoreElements((existing?.elements ?? []) as unknown as Parameters<typeof restoreElements>[0], null), before.nodes, before.edges, before.darkMode)
-        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(nativeElements)), files: existing?.files ?? {}, appState: existing?.appState }
+        const existing = before.diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : before.architectureScene
+        const drawingElements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], before.nodes, before.edges, before.darkMode)
+        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(drawingElements)), files: existing?.files ?? {}, appState: existing?.appState }
         const rect = reactFlowWrapper.current?.getBoundingClientRect()
         const point = pendingImport.point ?? before.canvasPoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
         scene = prepareSceneInsertion(scene, baseScene, point)
@@ -490,11 +490,11 @@ function FlowChartEditor() {
       const nextNodes = destination === 'insert' ? before.nodes : []
       const nextEdges = destination === 'insert' ? before.edges : []
       // Allow the same document to save/share immediately after importing.
-      if (serializedByteLength(flowToChart(nextNodes, nextEdges, scene)) + 1024 > MAX_ARCHITECTURE_DOCUMENT_BYTES) {
+      if (serializedByteLength(flowToChart(nextNodes, nextEdges, scene, 'draw')) + 1024 > MAX_ARCHITECTURE_DOCUMENT_BYTES) {
         throw new Error('The combined diagram exceeds the 4 MiB document limit. Open this drawing as a new diagram or use smaller images.')
       }
       if (request !== importRequest.current) return
-      before.commitDocument({ nodes: nextNodes, edges: nextEdges, architectureScene: scene, diagramMode: 'architecture' }, { fit: destination === 'open' })
+      before.commitDocument({ nodes: nextNodes, edges: nextEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: destination === 'open' })
       setPendingImport(null)
     } catch (error) {
       if (request === importRequest.current) setImportError(error instanceof Error ? error.message : 'Could not import this drawing.')
@@ -512,8 +512,8 @@ function FlowChartEditor() {
     event.preventDefault()
     event.stopPropagation()
     if (files.length !== 1) { setImportError('Drop one .json or .excalidraw drawing at a time.'); return }
-    // Native PNG/SVG drops can secretly contain a scene and replace the whole
-    // document. Keep every file behind our content validation and destination.
+    // Every diagram drop uses content validation and a deliberate destination;
+    // raster/SVG image uploads stay available through the Draw Image tool.
     void readImportFile(files[0], canvasPoint({ x: event.clientX, y: event.clientY }))
   }
 
@@ -1969,7 +1969,7 @@ function FlowChartEditor() {
           darkMode={darkMode}
         />
       )}
-      {pendingImport && <ExcalidrawImportDialog filename={pendingImport.filename} scene={pendingImport.scene} onOpen={() => { void applyExcalidrawImport('open') }} onInsert={() => { void applyExcalidrawImport('insert') }} onCancel={cancelImport} busy={isImporting} error={importError} />}
+      {pendingImport && <ExcalidrawImportDialog filename={pendingImport.filename} scene={pendingImport.scene} onOpen={() => { void applyExcalidrawImport('open') }} onInsert={() => { void applyExcalidrawImport('insert') }} onCancel={cancelImport} busy={isImporting} error={importError} compatibilityNotes={getExcalidrawCompatibilityNotes(pendingImport.scene)} />}
       {isImporting && !pendingImport && <div className="diagram-import-notice" role="status"><span>Reading and validating your drawing…</span><button onClick={cancelImport}>Cancel</button></div>}
       {importError && !pendingImport && <div className="diagram-import-notice error" role="alert"><span><strong>Couldn’t import drawing</strong>{importError}</span><button onClick={() => setImportError(null)} aria-label="Dismiss import error">Dismiss</button></div>}
       {/* Show pill when welcome prompt is not visible and AI bubble is not open */}

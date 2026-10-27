@@ -6,6 +6,7 @@ All geometry checks use the visible SVG DOM and persisted application document.
 from pathlib import Path
 import argparse
 import json
+import math
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -77,7 +78,11 @@ with sync_playwright() as p:
     original = document(page)
     service = next(element for element in original['architectureScene']['elements'] if element.get('customData', {}).get('fixtureRole') == 'service')
     arrow = next(element for element in original['architectureScene']['elements'] if element['type'] == 'arrow')
-    center = screen_point(page, {'x': service['x'] + service['width'] / 2, 'y': service['y'] + service['height'] / 2})
+    # Use the upper corner of the shape so this selects its container rather
+    # than the separately editable bound text drawn over its center.
+    angle = service.get('angle', 0)
+    dx, dy = -service['width'] * 0.3, -service['height'] * 0.3
+    center = screen_point(page, {'x': service['x'] + service['width'] / 2 + dx * math.cos(angle) - dy * math.sin(angle), 'y': service['y'] + service['height'] / 2 + dx * math.sin(angle) + dy * math.cos(angle)})
     page.keyboard.down('Control')
     page.mouse.click(center['x'], center['y'])
     page.keyboard.up('Control')
@@ -115,7 +120,9 @@ with sync_playwright() as p:
     wait_elements(page, 18)
     inserted = next(element for element in document(page)['architectureScene']['elements'] if element['type'] == 'frame' and element['id'] not in old_ids)
     actual = {'x': inserted['x'] + inserted['width'] / 2, 'y': inserted['y'] + inserted['height'] / 2}
-    assert abs(actual['x'] - expected['x']) < 0.00001 and abs(actual['y'] - expected['y']) < 0.00001
+    # SVG matrices are exposed as float32 values by Chromium; a thousandth of a
+    # scene unit is still substantially below one physical pixel at every zoom.
+    assert abs(actual['x'] - expected['x']) < 0.001 and abs(actual['y'] - expected['y']) < 0.001, {'expected': expected, 'actual': actual, 'matrix': before_viewport, 'mode': document(page)['mode']}
     assert all(abs(a - b) < 0.00001 for a, b in zip(matrix(page), before_viewport))
     print('PANNED/ZOOMED DROP: expected and actual centers', json.dumps({'expected': expected, 'actual': actual}), flush=True)
 
@@ -181,10 +188,11 @@ with sync_playwright() as p:
     assert document(architecture)['architectureScene'] == before_architecture['architectureScene']
     architecture.get_by_role('button', name='Redo', exact=True).click()
     architecture.get_by_role('application', name='Drawing surface').wait_for()
+    architecture.wait_for_function('(key)=>JSON.parse(localStorage.getItem(key)||"{}").mode==="draw"', arg=DRAFT)
     architecture.get_by_label('Architecture Mode').click()
     architecture.wait_for_function('(key)=>JSON.parse(localStorage.getItem(key)||"{}").mode==="architecture"', arg=DRAFT)
     mixed = document(architecture)
-    assert graph(mixed) == graph(before_architecture) and len(mixed['architectureScene']['elements']) > 9
+    assert graph(mixed) == graph(before_architecture) and len(mixed['architectureScene']['elements']) > 9, {'before': graph(before_architecture), 'after': graph(mixed), 'sceneCount': len(mixed['architectureScene']['elements'])}
     architecture.reload(wait_until='networkidle')
     assert architecture.get_by_label('Architecture Mode').get_attribute('aria-pressed') == 'true'
     assert graph(document(architecture)) == graph(before_architecture)
