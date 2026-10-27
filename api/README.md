@@ -121,7 +121,7 @@ Errors use `{ error, code }`. `400` rejects malformed requests, `405` rejects ot
 
 ### Operations and verification
 
-Set `AI_ENABLED=false` to disable application inference, then redeploy or restart instances that cache environment variables. To stop traffic immediately while deployment propagates, disable gateway access or set its blocking policy to zero. The application checks the kill switch before admission and before every upstream attempt. Gateways and Azure deployment policies remain the independent emergency stop for already-running calls.
+Set `AI_ENABLED=false` to disable application inference, then redeploy or restart instances that cache environment variables. To reject new gateway requests while deployment propagates, revoke the application's dedicated AI Gateway Run token. Keep gateway authentication enabled. The application checks the kill switch before admission and before every upstream attempt. Calls already accepted by the provider may still complete and incur charges.
 
 The handler emits one structured `ai_request` event per request. It includes environment, routing, request ID, model when supplied, request outcome/status, attempts, duration, token counts, estimated actual cost, reserved attempt cost, and whether usage was reported. It does not log prompts, responses, provider error payloads, IP addresses, or credentials. Monitor non-success outcomes, `429` volume, absent usage, unexpected models, and reserved-versus-actual cost. Inspect provider logs and hosting log retention separately.
 
