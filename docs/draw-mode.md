@@ -23,7 +23,8 @@ Select an object to change stroke/fill colors, thickness, dashes, hatch fills,
 sketch texture, corners or opacity. Text has font-family, size and alignment
 controls. Arrows have endpoint decorations and routing controls. Selection
 handles resize or rotate objects; connector point handles edit paths. Hold
-Shift to constrain drawing, movement or resizing. Hold the right mouse button and
+Shift to constrain drawing, movement or resizing, and Alt/Option to draw a shape
+from its center. Hold the right mouse button and
 drag to pan from any tool, or use Space-drag or Hand.
 
 Shift-click or drag a selection box to work with multiple objects. Duplicate,
@@ -32,6 +33,13 @@ clip and move their contents. Visual groups and frames remain distinct from
 semantic Architecture containers. The Components panel saves reusable selections
 in this browser. See the [keyboard reference](excalidraw-hotkeys.md) for implemented
 bindings and remaining parity items.
+
+Ctrl/Cmd-drag selects individual members inside visual groups. Select a line or
+arrow and press Ctrl/Cmd+Enter to edit its points: Tab focuses a point, arrow keys
+move it, and the contextual controls add or delete an interior point. Enter or
+Escape finishes point editing. Ordinary Enter edits an object's bound label.
+For a multipoint connector, press A or L and click each point; Enter or
+double-click commits the entire path, and Escape discards the preview.
 
 Draw keeps pointer previews separate from document commits. A completed drawing,
 move, resize, rotation, erase or keyboard nudge is one undoable transaction. The

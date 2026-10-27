@@ -32,6 +32,7 @@ Text fields, contenteditable elements and the AI prompt keep normal typing.
 | Select all | Ctrl+A | Unlocked drawing elements |
 | Add/remove selection | Shift+click | Selection and group expansion |
 | Deep selection | Ctrl+click | Individual grouped objects |
+| Deep box selection | Ctrl+drag | Individual enclosed group members |
 | Marquee | Drag empty space | Rectangle selection |
 | Duplicate | Ctrl+D; Alt+drag | New element/group/file/relationship IDs |
 | Copy / cut / paste | Ctrl+C / X / V | Drawing clipboard and independent copies |
@@ -43,6 +44,8 @@ Text fields, contenteditable elements and the AI prompt keep normal typing.
 | Layer backward / forward | Ctrl+[ / Ctrl+] | One stacking position |
 | Send to back / front | Ctrl+Shift+[ / Ctrl+Shift+] (macOS: Cmd+Option+[ / ]) | Full stacking change |
 | Edit text / frame name | Enter; double-click | Own text editor |
+| Edit connector points | Ctrl+Enter | Focusable points; arrow keys move the active point |
+| Create multipoint arrow / line | A / L, then click points | Enter or double-click commits; Escape cancels |
 | New text line | Enter; Shift+Enter | Text editing |
 | Finish text editing | Ctrl+Enter; Escape | Commit edited text |
 | Delete | Delete; Backspace | Selection and relationship cleanup |
@@ -67,18 +70,43 @@ Text fields, contenteditable elements and the AI prompt keep normal typing.
 
 Real component tests cover tool aliases, Q, pointer preview/cancel/commit,
 contextual properties, grouping/duplication, text entry, parent history and actual
-shifted key values. Browser verification covers the complete drawing/save/share
+shifted key values. `DrawHotkeys.test.tsx` also covers centered Alt/Shift geometry,
+Ctrl/Cmd deep marquee selection, labeled connector point editing, point insertion
+and deletion, per-gesture history, multipoint creation/cancellation, bound-label
+Enter, and the actual Option-produced glyphs for snapping/style shortcuts.
+Browser verification covers the complete drawing/save/share
 flow and original Architecture behavior. Pure model tests cover bindings,
 rotations, paths, pressure, reference remapping, groups and frames.
 
 This custom editor is not a claim of complete Excalidraw parity. Additional
 upstream bindings and tools remain explicit future work: laser K; eyedropper
 I/Shift+S/Shift+G; free lasso; image cropping controls; fill and draw-to-shape;
-Ctrl+Enter point-edit mode; arrow-key flowchart navigation/creation modifiers;
+arrow-key flowchart navigation/creation modifiers;
 link/search/command palettes;
 embeds; Mermaid conversion; hosted services and selection-aware AI (#14).
 Existing imported crop/pressure/path fields are retained/rendered where supported;
 unsupported imported content is reported before application by the importer.
+
+Issue #15 remains open: the completed drawing foundation and the fixes above do
+not establish every upstream binding. The matrix below also records remaining
+differences such as flip shortcuts, special plain-text paste and app-level view
+bindings. The issue explicitly leaves laser, lasso, crop, fill/draw-to-shape,
+embeds, Mermaid and AI helpers for later prioritization.
+
+### Focused follow-up verification
+
+| Required core workflow | Checked evidence |
+| --- | --- |
+| Alt/Option draws from the center, including Shift and reverse drags | [x] Real SVG controller tests; Linux Chromium Alt-drag geometry |
+| Ctrl/Cmd marquee selects an individual grouped member | [x] Both modifier variants in controller tests; Linux Chromium selection/nudge/undo |
+| Ctrl/Cmd+Enter edits a labeled connector without entering text | [x] Controller tests; imported bound connector in Chromium with Meta events |
+| Points can be focused, moved, added and deleted with undoable geometry | [x] Controller tests; browser point movement preserves imported endpoint bindings and label |
+| A/L click-click-click creates a multipoint path as one transaction | [x] Controller Enter/double-click/cancel/undo tests; browser creation, undo/redo and reload |
+| Option-produced glyphs still trigger snapping/style actions | [x] Actual key/code pairs in controller tests; Option+S browser event emulation |
+| Native macOS browser execution | [ ] Not run; Meta/Option behavior is emulated on Linux Chromium |
+
+Reproduce the browser workflow and five screenshots with
+`python scripts/verify-draw-hotkeys.py http://127.0.0.1:3025/`.
 
 The full original 77-row upstream keyboard help was reviewed during the initial
 spike. Final behavior is defined by the handlers and tests in this repository;
@@ -106,12 +134,12 @@ Deferred rows are not supplied by a hidden external editor.
 | 12 | Frame | F | F | Implemented in our Draw handlers |
 | 13 | Temporary laser pointer | K | K | Deferred: additional tool or service |
 | 14 | Eyedropper | I, Shift+S or Shift+G | I, Shift+S or Shift+G | Deferred: additional tool or service |
-| 15 | Edit line / arrow points | Ctrl+Enter | Cmd+Enter | Point handles available on selection; Ctrl+Enter mode is deferred |
+| 15 | Edit line / arrow points | Ctrl+Enter | Cmd+Enter | Implemented: focused point mode, arrows, add/delete controls, Enter/Esc finish |
 | 16 | Edit selected text / bound label | Enter | Enter | Implemented in our Draw handlers |
 | 17 | New line while editing text | Enter or Shift+Enter | Enter or Shift+Enter | Implemented in our Draw handlers |
 | 18 | Finish text editing | Esc or Ctrl+Enter | Esc or Cmd+Enter | Implemented in our Draw handlers |
-| 19 | Draw a curved arrow | A, click, click, click | A, click, click, click | Deferred: additional tool or service |
-| 20 | Draw a curved line | L, click, click, click | L, click, click, click | Deferred: additional tool or service |
+| 19 | Draw a curved arrow | A, click, click, click | A, click, click, click | Implemented: multipoint creation, Enter/double-click commit, Escape cancel |
+| 20 | Draw a curved line | L, click, click, click | L, click, click, click | Implemented: multipoint creation, Enter/double-click commit, Escape cancel |
 | 21 | Start image cropping | Double-click or Enter | Double-click or Enter | Imported crop fields render; crop editing UI deferred |
 | 22 | Finish image cropping | Enter or Esc | Enter or Esc | Crop editing UI deferred |
 | 23 | Keep active drawing tool selected | Q | Q | Implemented in our Draw handlers |
