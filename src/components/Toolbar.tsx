@@ -31,6 +31,7 @@ interface ToolbarProps {
   onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
   architectureScene?: ArchitectureScene
   onExportDraw?: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
+  onImportFile?: (file: File) => void
   share?: ShareMenuProps
 }
 
@@ -58,6 +59,7 @@ function Toolbar({
   onImportJson,
   architectureScene,
   onExportDraw,
+  onImportFile,
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
@@ -146,6 +148,12 @@ function Toolbar({
   const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (onImportFile) {
+      onImportFile(file)
+      setIsExportOpen(false)
+      e.target.value = ''
+      return
+    }
 
     const reader = new FileReader()
     reader.onload = (event) => {
@@ -527,6 +535,9 @@ function Toolbar({
                       <button className="export-option export-import-btn" onClick={handleImportJson}>
                         Import from JSON
                       </button>
+                      <button className="export-option export-import-btn" onClick={handleImportJson}>
+                        Import Excalidraw
+                      </button>
                       <div className="export-divider" />
                       <button className="export-option" onClick={handleExportJson}>
                         Export as JSON
@@ -562,10 +573,10 @@ function Toolbar({
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept=".json,application/json"
+                        accept=".json,.excalidraw,application/json"
                         onChange={handleFileSelected}
                         style={{ display: 'none' }}
-                        aria-label="Import JSON file"
+                        aria-label="Import JSON or Excalidraw file"
                       />
                     </>
                   )}

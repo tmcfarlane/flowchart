@@ -1,0 +1,36 @@
+.excalidraw-import-overlay {
+  position: fixed; inset: 0; z-index: 1600; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(6, 12, 10, .64); backdrop-filter: blur(7px);
+}
+.excalidraw-import-dialog {
+  width: min(510px, 100%); max-height: calc(100dvh - 48px); overflow: auto; padding: 30px;
+  color: #e7eceb; background: #191f1d; border: 1px solid #35443e; border-radius: 20px;
+  box-shadow: 0 24px 90px rgba(0, 0, 0, .4); font-family: inherit;
+}
+.excalidraw-import-heading { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; }
+.excalidraw-import-icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 8px; color: #78fcd6; background: #243c33; border-radius: 13px; }
+.excalidraw-import-eyebrow { color: #78fcd6; font-size: 10px; font-weight: 700; letter-spacing: .13em; }
+.excalidraw-import-dialog h2 { margin: 0; font-size: 25px; letter-spacing: -.5px; font-weight: 650; }
+.excalidraw-import-filename { max-width: 100%; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: #b4c2bd; }
+.excalidraw-import-stats { display: flex; flex-wrap: wrap; gap: 8px; margin: 5px 0; }
+.excalidraw-import-stats span { padding: 4px 9px; border: 1px solid #3c4944; border-radius: 6px; font-size: 11px; color: #c6d2cd; }
+#excalidraw-import-description { margin: 16px 0 21px; font-size: 13px; line-height: 1.6; color: #b4c2bd; }
+.excalidraw-import-choices { display: flex; flex-direction: column; gap: 10px; }
+.excalidraw-import-choice { display: flex; flex-direction: column; gap: 7px; padding: 17px; text-align: left; color: inherit; background: #202a26; border: 1px solid #3c4944; border-radius: 12px; cursor: pointer; font: inherit; }
+.excalidraw-import-choice:hover { background: #263d33; border-color: #78fcd6; }
+.excalidraw-import-choice:focus-visible, .excalidraw-import-footer button:focus-visible { outline: 2px solid #78fcd6; outline-offset: 3px; }
+.excalidraw-import-choice-title { display: flex; justify-content: space-between; gap: 15px; font-size: 14px; font-weight: 600; }
+.excalidraw-import-choice-title > span { color: #78fcd6; }
+.excalidraw-import-choice-detail { font-size: 12px; line-height: 1.5; color: #b4c2bd; }
+.excalidraw-import-footer { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-top: 22px; font-size: 11px; color: #96aaa0; }
+.excalidraw-import-footer button { padding: 8px 15px; border: 1px solid #46564e; border-radius: 8px; color: inherit; background: transparent; cursor: pointer; font: inherit; font-size: 12px; }
+.light-mode .excalidraw-import-dialog { background: #fff; color: #182720; border-color: #cfded5; }
+.light-mode .excalidraw-import-icon { color: #087d55; background: #e0f8ec; }
+.light-mode .excalidraw-import-eyebrow, .light-mode .excalidraw-import-choice-title > span { color: #087d55; }
+.light-mode .excalidraw-import-filename, .light-mode #excalidraw-import-description, .light-mode .excalidraw-import-choice-detail { color: #5d7267; }
+.light-mode .excalidraw-import-stats span { color: #465f52; border-color: #cfddd5; }
+.light-mode .excalidraw-import-choice { background: #f7faf8; border-color: #cfddd5; }
+.light-mode .excalidraw-import-choice:hover { background: #e8f9f0; border-color: #128d62; }
+.light-mode .excalidraw-import-footer { color: #5d7267; }
+.light-mode .excalidraw-import-footer button { border-color: #cfddd5; }
+@media (max-width: 540px) { .excalidraw-import-dialog { padding: 22px; } .excalidraw-import-dialog h2 { font-size: 23px; } }

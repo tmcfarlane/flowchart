@@ -1,0 +1,9 @@
+# Excalidraw import fixtures
+
+`architecture-complete.excalidraw` is a deterministic native Excalidraw v2 JSON scene, built against the documented file schema. It deliberately keeps native element records rather than translating them into Flowchart nodes. It is small enough to inspect and use in a real editor when checking import behavior.
+
+The scene contains a named frame; grouped, rotated and styled architecture shapes; container-bound text; a multi-point arrow with bindings and its own bound label; pressure-sensitive pen strokes; a standalone annotation; and an embedded one-pixel PNG. Geometry starts at negative coordinates. Deleted shapes and text exercise tombstone handling. App state includes transient viewport and selection values that should not become imported document data.
+
+`empty.excalidraw`, `future-version.excalidraw`, and `corrupt.excalidraw` exercise failure cases. The unit tests also derive missing-reference, unsupported-content, oversized, duplicate-ID, and invalid-asset cases from the complete fixture.
+
+The fixtures are checked in so browser tests and manual review can import exactly the same bytes through the picker and through canvas drag-and-drop. They are test data, not screenshots or flattened renderings.

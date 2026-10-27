@@ -69,9 +69,10 @@ interface AIChatProps {
   onDismiss?: () => void
   diagramMode?: DiagramMode
   onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
+  onImportFile?: (file: File) => void
 }
 
-function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, diagramMode = 'flowchart' }: AIChatProps) {
+function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, diagramMode = 'flowchart' }: AIChatProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -319,7 +320,13 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
 
   const handleWelcomeImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !onImportJson) return
+    if (!file) return
+    if (onImportFile) {
+      onImportFile(file)
+      e.target.value = ''
+      return
+    }
+    if (!onImportJson) return
 
     const reader = new FileReader()
     reader.onload = (event) => {
@@ -364,10 +371,10 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           <input
             ref={welcomeFileInputRef}
             type="file"
-            accept=".json,application/json"
+            accept=".json,.excalidraw,application/json"
             onChange={handleWelcomeImport}
             style={{ display: 'none' }}
-            aria-label="Import JSON file"
+            aria-label="Import JSON or Excalidraw file"
           />
           <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -448,9 +455,12 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           )}
 
           {!isLoading && (
-            <button className="ai-welcome-dismiss" onClick={onDismiss}>
-              No, thank you
-            </button>
+            <>
+              {onImportFile && <button className="ai-welcome-import-drawing" onClick={() => welcomeFileInputRef.current?.click()}>Import Excalidraw <span aria-hidden="true">↗</span></button>}
+              <button className="ai-welcome-dismiss" onClick={onDismiss}>
+                No, thank you
+              </button>
+            </>
           )}
         </div>
         {importError && (
