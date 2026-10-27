@@ -1,6 +1,7 @@
 import { memo, useId } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { getAzureIconUrl } from '../utils/azureIconIds'
+import { drawingFontFamily as fontFamily } from '../utils/drawText'
 
 export interface DrawSceneSvgProps {
   elements: readonly Record<string, unknown>[]
@@ -9,6 +10,7 @@ export interface DrawSceneSvgProps {
   /** Actual SVG surface color, used for contrast when it differs from the app theme. */
   backgroundColor?: string
   selectedIds?: ReadonlySet<string>
+  editingTextId?: string
   showFrames?: boolean
 }
 
@@ -228,13 +230,6 @@ function lineBreaks(text: string, width: number, fontSize: number, autoResize: u
   })
 }
 
-function fontFamily(value: unknown): string {
-  if (value === 1 || value === 5 || value === 'handwritten') return '"Segoe Print", "Comic Sans MS", cursive'
-  if (value === 3 || value === 8 || value === 'monospace') return 'ui-monospace, "SFMono-Regular", Consolas, monospace'
-  if (value === 'serif') return 'Georgia, "Times New Roman", serif'
-  return 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
-}
-
 function semanticIconSource(element: ElementRecord): string | undefined {
   const metadata = object(element.customData) && object(element.customData.flowchart) ? element.customData.flowchart : undefined
   if (metadata?.kind !== 'node' || !object(metadata.snapshot)) return undefined
@@ -345,7 +340,7 @@ function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textCo
 }
 
 /** Our SVG renderer: element geometry stays editable, and exported SVG includes its assets and paint definitions. */
-function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, selectedIds, showFrames = true }: DrawSceneSvgProps) {
+function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, selectedIds, editingTextId, showFrames = true }: DrawSceneSvgProps) {
   const prefix = `draw-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const surfaceIsDark = darkSurface(backgroundColor, darkMode)
   const live = elements.filter(element => !element.isDeleted)
@@ -402,7 +397,7 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
       const textColor = element.type === 'text' ? readableTextColor(element.strokeColor, textSurface(element, index, host)) : undefined
       let graphic: ReactNode = <g transform={`rotate(${number(element.angle) * 180 / Math.PI} ${center.x} ${center.y}) translate(${number(element.x)} ${number(element.y)})`}><ElementGraphic element={element} files={files} prefix={prefix} darkMode={surfaceIsDark} textBackdrop={textBackdrop} textColor={textColor} /></g>
       for (const frameId of clipChain(element)) graphic = <g key={frameId} clipPath={`url(#${clipId(frameId)})`}>{graphic}</g>
-      return <g key={id} data-element-id={id} data-element-type={string(element.type)} data-selected={selectedIds?.has(id) ? 'true' : undefined} aria-label={string(element.text, string(element.name, string(element.type, 'Drawing object')))} role="img" opacity={Math.max(0, Math.min(100, number(element.opacity, 100))) / 100} style={style}>{graphic}</g>
+      return <g key={id} data-element-id={id} data-element-type={string(element.type)} data-editing-text={element.type === 'text' && id === editingTextId ? 'true' : undefined} visibility={element.type === 'text' && id === editingTextId ? 'hidden' : undefined} data-selected={selectedIds?.has(id) ? 'true' : undefined} aria-label={string(element.text, string(element.name, string(element.type, 'Drawing object')))} role="img" opacity={Math.max(0, Math.min(100, number(element.opacity, 100))) / 100} style={style}>{graphic}</g>
     })}
   </g>
 }

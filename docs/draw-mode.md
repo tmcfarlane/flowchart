@@ -19,6 +19,11 @@ shortcut, and drag on the canvas. Rectangle, diamond, ellipse, arrow, line, pen,
 text, image, eraser and frame tools have their own SVG rendering and editing
 logic. **Q** keeps the active tool selected. Tooltips and **?** show shortcuts.
 
+Drawing returns to the pointer by default. Double-click a rectangle, ellipse or
+diamond with the pointer to edit its centered label. The input follows the
+shape's rotation, font and zoom; its label stays attached through move and
+resize. Enter adds a new line, and Ctrl/Cmd+Enter or clicking outside saves.
+
 Select an object to change stroke/fill colors, thickness, dashes, hatch fills,
 sketch texture, corners or opacity. Text has font-family, size and alignment
 controls. Arrows have endpoint decorations and routing controls. Selection
