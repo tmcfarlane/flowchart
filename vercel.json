@@ -4,6 +4,9 @@
   "installCommand": "npm install",
   "framework": "vite",
   "outputDirectory": "dist",
+  "functions": {
+    "api/chat.ts": { "maxDuration": 60 }
+  },
   "rewrites": [
     { "source": "/f/:path*", "destination": "/index.html" },
     { "source": "/mcp", "destination": "/mcp.html" }
