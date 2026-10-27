@@ -93,6 +93,9 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
         geometry(point[0], 'path x coordinate', value.id)
         geometry(point[1], 'path y coordinate', value.id)
       }
+      if (value.type === 'freedraw' && value.pressures != null && (!Array.isArray(value.pressures) || !value.pressures.every((pressure) => typeof pressure === 'number' && Number.isFinite(pressure) && pressure >= 0 && pressure <= 1))) {
+        throw new Error(`Element “${value.id}” has invalid pen-pressure data.`)
+      }
     }
     if (value.groupIds != null && (!Array.isArray(value.groupIds) || !value.groupIds.every(validId))) {
       throw new Error(`Element “${value.id}” has invalid group references.`)
@@ -121,13 +124,14 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
     }
     const match = file.dataURL.match(/^data:([^;,]+);base64,([A-Za-z0-9+/]+={0,2})$/)
     if (!match || match[1] !== file.mimeType || match[2].length % 4 !== 0) throw new Error(`Image asset “${id}” contains corrupt or external image data. Export it with embedded images.`)
-    files[id] = { ...file }
+    files[id] = { ...file, id }
   }
 
   for (const element of elements) {
     const id = element.id as string
     for (const field of ['containerId', 'frameId'] as const) {
       if (element[field] != null) element[field] = requireReference(element[field], ids, deletedIds, `Element “${id}”`)
+      if (element[field] === id) throw new Error(`Element “${id}” cannot reference itself as a text container or frame.`)
     }
     if (typeof element.frameId === 'string' && !elements.some((candidate) => candidate.id === element.frameId && candidate.type === 'frame')) {
       throw new Error(`Element “${id}” refers to a frame that is not a frame element.`)
@@ -135,7 +139,7 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
     for (const field of ['startBinding', 'endBinding'] as const) {
       const binding = element[field]
       if (binding != null) {
-        if (!isRecord(binding)) throw new Error(`Element “${id}” has an invalid arrow binding.`)
+        if (!isRecord(binding) || !validId(binding.elementId)) throw new Error(`Element “${id}” has an invalid arrow binding.`)
         const reference = requireReference(binding.elementId, ids, deletedIds, `Arrow “${id}”`)
         element[field] = reference ? { ...binding, elementId: reference } : null
       }
@@ -143,7 +147,7 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
     if (element.boundElements != null) {
       if (!Array.isArray(element.boundElements)) throw new Error(`Element “${id}” has invalid bound elements.`)
       element.boundElements = element.boundElements.flatMap((bound) => {
-        if (!isRecord(bound)) throw new Error(`Element “${id}” has an invalid bound-element reference.`)
+        if (!isRecord(bound) || !validId(bound.id)) throw new Error(`Element “${id}” has an invalid bound-element reference.`)
         const reference = requireReference(bound.id, ids, deletedIds, `Element “${id}”`)
         return reference ? [{ ...bound, id: reference }] : []
       })
