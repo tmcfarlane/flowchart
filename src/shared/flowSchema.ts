@@ -3,6 +3,7 @@
 // messages. The browser does not import this module (it would pull in zod).
 
 import { z } from 'zod'
+import { ARCHITECTURE_SCENE_LIMITS, validateArchitectureScene } from './architectureScene.js'
 import {
   CONTAINER_KINDS,
   COMM_STYLES,
@@ -272,7 +273,21 @@ export const OperationsArraySchema = z
 // REST request bodies
 // ---------------------------------------------------------------------------
 
+export const ArchitectureSceneSchema = z.strictObject({
+  version: z.literal(1),
+  elements: z.array(z.record(z.string(), z.unknown())).max(ARCHITECTURE_SCENE_LIMITS.maxElements),
+  files: z.record(z.string(), z.record(z.string(), z.unknown())),
+  appState: z.strictObject({
+    viewBackgroundColor: z.string().max(100).optional(),
+    gridSize: z.number().positive().max(1000).nullable().optional(),
+  }).optional(),
+}).superRefine((scene, ctx) => {
+  try { validateArchitectureScene(scene) }
+  catch (error) { ctx.addIssue({ code: 'custom', message: error instanceof Error ? error.message : 'Invalid architecture scene.' }) }
+})
+
 export const CreateFlowBodySchema = strictObject({
+  architectureScene: ArchitectureSceneSchema.optional(),
   title: TitleSchema.optional(),
   nodes: NodesArraySchema,
   edges: EdgesArraySchema.optional(),
@@ -280,6 +295,7 @@ export const CreateFlowBodySchema = strictObject({
 })
 
 export const ReplaceFlowBodySchema = strictObject({
+  architectureScene: ArchitectureSceneSchema.nullable().optional(),
   title: TitleSchema.optional(),
   nodes: NodesArraySchema,
   edges: EdgesArraySchema.optional(),
@@ -326,6 +342,7 @@ export const StoredEdgeSchema = z.object({
 })
 
 export const StoredChartSchema = z.object({
+  architectureScene: ArchitectureSceneSchema.optional(),
   id: z.string(),
   version: z.number().int(),
   title: z.string(),

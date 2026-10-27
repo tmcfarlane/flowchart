@@ -1,0 +1,16 @@
+.architecture-canvas { position: absolute; inset: 88px 0 0; }
+.architecture-canvas .excalidraw { --color-primary: #0b9c82; --color-primary-darker: #087f6d; --color-primary-light: #d3f9ee; --color-primary-light-darker: #a1efdb; }
+.architecture-canvas .excalidraw.theme--dark { --color-primary: #78fcd6; --color-primary-darker: #57dbb5; --color-primary-light: #23453d; --color-primary-light-darker: #31594f; }
+.architecture-error { position: absolute; top: 72px; left: 50%; transform: translateX(-50%); z-index: 8; background: #fff3bf; color: #522e00; border-radius: 10px; padding: 12px 16px; max-width: 560px; }
+.architecture-error button { margin-left: 12px; border: 0; background: transparent; color: inherit; cursor: pointer; }
+.architecture-loading { position: absolute; inset: 120px 0 0; display: grid; place-items: center; color: #0b9c82; }
+.app.architecture-mode .floating-toolbar .graph-tools { display: none; }
+.app.architecture-mode .ai-floating-pill { z-index: 8; }
+.architecture-presentation { inset: 0; }
+.architecture-presentation-exit { position: fixed; top: 16px; right: 20px; z-index: 110; padding: 10px 18px; border: 1px solid #67cbb0; border-radius: 24px; background: #10241e; color: #b5f5df; cursor: pointer; }
+.architecture-draft-error { position: fixed; bottom: 18px; left: 18px; z-index: 101; max-width: 460px; border-radius: 10px; padding: 12px 16px; background: #fff3bf; color: #522e00; }
+@media (max-width: 900px) { .architecture-canvas { inset-block-start: 112px; } }
+
+
+
+.architecture-canvas .library-menu-browse-button, .architecture-canvas a[href="https://libraries.excalidraw.com"] { display: none; }

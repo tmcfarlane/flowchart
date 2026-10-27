@@ -1,3 +1,4 @@
+import { MAX_ARCHITECTURE_DOCUMENT_BYTES } from '../architectureScene.js'
 // Runs the Vercel function handlers on a plain Node HTTP server: used by the
 // Vite dev middleware (vite.config.ts) and the HTTP-level tests. Emulates the
 // two things Vercel adds to requests: `req.query` and a parsed `req.body`.
@@ -39,7 +40,7 @@ type MutableRequest = IncomingMessage & {
 export async function prepareVercelStyleRequest(
   req: IncomingMessage,
   params: Record<string, string> = {},
-  maxBytes: number = MCP_MAX_BODY_BYTES,
+  maxBytes: number = req.url?.startsWith('/api/mcp') ? MCP_MAX_BODY_BYTES : MAX_ARCHITECTURE_DOCUMENT_BYTES,
 ): Promise<void> {
   const request = req as MutableRequest
   const url = new URL(req.url ?? '/', 'http://localhost')

@@ -1,3 +1,4 @@
+import type { ArchitectureScene } from '../shared/architectureScene'
 import { act, renderHook } from '@testing-library/react'
 import type { Node } from 'reactflow'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -56,11 +57,11 @@ const fire = (target: EventTarget, type: string) =>
 /** Gaps between consecutive checks, in ms. */
 const gaps = () => pollTimes.slice(1).map((t, i) => t - pollTimes[i])
 
-async function mount(options: { token?: boolean } = {}) {
+async function mount(options: { token?: boolean; architectureScene?: ArchitectureScene } = {}) {
   window.history.replaceState(null, '', `/f/${ID}${options.token ? '#edit=secret-token' : ''}`)
   const applyChart = vi.fn()
-  const hook = renderHook((props: { nodes: Node[] }) => useSharedFlow({ nodes: props.nodes, edges: [], applyChart }), {
-    initialProps: { nodes: NO_NODES },
+  const hook = renderHook((props: { nodes: Node[]; architectureScene?: ArchitectureScene }) => useSharedFlow({ nodes: props.nodes, edges: [], architectureScene: props.architectureScene, applyChart }), {
+    initialProps: { nodes: NO_NODES, architectureScene: options.architectureScene },
   })
   await advance(0)
   expect(hook.result.current.state.status).toBe('synced')
@@ -76,7 +77,8 @@ beforeEach(() => {
   fetchMock = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
     const url = String(input)
     if (init.method === 'PUT') {
-      remote = { ...chart(remote.version + 1), nodes: JSON.parse(String(init.body)).nodes, updatedVia: 'api' }
+      const payload = JSON.parse(String(init.body))
+      remote = { ...chart(remote.version + 1), nodes: payload.nodes, ...(payload.architectureScene ? { architectureScene: payload.architectureScene } : {}), updatedVia: 'api' }
       return json(remote)
     }
     if (url.includes('since=')) {
@@ -183,6 +185,20 @@ describe('useSharedFlow adaptive polling', () => {
     const count = pollTimes.length
     await advance(POLL_FAST_MS)
     expect(pollTimes).toHaveLength(count + 1)
+  })
+
+  it('autosaves a drawing-only change and includes it in the PUT payload', async () => {
+    const original: ArchitectureScene = { version: 1, elements: [], files: {} }
+    remote = { ...chart(1), architectureScene: original }
+    const { hook } = await mount({ token: true, architectureScene: original })
+    const edited: ArchitectureScene = { ...original, appState: { viewBackgroundColor: '#f8f9fa' } }
+    hook.rerender({ nodes: NO_NODES, architectureScene: edited })
+    await advance(1000)
+    const put = fetchMock.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')
+    expect(put).toBeDefined()
+    expect(JSON.parse(String(put![1].body)).architectureScene).toEqual(edited)
+    expect(hook.result.current.state.status).toBe('synced')
+    expect(remote.architectureScene).toEqual(edited)
   })
 
   it('backs off on errors and honors Retry-After', async () => {

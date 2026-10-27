@@ -1,3 +1,4 @@
+import { MAX_ARCHITECTURE_DOCUMENT_BYTES } from '../architectureScene.js'
 // HTTP handlers behind the Vercel functions api/flows/index.ts, api/flows/[id].ts
 // and api/mcp.ts. The Vite dev server mounts the same handlers (vite.config.ts),
 // so local development runs exactly this code.
@@ -212,6 +213,19 @@ export function readJsonBody(req: ApiRequest, maxBytes: number = LIMITS.maxBodyB
   return { ok: true, body }
 }
 
+/** Scene documents have a separate bounded allowance for embedded images. */
+function readChartBody(req: ApiRequest): BodyResult {
+  const result = readJsonBody(req, MAX_ARCHITECTURE_DOCUMENT_BYTES)
+  if (!result.ok) return result
+  const body = result.body
+  const hasScene = body && typeof body === 'object' && !Array.isArray(body) &&
+    !!(body as Record<string, unknown>).architectureScene
+  if (!hasScene && body !== undefined && Buffer.byteLength(JSON.stringify(body), 'utf8') > LIMITS.maxBodyBytes) {
+    return { ok: false, status: 413, error: `Request body is too large; the limit is ${Math.round(LIMITS.maxBodyBytes / 1024)} KB for graph-only charts.` }
+  }
+  return result
+}
+
 async function enforceRateLimit(
   ctx: ApiContext,
   bucket: RateBucket,
@@ -316,7 +330,7 @@ export async function handleFlowsCollection(req: ApiRequest, res: ServerResponse
   const context = ctx ?? getDefaultContext()
   try {
     if (await enforceRateLimit(context, 'create', req, res)) return
-    const body = readJsonBody(req)
+    const body = readChartBody(req)
     if (!body.ok) return sendJson(res, body.status, { error: body.error, code: body.status === 413 ? 'too_large' : 'invalid_json' })
     const parsed = CreateFlowBodySchema.safeParse(body.body ?? {})
     if (!parsed.success) {
@@ -326,6 +340,7 @@ export async function handleFlowsCollection(req: ApiRequest, res: ServerResponse
       title: parsed.data.title ?? 'Untitled flowchart',
       nodes: parsed.data.nodes,
       edges: parsed.data.edges ?? [],
+      architectureScene: parsed.data.architectureScene,
       direction: parsed.data.direction,
       source: 'api',
       quota: requestQuota(context, 'create', req),
@@ -403,7 +418,7 @@ export async function handleFlowItem(req: ApiRequest, res: ServerResponse, ctx?:
         { 'WWW-Authenticate': 'Bearer' },
       )
     }
-    const body = readJsonBody(req)
+    const body = readChartBody(req)
     if (!body.ok) return sendJson(res, body.status, { error: body.error, code: body.status === 413 ? 'too_large' : 'invalid_json' })
     const service = context.getService()
     const baseUrl = publicBaseUrl(req, context.env)
@@ -418,6 +433,7 @@ export async function handleFlowItem(req: ApiRequest, res: ServerResponse, ctx?:
         title: parsed.data.title,
         nodes: parsed.data.nodes,
         edges: parsed.data.edges ?? [],
+        architectureScene: parsed.data.architectureScene,
         expectedVersion: parsed.data.baseVersion,
         direction: parsed.data.direction,
         relayout: parsed.data.relayout,

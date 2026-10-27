@@ -5,6 +5,7 @@ import { BaseFlowNode, BaseFlowEdge, EdgeStyle, DiagramMode } from '../App'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
 import { parseFlowJson } from '../utils/exportUtils'
+import type { ArchitectureScene } from '../shared/architectureScene'
 
 const LOADING_MESSAGES = [
   'Thinking about your flowchart...',
@@ -66,7 +67,7 @@ interface AIChatProps {
   onClose: () => void
   variant?: 'welcome' | 'full'
   onDismiss?: () => void
-  onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode) => void
+  onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
 }
 
 function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson }: AIChatProps) {
@@ -321,7 +322,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
     reader.onload = (event) => {
       try {
         const result = parseFlowJson(event.target?.result as string)
-        onImportJson(result.nodes, result.edges, result.mode)
+        onImportJson(result.nodes, result.edges, result.mode, result.architectureScene)
         setImportError(null)
       } catch (err) {
         setImportError(err instanceof Error ? err.message : 'Failed to import file.')

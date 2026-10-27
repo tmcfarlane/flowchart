@@ -5,6 +5,7 @@ import ImagePicker from './ImagePicker'
 import ShareMenu, { type ShareMenuProps } from './ShareMenu'
 import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
 import type { Node as FlowNode, Edge } from 'reactflow'
+import type { ArchitectureScene } from '../shared/architectureScene'
 
 interface ToolbarProps {
   onAddNode: (type: PaletteNodeType) => void
@@ -27,7 +28,9 @@ interface ToolbarProps {
   reactFlowWrapper: React.RefObject<HTMLDivElement>
   nodes: FlowNode[]
   edges: Edge[]
-  onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode) => void
+  onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
+  architectureScene?: ArchitectureScene
+  onExportArchitecture?: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
   share?: ShareMenuProps
 }
 
@@ -53,6 +56,8 @@ function Toolbar({
   nodes,
   edges,
   onImportJson,
+  architectureScene,
+  onExportArchitecture,
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
@@ -82,7 +87,8 @@ function Toolbar({
     if (!reactFlowWrapper.current) return
     setExportError(null)
     try {
-      await exportToPng(reactFlowWrapper.current, darkMode)
+      if (diagramMode === 'architecture' && onExportArchitecture) await onExportArchitecture('png')
+      else await exportToPng(reactFlowWrapper.current, darkMode)
       setIsExportOpen(false)
     } catch {
       setExportError('Export failed')
@@ -93,7 +99,8 @@ function Toolbar({
     if (!reactFlowWrapper.current) return
     setExportError(null)
     try {
-      await exportToSvg(reactFlowWrapper.current, darkMode)
+      if (diagramMode === 'architecture' && onExportArchitecture) await onExportArchitecture('svg')
+      else await exportToSvg(reactFlowWrapper.current, darkMode)
       setIsExportOpen(false)
     } catch {
       setExportError('Export failed')
@@ -105,7 +112,8 @@ function Toolbar({
     setExportError(null)
     setGifProgress({ frame: 0, total: Math.round(gifDuration * 10) })
     try {
-      await exportToGif(
+      if (diagramMode === 'architecture' && onExportArchitecture) await onExportArchitecture('gif', gifDuration)
+      else await exportToGif(
         reactFlowWrapper.current,
         darkMode,
         gifDuration,
@@ -126,7 +134,7 @@ function Toolbar({
   }
 
   const handleExportJson = () => {
-    exportToJson(nodes, edges, diagramMode)
+    exportToJson(nodes, edges, diagramMode, architectureScene)
     setIsExportOpen(false)
   }
 
@@ -143,7 +151,7 @@ function Toolbar({
     reader.onload = (event) => {
       try {
         const result = parseFlowJson(event.target?.result as string)
-        onImportJson(result.nodes, result.edges, result.mode)
+        onImportJson(result.nodes, result.edges, result.mode, result.architectureScene)
         setIsExportOpen(false)
         setExportError(null)
       } catch (err) {
@@ -225,7 +233,7 @@ function Toolbar({
 
           <div className="toolbar-separator" />
 
-          <div className="toolbar-group">
+          <div className="toolbar-group graph-tools">
             <button
               className={`toolbar-button ${toolMode === 'select' ? 'active' : ''}`}
               onClick={() => onSetToolMode('select')}
@@ -400,8 +408,9 @@ function Toolbar({
               className="toolbar-button"
               onClick={onUndo}
               disabled={!canUndo}
-              title="Undo (Ctrl+Z)"
-              aria-label="Undo"
+              title={diagramMode === 'architecture' ? 'Undo diagram import' : 'Undo (Ctrl+Z)'}
+              aria-label={diagramMode === 'architecture' ? 'Undo diagram import' : 'Undo'}
+              data-graph-history="true"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M4 8l4-4v2.5c4 0 6 2 6 5.5-1-2-3-3-6-3V11L4 8z" />
@@ -411,8 +420,9 @@ function Toolbar({
               className="toolbar-button"
               onClick={onRedo}
               disabled={!canRedo}
-              title="Redo (Ctrl+Y)"
-              aria-label="Redo"
+              title={diagramMode === 'architecture' ? 'Redo diagram import' : 'Redo (Ctrl+Y)'}
+              aria-label={diagramMode === 'architecture' ? 'Redo diagram import' : 'Redo'}
+              data-graph-history="true"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M12 8l-4-4v2.5c-4 0-6 2-6 5.5 1-2 3-3 6-3V11l4-3z" />

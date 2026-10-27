@@ -1,3 +1,4 @@
+import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { toPng, toSvg, toCanvas } from 'html-to-image'
 import GIF from 'gif.js'
 import type { Node as FlowNode, Edge } from 'reactflow'
@@ -141,16 +142,18 @@ export function serializeFlow(
   nodes: FlowNode[],
   edges: Edge[],
   mode: DiagramMode = 'flowchart',
+  architectureScene?: ArchitectureScene,
 ): string {
-  return JSON.stringify({ version: 2, mode, nodes, edges }, null, 2)
+  return JSON.stringify({ version: architectureScene ? 3 : 2, mode, nodes, edges, ...(architectureScene ? { architectureScene } : {}) }, null, 2)
 }
 
 export function exportToJson(
   nodes: FlowNode[],
   edges: Edge[],
   mode: DiagramMode = 'flowchart',
+  architectureScene?: ArchitectureScene,
 ): void {
-  const data = serializeFlow(nodes, edges, mode)
+  const data = serializeFlow(nodes, edges, mode, architectureScene)
   const blob = new Blob([data], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -162,7 +165,7 @@ export function exportToJson(
 
 export function parseFlowJson(
   text: string,
-): { nodes: FlowNode[]; edges: Edge[]; mode: DiagramMode } {
+): { nodes: FlowNode[]; edges: Edge[]; mode: DiagramMode; architectureScene?: ArchitectureScene } {
   let parsed: unknown
   try {
     parsed = JSON.parse(text)
@@ -199,5 +202,6 @@ export function parseFlowJson(
   // Tolerant of legacy files: a missing/unknown mode means flowchart.
   const mode: DiagramMode = obj.mode === 'architecture' ? 'architecture' : 'flowchart'
 
-  return { nodes: obj.nodes as FlowNode[], edges: obj.edges as Edge[], mode }
+  const architectureScene = obj.architectureScene === undefined ? undefined : validateArchitectureScene(obj.architectureScene)
+  return { nodes: obj.nodes as FlowNode[], edges: obj.edges as Edge[], mode, ...(architectureScene ? { architectureScene } : {}) }
 }

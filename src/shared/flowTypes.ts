@@ -1,3 +1,5 @@
+import type { ArchitectureScene } from './architectureScene.js'
+
 // Shared flowchart document model used by the browser app, the REST API
 // (api/flows) and the MCP server (api/mcp). Dependency-free on purpose: the
 // browser imports this module, so it must not pull in zod, elkjs or icon data.
@@ -98,6 +100,8 @@ export interface ChartEdge {
 }
 
 export interface ChartContent {
+  /** Optional native drawing; absent in legacy graph-only documents. */
+  architectureScene?: ArchitectureScene
   title: string
   nodes: ChartNode[]
   edges: ChartEdge[]
