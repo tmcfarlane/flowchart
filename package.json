@@ -4,15 +4,14 @@
   "type": "module",
   "description": "FlowChart Designer - Interactive flow chart builder",
   "scripts": {
-    "dev": "node scripts/copy-excalidraw-assets.mjs && node scripts/generate-azure-icon-index.mjs && vite",
-    "build": "node scripts/copy-excalidraw-assets.mjs && node scripts/generate-azure-icon-index.mjs && tsc && tsc -p tsconfig.api.json && vite build",
+    "dev": "node scripts/generate-azure-icon-index.mjs && vite",
+    "build": "node scripts/generate-azure-icon-index.mjs && tsc && tsc -p tsconfig.api.json && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "typecheck:api": "tsc -p tsconfig.api.json",
     "icons:index": "node scripts/generate-azure-icon-index.mjs"
   },
   "dependencies": {
-    "@excalidraw/excalidraw": "^0.18.1",
     "@modelcontextprotocol/sdk": "^1.31.0",
     "@reactflow/node-resizer": "^2.2.14",
     "@upstash/redis": "^1.39.0",

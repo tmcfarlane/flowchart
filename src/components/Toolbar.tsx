@@ -30,7 +30,7 @@ interface ToolbarProps {
   edges: Edge[]
   onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
   architectureScene?: ArchitectureScene
-  onExportArchitecture?: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
+  onExportDraw?: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
   share?: ShareMenuProps
 }
 
@@ -57,7 +57,7 @@ function Toolbar({
   edges,
   onImportJson,
   architectureScene,
-  onExportArchitecture,
+  onExportDraw,
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
@@ -87,7 +87,7 @@ function Toolbar({
     if (!reactFlowWrapper.current) return
     setExportError(null)
     try {
-      if (diagramMode === 'architecture' && onExportArchitecture) await onExportArchitecture('png')
+      if (diagramMode === 'draw' && onExportDraw) await onExportDraw('png')
       else await exportToPng(reactFlowWrapper.current, darkMode)
       setIsExportOpen(false)
     } catch {
@@ -99,7 +99,7 @@ function Toolbar({
     if (!reactFlowWrapper.current) return
     setExportError(null)
     try {
-      if (diagramMode === 'architecture' && onExportArchitecture) await onExportArchitecture('svg')
+      if (diagramMode === 'draw' && onExportDraw) await onExportDraw('svg')
       else await exportToSvg(reactFlowWrapper.current, darkMode)
       setIsExportOpen(false)
     } catch {
@@ -112,7 +112,7 @@ function Toolbar({
     setExportError(null)
     setGifProgress({ frame: 0, total: Math.round(gifDuration * 10) })
     try {
-      if (diagramMode === 'architecture' && onExportArchitecture) await onExportArchitecture('gif', gifDuration)
+      if (diagramMode === 'draw' && onExportDraw) await onExportDraw('gif', gifDuration)
       else await exportToGif(
         reactFlowWrapper.current,
         darkMode,
@@ -229,6 +229,19 @@ function Toolbar({
               </svg>
               <span className="mode-option-label">Architecture</span>
             </button>
+            <button
+              className={`toolbar-button mode-option ${diagramMode === 'draw' ? 'active' : ''}`}
+              onClick={() => onSetDiagramMode('draw')}
+              title="Draw Mode"
+              aria-label="Draw Mode"
+              aria-pressed={diagramMode === 'draw'}
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 10.5 10.5 3a1.8 1.8 0 0 1 2.5 2.5L5.5 13H3v-2.5Z" />
+                <path d="m9.5 4 2.5 2.5M2 15h12" />
+              </svg>
+              <span className="mode-option-label">Draw</span>
+            </button>
           </div>
 
           <div className="toolbar-separator" />
@@ -269,7 +282,7 @@ function Toolbar({
 
           <div className="toolbar-separator" />
 
-          <div className="toolbar-group">
+          <div className="toolbar-group graph-palette">
             {diagramMode === 'flowchart' ? (
               <>
                 <button
@@ -408,8 +421,8 @@ function Toolbar({
               className="toolbar-button"
               onClick={onUndo}
               disabled={!canUndo}
-              title={diagramMode === 'architecture' ? 'Undo diagram import' : 'Undo (Ctrl+Z)'}
-              aria-label={diagramMode === 'architecture' ? 'Undo diagram import' : 'Undo'}
+              title="Undo (Ctrl+Z)"
+              aria-label="Undo"
               data-graph-history="true"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
@@ -420,8 +433,8 @@ function Toolbar({
               className="toolbar-button"
               onClick={onRedo}
               disabled={!canRedo}
-              title={diagramMode === 'architecture' ? 'Redo diagram import' : 'Redo (Ctrl+Y)'}
-              aria-label={diagramMode === 'architecture' ? 'Redo diagram import' : 'Redo'}
+              title="Redo (Ctrl+Shift+Z)"
+              aria-label="Redo"
               data-graph-history="true"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
@@ -606,7 +619,7 @@ function Toolbar({
         >
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <h2 id="clear-confirm-title" className="confirm-title">Clear the entire board?</h2>
-            <p className="confirm-body">This cannot be undone.</p>
+            <p className="confirm-body">You can undo this change.</p>
             <div className="confirm-actions">
               <button
                 className="confirm-button confirm-cancel"

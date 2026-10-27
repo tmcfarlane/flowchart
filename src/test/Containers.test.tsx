@@ -1,11 +1,9 @@
-import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { beforeEach, describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import App from '../App'
 import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from '../utils/nesting'
 import { serializeFlow, parseFlowJson } from '../utils/exportUtils'
 import type { Node as FlowNode, Edge } from 'reactflow'
-
-vi.mock('../components/ArchitectureCanvas', async () => import('./mocks/ArchitectureCanvas'))
 
 beforeEach(() => {
   localStorage.clear()
@@ -24,14 +22,14 @@ describe('Containers UI', () => {
     expect(screen.queryByLabelText('Add Container')).not.toBeInTheDocument()
   })
 
-  it('passes the container label and semantic kind to the native canvas', async () => {
-    render(<App />)
+  it('adds a real React Flow container with its default label and kind badge', () => {
+    const { container } = render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
     fireEvent.click(screen.getByLabelText('Add Container'))
 
-    const container = await screen.findByText('Container')
-    expect(container.closest('[data-node-type]')).toHaveAttribute('data-node-type', 'container')
-    expect(container.closest('[data-node-type]')).toHaveAttribute('data-container-kind', 'group')
+    expect(screen.getByText('Container')).toBeInTheDocument()
+    expect(screen.getByText('Group')).toBeInTheDocument()
+    expect(container.querySelector('.react-flow__node-container .container-node')).toBeInTheDocument()
   })
 
   it('renders containers alongside architecture nodes', async () => {
@@ -44,13 +42,13 @@ describe('Containers UI', () => {
     expect(screen.getByText('Service')).toBeInTheDocument()
   })
 
-  it('edits the semantic container kind after native selection and preserves it in flowchart mode', async () => {
-    render(<App />)
+  it('edits a semantic container kind and preserves it in Flowchart mode', () => {
+    const { container } = render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
     fireEvent.click(screen.getByLabelText('Add Container'))
-    fireEvent.click(await screen.findByText('Container'))
+    fireEvent.keyDown(container.querySelector('.react-flow__node-container')!, { key: 'Enter' })
     fireEvent.change(screen.getByLabelText('Container kind'), { target: { value: 'vpc' } })
-    expect(screen.getByText('Container').closest('[data-node-type]')).toHaveAttribute('data-container-kind', 'vpc')
+    expect(container.querySelector('.container-node')).toHaveClass('container-vpc')
     fireEvent.click(screen.getByLabelText('Flowchart Mode'))
     expect(screen.getByText('VPC')).toBeInTheDocument()
     expect(screen.getByText('Container')).toBeInTheDocument()

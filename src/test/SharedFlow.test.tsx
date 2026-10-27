@@ -7,7 +7,7 @@ import { changedNodeIds, chartToFlow, contentFingerprint, flowToChart } from '..
 import { getAzureIconId, getAzureIconUrl } from '../utils/azureIconIds'
 import { parseSharedLocation } from '../utils/shareApi'
 
-vi.mock('../components/ArchitectureCanvas', async () => import('./mocks/ArchitectureCanvas'))
+vi.mock('../components/DrawCanvas', async () => import('./mocks/DrawCanvas'))
 
 const ID = 'Ab3dE5fG7h'
 const TOKEN = 'test-edit-token-1234567890'
@@ -147,6 +147,44 @@ describe('App on a shared link', () => {
     expect(screen.getByLabelText('Shared flowchart status')).toHaveTextContent('View only')
   })
 
+  it('honors an explicitly shared Architecture mode while retaining its drawing', async () => {
+    window.history.replaceState(null, '', `/f/${ID}`)
+    const architectureScene = { version: 1 as const, elements: [{ id: 'annotation', type: 'text', text: 'Retained annotation', x: -50, y: 20, width: 180, height: 24, angle: 0 }], files: {} }
+    routes = () => json(makeChart({ mode: 'architecture', architectureScene }))
+    const { container } = render(<App />)
+
+    await screen.findByText('Visitor signs up')
+    expect(screen.getByLabelText('Architecture Mode')).toHaveAttribute('aria-pressed', 'true')
+    expect(container.querySelector('.react-flow')).toBeInTheDocument()
+    expect(screen.queryByTestId('draw-canvas-adapter')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Draw Mode'))
+    expect(await screen.findByText('Retained annotation')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Architecture Mode'))
+    expect(screen.getByText('Orders API')).toBeInTheDocument()
+    expect(screen.queryByText('Retained annotation')).not.toBeInTheDocument()
+  })
+
+  it('persists a mode-only switch to Draw without losing the semantic graph', async () => {
+    window.history.replaceState(null, '', `/f/${ID}#edit=${TOKEN}`)
+    routes = (url, init) => {
+      if (init.method === 'PUT') return json({ ...makeChart(), ...JSON.parse(String(init.body)), version: 4, updatedVia: 'api' })
+      return url.includes('since=') ? json({ id: ID, version: 3, changed: false }) : json(makeChart())
+    }
+    render(<App />)
+    await screen.findByText('Visitor signs up')
+    fireEvent.click(screen.getByLabelText('Draw Mode'))
+    await screen.findByTestId('draw-canvas-adapter')
+    await waitFor(() => expect(calls('PUT')).toHaveLength(1), { timeout: 3000 })
+
+    const [, init] = calls('PUT')[0] as [string, RequestInit]
+    const body = JSON.parse(String(init.body))
+    expect(body.mode).toBe('draw')
+    expect(body.nodes).toHaveLength(NODES.length)
+    expect(body.edges).toHaveLength(EDGES.length)
+    expect(body.baseVersion).toBe(3)
+  })
+
   it('shows a friendly message for unknown charts', async () => {
     window.history.replaceState(null, '', `/f/${ID}`)
     routes = () => json({ error: 'No flowchart', code: 'not_found' }, 404)
@@ -190,21 +228,24 @@ describe('App on a shared link', () => {
     await waitFor(() => expect(screen.getByLabelText('Shared flowchart status')).toHaveTextContent('Saved'))
   })
 
-  it('saves a scene-only native edit with graph content and optimistic concurrency intact', async () => {
+  it('saves a Draw-only edit with graph content and optimistic concurrency intact', async () => {
     window.history.replaceState(null, '', `/f/${ID}#edit=${TOKEN}`)
     routes = (url, init) => {
       if (init.method === 'PUT') return json({ ...makeChart(), ...JSON.parse(String(init.body)), version: 4, updatedVia: 'api' })
       return url.includes('since=') ? json({ id: ID, version: 3, changed: false }) : json(makeChart())
     }
     render(<App />)
-    fireEvent.click(await screen.findByText('Add native annotation'))
+    await screen.findByText('Visitor signs up')
+    fireEvent.click(screen.getByLabelText('Draw Mode'))
+    fireEvent.click(await screen.findByText('Add drawing annotation'))
     await waitFor(() => expect(calls('PUT')).toHaveLength(1), { timeout: 3000 })
     const [, init] = calls('PUT')[0] as [string, RequestInit]
     const body = JSON.parse(String(init.body))
     expect(body.baseVersion).toBe(3)
+    expect(body.mode).toBe('draw')
     expect(body.nodes).toHaveLength(NODES.length)
     expect(body.edges).toHaveLength(EDGES.length)
-    expect(body.architectureScene.elements).toEqual([expect.objectContaining({ text: 'Native annotation', x: -120, angle: 0.2 })])
+    expect(body.architectureScene.elements).toEqual([expect.objectContaining({ text: 'Drawing annotation', x: -120, angle: 0.2 })])
     expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${TOKEN}`)
   })
 

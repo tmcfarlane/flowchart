@@ -1,27 +1,14 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import type { Edge, Node } from 'reactflow'
-import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types'
-
-// The bridge owns graph relationships and reconciliation. Native text metrics
-// and rendering require a real canvas and are covered by browser verification.
-vi.mock('@excalidraw/excalidraw', () => ({
-  newElementWith: (element: Record<string, unknown>, changes: Record<string, unknown>) => ({ ...element, ...changes }),
-  convertToExcalidrawElements: (skeletons: Array<Record<string, unknown>>) => skeletons.flatMap((skeleton, i) => {
-    const element = { angle: 0, width: 100, height: 60, isDeleted: false, ...skeleton, id: skeleton.id ?? `generated-${i}-${String(skeleton.text)}` }
-    const label = skeleton.label as { text: string } | undefined
-    if (!label?.text) return [element]
-    const text = { id: `${element.id}-label`, type: 'text', x: element.x, y: element.y, width: 80, height: 20, angle: 0, text: label.text, originalText: label.text, containerId: element.id, isDeleted: false }
-    return [{ ...element, boundElements: [{ id: text.id, type: 'text' }] }, text]
-  }),
-}))
+import type { DrawElement } from '../utils/drawScene'
 
 import { bridgeData, graphFromElements, mergeGraphElements } from '../utils/architectureBridge'
 
 const node = (id: string, x: number, y: number, extra: Partial<Node> = {}): Node => ({ id, type: 'service', position: { x, y }, data: { label: id }, style: { width: 180, height: 90 }, ...extra })
 const arrow = (id: string, source: string, target: string, extra: Partial<Edge> = {}): Edge => ({ id, source, target, animated: false, data: { protocol: 'HTTPS', commStyle: 'sync' }, ...extra })
-const semantic = (elements: readonly ExcalidrawElement[], id: string) => elements.find(e => bridgeData(e)?.id === id)!
+const semantic = (elements: readonly DrawElement[], id: string) => elements.find(e => bridgeData(e)?.id === id)!
 
-describe('semantic graph/native drawing bridge', () => {
+describe('semantic graph/custom Draw bridge', () => {
   it('keeps container labels and child-relative positions through the initial conversion', () => {
     const nodes = [node('boundary', 100, -50, { type: 'container', data: { label: 'Private network', containerKind: 'vpc' }, style: { width: 500, height: 300 } }), node('api', 40, 60, { parentNode: 'boundary' })]
     const native = mergeGraphElements([], nodes, [], false)
@@ -81,7 +68,7 @@ describe('semantic graph/native drawing bridge', () => {
     const nodes = [node('api', 0, 0), node('db', 0, 250)]
     const edges = [arrow('request', 'api', 'db')]
     const native = mergeGraphElements([], nodes, edges, false)
-    const freeform = { id: 'sketch', type: 'rectangle', x: -30, y: -40, width: 20, height: 20, angle: 0.6, strokeColor: '#f00', isDeleted: false } as ExcalidrawElement
+    const freeform = { id: 'sketch', type: 'rectangle', x: -30, y: -40, width: 20, height: 20, angle: 0.6, strokeColor: '#f00', isDeleted: false } as DrawElement
     const changed = mergeGraphElements([...native, freeform], [node('api', 200, 50), nodes[1]], edges, false)
     expect(semantic(changed, 'request')).toMatchObject({ x: 290, y: 140, points: [[0, 0], [-200, 110]] })
     expect(changed.find(e => e.id === freeform.id)).toMatchObject(freeform)
@@ -103,7 +90,7 @@ describe('semantic graph/native drawing bridge', () => {
   it('keeps a native custom path when only protocol/appearance metadata changes', () => {
     const nodes = [node('api', 0, 0), node('db', 0, 250)]
     const edges = [arrow('request', 'api', 'db')]
-    const native = mergeGraphElements([], nodes, edges, false).map(e => e.type === 'arrow' ? { ...e, points: [[0, 0], [70, 40], [0, 160]] } as unknown as ExcalidrawElement : e)
+    const native = mergeGraphElements([], nodes, edges, false).map(e => e.type === 'arrow' ? { ...e, points: [[0, 0], [70, 40], [0, 160]] } as unknown as DrawElement : e)
     const changed = mergeGraphElements(native, nodes, [arrow('request', 'api', 'db', { data: { protocol: 'SQL', commStyle: 'async' } })], false)
     expect(semantic(changed, 'request')).toMatchObject({ points: [[0, 0], [70, 40], [0, 160]], strokeStyle: 'dashed' })
   })

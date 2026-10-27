@@ -40,12 +40,12 @@ import ShareStatus from './components/ShareStatus'
 import { useSharedFlow, type ApplyReason } from './hooks/useSharedFlow'
 import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
 import { parseSharedLocation } from './utils/shareApi'
-import { isArchitectureChart, nextNumericNodeId, type Chart } from './shared/flowTypes'
+import { inferDiagramMode, nextNumericNodeId, type Chart, type DiagramMode } from './shared/flowTypes'
 import type { ArchitectureScene } from './shared/architectureScene'
-import type { ArchitectureCanvasApi } from './components/ArchitectureCanvas'
+import type { DrawCanvasApi } from './components/DrawCanvas'
 import { parseFlowJson, serializeFlow } from './utils/exportUtils'
 
-const ArchitectureCanvas = lazy(() => import('./components/ArchitectureCanvas'))
+const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
 const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
 function readEditorDraft() {
   if (parseSharedLocation(window.location)) return undefined
@@ -58,7 +58,7 @@ function readEditorDraft() {
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 export type SidebarMode = 'none' | 'explorer'
-export type DiagramMode = 'flowchart' | 'architecture'
+export type { DiagramMode } from './shared/flowTypes'
 export type ArchNodeType = 'service' | 'database' | 'queue' | 'cache' | 'apiGateway' | 'externalActor'
 export type PaletteNodeType = 'step' | 'decision' | 'note' | ArchNodeType
 export type EdgeProtocol = 'HTTPS' | 'gRPC' | 'REST' | 'SQL' | 'WebSocket' | 'event'
@@ -236,11 +236,11 @@ function FlowChartEditor() {
   const [nodes, setNodes] = useNodesState(initialNodes)
   const [edges, setEdges] = useEdgesState(initialDraft?.edges.map(e => ({ ...e, data: { ...e.data, onLabelChange: updateEdgeLabel } })) ?? [])
   const [architectureScene, setArchitectureScene] = useState<ArchitectureScene | undefined>(initialDraft?.architectureScene)
-  const architectureApi = useRef<ArchitectureCanvasApi | null>(null)
-  const pendingArchitectureFit = useRef(false)
-  const handleArchitectureReady = useCallback((api: ArchitectureCanvasApi | null) => {
-    architectureApi.current = api
-    if (api && pendingArchitectureFit.current) { pendingArchitectureFit.current = false; api.fitScene() }
+  const drawApi = useRef<DrawCanvasApi | null>(null)
+  const pendingDrawFit = useRef(false)
+  const handleDrawReady = useCallback((api: DrawCanvasApi | null) => {
+    drawApi.current = api
+    if (api && pendingDrawFit.current) { pendingDrawFit.current = false; api.fitScene() }
   }, [])
   const [draftError, setDraftError] = useState<string | null>(null)
 
@@ -274,12 +274,12 @@ function FlowChartEditor() {
   const [showMinimap, setShowMinimap] = useState(false)
 
   const canvasPoint = useCallback((point: { x: number; y: number }) => {
-    return diagramMode === 'architecture' && architectureApi.current
-      ? architectureApi.current.viewportToScenePoint(point)
+    return diagramMode === 'draw' && drawApi.current
+      ? drawApi.current.viewportToScenePoint(point)
       : screenToFlowPosition(point)
   }, [diagramMode, screenToFlowPosition])
   const centerCanvas = useCallback((x: number, y: number, options?: { duration?: number; zoom?: number }) => {
-    if (diagramMode === 'architecture') window.setTimeout(() => architectureApi.current?.fitScene(), 50)
+    if (diagramMode === 'draw') window.setTimeout(() => drawApi.current?.fitScene(), 50)
     else setCenter(x, y, options)
   }, [diagramMode, setCenter])
 
@@ -332,7 +332,7 @@ function FlowChartEditor() {
   const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: initialDraft?.edges ?? [], architectureScene: initialDraft?.architectureScene, diagramMode: initialDraft?.mode }])
   const [historyIndex, setHistoryIndex] = useState(0)
   const isRestoringHistory = useRef(false)
-  const MAX_HISTORY = 10
+  const MAX_HISTORY = 50
 
   // Save current state to history
   const saveToHistory = useCallback(() => {
@@ -408,12 +408,12 @@ function FlowChartEditor() {
     setDiagramMode(complete.diagramMode)
     setNodeIdCounter(counter => Math.max(counter, nextNumericNodeId(next.nodes)))
     setShowWelcomeAI(false)
-    pendingArchitectureFit.current = options.fit !== false && complete.diagramMode === 'architecture'
+    pendingDrawFit.current = options.fit !== false && complete.diagramMode === 'draw'
     window.setTimeout(() => {
       isRestoringHistory.current = false
       if (options.fit === false) return
-      if (complete.diagramMode === 'architecture' && architectureApi.current) { pendingArchitectureFit.current = false; architectureApi.current.fitScene() }
-      else if (complete.diagramMode === 'flowchart') fitView({ padding: 0.2 })
+      if (complete.diagramMode === 'draw' && drawApi.current) { pendingDrawFit.current = false; drawApi.current.fitScene() }
+      else if (complete.diagramMode !== 'draw') fitView({ padding: 0.2 })
     }, 100)
   }, [nodes, edges, architectureScene, diagramMode, historyIndex, setNodes, setEdges, updateNodeLabel, updateEdgeLabel, fitView])
 
@@ -422,7 +422,7 @@ function FlowChartEditor() {
   const saveTimeoutRef = useRef<number>()
 
   useEffect(() => {
-    if (isRestoringHistory.current || diagramMode === 'architecture') return
+    if (isRestoringHistory.current || diagramMode === 'draw') return
 
     // Debounce history saves to avoid saving too frequently
     lastChangeTime.current = Date.now()
@@ -722,10 +722,8 @@ function FlowChartEditor() {
 
   // Clear all nodes and edges
   const clearAll = useCallback(() => {
-    setNodes([])
-    setEdges([])
-    setArchitectureScene(undefined)
-  }, [setNodes, setEdges])
+    commitDocument({ nodes: [], edges: [], architectureScene: undefined, diagramMode }, { fit: false })
+  }, [commitDocument, diagramMode])
 
   // Get selected nodes and edges
   const getSelectedItems = useCallback(() => {
@@ -838,7 +836,7 @@ function FlowChartEditor() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (diagramMode === 'architecture') return
+      if (diagramMode === 'draw') return
       const target = e.target as HTMLElement
       if (
         target.tagName === 'INPUT' ||
@@ -881,7 +879,7 @@ function FlowChartEditor() {
   // Control + Scroll to Zoom
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
-      if (diagramMode === 'architecture') return
+      if (diagramMode === 'draw') return
       const wrapper = reactFlowWrapper.current
       if (!wrapper || !wrapper.contains(e.target as Node)) {
         return
@@ -1331,6 +1329,7 @@ function FlowChartEditor() {
 
   const applySharedChart = useCallback((chart: Chart, reason: ApplyReason) => {
     setArchitectureScene(chart.architectureScene)
+    setDiagramMode(inferDiagramMode(chart))
     const flow = chartToFlow(chart, { onLabelChange: updateNodeLabel, edgeProps: getEdgeStyleProps })
     setNodeIdCounter((counter) => Math.max(counter, nextNumericNodeId(flow.nodes)))
 
@@ -1338,9 +1337,9 @@ function FlowChartEditor() {
       setNodes(flow.nodes)
       setEdges(flow.edges)
       setShowWelcomeAI(false)
-      setDiagramMode(chart.architectureScene || isArchitectureChart(chart.nodes) ? 'architecture' : 'flowchart')
+      setDiagramMode(inferDiagramMode(chart))
       // Undo should not step back to the empty canvas that existed before loading.
-      setHistory([{ nodes: flow.nodes, edges: flow.edges, architectureScene: chart.architectureScene, diagramMode: chart.architectureScene || isArchitectureChart(chart.nodes) ? 'architecture' : 'flowchart' }])
+      setHistory([{ nodes: flow.nodes, edges: flow.edges, architectureScene: chart.architectureScene, diagramMode: inferDiagramMode(chart) }])
       setHistoryIndex(0)
       fitAfterLoadRef.current = true
       return
@@ -1389,13 +1388,13 @@ function FlowChartEditor() {
     }, 3400)
   }, [updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, getViewport, fitSharedChart])
 
-  const shared = useSharedFlow({ nodes, edges, architectureScene, applyChart: applySharedChart })
+  const shared = useSharedFlow({ nodes, edges, architectureScene, mode: diagramMode, applyChart: applySharedChart })
 
-  const handleArchitectureChange = useCallback((scene: ArchitectureScene, nativeNodes: FlowNode[], nativeEdges: Edge[]) => {
-    setArchitectureScene(scene)
-    setNodes(sortParentsFirst(nativeNodes.map(n => ({ ...n, data: { ...n.data, onLabelChange: updateNodeLabel } }))))
-    setEdges(nativeEdges.map(e => ({ ...e, data: { ...e.data, onLabelChange: updateEdgeLabel } })))
-  }, [setNodes, setEdges, updateNodeLabel, updateEdgeLabel])
+  const handleDrawChange = useCallback((scene: ArchitectureScene, drawingNodes: FlowNode[], drawingEdges: Edge[]) => {
+    // Draw emits completed gestures. Store graph, drawing and mode together so
+    // the same Undo/Redo controls also cover imports and renderer switches.
+    commitDocument({ nodes: drawingNodes, edges: drawingEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: false })
+  }, [commitDocument])
 
   // Standalone diagrams autosave the complete document, including image assets.
   useEffect(() => {
@@ -1476,12 +1475,12 @@ function FlowChartEditor() {
     updateMinimapVisibility()
   }, [updateMinimapVisibility])
 
-  if (previewMode && diagramMode === 'architecture') {
+  if (previewMode && diagramMode === 'draw') {
     return <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
-      <Suspense fallback={<div className="architecture-loading">Loading presentation…</div>}>
-        <ArchitectureCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleArchitectureChange} viewMode />
+      <Suspense fallback={<div className="draw-loading">Loading presentation…</div>}>
+        <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} viewMode />
       </Suspense>
-      <button className="architecture-presentation-exit" onClick={togglePreview}>Exit presentation</button>
+      <button className="draw-presentation-exit" onClick={togglePreview}>Exit presentation</button>
     </div>
   }
 
@@ -1509,7 +1508,7 @@ function FlowChartEditor() {
   }
 
   return (
-    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'} ${diagramMode === 'architecture' ? 'architecture-mode' : ''}`}>
+    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'} ${diagramMode === 'draw' ? 'draw-mode' : ''}`}>
       <Toolbar
         onAddNode={addNode}
         onAddContainer={addContainer}
@@ -1527,14 +1526,14 @@ function FlowChartEditor() {
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         diagramMode={diagramMode}
-        onSetDiagramMode={(mode) => { setDiagramMode(mode); if (mode === 'architecture') setShowWelcomeAI(false) }}
+        onSetDiagramMode={(mode) => { setDiagramMode(mode); if (mode !== 'flowchart') setShowWelcomeAI(false) }}
         reactFlowWrapper={reactFlowWrapper}
         nodes={nodes}
         edges={edges}
         architectureScene={architectureScene}
-        onExportArchitecture={async (format, duration) => {
-          if (!architectureApi.current) throw new Error('Drawing editor is still loading.')
-          await architectureApi.current.exportImage(format, duration)
+        onExportDraw={async (format, duration) => {
+          if (!drawApi.current) throw new Error('Drawing editor is still loading.')
+          await drawApi.current.exportImage(format, duration)
         }}
         onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
           commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })
@@ -1550,10 +1549,10 @@ function FlowChartEditor() {
         }}
       />
       <ShareStatus shared={shared} />
-      {draftError && <div className="architecture-draft-error" role="alert">{draftError}</div>}
+      {draftError && <div className="draw-draft-error" role="alert">{draftError}</div>}
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
-        {diagramMode === 'architecture' ? <Suspense fallback={<div className="architecture-loading">Loading drawing tools…</div>}>
-          <ArchitectureCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleArchitectureChange} onReady={handleArchitectureReady} />
+        {diagramMode === 'draw' ? <Suspense fallback={<div className="draw-loading">Loading drawing tools…</div>}>
+          <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} onReady={handleDrawReady} onUndo={undo} onRedo={redo} canUndo={historyIndex > 0} canRedo={historyIndex < history.length - 1} />
         </Suspense> : <ReactFlow
           nodes={nodes}
           edges={edges}

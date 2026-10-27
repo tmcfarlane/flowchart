@@ -28,5 +28,3 @@ dist-ssr
 .vercel
 
 .omc/
-# Excalidraw fonts are copied from the installed package before dev/build.
-/public/excalidraw-assets/

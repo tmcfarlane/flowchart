@@ -1,65 +1,95 @@
-// Only imported by the lazy Architecture editor. Native elements own drawing
-// geometry; customData links the subset that also has semantic graph meaning.
-import { convertToExcalidrawElements, newElementWith } from '@excalidraw/excalidraw'
-import type { ExcalidrawElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types'
-import type { ExcalidrawElementSkeleton } from '@excalidraw/excalidraw/data/transform'
+// Pure bridge between the existing semantic graph and our Draw scene.
+// No editor package is loaded: raw drawing fields stay lossless for imports.
+import { createElement, getElementCenter, type DrawElement } from './drawScene'
 import type { Node, Edge } from 'reactflow'
 import { flowToChart } from './sharedFlow'
 import { getAbsolutePosition } from './nesting'
 import type { ChartNode, ChartEdge } from '../shared/flowTypes'
 
+type ElementSkeleton = Partial<DrawElement> & { type: string; label?: { text: string; fontSize?: number; fontFamily?: number } }
+const updateElement = (element: DrawElement, changes: Partial<DrawElement>): DrawElement => ({ ...element, ...changes })
+
+function labelSize(text: string, fontSize: number, maxWidth: number): { width: number; height: number } {
+  const lines = text.split('\n')
+  const naturalWidth = Math.max(1, ...lines.map(line => line.length)) * fontSize * 0.6
+  const width = Math.min(Math.max(20, maxWidth), naturalWidth)
+  const rows = lines.reduce((count, line) => count + Math.max(1, Math.ceil(line.length * fontSize * 0.6 / width)), 0)
+  return { width, height: Math.max(fontSize * 1.25, rows * fontSize * 1.25) }
+}
+
+function createElements(skeletons: ElementSkeleton[]): DrawElement[] {
+  return skeletons.flatMap(skeleton => {
+    const { label, ...properties } = skeleton
+    const start = { x: skeleton.x ?? 0, y: skeleton.y ?? 0 }
+    const element = createElement(skeleton.type, start, { x: start.x + (skeleton.width ?? 180), y: start.y + (skeleton.height ?? 90) }, properties)
+    if (!label?.text) return [element]
+    const size = labelSize(label.text, label.fontSize ?? 18, Math.max(20, element.width - 20))
+    const center = getElementCenter(element)
+    const text = createElement('text', { x: center.x - size.width / 2, y: center.y - size.height / 2 }, undefined, {
+      ...size, text: label.text, originalText: label.text, fontSize: label.fontSize ?? 18, fontFamily: label.fontFamily ?? 2,
+      containerId: element.id, textAlign: 'center', verticalAlign: 'middle', angle: element.type === 'arrow' ? 0 : element.angle,
+    })
+    return [{ ...element, boundElements: [{ id: text.id, type: 'text' }] }, text]
+  })
+}
+
 interface BridgeData { kind: 'node' | 'edge' | 'icon'; id: string; snapshot?: ChartNode | ChartEdge }
-export const bridgeData = (element: ExcalidrawElement): BridgeData | undefined => element.customData?.flowchart as BridgeData | undefined
+export const bridgeData = (element: Record<string, unknown>): BridgeData | undefined => (element.customData as Record<string, unknown> | undefined)?.flowchart as BridgeData | undefined
 const shapeId = (id: string) => `fc-node-${id}`
 const edgeId = (id: string) => `fc-edge-${id}`
 export const graphSignature = (nodes: Node[], edges: Edge[]) => JSON.stringify(flowToChart(nodes, edges))
 
-function endpoint(shape: ExcalidrawElement, handle: ChartEdge['sourceHandle'], fallback: 'top' | 'bottom') {
+function endpoint(shape: DrawElement, handle: ChartEdge['sourceHandle'], fallback: 'top' | 'bottom') {
   const side = handle ?? fallback
   const local = side === 'left' ? [-shape.width / 2, 0] : side === 'right' ? [shape.width / 2, 0] : side === 'top' ? [0, -shape.height / 2] : [0, shape.height / 2]
   const cos = Math.cos(shape.angle), sin = Math.sin(shape.angle)
   return { x: shape.x + shape.width / 2 + local[0] * cos - local[1] * sin, y: shape.y + shape.height / 2 + local[0] * sin + local[1] * cos }
 }
 
-function arrowGeometry(source: ExcalidrawElement, target: ExcalidrawElement, edge: ChartEdge) {
+function arrowGeometry(source: DrawElement, target: DrawElement, edge: ChartEdge) {
   const start = endpoint(source, edge.sourceHandle, 'bottom')
   const end = endpoint(target, edge.targetHandle, 'top')
   const dx = end.x - start.x, dy = end.y - start.y
   const points = edge.style === 'step'
     ? [[0, 0], [0, dy / 2], [dx, dy / 2], [dx, dy]]
     : [[0, 0], [dx, dy]]
+  const startFixed: [number, number] = edge.sourceHandle === 'left' ? [0, 0.5] : edge.sourceHandle === 'right' ? [1, 0.5] : edge.sourceHandle === 'top' ? [0.5, 0] : [0.5, 1]
+  const endFixed: [number, number] = edge.targetHandle === 'left' ? [0, 0.5] : edge.targetHandle === 'right' ? [1, 0.5] : edge.targetHandle === 'bottom' ? [0.5, 1] : [0.5, 0]
   return {
     x: start.x, y: start.y, width: Math.abs(dx), height: Math.abs(dy),
-    points: points as Extract<ExcalidrawElement, { type: 'arrow' }>['points'],
-    startBinding: { elementId: source.id, focus: 0, gap: 1 },
-    endBinding: { elementId: target.id, focus: 0, gap: 1 },
+    elbowed: edge.style === 'step',
+    points: points as Array<[number, number]>,
+    startBinding: { elementId: source.id, focus: 0, gap: 0, fixedPoint: startFixed },
+    endBinding: { elementId: target.id, focus: 0, gap: 0, fixedPoint: endFixed },
   }
 }
 
-function setBoundLabel(output: ExcalidrawElement[], container: ExcalidrawElement, label: string, fontSize: number) {
+function setBoundLabel(output: DrawElement[], container: DrawElement, label: string, fontSize: number) {
   const index = output.findIndex(e => e.type === 'text' && e.containerId === container.id)
   const previous = output[index]
   if (!label) {
-    if (previous) output[index] = newElementWith(previous, { isDeleted: true })
+    if (previous) output[index] = updateElement(previous, { isDeleted: true })
     return
   }
   if (previous?.type === 'text') {
-    output[index] = newElementWith(previous, {
+    const center = getElementCenter(container)
+    const size = labelSize(label, previous.fontSize ?? fontSize, Math.max(20, container.width - 20))
+    output[index] = updateElement(previous, {
       text: label, originalText: label, isDeleted: false,
-      x: container.x + container.width / 2 - previous.width / 2,
-      y: container.y + container.height / 2 - previous.height / 2,
+      ...size, x: center.x - size.width / 2, y: center.y - size.height / 2,
     })
     return
   }
-  const text = convertToExcalidrawElements([{ type: 'text', text: label, x: container.x + container.width / 2, y: container.y + container.height / 2, fontSize, fontFamily: 2 }], { regenerateIds: false })[0]
-  if (text?.type === 'text') output.push(newElementWith(text, { containerId: container.id, x: text.x - text.width / 2, y: text.y - text.height / 2, verticalAlign: 'middle', textAlign: 'center' }))
+  const center = getElementCenter(container), size = labelSize(label, fontSize, Math.max(20, container.width - 20))
+  const text = createElement('text', { x: center.x - size.width / 2, y: center.y - size.height / 2 }, undefined, { ...size, text: label, originalText: label, fontSize, fontFamily: 2, containerId: container.id, verticalAlign: 'middle', textAlign: 'center' })
+  output.push(text)
 }
 
 const CONTAINER_GROUP_PREFIX = 'fc-container-'
 
 /** Native groups make semantic container contents move together, while graph
  * parentNode retains the distinction from user-created groups and frames. */
-function withContainerGroups(elements: ExcalidrawElement[], nodes: ChartNode[], edges: ChartEdge[]) {
+function withContainerGroups(elements: DrawElement[], nodes: ChartNode[], edges: ChartEdge[]) {
   const nodeMap = new Map(nodes.map(node => [node.id, node]))
   const edgeMap = new Map(edges.map(edge => [edge.id, edge]))
   const containerGroups = (nodeId: string): string[] => {
@@ -89,18 +119,18 @@ function withContainerGroups(elements: ExcalidrawElement[], nodes: ChartNode[], 
     const groups = element.type === 'text' && element.containerId ? groupsByElement.get(element.containerId) : groupsByElement.get(element.id)
     if (!groups) return element
     const groupIds = [...(element.groupIds ?? []).filter(group => !group.startsWith(CONTAINER_GROUP_PREFIX)), ...groups]
-    return JSON.stringify(groupIds) === JSON.stringify(element.groupIds) ? element : newElementWith(element, { groupIds })
+    return JSON.stringify(groupIds) === JSON.stringify(element.groupIds) ? element : updateElement(element, { groupIds })
   })
 }
 
 /** Add/update semantic shapes without touching freeform elements or their styles. */
-export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes: Node[], edges: Edge[], _darkMode: boolean): OrderedExcalidrawElement[] {
+export function mergeGraphElements(elements: readonly DrawElement[], nodes: Node[], edges: Edge[], _darkMode: boolean): DrawElement[] {
   const chart = flowToChart(nodes, edges)
   const nodeMap = new Map(chart.nodes.map(n => [n.id, n]))
   const edgeMap = new Map(chart.edges.map(e => [e.id, e]))
   const previousShapes = new Map(elements.filter(e => bridgeData(e)?.kind === 'node').map(e => [bridgeData(e)!.id, e]))
   const previousEdges = new Map(elements.filter(e => bridgeData(e)?.kind === 'edge').map(e => [bridgeData(e)!.id, e]))
-  const output: ExcalidrawElement[] = [...elements]
+  const output: DrawElement[] = [...elements]
   const movedShapes = new Set<string>()
   const removed = new Set<string>()
   for (const element of elements) {
@@ -110,9 +140,9 @@ export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes
   }
   for (let i = 0; i < output.length; i++) {
     const element = output[i]
-    if (removed.has(element.id) || (element.type === 'text' && element.containerId && removed.has(element.containerId))) output[i] = newElementWith(element, { isDeleted: true })
+    if (removed.has(element.id) || (element.type === 'text' && element.containerId && removed.has(element.containerId))) output[i] = updateElement(element, { isDeleted: true })
   }
-  const fresh: ExcalidrawElementSkeleton[] = []
+  const fresh: ElementSkeleton[] = []
   for (const node of chart.nodes) {
     const previous = previousShapes.get(node.id)
     const source = nodes.find(n => n.id === node.id)!
@@ -126,11 +156,11 @@ export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes
     } else if (previous.isDeleted || JSON.stringify(bridgeData(previous)?.snapshot) !== JSON.stringify(node)) {
       const index = output.findIndex(e => e.id === previous.id)
       if (previous.x !== position.x || previous.y !== position.y || previous.width !== width || previous.height !== height) movedShapes.add(previous.id)
-      output[index] = newElementWith(previous, { x: position.x, y: position.y, width, height, isDeleted: false, customData: { ...previous.customData, flowchart: metadata } })
+      output[index] = updateElement(previous, { x: position.x, y: position.y, width, height, isDeleted: false, customData: { ...previous.customData, flowchart: metadata } })
       setBoundLabel(output, output[index], node.label, 18)
     }
   }
-  if (fresh.length) output.push(...convertToExcalidrawElements(fresh, { regenerateIds: false }))
+  if (fresh.length) output.push(...createElements(fresh))
   const shapes = new Map(output.filter(e => !e.isDeleted && bridgeData(e)?.kind === 'node').map(e => [bridgeData(e)!.id, e]))
   for (const edge of chart.edges) {
     const source = shapes.get(edge.source), target = shapes.get(edge.target)
@@ -143,13 +173,13 @@ export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes
       // Binding skeletons by `start`/`end` only resolves elements in the same
       // conversion batch. Existing shapes are already in the scene, so supply
       // their native bindings directly rather than creating unbound arrows.
-      const converted = convertToExcalidrawElements([{ id: edgeId(edge.id), type: 'arrow', ...arrowGeometry(source, target, edge), label: label ? { text: label, fontSize: 14, fontFamily: 2 } : undefined, strokeColor: '#087f5b', strokeStyle, roughness: 0, customData: { flowchart: metadata } }], { regenerateIds: false })
+      const converted = createElements([{ id: edgeId(edge.id), type: 'arrow', ...arrowGeometry(source, target, edge), label: label ? { text: label, fontSize: 14, fontFamily: 2 } : undefined, strokeColor: '#087f5b', strokeStyle, roughness: 0, customData: { flowchart: metadata } }])
       output.push(...converted)
     } else if (previous.type === 'arrow' && (previous.isDeleted || movedShapes.has(source.id) || movedShapes.has(target.id) || JSON.stringify(bridgeData(previous)?.snapshot) !== JSON.stringify(edge))) {
       const index = output.findIndex(e => e.id === previous.id)
       const oldEdge = bridgeData(previous)?.snapshot as ChartEdge | undefined
       const reroute = previous.isDeleted || movedShapes.has(source.id) || movedShapes.has(target.id) || oldEdge?.source !== edge.source || oldEdge?.target !== edge.target || oldEdge?.sourceHandle !== edge.sourceHandle || oldEdge?.targetHandle !== edge.targetHandle || oldEdge?.style !== edge.style
-      output[index] = newElementWith(previous, { ...(reroute ? arrowGeometry(source, target, edge) : {}), strokeStyle, customData: { ...previous.customData, flowchart: metadata }, isDeleted: false })
+      output[index] = updateElement(previous, { ...(reroute ? arrowGeometry(source, target, edge) : {}), strokeStyle, customData: { ...previous.customData, flowchart: metadata }, isDeleted: false })
       setBoundLabel(output, output[index], label, 14)
     }
   }
@@ -160,11 +190,11 @@ export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes
     if (element.type === 'text' && element.containerId) bound.set(element.containerId, [...(bound.get(element.containerId) ?? []), { id: element.id, type: 'text' }])
     if (element.type === 'arrow') for (const binding of [element.startBinding, element.endBinding]) if (binding) bound.set(binding.elementId, [...(bound.get(binding.elementId) ?? []), { id: element.id, type: 'arrow' }])
   }
-  return withContainerGroups(output.map(e => ({ ...e, boundElements: bound.get(e.id) ?? null })), chart.nodes, chart.edges) as OrderedExcalidrawElement[]
+  return withContainerGroups(output.map(e => ({ ...e, boundElements: bound.get(e.id) ?? null })), chart.nodes, chart.edges) as DrawElement[]
 }
 
 /** Reconcile semantic shapes edited in the native editor back into the graph. */
-export function graphFromElements(elements: readonly ExcalidrawElement[], nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[]; elements: readonly ExcalidrawElement[] } {
+export function graphFromElements(elements: readonly DrawElement[], nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[]; elements: readonly DrawElement[] } {
   const alive = elements.filter(e => !e.isDeleted)
   const semantic = alive.filter(e => bridgeData(e)?.kind === 'node')
   const allSemanticIds = new Set(elements.filter(e => bridgeData(e)?.kind === 'node').map(e => bridgeData(e)!.id))
