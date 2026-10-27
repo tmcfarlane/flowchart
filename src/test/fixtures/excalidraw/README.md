@@ -6,4 +6,6 @@ The scene contains a named frame; grouped, rotated and styled architecture shape
 
 `empty.excalidraw`, `future-version.excalidraw`, and `corrupt.excalidraw` exercise failure cases. The unit tests also derive missing-reference, unsupported-content, oversized, duplicate-ID, and invalid-asset cases from the complete fixture.
 
+`native-editor-roundtrip.excalidraw` was exported from the actual browser editor using the official `@excalidraw/excalidraw` 0.18.1 `serializeAsJSON` utility after loading the complete fixture. It includes the editor's native restoration defaults and drawing-order indices. The roundtrip test verifies those exported records, relationships, and image bytes import unchanged. Regenerate it together with the PR screenshots using `python scripts/verify-excalidraw-import.py` against the dev server.
+
 The fixtures are checked in so browser tests and manual review can import exactly the same bytes through the picker and through canvas drag-and-drop. They are test data, not screenshots or flattened renderings.

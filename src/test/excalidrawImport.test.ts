@@ -35,6 +35,16 @@ function refs(scene: ReturnType<typeof parseExcalidrawScene>) {
 }
 
 describe('Excalidraw native scene import', () => {
+  it('imports a file exported by the real native editor using its official serializeAsJSON utility', () => {
+    const text = fixture('native-editor-roundtrip.excalidraw')
+    const exported = JSON.parse(text)
+    const scene = parseExcalidrawScene(text)
+    expect(scene.elements).toEqual(exported.elements)
+    expect(scene.files).toEqual(exported.files)
+    expect(scene.elements.map((element) => element.type)).toEqual(expect.arrayContaining(['rectangle', 'ellipse', 'text', 'arrow', 'frame', 'freedraw', 'image']))
+    refs(scene)
+  })
+
   it('preserves editable shapes, bound labels/arrows, rotation, frames, groups, pen pressure, and image bytes', () => {
     const original = source()
     const scene = parseExcalidrawScene(fixture())

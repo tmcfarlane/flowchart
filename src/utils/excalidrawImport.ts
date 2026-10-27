@@ -1,4 +1,4 @@
-import type { ArchitectureScene } from '../shared/architectureScene'
+import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 
 /** Fits the 4.5 MB serverless request limit, including the document envelope. */
 export const EXCALIDRAW_IMPORT_LIMITS = {
@@ -175,7 +175,7 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
       appState.gridSize = input.appState.gridSize
     } else if (isRecord(input.appState) && input.appState.gridSize === null) appState.gridSize = null
   }
-  return { version: 1, elements, files, appState }
+  return validateArchitectureScene({ version: 1, elements, files, appState })
 }
 
 function uniqueId(prefix: string, occupied: Set<string>): string {
@@ -245,5 +245,5 @@ export function prepareSceneInsertion(
   if (result.elements.length > EXCALIDRAW_IMPORT_LIMITS.maxElements || Object.keys(result.files).length > EXCALIDRAW_IMPORT_LIMITS.maxFiles || new TextEncoder().encode(JSON.stringify(result)).byteLength > EXCALIDRAW_IMPORT_LIMITS.maxBytes) {
     throw new Error('The combined drawing exceeds the 5,000 element or 4 MiB scene limit. Open this file as a new diagram instead.')
   }
-  return result
+  return validateArchitectureScene(result)
 }

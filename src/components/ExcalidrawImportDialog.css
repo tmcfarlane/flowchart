@@ -18,6 +18,8 @@
 .excalidraw-import-choices { display: flex; flex-direction: column; gap: 10px; }
 .excalidraw-import-choice { display: flex; flex-direction: column; gap: 7px; padding: 17px; text-align: left; color: inherit; background: #202a26; border: 1px solid #3c4944; border-radius: 12px; cursor: pointer; font: inherit; }
 .excalidraw-import-choice:hover { background: #263d33; border-color: #78fcd6; }
+.excalidraw-import-choice:disabled { opacity: .6; cursor: wait; }
+.excalidraw-import-inline-error { padding: 12px; color: #6b3700; background: #fff0c2; border-radius: 8px; font-size: 12px; line-height: 1.5; }
 .excalidraw-import-choice:focus-visible, .excalidraw-import-footer button:focus-visible { outline: 2px solid #78fcd6; outline-offset: 3px; }
 .excalidraw-import-choice-title { display: flex; justify-content: space-between; gap: 15px; font-size: 14px; font-weight: 600; }
 .excalidraw-import-choice-title > span { color: #78fcd6; }
@@ -34,3 +36,12 @@
 .light-mode .excalidraw-import-footer { color: #5d7267; }
 .light-mode .excalidraw-import-footer button { border-color: #cfddd5; }
 @media (max-width: 540px) { .excalidraw-import-dialog { padding: 22px; } .excalidraw-import-dialog h2 { font-size: 23px; } }
+.diagram-file-drop { position: absolute; inset: 94px 18px 18px; z-index: 1050; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; pointer-events: none; border: 2px dashed #78fcd6; border-radius: 18px; color: #c6ffeb; background: rgba(13, 44, 31, .9); box-shadow: inset 0 0 90px rgba(120, 252, 214, .1); }
+.diagram-file-drop strong { font-size: 26px; letter-spacing: -.6px; font-weight: 600; }
+.diagram-file-drop span { font-size: 14px; color: #a5d7c3; }
+.diagram-import-notice { position: fixed; bottom: 22px; left: 22px; z-index: 1500; display: flex; align-items: center; gap: 18px; max-width: min(540px, calc(100vw - 44px)); padding: 16px 18px; border: 1px solid #6c9f89; border-radius: 12px; background: #182d23; color: #ddf7e9; box-shadow: 0 8px 35px #0004; font-size: 13px; line-height: 1.5; }
+.diagram-import-notice strong { display: block; margin-bottom: 4px; font-size: 14px; }
+.diagram-import-notice button { flex-shrink: 0; padding: 7px 10px; border: 1px solid currentColor; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 12px; }
+.diagram-import-notice.error { border-color: #e4b95c; background: #fff3d2; color: #5d3900; }
+.light-mode .diagram-file-drop { color: #085f3b; border-color: #109b6b; background: rgba(225, 250, 237, .94); }
+.light-mode .diagram-file-drop span { color: #326c51; }
