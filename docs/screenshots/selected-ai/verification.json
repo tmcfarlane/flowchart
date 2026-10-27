@@ -1,0 +1,31 @@
+{
+  "provider": "live configured provider",
+  "modes": [
+    {
+      "mode": "flowchart",
+      "instruction": "Rename \u201cReceive and validate a customer order\u201d to \u201cReceive order\u201d and \u201cSend the customer an order confirmation\u201d to \u201cSend receipt\u201d. Keep the layout and connections unchanged.",
+      "status": 200,
+      "elapsedSeconds": 5.81,
+      "operationCount": 2,
+      "sameNodeIds": true,
+      "exactGeometryAndMetadata": true,
+      "retainedDrawing": true,
+      "undoRedo": true,
+      "jsonExport": true,
+      "browserErrors": []
+    },
+    {
+      "mode": "architecture",
+      "instruction": "Rename \u201cReceive and validate a customer order\u201d to \u201cOrders API\u201d and \u201cSend the customer an order confirmation\u201d to \u201cNotifications\u201d. Keep the layout and connections unchanged.",
+      "status": 200,
+      "elapsedSeconds": 4.6,
+      "operationCount": 2,
+      "sameNodeIds": true,
+      "exactGeometryAndMetadata": true,
+      "retainedDrawing": true,
+      "undoRedo": true,
+      "jsonExport": true,
+      "browserErrors": []
+    }
+  ]
+}

@@ -43,6 +43,7 @@ Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
 ## Features
 
 - **AI-powered generation** — describe what you want in plain English, get a structured flowchart in seconds
+- **Edit selected nodes with AI** — preview scoped changes and update the same nodes in Flowchart or Architecture mode, with undo/redo. [Guide](docs/selected-node-ai.md)
 - **Works with your AI agent (MCP)** — Claude, Copilot, Cursor, OpenCode or ChatGPT can create a chart, hand you a link, and keep editing it with you
 - **Share links with live sync** — share a chart in one click; edits from you and your agent appear live
 - **Free to use** — no sign-up, no paywall, no limits on the canvas

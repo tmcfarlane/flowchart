@@ -47,8 +47,12 @@ import type { DrawCanvasApi } from './components/DrawCanvas'
 import { parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
+import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
+import type { SelectionEditPreview } from './components/AISelectionEditDialog'
+import { authoredGraphSignature, captureSelectionEditSnapshot, mergeSelectionEditResult, selectionEditChart, selectionEditContext, selectionEditPreview, selectionEditSnapshotIsCurrent, type SelectionEditSnapshot } from './utils/selectionEdit'
 
 const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
+const AISelectionEditDialog = lazy(() => import('./components/AISelectionEditDialog'))
 const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
 function readEditorDraft() {
   if (parseSharedLocation(window.location)) return undefined
@@ -122,6 +126,18 @@ interface HistoryState {
   edges: Edge[]
   architectureScene?: ArchitectureScene
   diagramMode?: DiagramMode
+}
+
+interface SelectionEditSession {
+  nodeIds: string[]
+  selectedNodes: Array<{ id: string; label: string }>
+  boundaryEdges: Array<{ id: string; label: string; sourceLabel: string; targetLabel: string }>
+}
+interface PendingSelectionEdit {
+  scope: SelectionEditScope
+  snapshot: SelectionEditSnapshot
+  proposal: SelectionEditProposal
+  preview: SelectionEditPreview
 }
 
 const ARCH_NODE_DIMENSIONS: Record<ArchNodeType, { width: number; height: number }> = {
@@ -283,6 +299,15 @@ function FlowChartEditor() {
   const [isFileDragOver, setIsFileDragOver] = useState(false)
   const importRequest = useRef(0)
   const fileDragDepth = useRef(0)
+  const [selectionEdit, setSelectionEdit] = useState<SelectionEditSession | null>(null)
+  const [selectionEditBusy, setSelectionEditBusy] = useState(false)
+  const [selectionEditError, setSelectionEditError] = useState<string | null>(null)
+  const [pendingSelectionEdit, setPendingSelectionEdit] = useState<PendingSelectionEdit | null>(null)
+  const selectionEditRequest = useRef<{ id: number; controller?: AbortController }>({ id: 0 })
+  const documentEpoch = useRef(0)
+  const revision = useRef({ signature: '', value: 0 })
+  const authoredSignature = authoredGraphSignature(nodes, edges)
+  if (authoredSignature !== revision.current.signature) revision.current = { signature: authoredSignature, value: revision.current.value + 1 }
 
   const canvasPoint = useCallback((point: { x: number; y: number }) => {
     return diagramMode === 'draw' && drawApi.current
@@ -368,6 +393,7 @@ function FlowChartEditor() {
   // Undo handler
   const undo = useCallback(() => {
     if (historyIndex > 0) {
+      documentEpoch.current++
       const newIndex = historyIndex - 1
       const state = history[newIndex]
       isRestoringHistory.current = true
@@ -385,6 +411,7 @@ function FlowChartEditor() {
   // Redo handler
   const redo = useCallback(() => {
     if (historyIndex < history.length - 1) {
+      documentEpoch.current++
       const newIndex = historyIndex + 1
       const state = history[newIndex]
       isRestoringHistory.current = true
@@ -402,6 +429,7 @@ function FlowChartEditor() {
   // Opening another document is a single transaction, including the scene and
   // mode. Keep both sides so diagram Undo/Redo works across renderer switches.
   const commitDocument = useCallback((next: HistoryState, options: { fit?: boolean } = {}) => {
+    documentEpoch.current++
     const previous: HistoryState = { nodes, edges, architectureScene, diagramMode }
     const complete = { ...next, diagramMode: next.diagramMode ?? diagramMode }
     setHistory(current => {
@@ -831,6 +859,99 @@ function FlowChartEditor() {
     const selectedEdges = edges.filter((edge) => edge.selected)
     return { selectedNodes, selectedEdges }
   }, [nodes, edges])
+
+  const editTarget = useRef({ nodes, edges, diagramMode, architectureScene, commitDocument, getEdgeStyleProps })
+  editTarget.current = { nodes, edges, diagramMode, architectureScene, commitDocument, getEdgeStyleProps }
+
+  const closeSelectionEdit = useCallback(() => {
+    selectionEditRequest.current.controller?.abort()
+    selectionEditRequest.current = { id: selectionEditRequest.current.id + 1 }
+    setSelectionEdit(null)
+    setPendingSelectionEdit(null)
+    setSelectionEditBusy(false)
+    setSelectionEditError(null)
+  }, [])
+
+  const openSelectionEdit = useCallback(() => {
+    const current = editTarget.current
+    const selected = current.nodes.filter(node => node.selected)
+    if (current.diagramMode === 'draw' || selected.length === 0) return
+    const ids = new Set(selected.map(node => node.id)), labels = new Map(current.nodes.map(node => [node.id, String(node.data.label ?? node.id)]))
+    selectionEditRequest.current.controller?.abort()
+    selectionEditRequest.current = { id: selectionEditRequest.current.id + 1 }
+    setSelectionEdit({
+      nodeIds: [...ids], selectedNodes: selected.map(node => ({ id: node.id, label: String(node.data.label ?? node.id) })),
+      boundaryEdges: current.edges.filter(edge => ids.has(edge.source) !== ids.has(edge.target)).map(edge => ({ id: edge.id, label: typeof edge.label === 'string' ? edge.label : '', sourceLabel: labels.get(edge.source) ?? edge.source, targetLabel: labels.get(edge.target) ?? edge.target })),
+    })
+    setSelectionEditBusy(false)
+    setSelectionEditError(null)
+    setPendingSelectionEdit(null)
+    setIsAIBubbleOpen(false)
+  }, [])
+
+  const generateSelectionEdit = useCallback(async (instruction: string, includeBoundaryConnections: boolean) => {
+    if (!selectionEdit || selectionEditBusy) return
+    const controller = new AbortController(), requestId = selectionEditRequest.current.id + 1
+    selectionEditRequest.current = { id: requestId, controller }
+    setSelectionEditBusy(true)
+    setSelectionEditError(null)
+    setPendingSelectionEdit(null)
+    try {
+      const current = editTarget.current
+      if (current.diagramMode === 'draw') throw new Error('Edit with AI is available in Flowchart and Architecture modes.')
+      const snapshot = captureSelectionEditSnapshot(current.nodes, current.edges, selectionEdit.nodeIds, documentEpoch.current)
+      const selected = new Set(snapshot.nodeIds)
+      const internalEdges = current.edges.filter(edge => selected.has(edge.source) && selected.has(edge.target)).map(edge => edge.id)
+      const scope: SelectionEditScope = {
+        nodeIds: snapshot.nodeIds, edgeIds: [...new Set([...internalEdges, ...(includeBoundaryConnections ? selectionEdit.boundaryEdges.map(edge => edge.id) : [])])],
+        snapshotId: crypto.randomUUID(), revision: revision.current.value,
+      }
+      const response = await fetch('/api/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+        body: JSON.stringify({ mode: 'edit', diagramMode: current.diagramMode, messages: [{ role: 'user', content: instruction }], selection: scope, flowContext: selectionEditContext(current.nodes, current.edges, snapshot) }),
+      })
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(data.error || 'The AI could not prepare these changes. Please try again.')
+      if (data.finishReason === 'length') throw new Error('The AI response was cut off. Try a smaller edit.')
+      let proposal: unknown
+      try { proposal = JSON.parse(data.message) as unknown } catch { throw new Error('The AI returned invalid changes. Your diagram has not changed.') }
+      const { validateSelectionEdit } = await import('./shared/selectionEdit')
+      if (selectionEditRequest.current.id !== requestId) return
+      const latest = editTarget.current
+      if (!selectionEditSnapshotIsCurrent(snapshot, latest.nodes, latest.edges, documentEpoch.current)) throw new Error('The selected content changed while AI was working. Regenerate the proposal before applying.')
+      const chart = selectionEditChart(latest.nodes, latest.edges)
+      const validated = validateSelectionEdit(chart.nodes, chart.edges, scope, proposal)
+      if (!validated.ok) throw new Error(validated.error)
+      const next = mergeSelectionEditResult(latest.nodes, latest.edges, validated.result, { onLabelChange: updateNodeLabel, edgeProps: latest.getEdgeStyleProps })
+      setPendingSelectionEdit({ scope, snapshot, proposal: validated.proposal, preview: selectionEditPreview(latest.nodes, latest.edges, next.nodes, next.edges, validated.proposal.summary) })
+    } catch (error) {
+      if (selectionEditRequest.current.id === requestId && !controller.signal.aborted) setSelectionEditError(error instanceof Error ? error.message : 'Unable to prepare changes. Your diagram has not changed.')
+    } finally {
+      if (selectionEditRequest.current.id === requestId) setSelectionEditBusy(false)
+    }
+  }, [selectionEdit, selectionEditBusy, updateNodeLabel])
+
+  const applySelectionEdit = useCallback(async () => {
+    if (!pendingSelectionEdit || selectionEditBusy) return
+    const requestId = selectionEditRequest.current.id
+    try {
+      const { validateSelectionEdit } = await import('./shared/selectionEdit')
+      if (selectionEditRequest.current.id !== requestId) return
+      const current = editTarget.current
+      if (!selectionEditSnapshotIsCurrent(pendingSelectionEdit.snapshot, current.nodes, current.edges, documentEpoch.current)) throw new Error('The selected content changed. Regenerate the proposal before applying.')
+      const chart = selectionEditChart(current.nodes, current.edges)
+      const validated = validateSelectionEdit(chart.nodes, chart.edges, pendingSelectionEdit.scope, pendingSelectionEdit.proposal)
+      if (!validated.ok) throw new Error(validated.error)
+      const next = mergeSelectionEditResult(current.nodes, current.edges, validated.result, { onLabelChange: updateNodeLabel, edgeProps: current.getEdgeStyleProps })
+      current.commitDocument({ ...next, architectureScene: current.architectureScene, diagramMode: current.diagramMode }, { fit: false })
+      closeSelectionEdit()
+    } catch (error) { setSelectionEditError(error instanceof Error ? error.message : 'Unable to apply changes. Your diagram has not changed.') }
+  }, [pendingSelectionEdit, selectionEditBusy, updateNodeLabel, closeSelectionEdit])
+
+  useEffect(() => () => {
+    selectionEditRequest.current.controller?.abort()
+    selectionEditRequest.current.id++
+  }, [])
 
   // Copy selected nodes and edges. Copying a container brings its descendants
   // along (with their internal edges); a copied child whose parent is NOT in
@@ -1437,6 +1558,9 @@ function FlowChartEditor() {
   }, [nodesInitialized, fitSharedChart])
 
   const applySharedChart = useCallback((chart: Chart, reason: ApplyReason) => {
+    // A newly adopted shared version is a replacement document, even when its
+    // IDs are reused. Do not apply a proposal prepared against the older one.
+    documentEpoch.current++
     setArchitectureScene(chart.architectureScene)
     setDiagramMode(inferDiagramMode(chart))
     const flow = chartToFlow(chart, { onLabelChange: updateNodeLabel, edgeProps: getEdgeStyleProps })
@@ -1881,6 +2005,12 @@ function FlowChartEditor() {
                 )
               })()}
               <div className="selection-toolbar-actions">
+                {diagramMode !== 'draw' && selectedNodes.length > 0 && <button
+                  className="selection-toolbar-button selection-ai-action"
+                  onClick={openSelectionEdit}
+                  title={`Edit ${selectedNodes.length} selected node${selectedNodes.length === 1 ? '' : 's'} with AI`}
+                  aria-label="Edit with AI"
+                >✦ <span>Edit with AI</span><span className="selection-ai-count">{selectedNodes.length} node{selectedNodes.length === 1 ? '' : 's'}</span></button>}
                 <button
                   className="selection-toolbar-button delete"
                   onClick={deleteSelected}
@@ -1932,6 +2062,20 @@ function FlowChartEditor() {
         />
       )}
       {/* Welcome AI prompt on fresh empty canvas */}
+      {selectionEdit && <Suspense fallback={<div className="draw-loading" role="status">Opening selected-node editor…</div>}>
+        <AISelectionEditDialog
+          selectedNodes={selectionEdit.selectedNodes}
+          boundaryEdges={selectionEdit.boundaryEdges}
+          busy={selectionEditBusy}
+          error={selectionEditError}
+          stale={!!pendingSelectionEdit && !selectionEditSnapshotIsCurrent(pendingSelectionEdit.snapshot, nodes, edges, documentEpoch.current)}
+          preview={pendingSelectionEdit?.preview}
+          darkMode={darkMode}
+          onGenerate={generateSelectionEdit}
+          onApply={applySelectionEdit}
+          onCancel={closeSelectionEdit}
+        />
+      </Suspense>}
       {showWelcomeAI && nodes.length === 0 && !isAIBubbleOpen && !aiProposal && (
         <AIChat
           nodes={nodes}
@@ -1953,6 +2097,8 @@ function FlowChartEditor() {
         nodes={nodes}
         edges={edges}
         diagramMode={diagramMode}
+        onEditSelection={diagramMode !== 'draw' ? openSelectionEdit : undefined}
+        selectedCount={nodes.filter(node => node.selected).length}
         onProposalReady={handleAIProposalReady}
         isOpen={isAIBubbleOpen}
         onClose={() => setIsAIBubbleOpen(false)}

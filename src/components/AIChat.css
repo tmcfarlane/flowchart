@@ -704,3 +704,20 @@
     font-size: 13px;
   }
 }
+.ai-selection-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  margin: 0 0 15px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  border-radius: 9px;
+  background: rgba(16, 185, 129, 0.08);
+  color: #087f5b;
+  font: inherit;
+  cursor: pointer;
+}
+.ai-selection-action:disabled { opacity: 0.5; cursor: default; }
+.ai-selection-action span + span { font-size: 11px; }
+.app.dark-mode .ai-selection-action { color: #78fcd6; }
