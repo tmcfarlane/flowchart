@@ -7,6 +7,8 @@ import { changedNodeIds, chartToFlow, contentFingerprint, flowToChart } from '..
 import { getAzureIconId, getAzureIconUrl } from '../utils/azureIconIds'
 import { parseSharedLocation } from '../utils/shareApi'
 
+vi.mock('../components/ArchitectureCanvas', async () => import('./mocks/ArchitectureCanvas'))
+
 const ID = 'Ab3dE5fG7h'
 const TOKEN = 'test-edit-token-1234567890'
 
@@ -186,6 +188,24 @@ describe('App on a shared link', () => {
     expect(body.nodes.find((n: ChartNode) => n.id === '1').label).toBe('Visitor starts a trial')
     expect(body.nodes.find((n: ChartNode) => n.id === '3').icon).toBe('azure-cosmos-db')
     await waitFor(() => expect(screen.getByLabelText('Shared flowchart status')).toHaveTextContent('Saved'))
+  })
+
+  it('saves a scene-only native edit with graph content and optimistic concurrency intact', async () => {
+    window.history.replaceState(null, '', `/f/${ID}#edit=${TOKEN}`)
+    routes = (url, init) => {
+      if (init.method === 'PUT') return json({ ...makeChart(), ...JSON.parse(String(init.body)), version: 4, updatedVia: 'api' })
+      return url.includes('since=') ? json({ id: ID, version: 3, changed: false }) : json(makeChart())
+    }
+    render(<App />)
+    fireEvent.click(await screen.findByText('Add native annotation'))
+    await waitFor(() => expect(calls('PUT')).toHaveLength(1), { timeout: 3000 })
+    const [, init] = calls('PUT')[0] as [string, RequestInit]
+    const body = JSON.parse(String(init.body))
+    expect(body.baseVersion).toBe(3)
+    expect(body.nodes).toHaveLength(NODES.length)
+    expect(body.edges).toHaveLength(EDGES.length)
+    expect(body.architectureScene.elements).toEqual([expect.objectContaining({ text: 'Native annotation', x: -120, angle: 0.2 })])
+    expect((init.headers as Record<string, string>).Authorization).toBe(`Bearer ${TOKEN}`)
   })
 
   it('never overwrites a newer remote version: it asks instead', async () => {

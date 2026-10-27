@@ -175,12 +175,12 @@ export default function ArchitectureCanvas({ scene, nodes, edges, darkMode, onCh
     const duplicatedIds = new Map<string, string>()
     for (const element of next) {
       const metadata = bridgeData(element)
-      if (metadata && !previousIds.has(element.id)) duplicatedIds.set(metadata.id, `native-${element.id}`)
+      if (metadata && metadata.kind !== 'icon' && !previousIds.has(element.id)) duplicatedIds.set(metadata.id, `native-${element.id}`)
     }
     return next.map(element => {
       const metadata = bridgeData(element)
       if (!metadata || previousIds.has(element.id)) return element
-      const id = `native-${element.id}`
+      const id = metadata.kind === 'icon' ? duplicatedIds.get(metadata.id) ?? metadata.id : `native-${element.id}`
       return { ...element, customData: { ...element.customData, flowchart: { ...metadata, id, snapshot: metadata.snapshot ? { ...metadata.snapshot, id, ...('parentNode' in metadata.snapshot && metadata.snapshot.parentNode ? { parentNode: duplicatedIds.get(metadata.snapshot.parentNode) ?? metadata.snapshot.parentNode } : {}), ...('source' in metadata.snapshot ? { source: duplicatedIds.get(metadata.snapshot.source) ?? metadata.snapshot.source, target: duplicatedIds.get(metadata.snapshot.target) ?? metadata.snapshot.target } : {}) } : undefined } } }
     })
   }

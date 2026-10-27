@@ -1,9 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import App from '../App'
 import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from '../utils/nesting'
 import { serializeFlow, parseFlowJson } from '../utils/exportUtils'
 import type { Node as FlowNode, Edge } from 'reactflow'
+
+vi.mock('../components/ArchitectureCanvas', async () => import('./mocks/ArchitectureCanvas'))
+
+beforeEach(() => {
+  localStorage.clear()
+  window.history.replaceState(null, '', '/')
+})
 
 describe('Containers UI', () => {
   it('shows Add Container only in the architecture palette', () => {
@@ -17,23 +24,36 @@ describe('Containers UI', () => {
     expect(screen.queryByLabelText('Add Container')).not.toBeInTheDocument()
   })
 
-  it('adds a container with its default label and kind badge', () => {
+  it('passes the container label and semantic kind to the native canvas', async () => {
     render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
     fireEvent.click(screen.getByLabelText('Add Container'))
 
-    expect(screen.getByText('Container')).toBeInTheDocument()
-    expect(screen.getByText('Group')).toBeInTheDocument()
+    const container = await screen.findByText('Container')
+    expect(container.closest('[data-node-type]')).toHaveAttribute('data-node-type', 'container')
+    expect(container.closest('[data-node-type]')).toHaveAttribute('data-container-kind', 'group')
   })
 
-  it('renders containers alongside architecture nodes', () => {
+  it('renders containers alongside architecture nodes', async () => {
     render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
     fireEvent.click(screen.getByLabelText('Add Container'))
     fireEvent.click(screen.getByLabelText('Add Service Node'))
 
-    expect(screen.getByText('Container')).toBeInTheDocument()
+    expect(await screen.findByText('Container')).toBeInTheDocument()
     expect(screen.getByText('Service')).toBeInTheDocument()
+  })
+
+  it('edits the semantic container kind after native selection and preserves it in flowchart mode', async () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Architecture Mode'))
+    fireEvent.click(screen.getByLabelText('Add Container'))
+    fireEvent.click(await screen.findByText('Container'))
+    fireEvent.change(screen.getByLabelText('Container kind'), { target: { value: 'vpc' } })
+    expect(screen.getByText('Container').closest('[data-node-type]')).toHaveAttribute('data-container-kind', 'vpc')
+    fireEvent.click(screen.getByLabelText('Flowchart Mode'))
+    expect(screen.getByText('VPC')).toBeInTheDocument()
+    expect(screen.getByText('Container')).toBeInTheDocument()
   })
 })
 

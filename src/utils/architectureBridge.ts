@@ -94,7 +94,7 @@ function withContainerGroups(elements: ExcalidrawElement[], nodes: ChartNode[], 
 }
 
 /** Add/update semantic shapes without touching freeform elements or their styles. */
-export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes: Node[], edges: Edge[], darkMode: boolean): OrderedExcalidrawElement[] {
+export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes: Node[], edges: Edge[], _darkMode: boolean): OrderedExcalidrawElement[] {
   const chart = flowToChart(nodes, edges)
   const nodeMap = new Map(chart.nodes.map(n => [n.id, n]))
   const edgeMap = new Map(chart.edges.map(e => [e.id, e]))
@@ -105,7 +105,7 @@ export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes
   const removed = new Set<string>()
   for (const element of elements) {
     const metadata = bridgeData(element)
-    if (metadata?.kind === 'node' && !nodeMap.has(metadata.id)) removed.add(element.id)
+    if ((metadata?.kind === 'node' || metadata?.kind === 'icon') && !nodeMap.has(metadata.id)) removed.add(element.id)
     if (metadata?.kind === 'edge' && !edgeMap.has(metadata.id)) removed.add(element.id)
   }
   for (let i = 0; i < output.length; i++) {
@@ -122,7 +122,7 @@ export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes
     const metadata: BridgeData = { kind: 'node', id: node.id, snapshot: node }
     if (!previous) {
       fresh.push({ id: shapeId(node.id), type: node.type === 'decision' ? 'diamond' : node.type === 'externalActor' ? 'ellipse' : 'rectangle', x: position.x, y: position.y, width, height,
-        label: { text: node.label, fontSize: 18, fontFamily: 2 }, strokeColor: darkMode ? '#78fcd6' : '#087f5b', backgroundColor: node.type === 'note' ? '#fff3bf' : 'transparent', strokeStyle: node.type === 'container' ? 'dashed' : 'solid', roughness: 0, roundness: { type: 3 }, customData: { flowchart: metadata } })
+        label: { text: node.label, fontSize: 18, fontFamily: 2 }, strokeColor: '#087f5b', backgroundColor: node.type === 'note' ? '#fff3bf' : 'transparent', strokeStyle: node.type === 'container' ? 'dashed' : 'solid', roughness: 0, roundness: { type: 3 }, customData: { flowchart: metadata } })
     } else if (previous.isDeleted || JSON.stringify(bridgeData(previous)?.snapshot) !== JSON.stringify(node)) {
       const index = output.findIndex(e => e.id === previous.id)
       if (previous.x !== position.x || previous.y !== position.y || previous.width !== width || previous.height !== height) movedShapes.add(previous.id)
@@ -137,13 +137,13 @@ export function mergeGraphElements(elements: readonly ExcalidrawElement[], nodes
     if (!source || !target) continue
     const previous = previousEdges.get(edge.id)
     const metadata: BridgeData = { kind: 'edge', id: edge.id, snapshot: edge }
-    const label = [edge.label, edge.protocol].filter(Boolean).join(' · ')
+    const label = [...new Set([edge.label, edge.protocol].filter(Boolean))].join(' · ')
     const strokeStyle = edge.commStyle ? edge.commStyle === 'async' ? 'dashed' : 'solid' : edge.style === 'animated' ? 'dashed' : 'solid'
     if (!previous) {
       // Binding skeletons by `start`/`end` only resolves elements in the same
       // conversion batch. Existing shapes are already in the scene, so supply
       // their native bindings directly rather than creating unbound arrows.
-      const converted = convertToExcalidrawElements([{ id: edgeId(edge.id), type: 'arrow', ...arrowGeometry(source, target, edge), label: label ? { text: label, fontSize: 14, fontFamily: 2 } : undefined, strokeColor: darkMode ? '#78fcd6' : '#087f5b', strokeStyle, roughness: 0, customData: { flowchart: metadata } }], { regenerateIds: false })
+      const converted = convertToExcalidrawElements([{ id: edgeId(edge.id), type: 'arrow', ...arrowGeometry(source, target, edge), label: label ? { text: label, fontSize: 14, fontFamily: 2 } : undefined, strokeColor: '#087f5b', strokeStyle, roughness: 0, customData: { flowchart: metadata } }], { regenerateIds: false })
       output.push(...converted)
     } else if (previous.type === 'arrow' && (previous.isDeleted || movedShapes.has(source.id) || movedShapes.has(target.id) || JSON.stringify(bridgeData(previous)?.snapshot) !== JSON.stringify(edge))) {
       const index = output.findIndex(e => e.id === previous.id)
@@ -203,7 +203,8 @@ export function graphFromElements(elements: readonly ExcalidrawElement[], nodes:
     const protocol = existing ? existing.data?.protocol : snapshot?.protocol
     const hadBoundLabel = elements.some(e => e.type === 'text' && e.containerId === element.id)
     const displayedLabel = labelElement?.type === 'text' ? labelElement.text : hadBoundLabel ? undefined : existing?.label ?? snapshot?.label
-    const label = typeof displayedLabel === 'string' && protocol ? displayedLabel.replace(new RegExp(`(?: · )?${protocol}$`), '') : displayedLabel
+    const originalLabel = existing?.label ?? snapshot?.label
+    const label = displayedLabel === protocol && originalLabel === protocol ? originalLabel : typeof displayedLabel === 'string' && protocol ? displayedLabel.replace(new RegExp(`(?: · )?${protocol}$`), '') : displayedLabel
     const edge: Edge = { ...existing, id: metadata.id, source: sourceId, target: targetId, label, animated: existing?.animated ?? snapshot?.style === 'animated', type: existing?.type ?? (snapshot?.style === 'step' ? 'smoothstep' : 'default'), data: { ...existing?.data, protocol, commStyle: existing ? existing.data?.commStyle : snapshot?.commStyle } }
     nextEdges.push(edge)
     snapshotMap.set(element.id, flowToChart([], [edge]).edges[0])

@@ -107,4 +107,14 @@ describe('semantic graph/native drawing bridge', () => {
     const changed = mergeGraphElements(native, nodes, [arrow('request', 'api', 'db', { data: { protocol: 'SQL', commStyle: 'async' } })], false)
     expect(semantic(changed, 'request')).toMatchObject({ points: [[0, 0], [70, 40], [0, 160]], strokeStyle: 'dashed' })
   })
+  it('uses canonical colors in both themes and preserves a label equal to its protocol', () => {
+    const nodes = [node('api', 0, 0), node('db', 300, 0)]
+    const edges = [arrow('sql', 'api', 'db', { label: 'SQL', data: { protocol: 'SQL' } })]
+    const dark = mergeGraphElements([], nodes, edges, true)
+    expect(dark.find(e => bridgeData(e)?.kind === 'node')?.strokeColor).toBe('#087f5b')
+    const edge = dark.find(e => bridgeData(e)?.kind === 'edge')!
+    expect(dark.find(e => e.type === 'text' && e.containerId === edge.id)).toMatchObject({ text: 'SQL' })
+    expect(graphFromElements(dark, nodes, edges).edges[0].label).toBe('SQL')
+  })
+
 })

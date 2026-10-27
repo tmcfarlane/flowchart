@@ -50,6 +50,7 @@ Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
 - **Presentation mode** — step through your flowchart with arrow keys, perfect for walkthroughs
 - **663+ Azure icons** — official [Azure icon library](https://learn.microsoft.com/en-us/azure/architecture/icons/) built in, auto-applied by AI
 - **Dark mode** — charcoal UI with teal/cyan accents, toggleable in one click
+- **Freeform Architecture canvas** — native Excalidraw tools, keyboard shortcuts, annotations, styling and complete scene sharing ([guide](docs/excalidraw-architecture.md))
 - **Polished canvas UX** — snap-to-grid, undo/redo, copy/paste, minimap, multi-select
 - **Multiple node & edge types** — step, decision, note, image nodes with editable labels and animated edges
 - **AI proposal preview** — review, regenerate, and tweak AI suggestions before inserting

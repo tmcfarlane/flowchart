@@ -1,8 +1,15 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { beforeEach, describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import App from '../App'
 import { serializeFlow, parseFlowJson } from '../utils/exportUtils'
 import type { Node as FlowNode, Edge } from 'reactflow'
+
+vi.mock('../components/ArchitectureCanvas', async () => import('./mocks/ArchitectureCanvas'))
+
+beforeEach(() => {
+  localStorage.clear()
+  window.history.replaceState(null, '', '/')
+})
 
 describe('Architecture Mode', () => {
   it('shows the mode switcher with Flowchart active by default', () => {
@@ -49,12 +56,12 @@ describe('Architecture Mode', () => {
     expect(screen.queryByLabelText('Add Service Node')).not.toBeInTheDocument()
   })
 
-  it('adds each architecture node type to the canvas', () => {
+  it('passes each semantic architecture node type to the native canvas', async () => {
     render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
 
     fireEvent.click(screen.getByLabelText('Add Service Node'))
-    expect(screen.getByText('Service')).toBeInTheDocument()
+    expect(await screen.findByText('Service')).toBeInTheDocument()
 
     fireEvent.click(screen.getByLabelText('Add Database Node'))
     expect(screen.getByText('Database')).toBeInTheDocument()
@@ -72,11 +79,11 @@ describe('Architecture Mode', () => {
     expect(screen.getByText('External Actor')).toBeInTheDocument()
   })
 
-  it('keeps architecture nodes on the canvas when switching back to flowchart mode', () => {
+  it('keeps architecture nodes on the canvas when switching back to flowchart mode', async () => {
     render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
     fireEvent.click(screen.getByLabelText('Add Service Node'))
-    expect(screen.getByText('Service')).toBeInTheDocument()
+    expect(await screen.findByText('Service')).toBeInTheDocument()
 
     fireEvent.click(screen.getByLabelText('Flowchart Mode'))
     expect(screen.getByText('Service')).toBeInTheDocument()
@@ -84,6 +91,64 @@ describe('Architecture Mode', () => {
     // Flowchart nodes can be added alongside them
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     expect(screen.getByText('Step')).toBeInTheDocument()
+    expect(screen.getByText('Service')).toBeInTheDocument()
+  })
+
+  it('keeps native label edits when switching back to the flowchart renderer', async () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Architecture Mode'))
+    fireEvent.click(screen.getByLabelText('Add Service Node'))
+    await screen.findByText('Service')
+    fireEvent.change(screen.getByDisplayValue('Service'), { target: { value: 'Orders API' } })
+    fireEvent.click(screen.getByLabelText('Flowchart Mode'))
+    expect(screen.getByText('Orders API')).toBeInTheDocument()
+  })
+
+  it('autosaves scene-only edits and restores them after reload', async () => {
+    const first = render(<App />)
+    fireEvent.click(screen.getByLabelText('Architecture Mode'))
+    fireEvent.click(await screen.findByText('Add native annotation'))
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem('flowchart-editor-draft-v3') ?? '{}')
+      expect(saved.architectureScene?.elements[0]).toMatchObject({ text: 'Native annotation', x: -120, angle: 0.2 })
+    })
+    first.unmount()
+    render(<App />)
+    expect(await screen.findByText('Native annotation')).toBeInTheDocument()
+    expect(screen.getByLabelText('Architecture Mode')).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('allocates fresh semantic IDs after restoring a saved local diagram', async () => {
+    localStorage.setItem('flowchart-editor-draft-v3', JSON.stringify({ version: 2, mode: 'architecture', nodes: [{ id: '2', type: 'service', position: { x: 0, y: 0 }, data: { label: 'Saved service' } }], edges: [] }))
+    render(<App />)
+    await screen.findByText('Saved service')
+    fireEvent.click(screen.getByLabelText('Add Service Node'))
+    expect(screen.getByTestId('architecture-node-2')).toHaveTextContent('Saved service')
+    expect(screen.getByTestId('architecture-node-3')).toHaveTextContent('Service')
+  })
+
+  it('undoes and redoes a native JSON import across the diagram mode boundary', async () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Add Step Node'))
+    fireEvent.click(screen.getByLabelText('Export'))
+    const file = new File([JSON.stringify({ version: 3, mode: 'architecture', nodes: [], edges: [], architectureScene: { version: 1, elements: [{ id: 'annotation', type: 'text', text: 'Imported drawing', x: 0, y: 0, width: 160, height: 24, angle: 0 }], files: {} } })], 'architecture.json', { type: 'application/json' })
+    fireEvent.change(screen.getByLabelText('Import JSON file'), { target: { files: [file] } })
+    await screen.findByText('Imported drawing')
+    fireEvent.click(screen.getByLabelText('Undo diagram import'))
+    expect(screen.getByLabelText('Flowchart Mode')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Step')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Redo'))
+    expect(await screen.findByText('Imported drawing')).toBeInTheDocument()
+    expect(screen.getByLabelText('Architecture Mode')).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('does not apply React Flow clipboard commands to the native canvas selection', async () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Architecture Mode'))
+    fireEvent.click(screen.getByLabelText('Add Service Node'))
+    await screen.findByText('Service')
+    fireEvent.click(screen.getByText('Service'))
+    fireEvent.keyDown(screen.getByTestId('architecture-canvas-adapter'), { key: 'x', ctrlKey: true })
     expect(screen.getByText('Service')).toBeInTheDocument()
   })
 })

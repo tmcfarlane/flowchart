@@ -255,7 +255,7 @@ function FlowChartEditor() {
   }, [setNodes])
 
   const [previewMode, setPreviewMode] = useState(false)
-  const [nodeIdCounter, setNodeIdCounter] = useState(2)
+  const [nodeIdCounter, setNodeIdCounter] = useState(() => Math.max(2, nextNumericNodeId(initialNodes)))
   const [diagramMode, setDiagramMode] = useState<DiagramMode>(initialDraft?.mode ?? 'flowchart')
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
