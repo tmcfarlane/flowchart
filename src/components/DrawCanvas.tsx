@@ -34,7 +34,7 @@ export interface DrawCanvasProps {
 type Tool = 'selection' | 'hand' | 'rectangle' | 'diamond' | 'ellipse' | 'arrow' | 'line' | 'freedraw' | 'text' | 'image' | 'eraser' | 'frame'
 interface Viewport { x: number; y: number; zoom: number }
 interface Gesture {
-  kind: 'create' | 'move' | 'pan' | 'marquee' | 'resize' | 'rotate' | 'point' | 'erase'
+  kind: 'create' | 'move' | 'pan' | 'marquee' | 'resize' | 'rotate' | 'point' | 'erase' | 'connector-click'
   start: Point
   screen: Point
   before: ArchitectureScene
@@ -46,8 +46,11 @@ interface Gesture {
   elementId?: string
   pointIndex?: number
   panButton?: number
+  deep?: boolean
 }
 interface TextEdit { id: string; value: string; before: ArchitectureScene }
+interface PendingConnector { id: string; before: ArchitectureScene; fixed: Point[]; hover: Point; preventBinding: boolean }
+interface PointEdit { id: string; index: number }
 interface ClipboardInput { target: EventTarget | null; clipboardData: DataTransfer | null; preventDefault: () => void }
 const tools: Array<{ tool: Tool; name: string; shortcut: string; glyph: string }> = [
   { tool: 'selection', name: 'Selection', shortcut: 'V / 1', glyph: '↖' },
@@ -70,6 +73,26 @@ const editableTarget = (target: EventTarget | null) => target instanceof HTMLEle
 const intersection = (a: Bounds, b: Bounds) => a.x <= b.x + b.width && a.x + a.width >= b.x && a.y <= b.y + b.height && a.y + a.height >= b.y
 const inside = (point: Point, box: Bounds, padding = 0) => point.x >= box.x - padding && point.x <= box.x + box.width + padding && point.y >= box.y - padding && point.y <= box.y + box.height + padding
 const patchElement = (scene: ArchitectureScene, id: string, patch: Partial<DrawElement>): ArchitectureScene => ({ ...scene, elements: scene.elements.map(element => element.id === id ? { ...element, ...patch } : element) })
+const samePoint = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y) < 0.001
+const constrainedPoint = (start: Point, end: Point, constrained: boolean): Point => {
+  if (!constrained) return end
+  const dx = end.x - start.x, dy = end.y - start.y
+  const angle = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * Math.PI / 4, length = Math.hypot(dx, dy)
+  return { x: start.x + Math.cos(angle) * length, y: start.y + Math.sin(angle) * length }
+}
+/** Keep rotations and relationships when changing path geometry in world space. */
+const withPathPoints = (scene: ArchitectureScene, id: string, world: Point[], bindingPatch: Partial<DrawElement> = {}, reroute = true): ArchitectureScene => {
+  const element = live(scene).find(item => item.id === id)
+  if (!element || world.length < 2) return scene
+  const unrotated = world.map(position => rotatePoint(position, { x: 0, y: 0 }, -(element.angle ?? 0)))
+  const xs = unrotated.map(position => position.x), ys = unrotated.map(position => position.y)
+  const center = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 }
+  const worldCenter = rotatePoint(center, { x: 0, y: 0 }, element.angle ?? 0), origin = unrotated[0]
+  const next = patchElement(scene, id, { x: worldCenter.x - center.x + origin.x, y: worldCenter.y - center.y + origin.y,
+    width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys),
+    points: unrotated.map(position => [position.x - origin.x, position.y - origin.y]), ...bindingPatch })
+  return reroute ? rerouteBindings(next, [id]) : next
+}
 const download = (blob: Blob, name: string) => {
   const url = URL.createObjectURL(blob), link = document.createElement('a')
   link.href = url; link.download = name; link.click()
@@ -99,6 +122,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const [isPanning, setIsPanning] = useState(false)
   const [snapGuides, setSnapGuides] = useState<{ x?: number; y?: number }>({})
   const [textEdit, setTextEdit] = useState<TextEdit | null>(null)
+  const [pointEdit, setPointEdit] = useState<PointEdit | null>(null)
+  const [creatingConnector, setCreatingConnector] = useState(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
   const [defaults, setDefaults] = useState<Partial<DrawElement>>({ strokeColor: '#0f766e', backgroundColor: 'transparent', strokeWidth: 2, strokeStyle: 'solid', fillStyle: 'solid', roughness: 0, opacity: 100, fontSize: 20, fontFamily: 2, textAlign: 'left', roundness: { type: 3 }, endArrowhead: 'arrow' })
   const [help, setHelp] = useState(false)
@@ -116,6 +141,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const pasteEvents = useRef(0)
   const clipboardEvents = useRef<Record<'copy' | 'cut' | 'paste', (event: ClipboardInput) => void>>({ copy: () => {}, cut: () => {}, paste: () => {} })
   const gesture = useRef<Gesture | null>(null)
+  const pendingConnector = useRef<PendingConnector | null>(null)
+  const pointEditRef = useRef(pointEdit); pointEditRef.current = pointEdit
   const nudgeBefore = useRef<ArchitectureScene | null>(null)
   const heldSpace = useRef(false)
   const surface = useRef<SVGSVGElement>(null)
@@ -123,6 +150,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const fileInput = useRef<HTMLInputElement>(null)
 
   const preview = useCallback((next: ArchitectureScene) => { draftRef.current = next; setDraft(next) }, [])
+  const cancelConnector = useCallback(() => {
+    if (pendingConnector.current) preview(pendingConnector.current.before)
+    pendingConnector.current = null; setCreatingConnector(false)
+  }, [preview])
   const worldPoint = useCallback((point: Point): Point => {
     const rect = surface.current?.getBoundingClientRect(), view = viewportRef.current
     return { x: (point.x - (rect?.left ?? 0) - view.x) / view.zoom, y: (point.y - (rect?.top ?? 0) - view.y) / view.zoom }
@@ -161,23 +192,27 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }, [preview])
 
   const undo = useCallback(() => {
+    if (pendingConnector.current) { cancelConnector(); return }
+    setPointEdit(null)
     if (latest.current.onUndo) { latest.current.onUndo(); return }
     if (historyIndex.current > 0) { historyIndex.current--; emit(copy(history.current[historyIndex.current]), false); setHistoryVersion(value => value + 1) }
-  }, [emit])
+  }, [emit, cancelConnector])
   const redo = useCallback(() => {
+    cancelConnector(); setPointEdit(null)
     if (latest.current.onRedo) { latest.current.onRedo(); return }
     if (historyIndex.current + 1 < history.current.length) { historyIndex.current++; emit(copy(history.current[historyIndex.current]), false); setHistoryVersion(value => value + 1) }
-  }, [emit])
+  }, [emit, cancelConnector])
 
   useEffect(() => {
     const serialized = scene ? JSON.stringify(scene) : '', signature = graphSignature(nodes, edges)
     if (serialized === lastEmitted.current && signature === lastGraph.current) return
     const next = { ...(scene ?? empty()), elements: mergeGraphElements((scene?.elements ?? []) as DrawElement[], nodes, edges, darkMode) }
     committed.current = copy(next); lastEmitted.current = serialized; lastGraph.current = signature
-    gesture.current = null; setIsPanning(false); preview(next)
+    gesture.current = null; pendingConnector.current = null; setCreatingConnector(false); setPointEdit(null); nudgeBefore.current = null; setIsPanning(false); preview(next)
   }, [scene, nodes, edges, darkMode, preview])
   useEffect(() => { const frame = requestAnimationFrame(fitScene); return () => cancelAnimationFrame(frame) }, [fitScene])
   useEffect(() => { if (!viewMode) wrapper.current?.focus({ preventScroll: true }) }, [viewMode])
+  useEffect(() => { if (viewMode) { cancelConnector(); setPointEdit(null); gesture.current = null; setIsPanning(false) } }, [viewMode, cancelConnector])
   useEffect(() => { if (textEdit) { textRef.current?.focus(); textRef.current?.select() } }, [textEdit?.id])
 
   const exportImage = useCallback(async (format: 'png' | 'svg' | 'gif', duration = 2) => {
@@ -231,14 +266,17 @@ export default function DrawCanvas(props: DrawCanvasProps) {
 
   useEffect(() => {
     if (!onReady) return
-    onReady({ viewportToScenePoint: worldPoint, fitScene, getScene: () => copy(committed.current), replaceScene: (next, fit = false) => { emit(validateArchitectureScene(next)); if (fit) requestAnimationFrame(fitScene) }, exportImage })
+    onReady({ viewportToScenePoint: worldPoint, fitScene, getScene: () => copy(committed.current), replaceScene: (next, fit = false) => { cancelConnector(); setPointEdit(null); emit(validateArchitectureScene(next)); if (fit) requestAnimationFrame(fitScene) }, exportImage })
     return () => onReady(null)
-  }, [onReady, worldPoint, fitScene, emit, exportImage])
+  }, [onReady, worldPoint, fitScene, emit, exportImage, cancelConnector])
 
-  const select = (ids: Iterable<string>) => setSelectedIds(new Set(ids))
-  const setActiveTool = (next: Tool) => { setTool(next); if (next === 'image') fileInput.current?.click(); wrapper.current?.focus() }
+  const select = (ids: Iterable<string>) => { const selected = new Set(ids); selectedRef.current = selected; setSelectedIds(selected); pointEditRef.current = null; setPointEdit(null) }
+  const setActiveTool = (next: Tool) => { cancelConnector(); setPointEdit(null); setTool(next); if (next === 'image') fileInput.current?.click(); wrapper.current?.focus() }
   const applyProperties = (properties: Partial<DrawElement>) => {
-    if (selectedRef.current.size) emit(setElementProperties(draftRef.current, selectedRef.current, properties))
+    if (selectedRef.current.size) {
+      const next = setElementProperties(draftRef.current, selectedRef.current, properties)
+      if (pendingConnector.current) preview(next); else emit(next)
+    }
     else setDefaults(current => ({ ...current, ...properties }))
   }
   const groupSelection = (ungroup = false) => {
@@ -314,6 +352,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const pasteSelection = () => { if (clipboard.current?.elements.length) { pasteOffset.current += 24; insertComponent(clipboard.current, pasteOffset.current) } }
   const writeClipboard = (event: ClipboardInput, cut = false) => {
     if (editableTarget(event.target) || editableTarget(document.activeElement)) return
+    if (pendingConnector.current) { cancelConnector(); select([]); return }
     const selected = copySelection()
     if (!selected?.elements.length || !event.clipboardData) return
     const serialized = JSON.stringify({ type: 'flowchart-drawing', scene: selected })
@@ -324,6 +363,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }
   const readClipboard = (event: ClipboardInput) => {
     if (editableTarget(event.target) || editableTarget(document.activeElement) || !event.clipboardData) return
+    cancelConnector(); setPointEdit(null)
     pasteEvents.current++
     const text = event.clipboardData.getData('application/x-flowchart-drawing') || event.clipboardData.getData('text/plain')
     if (!text || text.length > 4 * 1024 * 1024) return
@@ -379,8 +419,19 @@ export default function DrawCanvas(props: DrawCanvasProps) {
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (editableTarget(event.target)) return
+    // Native buttons must keep their Enter/Space activation while focused.
+    if (event.target instanceof HTMLElement && event.target.closest('button') && (event.key === 'Enter' || event.code === 'Space')) return
     const key = event.key.toLowerCase(), mod = event.ctrlKey || event.metaKey
     if (event.key === 'Escape' && gesture.current?.kind === 'pan' && gesture.current.panButton === 2) { gesture.current = null; setIsPanning(false); return }
+    if (pendingConnector.current && (event.key === 'Escape' || event.key === 'Enter')) {
+      event.preventDefault(); if (event.key === 'Escape') { cancelConnector(); select([]) } else finishConnector(); return
+    }
+    if (pointEditRef.current && (event.key === 'Escape' || event.key === 'Enter')) {
+      event.preventDefault()
+      if (gesture.current?.kind === 'point') { preview(gesture.current.before); gesture.current = null; return }
+      if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) }
+      setPointEdit(null); wrapper.current?.focus(); return
+    }
     if (event.key === 'Escape') { if (gesture.current) preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null); setHelp(false); select([]); setTool('selection'); return }
     if (key === '?' || (mod && key === '/')) { event.preventDefault(); setHelp(value => !value); return }
     if (event.code === 'Space') { event.preventDefault(); heldSpace.current = true; return }
@@ -391,12 +442,18 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       setViewport(view => ({ ...view, x: view.x + (event.shiftKey ? (rect?.width ?? 800) * direction : 0), y: view.y + (event.shiftKey ? 0 : (rect?.height ?? 600) * direction) })); return
     }
     if (viewMode) return
-    if (mod && event.altKey && key === 'c') {
+    // A pending multi-click path is one transaction. Other editing commands
+    // discard that preview before operating on the committed document.
+    if (pendingConnector.current && !['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)
+      && !(mod && ['+', '=', '-', '0', "'"].includes(key)) && !(event.altKey && (key === 's' || event.code === 'KeyS')) && key !== 'q') {
+      cancelConnector(); select([])
+    }
+    if (mod && event.altKey && (key === 'c' || event.code === 'KeyC')) {
       event.preventDefault(); const element = live(draftRef.current).find(item => selectedRef.current.has(item.id))
       if (element) { const keys = ['strokeColor', 'backgroundColor', 'strokeWidth', 'strokeStyle', 'fillStyle', 'roughness', 'opacity', 'roundness', 'fontSize', 'fontFamily', 'textAlign', 'startArrowhead', 'endArrowhead', 'elbowed']; styleClipboard.current = Object.fromEntries(keys.filter(name => element[name] !== undefined).map(name => [name, copy(element[name])])) }
       return
     }
-    if (mod && event.altKey && key === 'v') { event.preventDefault(); if (styleClipboard.current) applyProperties(styleClipboard.current); return }
+    if (mod && event.altKey && (key === 'v' || event.code === 'KeyV')) { event.preventDefault(); if (styleClipboard.current) applyProperties(styleClipboard.current); return }
     if (mod && event.shiftKey && (['Comma', 'Period'].includes(event.code) || ['<', '>'].includes(key))) {
       event.preventDefault(); const increase = event.code === 'Period' || key === '>', size = Number(live(draftRef.current).find(element => selectedRef.current.has(element.id) && element.type === 'text')?.fontSize ?? defaults.fontSize ?? 20)
       applyProperties({ fontSize: Math.max(8, Math.min(144, size + (increase ? 2 : -2))) }); return
@@ -419,15 +476,36 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       return
     }
     if (mod && key === "'") { event.preventDefault(); setGrid(value => !value); return }
-    if (event.altKey && key === 's') { event.preventDefault(); setSnap(value => !value); return }
+    if (event.altKey && (key === 's' || event.code === 'KeyS')) { event.preventDefault(); setSnap(value => !value); return }
+    if (pointEditRef.current && (event.key === 'Delete' || event.key === 'Backspace')) { event.preventDefault(); deletePathPoint(); return }
     if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); emit(deleteElements(draftRef.current, selectedRef.current, true)); select([]); return }
     if (!mod && !event.altKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
       event.preventDefault(); if (!selectedRef.current.size) return
       if (!nudgeBefore.current) nudgeBefore.current = copy(committed.current)
       const step = event.shiftKey ? 5 : 1
+      if (pointEditRef.current) {
+        const active = pointEditRef.current, element = live(draftRef.current).find(item => item.id === active.id)
+        if (!element || element.locked) return
+        const points = getWorldPoints(element), point = points[active.index]
+        if (!point) return
+        points[active.index] = { x: point.x + (event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0), y: point.y + (event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0) }
+        preview(withPathPoints(draftRef.current, active.id, points, active.index === 0 ? { startBinding: null } : active.index === points.length - 1 ? { endBinding: null } : {})); return
+      }
       preview(moveElements(draftRef.current, selectedRef.current, { x: event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0, y: event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0 }, true)); return
     }
-    if (event.key === 'Enter' && selectedRef.current.size === 1) { event.preventDefault(); beginText([...selectedRef.current][0]); return }
+    if (mod && event.key === 'Enter') {
+      const selected = live(draftRef.current).filter(item => selectedRef.current.has(item.id)), paths = selected.filter(item => ['line', 'arrow'].includes(item.type) && !item.locked)
+      if (paths.length === 1 && selected.every(item => item.id === paths[0].id || (item.type === 'text' && item.containerId === paths[0].id))) {
+        event.preventDefault(); setPointEdit({ id: paths[0].id, index: 0 }); requestAnimationFrame(() => surface.current?.querySelector<SVGElement>('[aria-label="Edit path point 1"]')?.focus()); return
+      }
+    }
+    if (event.key === 'Enter' && !mod) {
+      const selected = live(draftRef.current).filter(item => selectedRef.current.has(item.id))
+      const primary = selected.filter(item => !item.containerId || !selectedRef.current.has(item.containerId))
+      if (primary.length === 1 && selected.every(item => item.id === primary[0].id || (item.type === 'text' && item.containerId === primary[0].id))) {
+        event.preventDefault(); beginText(primary[0].id); return
+      }
+    }
     if (mod || event.altKey) return
     const aliases: Record<string, Tool> = { v: 'selection', '1': 'selection', h: 'hand', r: 'rectangle', '2': 'rectangle', d: 'diamond', '3': 'diamond', o: 'ellipse', '4': 'ellipse', a: 'arrow', '5': 'arrow', l: 'line', '6': 'line', p: 'freedraw', '7': 'freedraw', t: 'text', '8': 'text', '9': 'image', e: 'eraser', '0': 'eraser', f: 'frame' }
     if (aliases[key]) { event.preventDefault(); setActiveTool(aliases[key]) }
@@ -446,6 +524,49 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const local = rotatePoint(point, { x: host.x + host.width / 2, y: host.y + host.height / 2 }, -(host.angle ?? 0))
     return { elementId: host.id, focus: 0, gap: 0, fixedPoint: [Math.max(0, Math.min(1, (local.x - host.x) / Math.max(1, host.width))), Math.max(0, Math.min(1, (local.y - host.y) / Math.max(1, host.height)))] as [number, number] }
   }
+  const previewConnector = (session: PendingConnector, point: Point) => {
+    session.hover = point
+    const points = [...session.fixed]
+    if (points.length === 1 || !samePoint(points[points.length - 1], point)) points.push(point)
+    preview(withPathPoints(draftRef.current, session.id, points, {}, false))
+  }
+  const finishConnector = () => {
+    const session = pendingConnector.current
+    if (!session) return
+    const points = [...session.fixed]
+    if (!samePoint(points[points.length - 1], session.hover)) points.push(session.hover)
+    pendingConnector.current = null; setCreatingConnector(false); gesture.current = null
+    if (points.length < 2 || !points.some(point => Math.hypot(point.x - points[0].x, point.y - points[0].y) >= 3 / viewportRef.current.zoom)) { preview(session.before); select([]); return }
+    const element = live(draftRef.current).find(item => item.id === session.id)
+    if (!element) return
+    const bindings = element.type === 'arrow' ? { endBinding: session.preventBinding ? null : bindingFor(points[points.length - 1], session.id) } : {}
+    if (emit(withPathPoints(draftRef.current, session.id, points, bindings))) select([session.id])
+    if (!keepTool) setTool('selection')
+  }
+  const focusPathPoint = (id: string, index: number) => {
+    const next = { id, index }; pointEditRef.current = next; setPointEdit(next)
+    requestAnimationFrame(() => [...(surface.current?.querySelectorAll<SVGElement>(`[data-point-index="${index}"]`) ?? [])].find(handle => handle.getAttribute('data-element-handle') === id)?.focus())
+  }
+  const addPathPoint = () => {
+    const active = pointEditRef.current, element = active && live(draftRef.current).find(item => item.id === active.id)
+    if (!active || !element || element.locked) return
+    const points = getWorldPoints(element), segment = Math.min(active.index, points.length - 2)
+    if (segment < 0) return
+    points.splice(segment + 1, 0, { x: (points[segment].x + points[segment + 1].x) / 2, y: (points[segment].y + points[segment + 1].y) / 2 })
+    if (emit(withPathPoints(draftRef.current, element.id, points))) focusPathPoint(element.id, segment + 1)
+  }
+  const deletePathPoint = () => {
+    const active = pointEditRef.current, element = active && live(draftRef.current).find(item => item.id === active.id)
+    if (!active || !element || element.locked) return
+    const points = getWorldPoints(element)
+    if (active.index <= 0 || active.index >= points.length - 1) return
+    points.splice(active.index, 1)
+    if (emit(withPathPoints(draftRef.current, element.id, points))) focusPathPoint(element.id, Math.min(active.index, points.length - 1))
+  }
+  const finishPointEditing = () => {
+    if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) }
+    setPointEdit(null); wrapper.current?.focus()
+  }
   const onPointerDown = (event: PointerEvent<SVGSVGElement>) => {
     if (textEdit && event.button !== 2) return
     event.preventDefault()
@@ -454,10 +575,16 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const point = worldPoint({ x: event.clientX, y: event.clientY }), before = copy(committed.current)
     const base: Gesture = { kind: 'move', start: point, screen: { x: event.clientX, y: event.clientY }, before, base: before, ids: [...selectedRef.current], viewport: { ...viewportRef.current } }
     const target = event.target as Element
+    if (pointEditRef.current && !target.hasAttribute('data-point-index') && tool !== 'hand' && !heldSpace.current && event.button === 0) setPointEdit(null)
     if (tool === 'hand' || heldSpace.current || event.button === 1 || event.button === 2 || viewMode) { gesture.current = { ...base, kind: 'pan', panButton: event.button }; setIsPanning(true) }
+    else if (pendingConnector.current) { gesture.current = { ...base, before: pendingConnector.current.before, kind: 'connector-click' } }
     else if (target.getAttribute('data-resize')) gesture.current = { ...base, kind: 'resize', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))), corner: target.getAttribute('data-resize')! }
     else if (target.getAttribute('data-rotate')) gesture.current = { ...base, kind: 'rotate', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))) }
-    else if (target.getAttribute('data-point-index') !== null) gesture.current = { ...base, kind: 'point', elementId: target.getAttribute('data-element-handle')!, pointIndex: Number(target.getAttribute('data-point-index')) }
+    else if (target.getAttribute('data-point-index') !== null) {
+      const elementId = target.getAttribute('data-element-handle')!, pointIndex = Number(target.getAttribute('data-point-index'))
+      if (pointEditRef.current) focusPathPoint(elementId, pointIndex)
+      gesture.current = { ...base, kind: 'point', elementId, pointIndex }
+    }
     else if (tool === 'text') { beginText(undefined, point); if (!keepTool) setTool('selection'); return }
     else if (tool === 'eraser') { const hit = hitElement(point); const next = hit ? deleteElements(before, [hit.id]) : before; preview(next); gesture.current = { ...base, kind: 'erase', base: next } }
     else if (tool !== 'selection' && tool !== 'image') {
@@ -476,14 +603,18 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         let next = before, ids = [...chosen]
         if (event.altKey) { const duplicated = duplicateSelection(before, ids, { x: 0, y: 0 }, true); next = duplicated.scene; ids = duplicated.selectedIds; preview(next) }
         select(ids); gesture.current = { ...base, ids, base: next }
-      } else { if (!event.shiftKey) select([]); gesture.current = { ...base, kind: 'marquee', ids: event.shiftKey ? [...selectedRef.current] : [] }; setMarquee({ ...point, width: 0, height: 0 }) }
+      } else { if (!event.shiftKey) select([]); gesture.current = { ...base, kind: 'marquee', ids: event.shiftKey ? [...selectedRef.current] : [], deep: event.ctrlKey || event.metaKey }; setMarquee({ ...point, width: 0, height: 0 }) }
     }
     surface.current?.setPointerCapture?.(event.pointerId)
   }
   const onPointerMove = (event: PointerEvent<SVGSVGElement>) => {
     const active = gesture.current
-    if (!active) return
     const point = worldPoint({ x: event.clientX, y: event.clientY })
+    if (!active || active.kind === 'connector-click') {
+      const session = pendingConnector.current
+      if (session) { session.preventBinding = event.ctrlKey || event.metaKey; previewConnector(session, constrainedPoint(session.fixed[session.fixed.length - 1], point, event.shiftKey)) }
+      return
+    }
     if (active.kind === 'pan') {
       if (active.panButton === 2 && !(event.buttons & 2)) { gesture.current = null; setIsPanning(false); surface.current?.releasePointerCapture?.(event.pointerId); return }
       setViewport({ ...active.viewport, x: active.viewport.x + event.clientX - active.screen.x, y: active.viewport.y + event.clientY - active.screen.y }); return
@@ -494,7 +625,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (event.shiftKey) { if (Math.abs(delta.x) > Math.abs(delta.y)) delta.y = 0; else delta.x = 0 }
       if (grid) { delta.x = Math.round(delta.x / 20) * 20; delta.y = Math.round(delta.y / 20) * 20 }
       if (snap) {
-        const chosen = new Set(expandSelection(active.base, active.ids)), bounds = getSceneBounds(live(active.base).filter(element => chosen.has(element.id)))
+        const chosen = new Set(expandSelection(active.base, active.ids, true)), bounds = getSceneBounds(live(active.base).filter(element => chosen.has(element.id)))
         const xAnchors = [bounds.x + delta.x, bounds.x + bounds.width / 2 + delta.x, bounds.x + bounds.width + delta.x]
         const yAnchors = [bounds.y + delta.y, bounds.y + bounds.height / 2 + delta.y, bounds.y + bounds.height + delta.y]
         const tolerance = 8 / viewportRef.current.zoom
@@ -532,12 +663,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       const element = live(active.base).find(e => e.id === active.elementId)!
       const worldPoints = getWorldPoints(element)
       worldPoints[active.pointIndex!] = point
-      const unrotated = worldPoints.map(position => rotatePoint(position, { x: 0, y: 0 }, -(element.angle ?? 0)))
-      const xs = unrotated.map(position => position.x), ys = unrotated.map(position => position.y)
-      const center = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 }
-      const worldCenter = rotatePoint(center, { x: 0, y: 0 }, element.angle ?? 0), origin = unrotated[0]
-      const points = unrotated.map(position => [position.x - origin.x, position.y - origin.y] as [number, number])
-      preview(patchElement(active.base, element.id, { x: worldCenter.x - center.x + origin.x, y: worldCenter.y - center.y + origin.y, width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys), points, ...(active.pointIndex === 0 ? { startBinding: null } : active.pointIndex === points.length - 1 ? { endBinding: null } : {}) })); return
+      preview(withPathPoints(active.base, element.id, worldPoints, active.pointIndex === 0 ? { startBinding: null } : active.pointIndex === worldPoints.length - 1 ? { endBinding: null } : {})); return
     }
     if (active.kind === 'create' && active.elementId) {
       const element = live(active.base).find(e => e.id === active.elementId)!
@@ -551,17 +677,31 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       const updated = createElement(element.type, active.start, end, { ...element, id: element.id })
       // Constructor defaults may contain original geometry; update explicitly.
       const path = ['line', 'arrow'].includes(element.type)
-      preview(patchElement(active.base, element.id, { ...updated, x: path ? active.start.x : Math.min(active.start.x, end.x), y: path ? active.start.y : Math.min(active.start.y, end.y), width: Math.abs(end.x - active.start.x), height: Math.abs(end.y - active.start.y), ...(path ? { points: [[0, 0], [end.x - active.start.x, end.y - active.start.y]] } : {}) }))
+      const origin = event.altKey && !path ? { x: active.start.x - (end.x - active.start.x), y: active.start.y - (end.y - active.start.y) } : active.start
+      preview(patchElement(active.base, element.id, { ...updated, x: path ? active.start.x : Math.min(origin.x, end.x), y: path ? active.start.y : Math.min(origin.y, end.y), width: Math.abs(end.x - origin.x), height: Math.abs(end.y - origin.y), ...(path ? { points: [[0, 0], [end.x - active.start.x, end.y - active.start.y]] } : {}) }))
     }
   }
   const onPointerUp = (event: PointerEvent<SVGSVGElement>) => {
     const active = gesture.current; if (!active) return
     gesture.current = null; setIsPanning(false); setSnapGuides({}); surface.current?.releasePointerCapture?.(event.pointerId)
-    if (active.kind === 'marquee') { if (marquee) select(expandSelection(draftRef.current, [...active.ids, ...live(draftRef.current).filter(e => !e.locked && intersection(getElementBounds(e), marquee)).map(e => e.id)])); setMarquee(null); return }
+    if (active.kind === 'marquee') { if (marquee) select(expandSelection(draftRef.current, [...active.ids, ...live(draftRef.current).filter(e => !e.locked && intersection(getElementBounds(e), marquee)).map(e => e.id)], active.deep)); setMarquee(null); return }
     if (active.kind === 'pan') return
+    if (active.kind === 'connector-click') {
+      const session = pendingConnector.current
+      if (session) {
+        const point = constrainedPoint(session.fixed[session.fixed.length - 1], worldPoint({ x: event.clientX, y: event.clientY }), event.shiftKey)
+        if (!samePoint(session.fixed[session.fixed.length - 1], point)) session.fixed.push(point)
+        session.preventBinding = event.ctrlKey || event.metaKey; previewConnector(session, point)
+      }
+      return
+    }
     let next = draftRef.current
     if (active.kind === 'create' && active.elementId) {
       const element = live(next).find(e => e.id === active.elementId)!
+      if (['arrow', 'line'].includes(element.type) && Math.hypot(event.clientX - active.screen.x, event.clientY - active.screen.y) < 3) {
+        const session = { id: element.id, before: active.before, fixed: [active.start], hover: active.start, preventBinding: event.ctrlKey || event.metaKey }
+        pendingConnector.current = session; setCreatingConnector(true); previewConnector(session, active.start); return
+      }
       if (element.width < 3 && element.height < 3) { preview(active.before); return }
       if (element.type === 'arrow' && !event.ctrlKey && !event.metaKey) next = rerouteBindings(patchElement(next, element.id, { endBinding: bindingFor(worldPoint({ x: event.clientX, y: event.clientY }), element.id) }), [element.id])
       if (element.type === 'frame') next = { ...next, elements: next.elements.map(raw => { const item = raw as DrawElement; return item.id !== element.id && item.type !== 'frame' && inside({ x: item.x, y: item.y }, element) && inside({ x: item.x + item.width, y: item.y + item.height }, element) ? { ...item, frameId: element.id } : item }) }
@@ -604,6 +744,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const storedBackground = draft.appState?.viewBackgroundColor ?? '#ffffff'
   const canvasBackground = darkMode && ['#ffffff', '#fff', 'white'].includes(storedBackground.toLowerCase()) ? '#0f1211' : storedBackground
   const chosen = live(draft).filter(element => selectedIds.has(element.id)), first = chosen[0]
+  const selectedPaths = chosen.filter(element => ['line', 'arrow'].includes(element.type))
+  const editablePath = selectedPaths.length === 1 && chosen.every(element => element.id === selectedPaths[0].id || element.containerId === selectedPaths[0].id) ? selectedPaths[0] : undefined
+  const activePathPointCount = pointEdit && editablePath?.id === pointEdit.id ? getWorldPoints(editablePath).length : 0
   const property = <K extends keyof DrawElement>(key: K, fallback: DrawElement[K]) => {
     const primary = ['fontSize', 'fontFamily', 'textAlign'].includes(String(key)) ? chosen.find(element => element.type === 'text') ?? first : first
     return primary?.[key] ?? defaults[key] ?? fallback
@@ -621,17 +764,22 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <span className="draw-divider" />
       <button type="button" aria-label="Keep tool selected" aria-pressed={keepTool} title="Keep tool selected (Q)" onClick={() => setKeepTool(value => !value)}><DrawToolIcon tool={keepTool ? 'lock' : 'unlock'} /></button>
     </div>}
-    <svg ref={surface} className={`draw-surface tool-${tool} ${isPanning ? 'is-panning' : ''}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (gesture.current && gesture.current.kind !== 'pan') preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null) }} onLostPointerCapture={() => { if (gesture.current?.kind === 'pan') { gesture.current = null; setIsPanning(false) } }} onContextMenu={event => event.preventDefault()} onDoubleClick={event => { if (viewMode || event.button !== 0) return; const id = (event.target as Element).closest('[data-element-id]')?.getAttribute('data-element-id'); beginText(id ?? undefined, worldPoint({ x: event.clientX, y: event.clientY })) }}>
+    <svg ref={surface} className={`draw-surface tool-${tool} ${isPanning ? 'is-panning' : ''}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (pendingConnector.current && gesture.current?.kind !== 'pan') cancelConnector(); else if (gesture.current && gesture.current.kind !== 'pan') preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null) }} onLostPointerCapture={() => { if (gesture.current?.kind === 'pan') { gesture.current = null; setIsPanning(false) } }} onContextMenu={event => event.preventDefault()} onDoubleClick={event => {
+      if (viewMode || event.button !== 0) return
+      if (pendingConnector.current) { pendingConnector.current.preventBinding = event.ctrlKey || event.metaKey; finishConnector(); return }
+      if (pointEditRef.current) { finishPointEditing(); return }
+      const id = (event.target as Element).closest('[data-element-id]')?.getAttribute('data-element-id'); beginText(id ?? undefined, worldPoint({ x: event.clientX, y: event.clientY }))
+    }}>
       {grid && <defs><pattern id="draw-grid" patternUnits="userSpaceOnUse" x={viewport.x} y={viewport.y} width={20 * viewport.zoom} height={20 * viewport.zoom}><circle cx="1" cy="1" r="0.8" fill={darkMode ? '#465e55' : '#b6c9c1'} /></pattern></defs>}
       <rect width="100%" height="100%" fill={grid ? 'url(#draw-grid)' : canvasBackground} data-draw-background="true" />
       <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`} data-draw-viewport="true" data-drawing-layer="true">
         <g data-draw-content="true"><DrawSceneSvg elements={draft.elements} files={draft.files} darkMode={darkMode} backgroundColor={canvasBackground} selectedIds={selectedIds} /></g>
         {!viewMode && selectionBounds && <g className="draw-selection" fill="none" stroke="#17b895" strokeWidth={1.5 / viewport.zoom}>
           <rect x={selectionBounds.x - 3 / viewport.zoom} y={selectionBounds.y - 3 / viewport.zoom} width={selectionBounds.width + 6 / viewport.zoom} height={selectionBounds.height + 6 / viewport.zoom} strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`} pointerEvents="none" />
-          <line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} />
-          <circle data-rotate="true" aria-label="Rotate selection" cx={selectionBounds.x + selectionBounds.width / 2} cy={selectionBounds.y - 30 / viewport.zoom} r={5 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />
-          {(['nw', 'ne', 'sw', 'se'] as const).map(corner => <rect key={corner} data-resize={corner} aria-label={`Resize ${corner}`} x={(corner.includes('w') ? selectionBounds.x : selectionBounds.x + selectionBounds.width) - 4 / viewport.zoom} y={(corner.includes('n') ? selectionBounds.y : selectionBounds.y + selectionBounds.height) - 4 / viewport.zoom} width={8 / viewport.zoom} height={8 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />)}
-          {chosen.length === 1 && ['line', 'arrow'].includes(chosen[0].type) && getWorldPoints(chosen[0]).map((point, index) => <circle key={index} data-point-index={index} data-element-handle={chosen[0].id} aria-label={`Edit path point ${index + 1}`} cx={point.x} cy={point.y} r={5 / viewport.zoom} fill="#d7fff1" />)}
+          {!pointEdit && !creatingConnector && <><line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} />
+            <circle data-rotate="true" aria-label="Rotate selection" cx={selectionBounds.x + selectionBounds.width / 2} cy={selectionBounds.y - 30 / viewport.zoom} r={5 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />
+            {(['nw', 'ne', 'sw', 'se'] as const).map(corner => <rect key={corner} data-resize={corner} aria-label={`Resize ${corner}`} x={(corner.includes('w') ? selectionBounds.x : selectionBounds.x + selectionBounds.width) - 4 / viewport.zoom} y={(corner.includes('n') ? selectionBounds.y : selectionBounds.y + selectionBounds.height) - 4 / viewport.zoom} width={8 / viewport.zoom} height={8 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />)}</>}
+          {!creatingConnector && editablePath && getWorldPoints(editablePath).map((point, index) => <circle key={index} data-point-index={index} data-element-handle={editablePath.id} aria-label={`Edit path point ${index + 1}`} role={pointEdit ? 'button' : undefined} tabIndex={pointEdit ? 0 : undefined} aria-pressed={pointEdit ? pointEdit.index === index : undefined} onFocus={() => { if (pointEdit) { const next = { id: editablePath.id, index }; pointEditRef.current = next; setPointEdit(next) } }} onClick={() => { if (pointEdit) focusPathPoint(editablePath.id, index) }} cx={point.x} cy={point.y} r={(pointEdit?.index === index ? 7 : 5) / viewport.zoom} fill={pointEdit?.index === index ? '#17b895' : '#d7fff1'} />)}
         </g>}
         {snapGuides.x !== undefined && <line x1={snapGuides.x} x2={snapGuides.x} y1={-100000} y2={100000} stroke="#14b895" strokeWidth={1 / viewport.zoom} strokeDasharray="4 4" pointerEvents="none" />}
         {snapGuides.y !== undefined && <line y1={snapGuides.y} y2={snapGuides.y} x1={-100000} x2={100000} stroke="#14b895" strokeWidth={1 / viewport.zoom} strokeDasharray="4 4" pointerEvents="none" />}
@@ -641,6 +789,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     {textEdit && editElement && <textarea ref={textRef} className="draw-text-editor" aria-label="Edit drawing text" style={{ ...textPosition, width: Math.max(180, editElement.width * viewport.zoom + 40), minHeight: Math.max(46, editElement.height * viewport.zoom + 20), fontSize: (editElement.fontSize ?? 20) * viewport.zoom }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
     {!viewMode && <aside className="draw-properties" aria-label="Drawing properties">
       <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
+      {pointEdit && editablePath?.id === pointEdit.id && <fieldset className="draw-point-editor"><legend>Connector points</legend><p role="status">Editing connector points</p><p>Arrows move the active point. Enter or Escape finishes.</p><div className="draw-action-grid"><button type="button" onClick={addPathPoint}>Add path point</button><button type="button" disabled={pointEdit.index <= 0 || pointEdit.index >= activePathPointCount - 1} onClick={deletePathPoint}>Delete path point</button><button type="button" onClick={finishPointEditing}>Finish point editing</button></div></fieldset>}
       <div className="draw-property-pair"><label>Stroke<input aria-label="Stroke color" type="color" value={String(property('strokeColor', '#0f766e')).startsWith('#') ? String(property('strokeColor', '#0f766e')) : '#0f766e'} onChange={event => applyProperties({ strokeColor: event.target.value })} /></label><label>Fill<input aria-label="Background color" type="color" value={String(property('backgroundColor', 'transparent')).startsWith('#') ? String(property('backgroundColor', 'transparent')) : '#ffffff'} onChange={event => applyProperties({ backgroundColor: event.target.value })} /></label></div>
       <label className="draw-check"><input type="checkbox" checked={property('backgroundColor', 'transparent') === 'transparent'} onChange={event => applyProperties({ backgroundColor: event.target.checked ? 'transparent' : '#b2f2dc' })} />No fill</label>
       <label>Fill style<select aria-label="Fill style" value={String(property('fillStyle', 'solid'))} onChange={event => applyProperties({ fillStyle: event.target.value })}><option value="solid">Solid</option><option value="hachure">Hatch</option><option value="cross-hatch">Crosshatch</option></select></label>
@@ -650,13 +799,13 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <label>Opacity <span>{Number(property('opacity', 100))}%</span><input aria-label="Opacity" type="range" min="0" max="100" value={Number(property('opacity', 100))} onChange={event => applyProperties({ opacity: Number(event.target.value) })} /></label>
       {(tool === 'text' || showTextProperties || chosen.some(e => e.type === 'text')) && <fieldset><legend>Text</legend><div className="draw-property-pair"><label>Size<input aria-label="Font size" type="number" min="8" max="144" value={Number(property('fontSize', 20))} onChange={event => applyProperties({ fontSize: Math.max(8, Number(event.target.value)) })} /></label><label>Font<select aria-label="Font family" value={Number(property('fontFamily', 2))} onChange={event => applyProperties({ fontFamily: Number(event.target.value) })}><option value="2">Sans</option><option value="1">Hand</option><option value="3">Mono</option>{![1, 2, 3].includes(Number(property('fontFamily', 2))) && <option value={Number(property('fontFamily', 2))}>Imported font {Number(property('fontFamily', 2))} (local fallback)</option>}</select></label></div><label>Alignment<select aria-label="Text alignment" value={String(property('textAlign', 'left'))} onChange={event => applyProperties({ textAlign: event.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label></fieldset>}
       {(['line', 'arrow'].includes(tool) || chosen.some(e => ['line', 'arrow'].includes(e.type))) && <fieldset><legend>Connection</legend>{(['startArrowhead', 'endArrowhead'] as const).map(key => <label key={key}>{key === 'startArrowhead' ? 'Start' : 'End'}<select aria-label={key === 'startArrowhead' ? 'Start arrowhead' : 'End arrowhead'} value={String(property(key, key === 'endArrowhead' ? 'arrow' : null) ?? 'none')} onChange={event => applyProperties({ [key]: event.target.value === 'none' ? null : event.target.value })}>{['none', 'arrow', 'triangle', 'dot', 'bar', 'diamond'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>)}<label>Routing<select aria-label="Arrow routing" value={first?.elbowed ? 'elbow' : first?.roundness ? 'curved' : 'sharp'} onChange={event => applyProperties({ elbowed: event.target.value === 'elbow', roundness: event.target.value === 'curved' ? { type: 2 } : null })}><option value="sharp">Sharp</option><option value="curved">Curved</option><option value="elbow">Elbow</option></select></label></fieldset>}
-      {chosen.length > 0 && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: !chosen.every(e => e.locked) })}>{chosen.every(e => e.locked) ? 'Unlock' : 'Lock'}</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
+      {chosen.length > 0 && !creatingConnector && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: !chosen.every(e => e.locked) })}>{chosen.every(e => e.locked) ? 'Unlock' : 'Lock'}</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
     </aside>}
     <div className="draw-bottom-controls"><button aria-label="Zoom out" onClick={() => setViewport(view => ({ ...view, zoom: Math.max(0.1, view.zoom / 1.2) }))}>−</button><span>{Math.round(viewport.zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setViewport(view => ({ ...view, zoom: Math.min(5, view.zoom * 1.2) }))}>+</button><button aria-label="Fit drawing" title="Fit all (Shift+1)" onClick={fitScene}>Fit</button>{!viewMode && <><span className="draw-divider" /><button aria-label="Undo drawing" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>↶</button><button aria-label="Redo drawing" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>↷</button><button aria-label="Snap to grid" aria-pressed={grid} onClick={() => setGrid(value => !value)}>Grid</button><button aria-label="Snap to objects" aria-pressed={snap} onClick={() => setSnap(value => !value)}>Snap</button></>}</div>
-    {!viewMode && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}
+    {!viewMode && !creatingConnector && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}
     {!viewMode && <button className="draw-help-toggle" aria-label="Keyboard shortcuts" onClick={() => setHelp(value => !value)}>?</button>}
     {message && <div className="draw-message" role="alert">{message}<button aria-label="Dismiss drawing message" onClick={() => setMessage(null)}>×</button></div>}
-    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Right drag · Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}</div></div></section></div>}
+    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Edit connector points', '⌘/Ctrl Enter'], ['Finish connector', 'Enter · double-click'], ['Draw from center', 'Alt drag'], ['Deep marquee', '⌘/Ctrl drag'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Right drag · Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}</div></div></section></div>}
     <input ref={fileInput} className="draw-image-input" aria-label="Choose drawing image" type="file" accept="image/*" onChange={event => { void uploadImage(event.target.files?.[0]).catch(error => setMessage(error instanceof Error ? error.message : 'The image could not be read.')); event.target.value = '' }} />
   </section>
 }
