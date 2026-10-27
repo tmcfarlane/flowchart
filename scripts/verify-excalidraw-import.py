@@ -61,8 +61,10 @@ with sync_playwright() as p:
 
     # Select a single imported shape inside its native group, edit with the
     # keyboard in both directions. Bound text/arrows stay associated.
-    service = page.evaluate("window.__verifyNative.elements().find(e=>e.id==='api-service')")
-    old_arrow = page.evaluate("window.__verifyNative.elements().find(e=>e.id==='request-arrow')")
+    service = page.evaluate("window.__verifyNative.elements().find(e=>e.customData?.fixtureRole==='service')")
+    service_id = service['id']
+    database_id = page.evaluate("window.__verifyNative.elements().find(e=>e.type==='ellipse').id")
+    old_arrow = page.evaluate("window.__verifyNative.elements().find(e=>e.type==='arrow')")
     state = page.evaluate('window.__verifyNative.state()')
     service_screen = {
         'x': (service['x'] + service['width'] / 2 + state['scrollX']) * state['zoom'] + state['offsetLeft'],
@@ -72,13 +74,13 @@ with sync_playwright() as p:
     page.mouse.click(service_screen['x'], service_screen['y'])
     page.keyboard.up('Control')
     page.keyboard.press('ArrowRight')
-    page.wait_for_function("(x)=>window.__verifyNative.elements().find(e=>e.id==='api-service').x === x", arg=service['x'] + 1)
-    moved = page.evaluate("window.__verifyNative.elements().find(e=>e.id==='request-arrow')")
-    assert moved['startBinding']['elementId'] == 'api-service'
-    assert moved['endBinding']['elementId'] == 'orders-db'
+    page.wait_for_function("({x,id})=>window.__verifyNative.elements().find(e=>e.id===id).x === x", arg={'x':service['x']+1,'id':service_id})
+    moved = page.evaluate("window.__verifyNative.elements().find(e=>e.type==='arrow')")
+    assert moved['startBinding']['elementId'] == service_id
+    assert moved['endBinding']['elementId'] == database_id
     assert (moved['x'], moved['y'], moved['points']) != (old_arrow['x'], old_arrow['y'], old_arrow['points']), 'Bound arrow did not follow imported shape'
     page.keyboard.press('ArrowLeft')
-    page.wait_for_function("(x)=>window.__verifyNative.elements().find(e=>e.id==='api-service').x === x", arg=service['x'])
+    page.wait_for_function("({x,id})=>window.__verifyNative.elements().find(e=>e.id===id).x === x", arg={'x':service['x'],'id':service_id})
     print('NATIVE EDITING + BOUND ARROW: PASS', flush=True)
 
     page.mouse.click(1290, 600)

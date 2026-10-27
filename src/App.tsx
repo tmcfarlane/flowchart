@@ -46,7 +46,7 @@ import { validateArchitectureScene, serializedByteLength, MAX_ARCHITECTURE_DOCUM
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
-import { prepareSceneInsertion } from './utils/excalidrawImport'
+import { prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 
 const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
 const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
@@ -454,7 +454,10 @@ function FlowChartEditor() {
         importTarget.current.commitDocument({ nodes: document.nodes, edges: document.edges, diagramMode: document.mode, architectureScene: document.architectureScene })
       }
     } catch (error) {
-      if (request === importRequest.current) setImportError(error instanceof Error ? error.message : 'Could not import this drawing.')
+      if (request === importRequest.current) {
+        const message = error instanceof Error ? error.message : 'Could not import this drawing.'
+        setImportError(/^image\//.test(file.type) && message.includes('valid JSON') ? 'Use the Image tool to add images. To import an editable drawing, choose a .excalidraw or .json file.' : message)
+      }
     } finally {
       if (request === importRequest.current) setIsImporting(false)
     }
@@ -467,7 +470,7 @@ function FlowChartEditor() {
     setImportError(null)
     try {
       const before = importTarget.current
-      let scene = pendingImport.scene
+      let scene = destination === 'open' ? prepareSceneOpen(pendingImport.scene) : pendingImport.scene
       if (destination === 'insert') {
         const signature = JSON.stringify(flowToChart(before.nodes, before.edges, before.architectureScene))
         const [{ mergeGraphElements }, { restoreElements }] = await Promise.all([import('./utils/architectureBridge'), import('@excalidraw/excalidraw')])
@@ -506,11 +509,11 @@ function FlowChartEditor() {
     fileDragDepth.current = 0
     setIsFileDragOver(false)
     const files = Array.from(event.dataTransfer.files)
-    // Preserve the native Architecture image-drop workflow.
-    if (diagramMode === 'architecture' && files.length === 1 && /^image\//.test(files[0].type) && /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(files[0].name)) return
     event.preventDefault()
     event.stopPropagation()
     if (files.length !== 1) { setImportError('Drop one .json or .excalidraw drawing at a time.'); return }
+    // Native PNG/SVG drops can secretly contain a scene and replace the whole
+    // document. Keep every file behind our content validation and destination.
     void readImportFile(files[0], canvasPoint({ x: event.clientX, y: event.clientY }))
   }
 

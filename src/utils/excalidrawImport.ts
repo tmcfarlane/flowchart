@@ -127,20 +127,26 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
     files[id] = { ...file, id }
   }
 
+  const elementById = new Map(elements.map((element) => [element.id as string, element]))
   for (const element of elements) {
     const id = element.id as string
     for (const field of ['containerId', 'frameId'] as const) {
       if (element[field] != null) element[field] = requireReference(element[field], ids, deletedIds, `Element “${id}”`)
       if (element[field] === id) throw new Error(`Element “${id}” cannot reference itself as a text container or frame.`)
     }
-    if (typeof element.frameId === 'string' && !elements.some((candidate) => candidate.id === element.frameId && candidate.type === 'frame')) {
+    if (typeof element.frameId === 'string' && elementById.get(element.frameId)?.type !== 'frame') {
       throw new Error(`Element “${id}” refers to a frame that is not a frame element.`)
+    }
+    if (typeof element.containerId === 'string' && (element.type !== 'text' || !['rectangle', 'diamond', 'ellipse', 'arrow'].includes(String(elementById.get(element.containerId)?.type)))) {
+      throw new Error(`Text element “${id}” has an invalid label container.`)
     }
     for (const field of ['startBinding', 'endBinding'] as const) {
       const binding = element[field]
       if (binding != null) {
         if (!isRecord(binding) || !validId(binding.elementId)) throw new Error(`Element “${id}” has an invalid arrow binding.`)
         const reference = requireReference(binding.elementId, ids, deletedIds, `Arrow “${id}”`)
+        for (const field of ['focus', 'gap']) if (binding[field] != null) geometry(binding[field], `binding ${field}`, id)
+        if (reference && ['arrow', 'line', 'freedraw'].includes(String(elementById.get(reference)?.type))) throw new Error(`Arrow “${id}” has an invalid endpoint binding.`)
         element[field] = reference ? { ...binding, elementId: reference } : null
       }
     }
@@ -149,6 +155,7 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
       element.boundElements = element.boundElements.flatMap((bound) => {
         if (!isRecord(bound) || !validId(bound.id)) throw new Error(`Element “${id}” has an invalid bound-element reference.`)
         const reference = requireReference(bound.id, ids, deletedIds, `Element “${id}”`)
+        if (reference && (!['arrow', 'text'].includes(String(bound.type)) || elementById.get(reference)?.type !== bound.type)) throw new Error(`Element “${id}” has a mismatched bound-element type.`)
         return reference ? [{ ...bound, id: reference }] : []
       })
     }
@@ -185,15 +192,30 @@ function uniqueId(prefix: string, occupied: Set<string>): string {
   return id
 }
 
+/** A newly opened external scene cannot reserve future semantic graph IDs. */
+export function prepareSceneOpen(imported: ArchitectureScene): ArchitectureScene {
+  return remapScene(imported)
+}
+
 /** Insert the intact native scene as one translated unit, with independent relationships and image assets. */
 export function prepareSceneInsertion(
   imported: ArchitectureScene,
   current: ArchitectureScene | undefined,
   point: { x: number; y: number },
 ): ArchitectureScene {
+  return remapScene(imported, current, point)
+}
+
+function remapScene(
+  imported: ArchitectureScene,
+  current?: ArchitectureScene,
+  point?: { x: number; y: number },
+): ArchitectureScene {
   if (!imported.elements.length) throw new Error('This drawing has no visible elements to insert.')
-  geometry(point.x, 'insertion x coordinate', 'import')
-  geometry(point.y, 'insertion y coordinate', 'import')
+  if (point) {
+    geometry(point.x, 'insertion x coordinate', 'import')
+    geometry(point.y, 'insertion y coordinate', 'import')
+  }
   const occupied = new Set<string>([
     ...(current?.elements.flatMap((element) => [String(element.id), ...((element.groupIds as string[] | undefined) ?? [])]) ?? []),
     ...Object.keys(current?.files ?? {}),
@@ -217,7 +239,8 @@ export function prepareSceneInsertion(
     minX = Math.min(minX, centerX - halfWidth); maxX = Math.max(maxX, centerX + halfWidth)
     minY = Math.min(minY, centerY - halfHeight); maxY = Math.max(maxY, centerY + halfHeight)
   }
-  const dx = point.x - (minX + maxX) / 2, dy = point.y - (minY + maxY) / 2
+  const dx = point ? point.x - (minX + maxX) / 2 : 0
+  const dy = point ? point.y - (minY + maxY) / 2 : 0
   const elements = imported.elements.map((element) => {
     const result: ElementRecord = { ...element, id: elementIds.get(element.id as string)!, x: (element.x as number) + dx, y: (element.y as number) + dy }
     geometry(result.x, 'translated x coordinate', result.id as string)

@@ -26,7 +26,7 @@ The drawing remains native Excalidraw content, edited by the official editor int
 | Embeds, iframes, magic frames, and unknown element types | Identified and rejected before application, with an actionable error. |
 | Newer or missing file versions, duplicate IDs, dangling references, malformed geometry/assets | Rejected before application. |
 
-Insertion always assigns new element, group, and file IDs, including repeated imports of the same drawing. Bound text, arrow endpoints, frame membership, and image references are remapped to those IDs. Only Flowchart's private `customData.flowchart` bridge metadata is removed from external imports, so a foreign file cannot accidentally edit an existing semantic node through a reused graph ID. Unrelated custom metadata remains intact.
+Opening and insertion assign new element, group, and file IDs, including repeated imports of the same drawing. Opening keeps every coordinate unchanged; insertion translates the drawing as one unit. Bound text, arrow endpoints, frame membership, and image references are remapped to those IDs. This also prevents reimported `fc-node-*` IDs from colliding with future semantic nodes. Only Flowchart's private `customData.flowchart` bridge metadata is removed from external imports, so a foreign file cannot accidentally edit an existing semantic node through a reused graph ID. Unrelated custom metadata remains intact.
 
 Transient Excalidraw application state such as the original selection, collaboration state, and viewport is not imported. Canvas background and grid size are retained. Native element geometry and image data are preserved.
 
@@ -35,6 +35,8 @@ Transient Excalidraw application state such as the original selection, collabora
 The input file must fit within **4 MiB**, contain at most **5,000 elements**, and include no more than **100 image assets**. The restored drawing must also fit the shared Architecture scene limit of **4,032 KiB**, leaving room for the native graph and document envelope under the 4 MiB API limit. All geometry must be finite, within ±1,000,000 scene units, with non-negative dimensions. The combined current/imported scene is validated before insertion; large drawings can be opened separately instead.
 
 These checks run through one shared loader for both file pickers and canvas drop. Invalid, empty, unsupported, or corrupt files never partially apply. Only file drags activate the drop target, preserving internal object dragging.
+
+Use the native **Image** tool for image uploads. PNG/SVG file drops do not bypass the diagram importer: these formats can carry hidden Excalidraw scenes, which the upstream editor would otherwise open by replacing the current drawing without confirmation. Export editable scenes as `.excalidraw` before importing them here.
 
 ## Verification fixtures
 

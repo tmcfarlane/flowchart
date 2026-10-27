@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parseExcalidrawScene, prepareSceneInsertion, EXCALIDRAW_IMPORT_LIMITS } from '../utils/excalidrawImport'
+import { parseExcalidrawScene, prepareSceneInsertion, prepareSceneOpen, EXCALIDRAW_IMPORT_LIMITS } from '../utils/excalidrawImport'
 
 const fixture = (name = 'architecture-complete.excalidraw') =>
   readFileSync(new URL(`./fixtures/excalidraw/${name}`, import.meta.url), 'utf8')
@@ -137,6 +137,18 @@ describe('Excalidraw native scene import', () => {
     expect(byId(scene.elements, 'request-arrow').points).toEqual(byId(original.elements, 'request-arrow').points)
   })
 
+  it('rejects malformed label and connector associations that native restoration would otherwise discard', () => {
+    const wrongContainer = source()
+    byId(wrongContainer.elements, 'api-label').containerId = 'request-label'
+    expect(() => parse(wrongContainer)).toThrow(/container/i)
+    const wrongBoundType = source()
+    byId(wrongBoundType.elements, 'orders-db').boundElements = [{ id: 'request-arrow', type: 'text' }]
+    expect(() => parse(wrongBoundType)).toThrow(/bound.*type/i)
+    const badGap = source()
+    byId(badGap.elements, 'request-arrow').startBinding = { elementId: 'api-service', focus: 0, gap: 'nearby' }
+    expect(() => parse(badGap)).toThrow(/binding|gap/i)
+  })
+
   it('identifies unsupported live elements before any content is applied; deleted unsupported elements are harmless', () => {
     for (const type of ['embeddable', 'iframe', 'magicframe', 'unknown-tool']) {
       const original = source()
@@ -176,6 +188,34 @@ describe('Excalidraw native scene import', () => {
       ...tooManyAssets.files['asset-logo'], id: `asset-${i}`,
     }]))
     expect(() => parse(tooManyAssets)).toThrow(/asset|file|100|limit|many/i)
+  })
+})
+
+describe('opening an Excalidraw scene', () => {
+  it('namespaces exported semantic IDs without moving or flattening any native geometry', () => {
+    const imported = parseExcalidrawScene(fixture().split('"api-service"').join('"fc-node-2"'))
+    expect(imported.elements.some((element) => element.id === 'fc-node-2')).toBe(true)
+    const before = JSON.stringify(imported)
+    const opened = prepareSceneOpen(imported)
+    expect(JSON.stringify(imported)).toBe(before)
+    expect(opened.elements).toHaveLength(imported.elements.length)
+    expect(opened.elements.every((element) => !(element.id as string).startsWith('fc-'))).toBe(true)
+    expect(opened.elements.every((element) => !imported.elements.some((original) => original.id === element.id))).toBe(true)
+    expect(new Set(opened.elements.map((element) => element.id)).size).toBe(opened.elements.length)
+    const referenceFields = new Set(['id', 'groupIds', 'frameId', 'containerId', 'startBinding', 'endBinding', 'boundElements', 'boundElementIds', 'fileId'])
+    const geometryAndAppearance = (element: Record<string, unknown>) =>
+      Object.fromEntries(Object.entries(element).filter(([key]) => !referenceFields.has(key)))
+    opened.elements.forEach((element, index) => {
+      expect(geometryAndAppearance(element)).toEqual(geometryAndAppearance(imported.elements[index]))
+    })
+    expect(opened.appState).toEqual(imported.appState)
+    expect(Object.keys(opened.files)).toHaveLength(Object.keys(imported.files).length)
+    expect(Object.keys(opened.files).every((id) => !(id in imported.files))).toBe(true)
+    const originalImage = Object.values(imported.files)[0]
+    const openedImage = Object.values(opened.files)[0]
+    expect(openedImage.dataURL).toBe(originalImage.dataURL)
+    expect(openedImage.mimeType).toBe(originalImage.mimeType)
+    refs(opened)
   })
 })
 

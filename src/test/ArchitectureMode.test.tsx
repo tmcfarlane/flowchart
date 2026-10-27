@@ -202,7 +202,7 @@ describe('Architecture Mode', () => {
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     fireEvent.click(screen.getByLabelText('Export'))
     const file = new File([JSON.stringify({ version: 4, mode: 'draw', nodes: [], edges: [], architectureScene: { version: 1, elements: [{ id: 'annotation', type: 'text', text: 'Imported drawing', x: 0, y: 0, width: 160, height: 24, angle: 0 }], files: {} } })], 'architecture.json', { type: 'application/json' })
-    fireEvent.change(screen.getByLabelText('Import JSON file'), { target: { files: [file] } })
+    fireEvent.change(screen.getByLabelText('Import JSON or Excalidraw file'), { target: { files: [file] } })
     await screen.findByText('Imported drawing')
     fireEvent.click(screen.getByLabelText('Undo'))
     expect(screen.getByLabelText('Flowchart Mode')).toHaveAttribute('aria-pressed', 'true')
