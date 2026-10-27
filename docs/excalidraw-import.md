@@ -54,3 +54,5 @@ Use the **Image** tool in Draw for image uploads. PNG/SVG file drops show guidan
 ## Verification fixtures
 
 `src/test/fixtures/excalidraw/architecture-complete.excalidraw` exercises bound text and arrows, groups and frames, rotation, pen pressure, embedded images, deleted elements, and negative coordinates. Unit tests derive ID-collision, malformed-asset, oversized, and unsupported-content cases from the same fixture. The `native-editor-roundtrip.excalidraw` fixture was exported by Excalidraw and exercises its actual file output. Browser verification imports through the picker and drag/drop, edits objects on the Draw canvas, repeats insertion at a changed pan/zoom, and checks undo/redo and persistence.
+
+`dark-pastel-contrast.excalidraw` covers a dark canvas with solid pastel nodes, dark bound labels, and dark-gray standalone/edge captions. `python scripts/verify-import-contrast-pan.py` imports that real file, checks rendered text contrast in dark and light themes, and verifies that a held right-button drag shows a grabbing cursor and moves only the viewport, even while a drawing tool is active. `--expect-bug` records the original regression for comparison.
