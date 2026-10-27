@@ -1,4 +1,5 @@
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
+import { getSceneBounds } from './drawScene'
 
 /** Fits the 4.5 MB serverless request limit, including the document envelope. */
 export const EXCALIDRAW_IMPORT_LIMITS = {
@@ -273,20 +274,12 @@ function remapScene(
     if (!groupIds.has(id)) groupIds.set(id, uniqueId('group', occupied))
   }
 
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  for (const element of imported.elements) {
-    // Rotated bounds keep a scene's visible center at the insertion point.
-    const x = element.x as number, y = element.y as number
-    const width = element.width as number, height = element.height as number
-    const angle = typeof element.angle === 'number' ? element.angle : 0
-    const halfWidth = (Math.abs(Math.cos(angle)) * width + Math.abs(Math.sin(angle)) * height) / 2
-    const halfHeight = (Math.abs(Math.sin(angle)) * width + Math.abs(Math.cos(angle)) * height) / 2
-    const centerX = x + width / 2, centerY = y + height / 2
-    minX = Math.min(minX, centerX - halfWidth); maxX = Math.max(maxX, centerX + halfWidth)
-    minY = Math.min(minY, centerY - halfHeight); maxY = Math.max(maxY, centerY + halfHeight)
-  }
-  const dx = point ? point.x - (minX + maxX) / 2 : 0
-  const dy = point ? point.y - (minY + maxY) / 2 : 0
+  // Paths can extend left/up of their origin despite positive width/height.
+  // Use the renderer's pure geometry so their visible center also lands at
+  // the requested position, without changing any saved local path points.
+  const bounds = getSceneBounds(imported.elements)
+  const dx = point ? point.x - (bounds.x + bounds.width / 2) : 0
+  const dy = point ? point.y - (bounds.y + bounds.height / 2) : 0
   const elements = imported.elements.map((element) => {
     const result: ElementRecord = { ...element, id: elementIds.get(element.id as string)!, x: (element.x as number) + dx, y: (element.y as number) + dy }
     geometry(result.x, 'translated x coordinate', result.id as string)

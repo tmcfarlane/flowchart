@@ -11,6 +11,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'src/test/fixtures/excalidraw/architecture-complete.excalidraw'
+NEGATIVE_PATH_FIXTURE = ROOT / 'src/test/fixtures/excalidraw/negative-local-path.excalidraw'
 OUTPUT = ROOT / 'docs/screenshots/excalidraw-import'
 DRAFT = 'flowchart-editor-draft-v3'
 
@@ -128,6 +129,38 @@ with sync_playwright() as p:
 
     page.get_by_role('button', name='Undo', exact=True).click()
     wait_elements(page, 9)
+
+    # A path-only file has no surrounding frame to hide negative local points.
+    # Its rendered center must land at the drop point after zooming and panning.
+    path_point = {'x': 1090, 'y': 660}
+    expected_path = world_point(page, path_point)
+    path_viewport = matrix(page)
+    before_path = document(page)
+    path_data = page.evaluate_handle('text=>{const data=new DataTransfer();data.items.add(new File([text],"negative-local-path.excalidraw",{type:""}));return data;}', NEGATIVE_PATH_FIXTURE.read_text())
+    wrapper.dispatch_event('drop', {'dataTransfer': path_data, 'clientX': path_point['x'], 'clientY': path_point['y']})
+    page.get_by_role('dialog', name='Bring your drawing in').wait_for()
+    assert document(page) == before_path
+    page.get_by_role('button', name='Insert into current diagram').click()
+    wait_elements(page, 10)
+    path = next(element for element in document(page)['architectureScene']['elements'] if element.get('customData', {}).get('fixtureRole') == 'negative-local-path')
+    assert path['points'] == [[0, 0], [-200, -100]] and path['angle'] == 0
+    assert abs(path['x'] - 100 - expected_path['x']) < 0.001
+    assert abs(path['y'] - 50 - expected_path['y']) < 0.001
+    # Read the rendered stroke's endpoints, excluding arrowhead decoration
+    # whose overhang can make the outer group bounds slightly asymmetric.
+    actual_screen = page.locator(f'[data-element-id="{path["id"]}"]').evaluate('element=>{const p=element.querySelector("path[marker-end]");const matrix=p.getScreenCTM();const start=p.getPointAtLength(0).matrixTransform(matrix);const end=p.getPointAtLength(p.getTotalLength()).matrixTransform(matrix);return {x:(start.x+end.x)/2,y:(start.y+end.y)/2};}')
+    assert abs(actual_screen['x'] - path_point['x']) < 0.001 and abs(actual_screen['y'] - path_point['y']) < 0.001, {'expected': path_point, 'actual': actual_screen}
+    assert all(abs(a - b) < 0.00001 for a, b in zip(matrix(page), path_viewport))
+    page.screenshot(path=str(OUTPUT / '09-negative-local-path-placement.png'), full_page=True)
+    print('NEGATIVE LOCAL PATH DROP: rendered center', json.dumps({'expected': path_point, 'actual': actual_screen}), flush=True)
+    page.get_by_role('button', name='Undo', exact=True).click()
+    wait_elements(page, 9)
+    assert document(page)['architectureScene'] == before_path['architectureScene']
+    page.get_by_role('button', name='Redo', exact=True).click()
+    wait_elements(page, 10)
+    page.get_by_role('button', name='Undo', exact=True).click()
+    wait_elements(page, 9)
+
     page.get_by_role('button', name='Toggle Dark Mode').click()
     page.get_by_role('button', name='Fit drawing').click()
     page.screenshot(path=str(OUTPUT / '04-editable-scene-light.png'), full_page=True)

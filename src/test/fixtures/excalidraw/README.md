@@ -10,4 +10,6 @@ The scene contains a named frame; grouped, rotated and styled architecture shape
 
 The fixtures are checked in so browser tests and manual review can import exactly the same bytes through the picker and through canvas drag-and-drop. They are test data, not screenshots or flattened renderings.
 
+`negative-local-path.excalidraw` isolates an up-left arrow whose local path points are negative while its width and height are positive. With no surrounding frame to mask its bounds, it verifies that the actual rendered path lands at the canvas drop point after zooming and panning. Local path geometry remains unchanged by insertion.
+
 `dark-pastel-contrast.excalidraw` is a deterministic 12-element regression scene with an explicit dark canvas, three solid pastel-filled nodes, and dark bound labels. Dark-gray standalone captions and arrow labels exercise canvas-aware text contrast separately from text inside filled shapes. Stable `fixtureRole` metadata identifies each object after import assigns new IDs. The fixture contains no image assets or external resources.

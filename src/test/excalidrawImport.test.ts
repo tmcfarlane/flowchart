@@ -384,6 +384,84 @@ describe('inserting an Excalidraw scene', () => {
     refs(inserted)
   })
 
+  it('centers an up-left arrow at the insertion point using its visible negative path extents', () => {
+    const points = [[0, 0], [-200, -100]]
+    const imported = parse({
+      type: 'excalidraw', version: 2,
+      elements: [{ id: 'up-left', type: 'arrow', x: 100, y: 100, width: 200, height: 100, angle: 0, points }],
+      files: {},
+    })
+    const point = { x: 500, y: 500 }
+    const inserted = prepareSceneInsertion(imported, undefined, point).elements[0]
+    // The source endpoints are (100,100) and (-100,0), centered at (0,50).
+    // Translating by (500,450) centers the actual stroke at the requested point.
+    expect(inserted.x).toBe(600)
+    expect(inserted.y).toBe(550)
+    expect(inserted.points).toEqual(points)
+    expect(inserted.angle).toBe(0)
+    const first = { x: inserted.x as number, y: inserted.y as number }
+    const last = { x: first.x - 200, y: first.y - 100 }
+    expect((first.x + last.x) / 2).toBe(point.x)
+    expect((first.y + last.y) / 2).toBe(point.y)
+  })
+
+  it.each(['arrow', 'line'])('centers a rotated multipoint %s by its transformed visible bounds', (type) => {
+    const points = [[0, 0], [-200, 0], [-50, -100]]
+    const angle = Math.PI / 4
+    const imported = parse({
+      type: 'excalidraw', version: 2,
+      elements: [{ id: 'rotated-path', type, x: 100, y: 100, width: 200, height: 100, angle, points }],
+      files: {},
+    })
+    const point = { x: -350, y: 720 }
+    const inserted = prepareSceneInsertion(imported, undefined, point).elements[0]
+    // Rotate the three world points around (0,50) by 45 degrees. Their bounds
+    // are x=[-150/sqrt(2),100/sqrt(2)], y=[50-50/sqrt(2),50+150/sqrt(2)].
+    // This asymmetric path's visible bounds are not centered on its rotation pivot.
+    const sourceCenter = { x: -25 / Math.SQRT2, y: 50 + 50 / Math.SQRT2 }
+    const dx = (inserted.x as number) - 100
+    const dy = (inserted.y as number) - 100
+    expect(sourceCenter.x + dx).toBeCloseTo(point.x, 8)
+    expect(sourceCenter.y + dy).toBeCloseTo(point.y, 8)
+    expect(inserted.x).toBeCloseTo(100 + point.x - sourceCenter.x, 8)
+    expect(inserted.y).toBeCloseTo(100 + point.y - sourceCenter.y, 8)
+    expect(inserted.points).toEqual(points)
+    expect(inserted.angle).toBe(angle)
+    expect(inserted.width).toBe(200)
+    expect(inserted.height).toBe(100)
+  })
+
+  it('centers rotated freehand artwork and a companion shape as one unit without changing their geometry', () => {
+    const points = [[0, 0], [-200, 0], [-50, -100]]
+    const pressures = [0.3, 0.9, 0.5]
+    const angle = Math.PI / 4
+    const imported = parse({
+      type: 'excalidraw', version: 2,
+      elements: [
+        { id: 'pen', type: 'freedraw', x: 100, y: 100, width: 200, height: 100, angle, points, pressures, simulatePressure: false, groupIds: ['artwork'] },
+        { id: 'companion', type: 'rectangle', x: 200, y: 200, width: 20, height: 40, angle: 0, groupIds: ['artwork'] },
+      ],
+      files: {},
+    })
+    const point = { x: 600, y: -250 }
+    const inserted = prepareSceneInsertion(imported, undefined, point).elements
+    const stroke = inserted[0]
+    const companion = inserted[1]
+    // The freehand path supplies min x=-150/sqrt(2), min y=50-50/sqrt(2).
+    // The companion supplies max x=220 and max y=240 for the combined bounds.
+    const sourceCenter = { x: 110 - 75 / Math.SQRT2, y: 145 - 25 / Math.SQRT2 }
+    const dx = (stroke.x as number) - 100
+    const dy = (stroke.y as number) - 100
+    expect(sourceCenter.x + dx).toBeCloseTo(point.x, 8)
+    expect(sourceCenter.y + dy).toBeCloseTo(point.y, 8)
+    expect((companion.x as number) - (stroke.x as number)).toBeCloseTo(100, 8)
+    expect((companion.y as number) - (stroke.y as number)).toBeCloseTo(100, 8)
+    expect(stroke).toMatchObject({ points, pressures, angle, simulatePressure: false, width: 200, height: 100 })
+    expect(companion).toMatchObject({ angle: 0, width: 20, height: 40 })
+    expect(stroke.groupIds).toEqual(companion.groupIds)
+    expect(stroke.groupIds).not.toEqual(['artwork'])
+  })
+
   it('makes repeated insertion independent even when source IDs collide with both the existing document and previous imports', () => {
     const imported = parseExcalidrawScene(fixture())
     const once = prepareSceneInsertion(imported, imported, { x: 1000, y: 0 })
