@@ -127,6 +127,14 @@ describe('Architecture Mode', () => {
     expect(screen.getByTestId('architecture-node-3')).toHaveTextContent('Service')
   })
 
+  it('rehydrates editable edge callbacks when restoring a local diagram', async () => {
+    localStorage.setItem('flowchart-editor-draft-v3', JSON.stringify({ version: 2, mode: 'architecture', nodes: [{ id: '2', type: 'service', position: { x: 0, y: 0 }, data: { label: 'API' } }, { id: '3', type: 'database', position: { x: 300, y: 0 }, data: { label: 'Database' } }], edges: [{ id: 'request', source: '2', target: '3', label: 'Before reload', type: 'default', data: {} }] }))
+    render(<App />)
+    const input = await screen.findByLabelText('Restored edge label request')
+    fireEvent.change(input, { target: { value: 'After reload edit' } })
+    expect(input).toHaveValue('After reload edit')
+  })
+
   it('undoes and redoes a native JSON import across the diagram mode boundary', async () => {
     render(<App />)
     fireEvent.click(screen.getByLabelText('Add Step Node'))

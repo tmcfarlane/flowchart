@@ -221,11 +221,20 @@ function FlowChartEditor() {
     )
   }, [])
 
+  // Update edge label callback
+  const updateEdgeLabel = useCallback((edgeId: string, label: string) => {
+    setEdges((eds) =>
+      eds.map((edge) =>
+        edge.id === edgeId ? { ...edge, label } : edge
+      )
+    )
+  }, [])
+
   const [initialDraft] = useState(readEditorDraft)
   const initialNodes: FlowNode[] = initialDraft?.nodes.map(n => ({ ...n, data: { ...n.data, onLabelChange: updateNodeLabel } })) ?? []
 
   const [nodes, setNodes] = useNodesState(initialNodes)
-  const [edges, setEdges] = useEdgesState(initialDraft?.edges ?? [])
+  const [edges, setEdges] = useEdgesState(initialDraft?.edges.map(e => ({ ...e, data: { ...e.data, onLabelChange: updateEdgeLabel } })) ?? [])
   const [architectureScene, setArchitectureScene] = useState<ArchitectureScene | undefined>(initialDraft?.architectureScene)
   const architectureApi = useRef<ArchitectureCanvasApi | null>(null)
   const pendingArchitectureFit = useRef(false)
@@ -234,15 +243,6 @@ function FlowChartEditor() {
     if (api && pendingArchitectureFit.current) { pendingArchitectureFit.current = false; api.fitScene() }
   }, [])
   const [draftError, setDraftError] = useState<string | null>(null)
-
-  // Update edge label callback
-  const updateEdgeLabel = useCallback((edgeId: string, label: string) => {
-    setEdges((eds) =>
-      eds.map((edge) =>
-        edge.id === edgeId ? { ...edge, label } : edge
-      )
-    )
-  }, [setEdges])
 
   // Reorder nodes callback
   const reorderNodes = useCallback((fromIndex: number, toIndex: number) => {

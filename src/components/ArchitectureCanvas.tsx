@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Excalidraw, MainMenu, CaptureUpdateAction, restoreElements, convertToExcalidrawElements, exportToBlob, exportToSvg, exportToCanvas, viewportCoordsToSceneCoords } from '@excalidraw/excalidraw'
 import type { ExcalidrawImperativeAPI, AppState, BinaryFiles, LibraryItems } from '@excalidraw/excalidraw/types'
 import type { ExcalidrawElement, OrderedExcalidrawElement } from '@excalidraw/excalidraw/element/types'
@@ -35,6 +35,8 @@ const snapshot = (elements: readonly ExcalidrawElement[], state: Pick<AppState, 
   const usedFiles = Object.fromEntries(Object.entries(files).filter(([id]) => referenced.has(id as never)))
   return JSON.parse(JSON.stringify({ version: 1, elements, files: usedFiles, appState: { viewBackgroundColor: state.viewBackgroundColor, gridSize: state.gridSize } }))
 }
+const geometrySignature = (elements: readonly ExcalidrawElement[]) => JSON.stringify(elements.map(e => [e.id, e.version, e.versionNonce]))
+const cloneSceneElements = (elements: readonly ExcalidrawElement[]): OrderedExcalidrawElement[] => JSON.parse(JSON.stringify(elements))
 const download = (blob: Blob, name: string) => {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -57,6 +59,49 @@ export default function ArchitectureCanvas({ scene, nodes, edges, darkMode, onCh
   const lastGraph = useRef(graphSignature(nodes, edges))
   const lastSelection = useRef('')
   const applying = useRef(false)
+  const nudgeKeys = useRef(new Set<string>())
+  const nudgeStart = useRef<OrderedExcalidrawElement[] | null>(null)
+  const nudgeTimer = useRef<number>()
+  const nudgeSelection = useRef<Pick<AppState, 'selectedElementIds' | 'selectedGroupIds'>>({ selectedElementIds: {}, selectedGroupIds: {} })
+  const finishNudge = useCallback(() => {
+    const before = nudgeStart.current
+    nudgeStart.current = null
+    nudgeKeys.current.clear()
+    // 0.18.1 leaves keyboard moves uncommitted, and updateScene filters native
+    // in-progress changes. Replay the known baseline and final scene in this
+    // same task so its public API records exactly one native undo increment.
+    if (!api || before === null) return
+    const after = cloneSceneElements(api.getSceneElementsIncludingDeleted())
+    const afterState = api.getAppState()
+    const afterSelection = { selectedElementIds: { ...afterState.selectedElementIds }, selectedGroupIds: { ...afterState.selectedGroupIds } }
+    if (geometrySignature(before) === geometrySignature(after)) return
+    applying.current = true
+    try {
+      api.updateScene({ elements: before, appState: nudgeSelection.current, captureUpdate: CaptureUpdateAction.NEVER })
+      api.updateScene({ elements: after, appState: afterSelection, captureUpdate: CaptureUpdateAction.IMMEDIATELY })
+    } finally { applying.current = false }
+  }, [api])
+  const handleNudgeStart = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (!api || viewMode || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key) || event.ctrlKey || event.metaKey || event.altKey) return
+    const target = event.target as HTMLElement
+    if (target.closest('input, textarea, select, [contenteditable="true"]') || !Object.values(api.getAppState().selectedElementIds).some(Boolean)) return
+    window.clearTimeout(nudgeTimer.current)
+    if (nudgeStart.current === null) {
+      nudgeStart.current = cloneSceneElements(api.getSceneElementsIncludingDeleted())
+      const state = api.getAppState()
+      nudgeSelection.current = { selectedElementIds: { ...state.selectedElementIds }, selectedGroupIds: { ...state.selectedGroupIds } }
+    }
+    nudgeKeys.current.add(event.key)
+  }
+  const handleNudgeEnd = (event: ReactKeyboardEvent<HTMLElement>) => {
+    if (!nudgeKeys.current.delete(event.key) || nudgeKeys.current.size) return
+    // Run after native keyup finalizes connector bindings.
+    nudgeTimer.current = window.setTimeout(finishNudge, 0)
+  }
+  useEffect(() => {
+    window.addEventListener('blur', finishNudge)
+    return () => { window.removeEventListener('blur', finishNudge); window.clearTimeout(nudgeTimer.current) }
+  }, [finishNudge])
   const initial = useRef({
     elements: mergeGraphElements(restoreElements((scene?.elements ?? []) as unknown as ExcalidrawElement[], null), nodes, edges, darkMode),
     appState: { ...scene?.appState, gridSize: scene?.appState?.gridSize ?? 20, viewBackgroundColor: scene?.appState?.viewBackgroundColor ?? '#ffffff' },
@@ -185,7 +230,7 @@ export default function ArchitectureCanvas({ scene, nodes, edges, darkMode, onCh
     })
   }
 
-  return <section className={`architecture-canvas ${viewMode ? 'architecture-presentation' : ''}`} aria-label="Architecture drawing canvas">
+  return <section className={`architecture-canvas ${viewMode ? 'architecture-presentation' : ''}`} aria-label="Architecture drawing canvas" onKeyDownCapture={handleNudgeStart} onKeyUpCapture={handleNudgeEnd}>
     {error && <div className="architecture-error" role="alert">{error}<button onClick={() => setError(null)} aria-label="Dismiss drawing error">×</button></div>}
     <Excalidraw
       excalidrawAPI={setApi}

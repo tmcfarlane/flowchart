@@ -89,7 +89,15 @@ view shows the semantic graph rather than trying to flatten pen strokes into
 process nodes. Graph changes received from MCP are reconciled into the native
 scene without erasing annotations or visual styling.
 
-Native drawing operations use Excalidraw's precise undo/redo. App **Undo diagram
+Native drawing operations use Excalidraw's precise undo/redo. Version 0.18.1 has
+an upstream keyboard-nudge history gap: a plain arrow-key move changes geometry
+without recording an undo increment, reproduced with the unmodified component.
+The integration records each completed nudge through the public `updateScene`
+API by replaying its cloned before/after elements synchronously under a feedback
+guard. Repeated keydown events form one gesture; text fields, view mode and
+Ctrl/Meta/Alt modifier actions are excluded. The browser regression script (`python scripts/verify-architecture-history.py
+http://localhost:3004`) checks nudge undo/redo and text-entry behavior. No package internals are modified.
+App **Undo diagram
 import** / **Redo diagram import** restore complete before/after documents,
 including the renderer mode, across a document replacement. Exporting JSON keeps
 all editable data. Architecture PNG/SVG use native scene rendering; GIF captures

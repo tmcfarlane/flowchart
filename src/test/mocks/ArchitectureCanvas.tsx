@@ -31,6 +31,7 @@ export default function ArchitectureCanvasAdapter(props: Props) {
       <button aria-label={`Select native node ${node.id}`} onClick={() => select(node.id)}>{node.data.label}</button>
       <input aria-label={`Native label ${node.id}`} value={node.data.label} onChange={event => props.onChange(props.scene ?? emptyScene(), props.nodes.map(current => current.id === node.id ? { ...current, data: { ...current.data, label: event.target.value } } : current), props.edges)} />
     </div>)}
+    {props.edges.map(edge => <input key={edge.id} aria-label={`Restored edge label ${edge.id}`} value={String(edge.label ?? '')} onChange={event => edge.data?.onLabelChange?.(edge.id, event.target.value)} />)}
     {props.scene?.elements.filter(element => !element.isDeleted && element.type === 'text').map(element => <span key={String(element.id)}>{String(element.text ?? '')}</span>)}
     <button onClick={() => props.onChange({ ...(props.scene ?? emptyScene()), elements: [...(props.scene?.elements ?? []), { id: 'test-annotation', type: 'text', x: -120, y: 80, width: 180, height: 24, angle: 0.2, text: 'Native annotation', fontSize: 20, strokeColor: '#087f5b' }] }, props.nodes, props.edges)}>Add native annotation</button>
   </section>

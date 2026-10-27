@@ -133,7 +133,7 @@ These are present in upstream action handlers or gesture utilities beyond the
 | --- | --- | --- | --- |
 | Open keyboard help | ? | ? | Native; also Menu → Help and the help button |
 | Cancel / finish current drawing or point-edit operation | Esc; Enter for a multipoint drawing | Esc; Enter for a multipoint drawing | Native; context determines whether selection is cleared or editing ends |
-| Nudge selection | Arrow keys | Arrow keys | Native; grid state controls step size |
+| Nudge selection | Arrow keys | Arrow keys | Verified native geometry; wrapper public-API workaround records undo for the upstream 0.18.1 history gap; grid controls step size |
 | Alternate nudge step | Shift+Arrow keys | Shift+Arrow keys | Native; with grid off uses the larger step, with grid on uses the smaller step |
 | Distribute horizontally | Alt+H | Option+H | Native: compatible multiselection; frame distribution is excluded upstream |
 | Distribute vertically | Alt+V | Option+V | Native: compatible multiselection |
