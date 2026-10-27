@@ -76,6 +76,14 @@ def pick(page, scene):
     page.wait_for_function('({key,count,background})=>{const doc=JSON.parse(localStorage.getItem(key)||"{}");return doc.mode==="draw"&&doc.architectureScene?.elements.length===count&&doc.architectureScene?.appState?.viewBackgroundColor===background;}', arg={'key': DRAFT, 'count': len(scene['elements']), 'background': scene['appState']['viewBackgroundColor']})
 
 
+def frame_for_capture(page, dx):
+    # Camera-only framing keeps the left card clear of the Appearance panel.
+    page.mouse.move(1100, 850)
+    page.mouse.down(button='right')
+    page.mouse.move(1100 + dx, 850, steps=6)
+    page.mouse.up(button='right')
+
+
 with sync_playwright() as p:
     browser = p.chromium.launch(executable_path='/usr/bin/chromium', headless=True, args=['--no-sandbox'])
     page = browser.new_page(viewport={'width': 1440, 'height': 1000}, device_scale_factor=1)
@@ -85,7 +93,11 @@ with sync_playwright() as p:
     scene = json.loads(FIXTURE.read_text())
     pick(page, scene)
     dark = colors(page)
+    if not args.expect_bug:
+        frame_for_capture(page, 70)
     page.screenshot(path=str(OUTPUT / ('before-dark-contrast.png' if args.expect_bug else '06-dark-pastel-contrast.png')), full_page=True)
+    if not args.expect_bug:
+        frame_for_capture(page, -70)
     print('DARK IMPORT CONTRAST:', json.dumps(dark), flush=True)
     if not args.expect_bug:
         assert all(item['contrast'] >= 4.5 for item in dark), dark
@@ -133,6 +145,7 @@ with sync_playwright() as p:
         pick(page, light_scene)
         light = colors(page)
         assert all(item['contrast'] >= 4.5 for item in light), light
+        frame_for_capture(page, 70)
         page.screenshot(path=str(OUTPUT / '07-light-pastel-contrast.png'), full_page=True)
         print('LIGHT IMPORT CONTRAST:', json.dumps(light), flush=True)
         assert not errors, errors
