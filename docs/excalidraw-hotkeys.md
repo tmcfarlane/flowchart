@@ -49,7 +49,7 @@ Text fields, contenteditable elements and the AI prompt keep normal typing.
 | Constrain creation/move/resize | Shift+drag | Shape proportions/axis constraint |
 | Rotate with fixed steps | Shift+rotation drag | 15-degree increments |
 | Draw from center | Alt+shape drag | Centered geometry |
-| Pan temporarily | Space+drag; middle mouse | Temporary hand behavior |
+| Pan temporarily | Hold right mouse and drag; Space+drag; middle mouse | Temporary hand behavior without changing tools |
 | Zoom | Ctrl+wheel; Ctrl++ / Ctrl+- | Drawing viewport |
 | Reset zoom | Ctrl+0 | 100% |
 | Fit all / selected | Shift+1 / Shift+2 | Uses physical digit codes for shifted keys |

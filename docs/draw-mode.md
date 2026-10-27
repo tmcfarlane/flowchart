@@ -23,7 +23,8 @@ Select an object to change stroke/fill colors, thickness, dashes, hatch fills,
 sketch texture, corners or opacity. Text has font-family, size and alignment
 controls. Arrows have endpoint decorations and routing controls. Selection
 handles resize or rotate objects; connector point handles edit paths. Hold
-Shift to constrain drawing, movement or resizing. Use Space-drag or Hand to pan.
+Shift to constrain drawing, movement or resizing. Hold the right mouse button and
+drag to pan from any tool, or use Space-drag or Hand.
 
 Shift-click or drag a selection box to work with multiple objects. Duplicate,
 copy/paste, group, lock, align and stacking controls act on the selection. Frames
@@ -37,6 +38,11 @@ move, resize, rotation, erase or keyboard nudge is one undoable transaction. The
 app's same Undo/Redo history restores drawings, graph data and mode through an
 import or mode boundary. Text fields and the AI prompt retain normal typing and
 clipboard behavior.
+
+Text contrast follows the surface behind each label. Labels on filled objects
+use the object's visible fill; captions and connector labels use the canvas.
+Colors that are already readable stay as authored, and contrast adjustments do
+not change the saved drawing colors.
 
 ## Existing diagrams and AI
 

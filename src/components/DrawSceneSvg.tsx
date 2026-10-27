@@ -131,6 +131,63 @@ function darkSurface(background: string | undefined, fallback: boolean): boolean
   return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722 < 0.45
 }
 
+type Rgba = readonly [number, number, number, number]
+const namedColors: Record<string, string> = { black: '#000000', white: '#ffffff', gray: '#808080', grey: '#808080', darkgray: '#a9a9a9', darkgrey: '#a9a9a9', dimgray: '#696969', dimgrey: '#696969', lightgray: '#d3d3d3', lightgrey: '#d3d3d3', brown: '#a52a2a', red: '#ff0000', green: '#008000', blue: '#0000ff', navy: '#000080', teal: '#008080', yellow: '#ffff00', silver: '#c0c0c0', maroon: '#800000', purple: '#800080' }
+function rgba(value: string): Rgba | undefined {
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'none' || normalized === 'transparent') return [0, 0, 0, 0]
+  const mapped = Object.prototype.hasOwnProperty.call(namedColors, normalized) ? namedColors[normalized] : normalized
+  const hex = mapped.match(/^#([a-f0-9]{3,4}|[a-f0-9]{6}|[a-f0-9]{8})$/)?.[1]
+  if (hex) {
+    const expanded = hex.length < 5 ? hex.split('').map(char => char + char).join('') : hex
+    return [parseInt(expanded.slice(0, 2), 16) / 255, parseInt(expanded.slice(2, 4), 16) / 255, parseInt(expanded.slice(4, 6), 16) / 255, expanded.length === 8 ? parseInt(expanded.slice(6, 8), 16) / 255 : 1]
+  }
+  const rgb = mapped.match(/^rgba?\(([^)]+)\)$/)?.[1].replace(/[,/]/g, ' ').trim().split(/\s+/)
+  if (rgb && (rgb.length === 3 || rgb.length === 4)) {
+    const channels = rgb.map((part, index) => Math.max(0, Math.min(1, parseFloat(part) / (part.endsWith('%') ? 100 : index < 3 ? 255 : 1))))
+    if (channels.every(Number.isFinite)) return [channels[0], channels[1], channels[2], channels[3] ?? 1]
+  }
+  return undefined
+}
+function composite(front: Rgba, back: Rgba): Rgba {
+  return [front[0] * front[3] + back[0] * (1 - front[3]), front[1] * front[3] + back[1] * (1 - front[3]), front[2] * front[3] + back[2] * (1 - front[3]), 1]
+}
+function luminance(paint: Rgba): number {
+  const linear = paint.slice(0, 3).map(channel => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+  return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722
+}
+function contrast(paint: Rgba, surface: Rgba): number {
+  const a = luminance(composite(paint, surface)), b = luminance(surface)
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+}
+function readableTextColor(authored: unknown, surface: Rgba): string {
+  const original = color(authored, '#1e1e1e'), paint = rgba(original)
+  if (!paint || contrast(paint, surface) >= 4.5) return original
+  const themed = ink(original, luminance(surface) < 0.18), themedPaint = rgba(themed)
+  if (themed !== original && themedPaint && contrast(themedPaint, surface) >= 4.5) return themed
+  const dark = '#1e293b', light = '#dcece6'
+  const darkContrast = contrast(rgba(dark)!, surface), lightContrast = contrast(rgba(light)!, surface)
+  if (Math.max(darkContrast, lightContrast) >= 4.5) return darkContrast >= lightContrast ? dark : light
+  return contrast(rgba('#000000')!, surface) >= contrast(rgba('#ffffff')!, surface) ? '#000000' : '#ffffff'
+}
+function shapeContainsPoint(element: ElementRecord, point: { x: number; y: number }): boolean {
+  const width = number(element.width), height = number(element.height)
+  if (width <= 0 || height <= 0) return false
+  const center = drawElementCenter(element), angle = -number(element.angle)
+  const dx = point.x - center.x, dy = point.y - center.y
+  const x = dx * Math.cos(angle) - dy * Math.sin(angle), y = dx * Math.sin(angle) + dy * Math.cos(angle)
+  if (element.type === 'ellipse') return (x / (width / 2)) ** 2 + (y / (height / 2)) ** 2 <= 1
+  if (element.type === 'diamond') return Math.abs(x) / (width / 2) + Math.abs(y) / (height / 2) <= 1
+  return Math.abs(x) <= width / 2 && Math.abs(y) <= height / 2
+}
+function solidFill(element: ElementRecord | undefined): Rgba | undefined {
+  if (!element || !['rectangle', 'diamond', 'ellipse', 'frame'].includes(string(element.type)) || string(element.fillStyle, 'solid') !== 'solid') return undefined
+  const paint = rgba(color(element.backgroundColor, 'transparent'))
+  if (!paint) return undefined
+  const alpha = paint[3] * Math.max(0, Math.min(100, number(element.opacity, 100))) / 100
+  return alpha > 0 ? [paint[0], paint[1], paint[2], alpha] : undefined
+}
+
 function FillPattern({ id, style, paint, width }: { id: string; style: string; paint: string; width: number }) {
   return <defs><pattern id={id} width={8} height={8} patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
     {style === 'zigzag' ? <path d="M 0 4 L 4 0 L 8 4 L 12 0" fill="none" stroke={paint} strokeWidth={Math.max(0.75, width * 0.6)} /> : <>
@@ -204,7 +261,7 @@ function SemanticIcon({ element }: { element: ElementRecord }) {
   return <image data-semantic-icon="true" href={source} x={x} y={y} width={size} height={size} preserveAspectRatio="xMidYMid meet" pointerEvents="none" />
 }
 
-function ElementGraphic({ element, files, prefix, darkMode, textBackdrop }: { element: ElementRecord; files: DrawSceneSvgProps['files']; prefix: string; darkMode: boolean; textBackdrop?: string }) {
+function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textColor }: { element: ElementRecord; files: DrawSceneSvgProps['files']; prefix: string; darkMode: boolean; textBackdrop?: string; textColor?: string }) {
   const type = string(element.type), width = number(element.width), height = number(element.height)
   const strokeWidth = Math.max(0.2, number(element.strokeWidth, 2)), stroke = ink(element.strokeColor, darkMode)
   const background = color(element.backgroundColor, 'transparent')
@@ -265,7 +322,7 @@ function ElementGraphic({ element, files, prefix, darkMode, textBackdrop }: { el
     return <>
       {textBackdrop && <rect data-draw-label-backdrop="true" x={-5} y={top - 3} width={Math.max(1, width) + 10} height={totalHeight + 6} rx={4} fill={textBackdrop} pointerEvents="none" />}
       <rect width={Math.max(1, width)} height={Math.max(height, totalHeight)} fill="transparent" pointerEvents="all" />
-      <text x={x} y={top + size * 0.84} fill={stroke} fontFamily={fontFamily(element.fontFamily)} fontSize={size} textAnchor={alignment === 'center' ? 'middle' : alignment === 'right' ? 'end' : 'start'} style={{ whiteSpace: 'pre', userSelect: 'none' }}>
+      <text x={x} y={top + size * 0.84} fill={textColor ?? stroke} fontFamily={fontFamily(element.fontFamily)} fontSize={size} textAnchor={alignment === 'center' ? 'middle' : alignment === 'right' ? 'end' : 'start'} style={{ whiteSpace: 'pre', userSelect: 'none' }}>
         {lines.map((line, index) => <tspan key={index} x={x} dy={index ? lineHeight : 0}>{line || '\u00a0'}</tspan>)}
       </text>
     </>
@@ -296,6 +353,32 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
   const canvasPaint = color(backgroundColor, darkMode ? '#0f1211' : '#ffffff')
   const labelBackdrop = canvasPaint === 'transparent' || canvasPaint === 'none' ? (darkMode ? '#0f1211' : '#ffffff') : canvasPaint
   const frames = new Map(live.filter(element => element.type === 'frame').map(element => [string(element.id), element]))
+  const canvasSurface = composite(rgba(labelBackdrop) ?? rgba(surfaceIsDark ? '#0f1211' : '#ffffff')!, rgba(surfaceIsDark ? '#0f1211' : '#ffffff')!)
+  const painted: Array<{ element: ElementRecord; paint: Rgba }> = []
+  const paintedBefore: number[] = []
+  live.forEach((element, index) => {
+    paintedBefore[index] = painted.length - 1
+    const paint = element.type !== 'frame' || showFrames ? solidFill(element) : undefined
+    if (paint) painted.push({ element, paint })
+  })
+  const textSurface = (element: ElementRecord, index: number, host: ElementRecord | undefined): Rgba => {
+    // Connector labels have an explicit canvas-paper backdrop. Other labels
+    // can sit over transparent hosts or overlapping siblings, so use the paint
+    // that is actually behind their center rather than only the named host.
+    if (host?.type === 'arrow' || host?.type === 'line') return canvasSurface
+    const point = drawElementCenter(element), layers: Rgba[] = []
+    for (let i = paintedBefore[index]; i >= 0; i--) {
+      const candidate = painted[i]
+      if (!shapeContainsPoint(candidate.element, point)) continue
+      let frameId = string(candidate.element.frameId), visible = true
+      const visited = new Set<string>()
+      while (frameId && frames.has(frameId) && !visited.has(frameId)) { visited.add(frameId); const frame = frames.get(frameId)!; if (!shapeContainsPoint(frame, point)) { visible = false; break }; frameId = string(frame.frameId) }
+      if (!visible) continue
+      layers.push(candidate.paint)
+      if (candidate.paint[3] >= 1) break
+    }
+    return layers.reverse().reduce((surface, paint) => composite(paint, surface), canvasSurface)
+  }
   const clipId = (id: string) => `${prefix}-frame-${safeId(id)}`
   const clipChain = (element: ElementRecord): string[] => {
     const chain: string[] = [], visited = new Set<string>([string(element.id)])
@@ -310,13 +393,14 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
       const center = drawElementCenter(frame)
       return <clipPath key={id} id={clipId(id)} clipPathUnits="userSpaceOnUse"><rect x={number(frame.x)} y={number(frame.y)} width={number(frame.width)} height={number(frame.height)} transform={`rotate(${number(frame.angle) * 180 / Math.PI} ${center.x} ${center.y})`} /></clipPath>
     })}</defs>
-    {live.map(element => {
+    {live.map((element, index) => {
       if (element.type === 'frame' && !showFrames) return null
       const id = string(element.id), center = drawElementCenter(element)
       const style: CSSProperties = { cursor: element.locked ? 'not-allowed' : undefined }
       const host = element.type === 'text' && typeof element.containerId === 'string' ? byId.get(element.containerId) : undefined
       const textBackdrop = host?.type === 'arrow' || host?.type === 'line' ? labelBackdrop : undefined
-      let graphic: ReactNode = <g transform={`rotate(${number(element.angle) * 180 / Math.PI} ${center.x} ${center.y}) translate(${number(element.x)} ${number(element.y)})`}><ElementGraphic element={element} files={files} prefix={prefix} darkMode={surfaceIsDark} textBackdrop={textBackdrop} /></g>
+      const textColor = element.type === 'text' ? readableTextColor(element.strokeColor, textSurface(element, index, host)) : undefined
+      let graphic: ReactNode = <g transform={`rotate(${number(element.angle) * 180 / Math.PI} ${center.x} ${center.y}) translate(${number(element.x)} ${number(element.y)})`}><ElementGraphic element={element} files={files} prefix={prefix} darkMode={surfaceIsDark} textBackdrop={textBackdrop} textColor={textColor} /></g>
       for (const frameId of clipChain(element)) graphic = <g key={frameId} clipPath={`url(#${clipId(frameId)})`}>{graphic}</g>
       return <g key={id} data-element-id={id} data-element-type={string(element.type)} data-selected={selectedIds?.has(id) ? 'true' : undefined} aria-label={string(element.text, string(element.name, string(element.type, 'Drawing object')))} role="img" opacity={Math.max(0, Math.min(100, number(element.opacity, 100))) / 100} style={style}>{graphic}</g>
     })}

@@ -102,3 +102,86 @@ describe('custom Draw surface contrast and connector labels', () => {
     expect(container.querySelector('[data-element-id="edge-label"] text')).toHaveAttribute('fill', '#0f766e')
   })
 })
+
+describe('imported Draw text uses its visible background', () => {
+  const shape = (id: string, backgroundColor: string, extra: Record<string, unknown> = {}) => ({ id, type: 'rectangle', x: 0, y: 0, width: 200, height: 100, angle: 0, backgroundColor, fillStyle: 'solid', ...extra })
+  const text = (id: string, strokeColor: string, extra: Record<string, unknown> = {}) => ({ id, type: 'text', text: 'Readable label', x: 40, y: 38, width: 120, height: 24, angle: 0, fontSize: 18, strokeColor, ...extra })
+  const draw = (elements: Array<Record<string, unknown>>, backgroundColor = '#0f1211') => render(<svg><DrawSceneSvg elements={elements} files={{}} darkMode backgroundColor={backgroundColor} /></svg>)
+  const paint = (container: HTMLElement, id: string) => container.querySelector(`[data-element-id="${id}"] text`)?.getAttribute('fill')
+
+  it('retains dark text on imported pastel node fills instead of whitening it for dark chrome', () => {
+    for (const backgroundColor of ['#d0ebff', '#d3f9d8', '#ffe3e3', 'rgb(255, 243, 191)']) {
+      const elements = [shape('node', backgroundColor), text('label', '#1e1e1e', { containerId: 'node' })]
+      const original = JSON.stringify(elements)
+      const view = draw(elements)
+      expect(paint(view.container, 'label')).toBe('#1e1e1e')
+      expect(JSON.stringify(elements)).toBe(original)
+      view.unmount()
+    }
+  })
+
+  it('finds light fills beneath unbound labels, including rotated shapes', () => {
+    const elements = [shape('node', '#d0ebff', { angle: Math.PI / 4 }), text('unbound', '#1e1e1e'), text('outside', '#495057', { x: 350 })]
+    const view = draw(elements)
+    expect(paint(view.container, 'unbound')).toBe('#1e1e1e')
+    expect(paint(view.container, 'outside')).toBe('#dcece6')
+  })
+
+  it('uses light ink on a dark node fill even on white paper and preserves already readable white', () => {
+    const elements = [shape('node', 'rgb(18, 36, 28)'), text('dark-authored', '#1e1e1e', { containerId: 'node' }), text('white-authored', '#ffffff', { containerId: 'node', y: 65 })]
+    const view = draw(elements, '#ffffff')
+    expect(paint(view.container, 'dark-authored')).toBe('#dcece6')
+    expect(paint(view.container, 'white-authored')).toBe('#ffffff')
+    const translucent = draw([shape('node', '#12241c', { opacity: 15 }), text('label', '#1e1e1e', { containerId: 'node' })], '#ffffff')
+    expect(paint(translucent.container, 'label')).toBe('#1e1e1e')
+  })
+
+  it('makes gray, brown and near-black canvas captions readable without changing high-contrast authored colors', () => {
+    const edge = { id: 'edge', type: 'arrow', x: 0, y: 0, width: 200, height: 0, angle: 0, points: [[0, 0], [200, 0]] }
+    const elements = [edge, text('gray', '#495057'), text('brown', '#7f5539', { y: 80 }), text('nearblack', '#343a40', { y: 120 }), text('connector', 'rgb(70, 70, 70)', { containerId: 'edge' }), text('yellow', '#ffd43b', { y: 160 })]
+    const original = JSON.stringify(elements)
+    const view = draw(elements)
+    for (const id of ['gray', 'brown', 'nearblack', 'connector']) expect(paint(view.container, id)).toBe('#dcece6')
+    expect(paint(view.container, 'yellow')).toBe('#ffd43b')
+    expect(JSON.stringify(elements)).toBe(original)
+  })
+
+  it('respects preceding fill order and ignores a filled object clipped outside its frame', () => {
+    const stacked = draw([shape('dark', '#12241c'), shape('light', '#d0ebff'), text('top', '#1e1e1e')])
+    expect(paint(stacked.container, 'top')).toBe('#1e1e1e')
+    const later = draw([shape('dark', '#12241c'), text('earlier', '#1e1e1e'), shape('light-after-text', '#d0ebff')])
+    expect(paint(later.container, 'earlier')).toBe('#dcece6')
+    const frame = { id: 'frame', type: 'frame', x: 0, y: 0, width: 100, height: 100, angle: 0 }
+    const clipped = draw([frame, shape('clipped', '#d0ebff', { x: 200, frameId: 'frame' }), text('caption', '#495057', { x: 240 })])
+    expect(paint(clipped.container, 'caption')).toBe('#dcece6')
+  })
+
+  it('treats hatching as transparent paper and reaches readable contrast on middle-gray paper', () => {
+    const hatch = draw([shape('hatched', '#d0ebff', { fillStyle: 'hachure' }), text('label', '#1e1e1e', { containerId: 'hatched' })])
+    expect(paint(hatch.container, 'label')).toBe('#dcece6')
+    const gray = draw([text('label', '#777777')], '#777777')
+    expect(paint(gray.container, 'label')).toBe('#000000')
+  })
+})
+
+describe('bound Draw labels respect actual stacked fills', () => {
+  const box = (id: string, backgroundColor: string) => ({ id, type: 'rectangle', x: 0, y: 0, width: 200, height: 100, angle: 0, backgroundColor, fillStyle: 'solid' })
+  const label = { id: 'label', type: 'text', text: 'Bound label', x: 40, y: 38, width: 120, height: 24, angle: 0, strokeColor: '#1e1e1e', containerId: 'host' }
+  const draw = (elements: Array<Record<string, unknown>>) => render(<svg><DrawSceneSvg elements={elements} files={{}} darkMode backgroundColor="#0f1211" /></svg>)
+  const paint = (container: HTMLElement) => container.querySelector('[data-element-id="label"] text')?.getAttribute('fill')
+
+  it('keeps dark bound text readable on a transparent host over a pale ordinary container', () => {
+    const elements = [box('backing', '#d0ebff'), box('host', 'transparent'), label]
+    const before = JSON.stringify(elements)
+    const view = draw(elements)
+    expect(paint(view.container)).toBe('#1e1e1e')
+    expect(JSON.stringify(elements)).toBe(before)
+  })
+
+  it('uses a sibling fill layered between the host and label in either lightness direction', () => {
+    const lightOverDark = draw([box('host', '#12241c'), box('overlay', '#d0ebff'), label])
+    expect(paint(lightOverDark.container)).toBe('#1e1e1e')
+    const darkOverLight = draw([box('host', '#d0ebff'), box('overlay', '#12241c'), { ...label, strokeColor: '#ffffff' }])
+    expect(paint(darkOverLight.container)).toBe('#ffffff')
+  })
+})

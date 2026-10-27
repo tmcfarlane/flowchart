@@ -45,6 +45,7 @@ interface Gesture {
   corner?: string
   elementId?: string
   pointIndex?: number
+  panButton?: number
 }
 interface TextEdit { id: string; value: string; before: ArchitectureScene }
 interface ClipboardInput { target: EventTarget | null; clipboardData: DataTransfer | null; preventDefault: () => void }
@@ -95,6 +96,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const selectedRef = useRef(selectedIds); selectedRef.current = selectedIds
   const [marquee, setMarquee] = useState<Bounds | null>(null)
+  const [isPanning, setIsPanning] = useState(false)
   const [snapGuides, setSnapGuides] = useState<{ x?: number; y?: number }>({})
   const [textEdit, setTextEdit] = useState<TextEdit | null>(null)
   const textRef = useRef<HTMLTextAreaElement>(null)
@@ -172,7 +174,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (serialized === lastEmitted.current && signature === lastGraph.current) return
     const next = { ...(scene ?? empty()), elements: mergeGraphElements((scene?.elements ?? []) as DrawElement[], nodes, edges, darkMode) }
     committed.current = copy(next); lastEmitted.current = serialized; lastGraph.current = signature
-    gesture.current = null; preview(next)
+    gesture.current = null; setIsPanning(false); preview(next)
   }, [scene, nodes, edges, darkMode, preview])
   useEffect(() => { const frame = requestAnimationFrame(fitScene); return () => cancelAnimationFrame(frame) }, [fitScene])
   useEffect(() => { if (!viewMode) wrapper.current?.focus({ preventScroll: true }) }, [viewMode])
@@ -378,7 +380,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (editableTarget(event.target)) return
     const key = event.key.toLowerCase(), mod = event.ctrlKey || event.metaKey
-    if (event.key === 'Escape') { if (gesture.current) preview(gesture.current.before); gesture.current = null; setMarquee(null); setHelp(false); select([]); setTool('selection'); return }
+    if (event.key === 'Escape' && gesture.current?.kind === 'pan' && gesture.current.panButton === 2) { gesture.current = null; setIsPanning(false); return }
+    if (event.key === 'Escape') { if (gesture.current) preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null); setHelp(false); select([]); setTool('selection'); return }
     if (key === '?' || (mod && key === '/')) { event.preventDefault(); setHelp(value => !value); return }
     if (event.code === 'Space') { event.preventDefault(); heldSpace.current = true; return }
     if (mod && key === 'z') { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return }
@@ -444,12 +447,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     return { elementId: host.id, focus: 0, gap: 0, fixedPoint: [Math.max(0, Math.min(1, (local.x - host.x) / Math.max(1, host.width))), Math.max(0, Math.min(1, (local.y - host.y) / Math.max(1, host.height)))] as [number, number] }
   }
   const onPointerDown = (event: PointerEvent<SVGSVGElement>) => {
-    if (textEdit) return
-    wrapper.current?.focus(); event.preventDefault()
+    if (textEdit && event.button !== 2) return
+    event.preventDefault()
+    // Panning must not blur/commit an in-progress text edit.
+    if (!textEdit || event.button !== 2) wrapper.current?.focus()
     const point = worldPoint({ x: event.clientX, y: event.clientY }), before = copy(committed.current)
     const base: Gesture = { kind: 'move', start: point, screen: { x: event.clientX, y: event.clientY }, before, base: before, ids: [...selectedRef.current], viewport: { ...viewportRef.current } }
     const target = event.target as Element
-    if (tool === 'hand' || heldSpace.current || event.button === 1 || viewMode) gesture.current = { ...base, kind: 'pan' }
+    if (tool === 'hand' || heldSpace.current || event.button === 1 || event.button === 2 || viewMode) { gesture.current = { ...base, kind: 'pan', panButton: event.button }; setIsPanning(true) }
     else if (target.getAttribute('data-resize')) gesture.current = { ...base, kind: 'resize', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))), corner: target.getAttribute('data-resize')! }
     else if (target.getAttribute('data-rotate')) gesture.current = { ...base, kind: 'rotate', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))) }
     else if (target.getAttribute('data-point-index') !== null) gesture.current = { ...base, kind: 'point', elementId: target.getAttribute('data-element-handle')!, pointIndex: Number(target.getAttribute('data-point-index')) }
@@ -479,7 +484,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const active = gesture.current
     if (!active) return
     const point = worldPoint({ x: event.clientX, y: event.clientY })
-    if (active.kind === 'pan') { setViewport({ ...active.viewport, x: active.viewport.x + event.clientX - active.screen.x, y: active.viewport.y + event.clientY - active.screen.y }); return }
+    if (active.kind === 'pan') {
+      if (active.panButton === 2 && !(event.buttons & 2)) { gesture.current = null; setIsPanning(false); surface.current?.releasePointerCapture?.(event.pointerId); return }
+      setViewport({ ...active.viewport, x: active.viewport.x + event.clientX - active.screen.x, y: active.viewport.y + event.clientY - active.screen.y }); return
+    }
     if (active.kind === 'marquee') { setMarquee({ x: Math.min(active.start.x, point.x), y: Math.min(active.start.y, point.y), width: Math.abs(point.x - active.start.x), height: Math.abs(point.y - active.start.y) }); return }
     if (active.kind === 'move') {
       const delta = { x: point.x - active.start.x, y: point.y - active.start.y }
@@ -548,7 +556,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }
   const onPointerUp = (event: PointerEvent<SVGSVGElement>) => {
     const active = gesture.current; if (!active) return
-    gesture.current = null; setSnapGuides({}); surface.current?.releasePointerCapture?.(event.pointerId)
+    gesture.current = null; setIsPanning(false); setSnapGuides({}); surface.current?.releasePointerCapture?.(event.pointerId)
     if (active.kind === 'marquee') { if (marquee) select(expandSelection(draftRef.current, [...active.ids, ...live(draftRef.current).filter(e => !e.locked && intersection(getElementBounds(e), marquee)).map(e => e.id)])); setMarquee(null); return }
     if (active.kind === 'pan') return
     let next = draftRef.current
@@ -613,7 +621,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <span className="draw-divider" />
       <button type="button" aria-label="Keep tool selected" aria-pressed={keepTool} title="Keep tool selected (Q)" onClick={() => setKeepTool(value => !value)}><DrawToolIcon tool={keepTool ? 'lock' : 'unlock'} /></button>
     </div>}
-    <svg ref={surface} className={`draw-surface tool-${tool}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (gesture.current) preview(gesture.current.before); gesture.current = null; setMarquee(null) }} onDoubleClick={event => { if (viewMode) return; const id = (event.target as Element).closest('[data-element-id]')?.getAttribute('data-element-id'); beginText(id ?? undefined, worldPoint({ x: event.clientX, y: event.clientY })) }}>
+    <svg ref={surface} className={`draw-surface tool-${tool} ${isPanning ? 'is-panning' : ''}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (gesture.current && gesture.current.kind !== 'pan') preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null) }} onLostPointerCapture={() => { if (gesture.current?.kind === 'pan') { gesture.current = null; setIsPanning(false) } }} onContextMenu={event => event.preventDefault()} onDoubleClick={event => { if (viewMode || event.button !== 0) return; const id = (event.target as Element).closest('[data-element-id]')?.getAttribute('data-element-id'); beginText(id ?? undefined, worldPoint({ x: event.clientX, y: event.clientY })) }}>
       {grid && <defs><pattern id="draw-grid" patternUnits="userSpaceOnUse" x={viewport.x} y={viewport.y} width={20 * viewport.zoom} height={20 * viewport.zoom}><circle cx="1" cy="1" r="0.8" fill={darkMode ? '#465e55' : '#b6c9c1'} /></pattern></defs>}
       <rect width="100%" height="100%" fill={grid ? 'url(#draw-grid)' : canvasBackground} data-draw-background="true" />
       <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`} data-draw-viewport="true" data-drawing-layer="true">
@@ -648,7 +656,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     {!viewMode && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}
     {!viewMode && <button className="draw-help-toggle" aria-label="Keyboard shortcuts" onClick={() => setHelp(value => !value)}>?</button>}
     {message && <div className="draw-message" role="alert">{message}<button aria-label="Dismiss drawing message" onClick={() => setMessage(null)}>×</button></div>}
-    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}</div></div></section></div>}
+    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Right drag · Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}</div></div></section></div>}
     <input ref={fileInput} className="draw-image-input" aria-label="Choose drawing image" type="file" accept="image/*" onChange={event => { void uploadImage(event.target.files?.[0]).catch(error => setMessage(error instanceof Error ? error.message : 'The image could not be read.')); event.target.value = '' }} />
   </section>
 }

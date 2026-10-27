@@ -1,6 +1,7 @@
 .draw-canvas { position: absolute; inset: 88px 0 0; overflow: hidden; outline: none; --draw-panel: #fff; --draw-text: #263f36; --draw-muted: #6b7f77; --draw-border: #dbe8e2; --draw-accent: #087f67; --draw-hover: #e5f8ef; background: #fff; color: var(--draw-text); font-family: inherit; }
 .draw-canvas.draw-dark { --draw-panel: #19231f; --draw-text: #e7eceb; --draw-muted: #9dafab; --draw-border: #34463e; --draw-accent: #78fcd6; --draw-hover: #27483d; background: #0f1211; }
 .draw-surface { display: block; touch-action: none; user-select: none; }
+.draw-surface.is-panning, .draw-surface.is-panning * { cursor: grabbing !important; }
 .draw-surface.tool-hand { cursor: grab; }.draw-surface.tool-eraser { cursor: crosshair; }.draw-surface:not(.tool-selection):not(.tool-hand) { cursor: crosshair; }
 .draw-tools { position: absolute; z-index: 5; top: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 3px; max-width: calc(100% - 40px); padding: 7px; border: 1px solid var(--draw-border); border-radius: 15px; background: var(--draw-panel); box-shadow: 0 5px 20px #00000012; }
 .draw-canvas button { font: inherit; color: inherit; cursor: pointer; }
