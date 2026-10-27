@@ -2,7 +2,7 @@ import { validateArchitectureScene, type ArchitectureScene } from '../shared/arc
 import { toPng, toSvg, toCanvas } from 'html-to-image'
 import GIF from 'gif.js'
 import type { Node as FlowNode, Edge } from 'reactflow'
-import type { DiagramMode } from '../App'
+import { inferDiagramMode, type DiagramMode } from '../shared/flowTypes'
 
 const exportFilter = (node: Node): boolean => {
   if (node instanceof HTMLElement) {
@@ -144,7 +144,7 @@ export function serializeFlow(
   mode: DiagramMode = 'flowchart',
   architectureScene?: ArchitectureScene,
 ): string {
-  return JSON.stringify({ version: architectureScene ? 3 : 2, mode, nodes, edges, ...(architectureScene ? { architectureScene } : {}) }, null, 2)
+  return JSON.stringify({ version: architectureScene || mode === 'draw' ? 4 : 2, mode, nodes, edges, ...(architectureScene ? { architectureScene } : {}) }, null, 2)
 }
 
 export function exportToJson(
@@ -199,9 +199,11 @@ export function parseFlowJson(
     }
   }
 
-  // Tolerant of legacy files: a missing/unknown mode means flowchart.
-  const mode: DiagramMode = obj.mode === 'architecture' ? 'architecture' : 'flowchart'
-
   const architectureScene = obj.architectureScene === undefined ? undefined : validateArchitectureScene(obj.architectureScene)
+  // Version 3 used Architecture for the experimental drawing view. Version 4
+  // separates Draw while allowing a retained drawing in either graph view.
+  const mode: DiagramMode = obj.version === 3 && obj.mode === 'architecture' && architectureScene
+    ? 'draw'
+    : inferDiagramMode({ mode: obj.mode, nodes: obj.nodes as Array<{ type?: unknown }>, architectureScene })
   return { nodes: obj.nodes as FlowNode[], edges: obj.edges as Edge[], mode, ...(architectureScene ? { architectureScene } : {}) }
 }

@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { ARCHITECTURE_SCENE_LIMITS, validateArchitectureScene } from './architectureScene.js'
 import {
   CONTAINER_KINDS,
+  DIAGRAM_MODES,
   COMM_STYLES,
   EDGE_PROTOCOLS,
   EDGE_STYLES,
@@ -42,6 +43,7 @@ function enumSchema<const T extends readonly [string, ...string[]]>(values: T, w
   })
 }
 
+export const DiagramModeSchema = enumSchema(DIAGRAM_MODES, 'diagram mode')
 export const NodeTypeSchema = enumSchema(NODE_TYPES, 'node type')
 export const ContainerKindSchema = enumSchema(CONTAINER_KINDS, 'containerKind')
 export const EdgeStyleSchema = enumSchema(EDGE_STYLES, 'edge style')
@@ -287,6 +289,7 @@ export const ArchitectureSceneSchema = z.strictObject({
 })
 
 export const CreateFlowBodySchema = strictObject({
+  mode: DiagramModeSchema.optional(),
   architectureScene: ArchitectureSceneSchema.optional(),
   title: TitleSchema.optional(),
   nodes: NodesArraySchema,
@@ -295,6 +298,7 @@ export const CreateFlowBodySchema = strictObject({
 })
 
 export const ReplaceFlowBodySchema = strictObject({
+  mode: DiagramModeSchema.optional(),
   architectureScene: ArchitectureSceneSchema.nullable().optional(),
   title: TitleSchema.optional(),
   nodes: NodesArraySchema,
@@ -342,6 +346,7 @@ export const StoredEdgeSchema = z.object({
 })
 
 export const StoredChartSchema = z.object({
+  mode: DiagramModeSchema.optional(),
   architectureScene: ArchitectureSceneSchema.optional(),
   id: z.string(),
   version: z.number().int(),

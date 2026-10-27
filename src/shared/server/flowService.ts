@@ -5,6 +5,8 @@ import { MAX_ARCHITECTURE_DOCUMENT_BYTES, validateArchitectureScene, type Archit
 
 import {
   LIMITS,
+  isDiagramMode,
+  type DiagramMode,
   type Chart,
   type ChartEdge,
   type ChartNode,
@@ -50,6 +52,7 @@ export interface CreateSuccess extends WriteSuccess {
 }
 
 export interface CreateInput {
+  mode?: DiagramMode
   architectureScene?: ArchitectureScene
   title: string
   nodes: NodeInput[]
@@ -61,6 +64,8 @@ export interface CreateInput {
 }
 
 export interface ReplaceInput {
+  /** Omitted leaves the existing view intact for older clients. */
+  mode?: DiagramMode
   /** Omitted preserves drawings for old clients; null explicitly clears them. */
   architectureScene?: ArchitectureScene | null
   title?: string
@@ -132,6 +137,12 @@ function sizeError(bytes: number, hasScene = false): ServiceError | null {
   }
 }
 
+function validateModeInput(mode: unknown): ServiceError | null {
+  if (mode === undefined || isDiagramMode(mode)) return null
+  const message = 'Diagram mode must be flowchart, architecture, or draw.'
+  return { ok: false, code: 'validation', message, issues: [{ path: 'mode', message }] }
+}
+
 function validateSceneInput(scene: ArchitectureScene | null | undefined): ServiceError | null {
   if (scene == null) return null
   try { validateArchitectureScene(scene); return null }
@@ -183,6 +194,8 @@ export class FlowService {
   }
 
   async create(input: CreateInput): Promise<CreateSuccess | ServiceError> {
+    const modeError = validateModeInput(input.mode)
+    if (modeError) return modeError
     const sceneError = validateSceneInput(input.architectureScene)
     if (sceneError) return sceneError
     const validated = validateChart(input.nodes.map(nodeFromInput), (input.edges ?? []).map(edgeFromInput), {
@@ -197,6 +210,7 @@ export class FlowService {
     const timestamp = this.now().toISOString()
     const editToken = this.generateToken()
     const base: Omit<Chart, 'id'> = {
+      ...(input.mode !== undefined ? { mode: input.mode } : {}),
       ...(input.architectureScene ? { architectureScene: input.architectureScene } : {}),
       version: 1,
       title: input.title,
@@ -238,6 +252,8 @@ export class FlowService {
 
   /** Replace the whole document (the browser's autosave, update_flowchart with `replace`). */
   async replace(id: string, token: string | undefined, input: ReplaceInput): Promise<WriteSuccess | ServiceError> {
+    const modeError = validateModeInput(input.mode)
+    if (modeError) return modeError
     const sceneError = validateSceneInput(input.architectureScene)
     if (sceneError) return sceneError
     if (!isValidChartId(id)) return notFound(id)
@@ -260,7 +276,7 @@ export class FlowService {
       direction: input.direction,
       relayout: input.relayout,
     })
-    const result = await this.write(record, arranged, input.title, input.source, charges, input.architectureScene)
+    const result = await this.write(record, arranged, input.title, input.source, charges, input.architectureScene, input.mode)
     if (!result.ok) return result
     return { ...result, summary: [`replaced the chart (${arranged.nodes.length} nodes, ${arranged.edges.length} edges)`] }
   }
@@ -315,6 +331,7 @@ export class FlowService {
     source: UpdateSource,
     charges: Charges,
     architectureScene?: ArchitectureScene | null,
+    mode?: DiagramMode,
   ): Promise<Omit<WriteSuccess, 'summary'> | ServiceError> {
     const current = record.chart
     const next: Chart = {
@@ -326,6 +343,7 @@ export class FlowService {
       updatedAt: this.now().toISOString(),
       updatedVia: source,
     }
+    if (mode !== undefined) next.mode = mode
     if (architectureScene === null) delete next.architectureScene
     else if (architectureScene !== undefined) next.architectureScene = architectureScene
     const bytes = chartBytes(next)

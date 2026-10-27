@@ -20,7 +20,7 @@ import type { ArchitectureScene } from '../shared/architectureScene'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Edge, Node } from 'reactflow'
-import type { Chart, UpdateSource } from '../shared/flowTypes'
+import type { Chart, DiagramMode, UpdateSource } from '../shared/flowTypes'
 import { contentFingerprint, flowToChart } from '../utils/sharedFlow'
 import {
   createSharedChart,
@@ -88,6 +88,7 @@ export interface SharedFlowApi {
 }
 
 interface Options {
+  mode?: DiagramMode
   architectureScene?: ArchitectureScene
   nodes: Node[]
   edges: Edge[]
@@ -97,7 +98,7 @@ interface Options {
 
 const PAUSED: ShareStatus[] = ['idle', 'loading', 'conflict', 'not-found', 'load-error']
 
-export function useSharedFlow({ nodes, edges, architectureScene, applyChart }: Options): SharedFlowApi {
+export function useSharedFlow({ nodes, edges, architectureScene, mode, applyChart }: Options): SharedFlowApi {
   const [state, setState] = useState<SharedFlowState>(() => {
     const location = typeof window === 'undefined' ? null : parseSharedLocation(window.location)
     return {
@@ -126,6 +127,7 @@ export function useSharedFlow({ nodes, edges, architectureScene, applyChart }: O
   const nodesRef = useRef(nodes)
   const edgesRef = useRef(edges)
   const architectureSceneRef = useRef(architectureScene)
+  const modeRef = useRef(mode)
   const applyRef = useRef(applyChart)
   const unmountedRef = useRef(false)
   const pollRef = useRef({
@@ -153,7 +155,8 @@ export function useSharedFlow({ nodes, edges, architectureScene, applyChart }: O
     nodesRef.current = nodes
     edgesRef.current = edges
     architectureSceneRef.current = architectureScene
-  }, [nodes, edges, architectureScene])
+    modeRef.current = mode
+  }, [nodes, edges, architectureScene, mode])
   useEffect(() => {
     applyRef.current = applyChart
   }, [applyChart])
@@ -248,7 +251,7 @@ export function useSharedFlow({ nodes, edges, architectureScene, applyChart }: O
     const currentNodes = nodesRef.current
     if (currentNodes.some((n) => n.dragging)) return // saved when the drag ends
 
-    const content = flowToChart(currentNodes, edgesRef.current, architectureSceneRef.current)
+    const content = flowToChart(currentNodes, edgesRef.current, architectureSceneRef.current, modeRef.current)
     const fingerprint = contentFingerprint(content)
     if (fingerprint === syncedFingerprintRef.current && !titleDirtyRef.current) {
       if (statusRef.current === 'error') setStatus('synced', { error: undefined })
@@ -269,6 +272,7 @@ export function useSharedFlow({ nodes, edges, architectureScene, applyChart }: O
       nodes: content.nodes,
       edges: content.edges,
       architectureScene: content.architectureScene ?? null,
+      mode: content.mode,
       baseVersion: versionRef.current,
     })
     savingRef.current = false
@@ -309,12 +313,12 @@ export function useSharedFlow({ nodes, edges, architectureScene, applyChart }: O
     if (!idRef.current || !tokenRef.current || PAUSED.includes(statusRef.current)) return
     const timer = window.setTimeout(() => void flushSave(), SAVE_DEBOUNCE_MS)
     return () => window.clearTimeout(timer)
-  }, [nodes, edges, architectureScene, flushSave])
+  }, [nodes, edges, architectureScene, mode, flushSave])
 
   const handleRemote = useCallback(
     (chart: Chart) => {
       if (chart.version <= versionRef.current || savingRef.current) return
-      const local = contentFingerprint(flowToChart(nodesRef.current, edgesRef.current, architectureSceneRef.current))
+      const local = contentFingerprint(flowToChart(nodesRef.current, edgesRef.current, architectureSceneRef.current, modeRef.current))
       const hasUnsavedEdits = local !== syncedFingerprintRef.current
       if (!hasUnsavedEdits && statusRef.current !== 'conflict') {
         adopt(chart, 'remote')
@@ -452,7 +456,7 @@ export function useSharedFlow({ nodes, edges, architectureScene, applyChart }: O
   const createShare = useCallback(async (): Promise<boolean> => {
     if (idRef.current) return true
     setState((s) => ({ ...s, creating: true, createError: undefined }))
-    const content = flowToChart(nodesRef.current, edgesRef.current, architectureSceneRef.current)
+    const content = flowToChart(nodesRef.current, edgesRef.current, architectureSceneRef.current, modeRef.current)
     const result = await createSharedChart({ title: DEFAULT_SHARED_TITLE, ...content })
     if (!result.ok) {
       setState((s) => ({ ...s, creating: false, createError: result.message }))

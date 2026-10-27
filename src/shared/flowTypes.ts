@@ -19,6 +19,26 @@ export const NODE_TYPES = [
 ] as const
 export type NodeType = (typeof NODE_TYPES)[number]
 
+export const DIAGRAM_MODES = ['flowchart', 'architecture', 'draw'] as const
+export type DiagramMode = (typeof DIAGRAM_MODES)[number]
+
+export function isDiagramMode(value: unknown): value is DiagramMode {
+  return typeof value === 'string' && (DIAGRAM_MODES as readonly string[]).includes(value)
+}
+
+/** Explicit mode is authoritative; old documents infer the view from their content. */
+export function inferDiagramMode(content: {
+  mode?: unknown
+  nodes?: ReadonlyArray<{ type?: unknown }>
+  architectureScene?: unknown
+}): DiagramMode {
+  if (isDiagramMode(content.mode)) return content.mode
+  if (content.architectureScene) return 'draw'
+  if (content.nodes?.some((node) => node.type === 'container' ||
+    (typeof node.type === 'string' && (ARCH_NODE_TYPES as readonly string[]).includes(node.type)))) return 'architecture'
+  return 'flowchart'
+}
+
 export const ARCH_NODE_TYPES = ['service', 'database', 'queue', 'cache', 'apiGateway', 'externalActor'] as const
 export type ArchNodeType = (typeof ARCH_NODE_TYPES)[number]
 
@@ -100,6 +120,8 @@ export interface ChartEdge {
 }
 
 export interface ChartContent {
+  /** Explicit editor view. Optional for compatibility with existing shared charts. */
+  mode?: DiagramMode
   /** Optional native drawing; absent in legacy graph-only documents. */
   architectureScene?: ArchitectureScene
   title: string

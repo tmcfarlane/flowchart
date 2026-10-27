@@ -2,7 +2,7 @@ import type { ArchitectureScene } from '../shared/architectureScene'
 // Browser client for the shared-flowchart REST API (api/flows) plus the
 // URL and edit-token helpers behind /f/:id links.
 
-import type { Chart, ChartEdge, ChartNode } from '../shared/flowTypes'
+import type { Chart, ChartEdge, ChartNode, DiagramMode } from '../shared/flowTypes'
 
 const TOKEN_KEY_PREFIX = 'flowchart:edit-token:'
 
@@ -116,7 +116,7 @@ export type CreateChartResult =
   | { ok: true; id: string; version: number; url: string; editUrl: string; editToken: string; chart: Chart }
   | { ok: false; message: string }
 
-export async function createSharedChart(content: { title: string; nodes: ChartNode[]; edges: ChartEdge[]; architectureScene?: ArchitectureScene }): Promise<CreateChartResult> {
+export async function createSharedChart(content: { title: string; nodes: ChartNode[]; edges: ChartEdge[]; architectureScene?: ArchitectureScene; mode?: DiagramMode }): Promise<CreateChartResult> {
   try {
     const response = await fetch('/api/flows', {
       method: 'POST',
@@ -138,7 +138,7 @@ export type SaveChartResult =
 export async function saveSharedChart(
   id: string,
   token: string,
-  payload: { title?: string; nodes: ChartNode[]; edges: ChartEdge[]; architectureScene?: ArchitectureScene | null; baseVersion: number },
+  payload: { title?: string; nodes: ChartNode[]; edges: ChartEdge[]; architectureScene?: ArchitectureScene | null; mode?: DiagramMode; baseVersion: number },
 ): Promise<SaveChartResult> {
   try {
     const response = await fetch(`/api/flows/${encodeURIComponent(id)}`, {

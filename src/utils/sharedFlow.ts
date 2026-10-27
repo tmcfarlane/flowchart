@@ -7,6 +7,8 @@ import type { ArchitectureScene } from '../shared/architectureScene'
 import type { Edge, Node } from 'reactflow'
 import {
   COMM_STYLES,
+  inferDiagramMode,
+  type DiagramMode,
   CONTAINER_KINDS,
   EDGE_PROTOCOLS,
   isHandlePosition,
@@ -29,6 +31,7 @@ export interface ChartToFlowDeps {
 }
 
 export interface ChartContentShape {
+  mode?: DiagramMode
   architectureScene?: ArchitectureScene
   nodes: ChartNode[]
   edges: ChartEdge[]
@@ -85,7 +88,7 @@ const isContainerKind = (v: unknown): v is ContainerKind =>
   typeof v === 'string' && (CONTAINER_KINDS as readonly string[]).includes(v)
 
 /** Serialize the editor state as a shared chart document. */
-export function flowToChart(nodes: Node[], edges: Edge[], architectureScene?: ArchitectureScene): ChartContentShape {
+export function flowToChart(nodes: Node[], edges: Edge[], architectureScene?: ArchitectureScene, mode?: DiagramMode): ChartContentShape {
   const chartNodes: ChartNode[] = nodes.map((node) => {
     const type = isNodeType(node.type) ? node.type : 'step'
     const out: ChartNode = {
@@ -123,7 +126,7 @@ export function flowToChart(nodes: Node[], edges: Edge[], architectureScene?: Ar
     return out
   })
 
-  return { nodes: chartNodes, edges: chartEdges, ...(architectureScene ? { architectureScene } : {}) }
+  return { nodes: chartNodes, edges: chartEdges, ...(architectureScene ? { architectureScene } : {}), ...(mode !== undefined ? { mode } : {}) }
 }
 
 function nodeKey(n: ChartNode): unknown[] {
@@ -158,7 +161,7 @@ function edgeKey(e: ChartEdge): unknown[] {
 
 /** Stable string for "did anything that is saved change?" checks. */
 export function contentFingerprint(content: ChartContentShape): string {
-  return JSON.stringify([content.nodes.map(nodeKey), content.edges.map(edgeKey), content.architectureScene ?? null])
+  return JSON.stringify([content.nodes.map(nodeKey), content.edges.map(edgeKey), content.architectureScene ?? null, inferDiagramMode(content)])
 }
 
 /** Ids of nodes that are new or changed between two documents (for highlighting agent edits). */
