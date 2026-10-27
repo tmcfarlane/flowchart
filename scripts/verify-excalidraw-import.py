@@ -60,7 +60,7 @@ with sync_playwright() as p:
     print('NATIVE EDITOR EXPORT:', exported_path.name, 'elements:', len(json.loads(exported)['elements']), flush=True)
 
     # Select a single imported shape inside its native group, edit with the
-    # keyboard in both directions. Bound text/arrows stay associated.
+    # keyboard, then undo through native history. Bound text/arrows stay associated.
     service = page.evaluate("window.__verifyNative.elements().find(e=>e.customData?.fixtureRole==='service')")
     service_id = service['id']
     database_id = page.evaluate("window.__verifyNative.elements().find(e=>e.type==='ellipse').id")
@@ -79,9 +79,9 @@ with sync_playwright() as p:
     assert moved['startBinding']['elementId'] == service_id
     assert moved['endBinding']['elementId'] == database_id
     assert (moved['x'], moved['y'], moved['points']) != (old_arrow['x'], old_arrow['y'], old_arrow['points']), 'Bound arrow did not follow imported shape'
-    page.keyboard.press('ArrowLeft')
+    page.keyboard.press('Control+z')
     page.wait_for_function("({x,id})=>window.__verifyNative.elements().find(e=>e.id===id).x === x", arg={'x':service['x'],'id':service_id})
-    print('NATIVE EDITING + BOUND ARROW: PASS', flush=True)
+    print('NATIVE EDITING + BOUND ARROW + UNDO: PASS', flush=True)
 
     page.mouse.click(1290, 600)
     page.get_by_role('button', name='Zoom out', exact=True).click()
@@ -128,6 +128,52 @@ with sync_playwright() as p:
     page.get_by_role('alert').filter(has_text='Couldn’t import drawing').wait_for()
     assert page.evaluate('JSON.stringify(window.__verifyNative.elements())') == before_failure
     page.screenshot(path=str(OUTPUT / '05-invalid-file-feedback.png'), full_page=True)
+    page.get_by_label('Dismiss import error').click()
+
+    # Saving through the real shared-chart API must retain imported scene data.
+    page.get_by_role('button', name='Share', exact=True).click()
+    with page.expect_response(lambda response: response.request.method == 'POST' and response.url.endswith('/api/flows')) as created:
+        page.get_by_role('button', name='Create share link').click()
+    response = created.value
+    assert response.status == 201
+    shared = response.json()
+    shared_scene = shared['chart']['architectureScene']
+    assert len(shared_scene['elements']) == 9 and len(shared_scene['files']) == 1
+    viewer = context.new_page()
+    viewer.on('pageerror', lambda error: errors.append(str(error)))
+    viewer.goto(shared['url'], wait_until='networkidle')
+    viewer.locator('.architecture-canvas .excalidraw').wait_for()
+    assert viewer.get_by_label('Architecture Mode').get_attribute('aria-pressed') == 'true'
+    saved = viewer.request.get(shared['url'].replace('/f/', '/api/flows/')).json()['architectureScene']
+    assert len(saved['elements']) == 9 and saved['files'] == shared_scene['files']
+    print('IMPORTED SCENE SHARED RELOAD: PASS (HTTP 201, 9 elements, embedded image retained)', flush=True)
+
+    # An export carrying app-reserved IDs must remain independent of future
+    # semantic nodes. Image-file drops must not bypass destination confirmation.
+    clean = context.new_page()
+    clean.goto(args.url, wait_until='networkidle')
+    clean.evaluate("localStorage.removeItem('flowchart-editor-draft-v3')")
+    clean.reload(wait_until='networkidle')
+    foreign = {'type': 'excalidraw', 'version': 2, 'elements': [{'id': 'fc-node-2', 'type': 'rectangle', 'x': -100, 'y': 50, 'width': 180, 'height': 90, 'angle': 0, 'customData': {'flowchart': {'kind': 'node', 'id': '2'}}}], 'files': {}}
+    clean.get_by_label('Import JSON or Excalidraw file').set_input_files({'name': 'native-export.excalidraw', 'mimeType': '', 'buffer': json.dumps(foreign).encode()})
+    clean.get_by_role('button', name='Open as new diagram').click()
+    clean.locator('.architecture-canvas .excalidraw').wait_for()
+    clean.get_by_label('Add Service Node').click()
+    clean.wait_for_function("JSON.parse(localStorage.getItem('flowchart-editor-draft-v3')||'{}').nodes?.length===1")
+    clean.wait_for_timeout(700)
+    result = clean.evaluate("JSON.parse(localStorage.getItem('flowchart-editor-draft-v3'))")
+    elements = result['architectureScene']['elements']
+    ids = [element['id'] for element in elements]
+    assert len(ids) == len(set(ids)) and result['nodes'][0]['id'] == '2'
+    imported = [element for element in elements if element['type'] == 'rectangle' and not element.get('customData', {}).get('flowchart')]
+    assert len(imported) == 1 and imported[0]['x'] == -100 and imported[0]['y'] == 50
+    before_image = clean.evaluate("localStorage.getItem('flowchart-editor-draft-v3')")
+    svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><metadata>excalidraw scene</metadata></svg>'
+    image_drop = clean.evaluate_handle("svg=>{const data=new DataTransfer();data.items.add(new File([svg],'scene.svg',{type:'image/svg+xml'}));return data;}", svg)
+    clean.locator('.react-flow-wrapper').dispatch_event('drop', {'dataTransfer': image_drop, 'clientX': 700, 'clientY': 500})
+    clean.get_by_role('alert').filter(has_text='Use the Image tool').wait_for()
+    assert clean.evaluate("localStorage.getItem('flowchart-editor-draft-v3')") == before_image
+    print('RESERVED-ID ISOLATION + IMAGE-DROP GUARD: PASS', flush=True)
     assert not errors, errors
     print('INVALID FILE PRESERVES SCENE: PASS', flush=True)
     print('BROWSER ERRORS:', errors, flush=True)

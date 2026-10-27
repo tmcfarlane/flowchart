@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type KeyboardEvent } from 'react'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import './ExcalidrawImportDialog.css'
 
@@ -18,23 +18,26 @@ export default function ExcalidrawImportDialog({ filename, scene, onOpen, onInse
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
     cancelRef.current?.focus()
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); onCancel() }
-      if (event.key !== 'Tab') return
-      const buttons = [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
-      const lastButton = buttons[buttons.length - 1]
-      if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); lastButton?.focus() }
-      else if (!event.shiftKey && document.activeElement === lastButton) { event.preventDefault(); buttons[0]?.focus() }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => { document.removeEventListener('keydown', handleKeyDown); previous?.focus() }
-  }, [onCancel])
+    return () => previous?.focus()
+  }, [])
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // Modal keys must never reach the background Flowchart clipboard/history
+    // listener. Enter/Space retain the buttons' normal browser behavior.
+    event.stopPropagation()
+    if (event.key === 'Escape') { event.preventDefault(); onCancel() }
+    if (event.key !== 'Tab') return
+    const buttons = [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
+    const lastButton = buttons[buttons.length - 1]
+    if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); lastButton?.focus() }
+    else if (!event.shiftKey && document.activeElement === lastButton) { event.preventDefault(); buttons[0]?.focus() }
+  }
 
   const images = Object.keys(scene.files).length
   const frames = scene.elements.filter((element) => element.type === 'frame').length
   return (
     <div className="excalidraw-import-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel() }}>
-      <div className="excalidraw-import-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="excalidraw-import-title" aria-describedby="excalidraw-import-description">
+      <div className="excalidraw-import-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="excalidraw-import-title" aria-describedby="excalidraw-import-description" onKeyDown={handleKeyDown}>
         <div className="excalidraw-import-heading">
           <div className="excalidraw-import-icon" aria-hidden="true">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" strokeDasharray="3 3"/><path d="M12 7v10M7 12h10"/></svg>
