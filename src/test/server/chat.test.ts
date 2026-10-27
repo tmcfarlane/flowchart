@@ -220,10 +220,10 @@ describe('chat admission and validation', () => {
     expect(await response.json()).toMatchObject({ code: 'truncated' })
   })
 
-  it('preserves architecture and refinement context in the shared handler', async () => {
+  it.each(['architecture', 'draw'])('preserves %s and refinement context in the shared handler', async diagramMode => {
     const ctx = context()
     const chart = { nodes: [{ id: 'db', type: 'database', label: 'Orders', position: { x: 0, y: 0 } }], edges: [] }
-    const response = await post(await server(ctx), { ...REQUEST, diagramMode: 'architecture', mode: 'refine', flowContext: chart })
+    const response = await post(await server(ctx), { ...REQUEST, diagramMode, mode: 'refine', flowContext: chart })
     expect(response.status).toBe(200)
     const call = ctx.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
     const body = JSON.parse(String(call[1].body))

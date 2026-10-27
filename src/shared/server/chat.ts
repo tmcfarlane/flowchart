@@ -50,7 +50,7 @@ const unavailable = () => new ChatFailure(503, 'unavailable', 'AI is temporarily
 
 function buildMessages(request: ChatRequest, skill: string) {
   let system = skill
-  system += request.diagramMode === 'architecture'
+  system += request.diagramMode === 'architecture' || request.diagramMode === 'draw'
     ? '\nCreate an architecture diagram. Use service, database, queue, cache, apiGateway, externalActor and container nodes as appropriate. Preserve parentNode, containerKind, protocol and commStyle metadata. Child positions are relative to their container. Include all schema fields and use null for unused optional values.'
     : '\nCreate a flowchart. Use step, decision, note and image nodes. Include all schema fields and use null for unused optional values.'
   if (request.flowContext) {

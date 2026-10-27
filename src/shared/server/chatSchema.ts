@@ -34,7 +34,7 @@ export const ChatRequestSchema = z.strictObject({
   messages: z.array(z.strictObject({ role: z.enum(['user', 'assistant']), content: z.string().trim().min(1).max(12000) })).min(1).max(20),
   flowContext: z.strictObject(contentShape).optional(),
   mode: z.enum(['generate', 'refine']).default('generate'),
-  diagramMode: z.enum(['flowchart', 'architecture']).default('flowchart'),
+  diagramMode: z.enum(['flowchart', 'architecture', 'draw']).default('flowchart'),
 }).superRefine((value, ctx) => {
   if (value.mode === 'refine' && !value.flowContext) ctx.addIssue({ code: 'custom', message: 'Refinement requires diagram context' })
   if (value.messages[value.messages.length - 1]?.role !== 'user') ctx.addIssue({ code: 'custom', message: 'A user message is required' })

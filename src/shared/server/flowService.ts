@@ -1,9 +1,12 @@
+import { MAX_ARCHITECTURE_DOCUMENT_BYTES, validateArchitectureScene, type ArchitectureScene } from '../architectureScene.js'
 // Chart operations shared by the REST API and the MCP server: validate, lay
 // out, and store with optimistic concurrency. Callers parse request shapes
 // with zod first; this layer handles semantics.
 
 import {
   LIMITS,
+  isDiagramMode,
+  type DiagramMode,
   type Chart,
   type ChartEdge,
   type ChartNode,
@@ -49,6 +52,8 @@ export interface CreateSuccess extends WriteSuccess {
 }
 
 export interface CreateInput {
+  mode?: DiagramMode
+  architectureScene?: ArchitectureScene
   title: string
   nodes: NodeInput[]
   edges?: EdgeInput[]
@@ -59,6 +64,10 @@ export interface CreateInput {
 }
 
 export interface ReplaceInput {
+  /** Omitted leaves the existing view intact for older clients. */
+  mode?: DiagramMode
+  /** Omitted preserves drawings for old clients; null explicitly clears them. */
+  architectureScene?: ArchitectureScene | null
   title?: string
   nodes: NodeInput[]
   edges?: EdgeInput[]
@@ -118,12 +127,28 @@ function chartBytes(chart: Chart): number {
   return Buffer.byteLength(JSON.stringify(chart), 'utf8')
 }
 
-function sizeError(bytes: number): ServiceError | null {
-  if (bytes <= LIMITS.maxChartBytes) return null
+function sizeError(bytes: number, hasScene = false): ServiceError | null {
+  const maxBytes = hasScene ? MAX_ARCHITECTURE_DOCUMENT_BYTES : LIMITS.maxChartBytes
+  if (bytes <= maxBytes) return null
   return {
     ok: false,
     code: 'too_large',
-    message: `The chart would be ${Math.round(bytes / 1024)} KB; the limit is ${Math.round(LIMITS.maxChartBytes / 1024)} KB. Shorten labels, remove nodes, or avoid embedded (data:) images.`,
+    message: `The chart would be ${Math.round(bytes / 1024)} KB; the limit is ${Math.round(maxBytes / 1024)} KB. Shorten labels, remove nodes, or avoid embedded (data:) images.`,
+  }
+}
+
+function validateModeInput(mode: unknown): ServiceError | null {
+  if (mode === undefined || isDiagramMode(mode)) return null
+  const message = 'Diagram mode must be flowchart, architecture, or draw.'
+  return { ok: false, code: 'validation', message, issues: [{ path: 'mode', message }] }
+}
+
+function validateSceneInput(scene: ArchitectureScene | null | undefined): ServiceError | null {
+  if (scene == null) return null
+  try { validateArchitectureScene(scene); return null }
+  catch (error) {
+    const message = error instanceof Error ? error.message : 'Invalid architecture scene.'
+    return { ok: false, code: 'validation', message, issues: [{ path: 'architectureScene', message }] }
   }
 }
 
@@ -169,6 +194,10 @@ export class FlowService {
   }
 
   async create(input: CreateInput): Promise<CreateSuccess | ServiceError> {
+    const modeError = validateModeInput(input.mode)
+    if (modeError) return modeError
+    const sceneError = validateSceneInput(input.architectureScene)
+    if (sceneError) return sceneError
     const validated = validateChart(input.nodes.map(nodeFromInput), (input.edges ?? []).map(edgeFromInput), {
       resolveIcon: this.resolveIcon,
     })
@@ -181,6 +210,8 @@ export class FlowService {
     const timestamp = this.now().toISOString()
     const editToken = this.generateToken()
     const base: Omit<Chart, 'id'> = {
+      ...(input.mode !== undefined ? { mode: input.mode } : {}),
+      ...(input.architectureScene ? { architectureScene: input.architectureScene } : {}),
       version: 1,
       title: input.title,
       nodes: arranged.nodes,
@@ -193,7 +224,7 @@ export class FlowService {
     for (let attempt = 0; attempt < 5; attempt++) {
       const chart: Chart = { id: this.generateId(), ...base }
       const bytes = chartBytes(chart)
-      const refused = sizeError(bytes) ?? (await charges.growth(bytes))
+      const refused = sizeError(bytes, !!chart.architectureScene) ?? (await charges.growth(bytes))
       if (refused) return refused
       if (await this.store.create({ chart, tokenHash: hashToken(editToken) })) {
         return {
@@ -221,6 +252,10 @@ export class FlowService {
 
   /** Replace the whole document (the browser's autosave, update_flowchart with `replace`). */
   async replace(id: string, token: string | undefined, input: ReplaceInput): Promise<WriteSuccess | ServiceError> {
+    const modeError = validateModeInput(input.mode)
+    if (modeError) return modeError
+    const sceneError = validateSceneInput(input.architectureScene)
+    if (sceneError) return sceneError
     if (!isValidChartId(id)) return notFound(id)
     const record = await this.store.get(id)
     if (!record) return notFound(id)
@@ -241,7 +276,7 @@ export class FlowService {
       direction: input.direction,
       relayout: input.relayout,
     })
-    const result = await this.write(record, arranged, input.title, input.source, charges)
+    const result = await this.write(record, arranged, input.title, input.source, charges, input.architectureScene, input.mode)
     if (!result.ok) return result
     return { ...result, summary: [`replaced the chart (${arranged.nodes.length} nodes, ${arranged.edges.length} edges)`] }
   }
@@ -295,6 +330,8 @@ export class FlowService {
     title: string | undefined,
     source: UpdateSource,
     charges: Charges,
+    architectureScene?: ArchitectureScene | null,
+    mode?: DiagramMode,
   ): Promise<Omit<WriteSuccess, 'summary'> | ServiceError> {
     const current = record.chart
     const next: Chart = {
@@ -306,9 +343,12 @@ export class FlowService {
       updatedAt: this.now().toISOString(),
       updatedVia: source,
     }
+    if (mode !== undefined) next.mode = mode
+    if (architectureScene === null) delete next.architectureScene
+    else if (architectureScene !== undefined) next.architectureScene = architectureScene
     const bytes = chartBytes(next)
     const refused =
-      sizeError(bytes) ?? (await charges.growth(bytes - (record.bytes ?? chartBytes(current)), FREE_GROWTH_BYTES))
+      sizeError(bytes, !!next.architectureScene) ?? (await charges.growth(bytes - (record.bytes ?? chartBytes(current)), FREE_GROWTH_BYTES))
     if (refused) return refused
     const stored = await this.store.update(current.id, current.version, next)
     if (!stored.ok) {

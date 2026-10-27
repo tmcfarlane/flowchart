@@ -5,6 +5,7 @@ import ImagePicker from './ImagePicker'
 import ShareMenu, { type ShareMenuProps } from './ShareMenu'
 import { exportToPng, exportToSvg, exportToGif, exportToJson, parseFlowJson } from '../utils/exportUtils'
 import type { Node as FlowNode, Edge } from 'reactflow'
+import type { ArchitectureScene } from '../shared/architectureScene'
 
 interface ToolbarProps {
   onAddNode: (type: PaletteNodeType) => void
@@ -27,7 +28,9 @@ interface ToolbarProps {
   reactFlowWrapper: React.RefObject<HTMLDivElement>
   nodes: FlowNode[]
   edges: Edge[]
-  onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode) => void
+  onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
+  architectureScene?: ArchitectureScene
+  onExportDraw?: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
   share?: ShareMenuProps
 }
 
@@ -53,6 +56,8 @@ function Toolbar({
   nodes,
   edges,
   onImportJson,
+  architectureScene,
+  onExportDraw,
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
@@ -82,7 +87,8 @@ function Toolbar({
     if (!reactFlowWrapper.current) return
     setExportError(null)
     try {
-      await exportToPng(reactFlowWrapper.current, darkMode)
+      if (diagramMode === 'draw' && onExportDraw) await onExportDraw('png')
+      else await exportToPng(reactFlowWrapper.current, darkMode)
       setIsExportOpen(false)
     } catch {
       setExportError('Export failed')
@@ -93,7 +99,8 @@ function Toolbar({
     if (!reactFlowWrapper.current) return
     setExportError(null)
     try {
-      await exportToSvg(reactFlowWrapper.current, darkMode)
+      if (diagramMode === 'draw' && onExportDraw) await onExportDraw('svg')
+      else await exportToSvg(reactFlowWrapper.current, darkMode)
       setIsExportOpen(false)
     } catch {
       setExportError('Export failed')
@@ -105,7 +112,8 @@ function Toolbar({
     setExportError(null)
     setGifProgress({ frame: 0, total: Math.round(gifDuration * 10) })
     try {
-      await exportToGif(
+      if (diagramMode === 'draw' && onExportDraw) await onExportDraw('gif', gifDuration)
+      else await exportToGif(
         reactFlowWrapper.current,
         darkMode,
         gifDuration,
@@ -126,7 +134,7 @@ function Toolbar({
   }
 
   const handleExportJson = () => {
-    exportToJson(nodes, edges, diagramMode)
+    exportToJson(nodes, edges, diagramMode, architectureScene)
     setIsExportOpen(false)
   }
 
@@ -143,7 +151,7 @@ function Toolbar({
     reader.onload = (event) => {
       try {
         const result = parseFlowJson(event.target?.result as string)
-        onImportJson(result.nodes, result.edges, result.mode)
+        onImportJson(result.nodes, result.edges, result.mode, result.architectureScene)
         setIsExportOpen(false)
         setExportError(null)
       } catch (err) {
@@ -221,11 +229,24 @@ function Toolbar({
               </svg>
               <span className="mode-option-label">Architecture</span>
             </button>
+            <button
+              className={`toolbar-button mode-option ${diagramMode === 'draw' ? 'active' : ''}`}
+              onClick={() => onSetDiagramMode('draw')}
+              title="Draw Mode"
+              aria-label="Draw Mode"
+              aria-pressed={diagramMode === 'draw'}
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 10.5 10.5 3a1.8 1.8 0 0 1 2.5 2.5L5.5 13H3v-2.5Z" />
+                <path d="m9.5 4 2.5 2.5M2 15h12" />
+              </svg>
+              <span className="mode-option-label">Draw</span>
+            </button>
           </div>
 
           <div className="toolbar-separator" />
 
-          <div className="toolbar-group">
+          <div className="toolbar-group graph-tools">
             <button
               className={`toolbar-button ${toolMode === 'select' ? 'active' : ''}`}
               onClick={() => onSetToolMode('select')}
@@ -261,7 +282,7 @@ function Toolbar({
 
           <div className="toolbar-separator" />
 
-          <div className="toolbar-group">
+          <div className="toolbar-group graph-palette">
             {diagramMode === 'flowchart' ? (
               <>
                 <button
@@ -402,6 +423,7 @@ function Toolbar({
               disabled={!canUndo}
               title="Undo (Ctrl+Z)"
               aria-label="Undo"
+              data-graph-history="true"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M4 8l4-4v2.5c4 0 6 2 6 5.5-1-2-3-3-6-3V11L4 8z" />
@@ -411,8 +433,9 @@ function Toolbar({
               className="toolbar-button"
               onClick={onRedo}
               disabled={!canRedo}
-              title="Redo (Ctrl+Y)"
+              title="Redo (Ctrl+Shift+Z)"
               aria-label="Redo"
+              data-graph-history="true"
             >
               <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M12 8l-4-4v2.5c-4 0-6 2-6 5.5 1-2 3-3 6-3V11l4-3z" />
@@ -596,7 +619,7 @@ function Toolbar({
         >
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
             <h2 id="clear-confirm-title" className="confirm-title">Clear the entire board?</h2>
-            <p className="confirm-body">This cannot be undone.</p>
+            <p className="confirm-body">You can undo this change.</p>
             <div className="confirm-actions">
               <button
                 className="confirm-button confirm-cancel"

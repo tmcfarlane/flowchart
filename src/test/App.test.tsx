@@ -99,7 +99,7 @@ describe('FlowChart Designer', () => {
 
     // Modal should appear
     expect(screen.getByText('Clear the entire board?')).toBeInTheDocument()
-    expect(screen.getByText('This cannot be undone.')).toBeInTheDocument()
+    expect(screen.getByText('You can undo this change.')).toBeInTheDocument()
 
     // Click Cancel
     const cancelButton = screen.getByText('Cancel')
@@ -129,6 +129,19 @@ describe('FlowChart Designer', () => {
 
     // Modal should close and starter node should be removed
     expect(screen.queryByText('Clear the entire board?')).not.toBeInTheDocument()
+    expect(screen.queryByText('Step')).not.toBeInTheDocument()
+  })
+
+  it('restores the complete graph after undoing Clear All', () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Add Step Node'))
+    fireEvent.click(screen.getByLabelText('Clear All'))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear board', exact: true }))
+    expect(screen.queryByText('Step')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Undo'))
+    expect(screen.getByText('Step')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Redo'))
     expect(screen.queryByText('Step')).not.toBeInTheDocument()
   })
 })
@@ -399,6 +412,7 @@ describe('AI Flowchart Assistant', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 429, json: async () => ({ error: 'AI has reached its daily usage limit. Please try again tomorrow.' }) })
     render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
+    fireEvent.click(screen.getByLabelText('Open AI Assistant'))
     fireEvent.change(screen.getByPlaceholderText(/Describe any process, workflow, or plan/i), { target: { value: 'Draw an order system' } })
     fireEvent.click(screen.getByText('Generate Flowchart'))
     await screen.findByText('Preview AI Proposal')

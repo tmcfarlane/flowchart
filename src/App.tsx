@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react'
 import ReactFlow, {
   Node as FlowNode,
   Edge,
@@ -40,12 +40,25 @@ import ShareStatus from './components/ShareStatus'
 import { useSharedFlow, type ApplyReason } from './hooks/useSharedFlow'
 import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
 import { parseSharedLocation } from './utils/shareApi'
-import { isArchitectureChart, nextNumericNodeId, type Chart } from './shared/flowTypes'
+import { inferDiagramMode, nextNumericNodeId, type Chart, type DiagramMode } from './shared/flowTypes'
+import type { ArchitectureScene } from './shared/architectureScene'
+import type { DrawCanvasApi } from './components/DrawCanvas'
+import { parseFlowJson, serializeFlow } from './utils/exportUtils'
+
+const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
+const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
+function readEditorDraft() {
+  if (parseSharedLocation(window.location)) return undefined
+  try {
+    const saved = localStorage.getItem(EDITOR_DRAFT_KEY)
+    return saved ? parseFlowJson(saved) : undefined
+  } catch { return undefined }
+}
 
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 export type SidebarMode = 'none' | 'explorer'
-export type DiagramMode = 'flowchart' | 'architecture'
+export type { DiagramMode } from './shared/flowTypes'
 export type ArchNodeType = 'service' | 'database' | 'queue' | 'cache' | 'apiGateway' | 'externalActor'
 export type PaletteNodeType = 'step' | 'decision' | 'note' | ArchNodeType
 export type EdgeProtocol = 'HTTPS' | 'gRPC' | 'REST' | 'SQL' | 'WebSocket' | 'event'
@@ -104,6 +117,8 @@ export interface BaseFlow {
 interface HistoryState {
   nodes: FlowNode[]
   edges: Edge[]
+  architectureScene?: ArchitectureScene
+  diagramMode?: DiagramMode
 }
 
 const ARCH_NODE_DIMENSIONS: Record<ArchNodeType, { width: number; height: number }> = {
@@ -208,11 +223,6 @@ function FlowChartEditor() {
     )
   }, [])
 
-  const initialNodes: FlowNode[] = []
-
-  const [nodes, setNodes] = useNodesState(initialNodes)
-  const [edges, setEdges] = useEdgesState([])
-
   // Update edge label callback
   const updateEdgeLabel = useCallback((edgeId: string, label: string) => {
     setEdges((eds) =>
@@ -220,7 +230,21 @@ function FlowChartEditor() {
         edge.id === edgeId ? { ...edge, label } : edge
       )
     )
-  }, [setEdges])
+  }, [])
+
+  const [initialDraft] = useState(readEditorDraft)
+  const initialNodes: FlowNode[] = initialDraft?.nodes.map(n => ({ ...n, data: { ...n.data, onLabelChange: updateNodeLabel } })) ?? []
+
+  const [nodes, setNodes] = useNodesState(initialNodes)
+  const [edges, setEdges] = useEdgesState(initialDraft?.edges.map(e => ({ ...e, data: { ...e.data, onLabelChange: updateEdgeLabel } })) ?? [])
+  const [architectureScene, setArchitectureScene] = useState<ArchitectureScene | undefined>(initialDraft?.architectureScene)
+  const drawApi = useRef<DrawCanvasApi | null>(null)
+  const pendingDrawFit = useRef(false)
+  const handleDrawReady = useCallback((api: DrawCanvasApi | null) => {
+    drawApi.current = api
+    if (api && pendingDrawFit.current) { pendingDrawFit.current = false; api.fitScene() }
+  }, [])
+  const [draftError, setDraftError] = useState<string | null>(null)
 
   // Reorder nodes callback
   const reorderNodes = useCallback((fromIndex: number, toIndex: number) => {
@@ -233,8 +257,8 @@ function FlowChartEditor() {
   }, [setNodes])
 
   const [previewMode, setPreviewMode] = useState(false)
-  const [nodeIdCounter, setNodeIdCounter] = useState(2)
-  const [diagramMode, setDiagramMode] = useState<DiagramMode>('flowchart')
+  const [nodeIdCounter, setNodeIdCounter] = useState(() => Math.max(2, nextNumericNodeId(initialNodes)))
+  const [diagramMode, setDiagramMode] = useState<DiagramMode>(initialDraft?.mode ?? 'flowchart')
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
   const showGrid = true
@@ -245,18 +269,28 @@ function FlowChartEditor() {
   const [isAIBubbleOpen, setIsAIBubbleOpen] = useState(false)
   const [aiProposal, setAIProposal] = useState<FlowProposal | null>(null)
   // A shared link (/f/:id) opens a chart, so skip the empty-canvas welcome prompt.
-  const [showWelcomeAI, setShowWelcomeAI] = useState(() => !parseSharedLocation(window.location))
+  const [showWelcomeAI, setShowWelcomeAI] = useState(() => !parseSharedLocation(window.location) && !initialDraft?.nodes.length && !initialDraft?.architectureScene?.elements.some(e => !e.isDeleted))
   const [isRefining, setIsRefining] = useState(false)
   const [aiThreadId, setAIThreadId] = useState<string | null>(null)
   const [proposalPreview, setProposalPreview] = useState<{ nodes: FlowNode[]; edges: Edge[] } | null>(null)
   const [showMinimap, setShowMinimap] = useState(false)
+
+  const canvasPoint = useCallback((point: { x: number; y: number }) => {
+    return diagramMode === 'draw' && drawApi.current
+      ? drawApi.current.viewportToScenePoint(point)
+      : screenToFlowPosition(point)
+  }, [diagramMode, screenToFlowPosition])
+  const centerCanvas = useCallback((x: number, y: number, options?: { duration?: number; zoom?: number }) => {
+    if (diagramMode === 'draw') window.setTimeout(() => drawApi.current?.fitScene(), 50)
+    else setCenter(x, y, options)
+  }, [diagramMode, setCenter])
 
   const addImageNode = useCallback(
     (imageUrl: string, label: string) => {
       let position = { x: 200, y: 200 }
       if (reactFlowWrapper.current) {
         const rect = reactFlowWrapper.current.getBoundingClientRect()
-        position = screenToFlowPosition({
+        position = canvasPoint({
           x: rect.left + rect.width / 2,
           y: rect.top + rect.height / 2,
         })
@@ -287,20 +321,20 @@ function FlowChartEditor() {
       setNodeIdCounter((id) => id + 1)
 
       // Center on the new image node
-      setCenter(
+      centerCanvas(
         adjustedPosition.x + size.width / 2,
         adjustedPosition.y + size.height / 2,
         { duration: 300, zoom: 1 }
       )
     },
-    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, setCenter]
+    [nodeIdCounter, setNodes, updateNodeLabel, canvasPoint, nodes, findAvailablePosition, centerCanvas]
   )
 
   // Undo/Redo history management
-  const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: [] }])
+  const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: initialDraft?.edges ?? [], architectureScene: initialDraft?.architectureScene, diagramMode: initialDraft?.mode }])
   const [historyIndex, setHistoryIndex] = useState(0)
   const isRestoringHistory = useRef(false)
-  const MAX_HISTORY = 10
+  const MAX_HISTORY = 50
 
   // Save current state to history
   const saveToHistory = useCallback(() => {
@@ -310,7 +344,7 @@ function FlowChartEditor() {
       // Remove any future states if we're not at the end
       const newHistory = prev.slice(0, historyIndex + 1)
       // Add new state
-      newHistory.push({ nodes: [...nodes], edges: [...edges] })
+      newHistory.push({ nodes: [...nodes], edges: [...edges], architectureScene, diagramMode })
       // Keep only last MAX_HISTORY states
       if (newHistory.length > MAX_HISTORY) {
         newHistory.shift()
@@ -320,7 +354,7 @@ function FlowChartEditor() {
       setHistoryIndex(newHistory.length - 1)
       return newHistory
     })
-  }, [nodes, edges, historyIndex])
+  }, [nodes, edges, architectureScene, diagramMode, historyIndex])
 
   // Undo handler
   const undo = useCallback(() => {
@@ -330,6 +364,8 @@ function FlowChartEditor() {
       isRestoringHistory.current = true
       setNodes(state.nodes)
       setEdges(state.edges)
+      setArchitectureScene(state.architectureScene)
+      if (state.diagramMode) setDiagramMode(state.diagramMode)
       setHistoryIndex(newIndex)
       setTimeout(() => {
         isRestoringHistory.current = false
@@ -345,6 +381,8 @@ function FlowChartEditor() {
       isRestoringHistory.current = true
       setNodes(state.nodes)
       setEdges(state.edges)
+      setArchitectureScene(state.architectureScene)
+      if (state.diagramMode) setDiagramMode(state.diagramMode)
       setHistoryIndex(newIndex)
       setTimeout(() => {
         isRestoringHistory.current = false
@@ -352,12 +390,41 @@ function FlowChartEditor() {
     }
   }, [historyIndex, history, setNodes, setEdges])
 
+  // Opening another document is a single transaction, including the scene and
+  // mode. Keep both sides so diagram Undo/Redo works across renderer switches.
+  const commitDocument = useCallback((next: HistoryState, options: { fit?: boolean } = {}) => {
+    const previous: HistoryState = { nodes, edges, architectureScene, diagramMode }
+    const complete = { ...next, diagramMode: next.diagramMode ?? diagramMode }
+    setHistory(current => {
+      const past = current.slice(0, historyIndex + 1)
+      if (JSON.stringify(past[past.length - 1]) !== JSON.stringify(previous)) past.push(previous)
+      past.push(complete)
+      const trimmed = past.slice(-MAX_HISTORY)
+      setHistoryIndex(trimmed.length - 1)
+      return trimmed
+    })
+    isRestoringHistory.current = true
+    setNodes(sortParentsFirst(next.nodes.map(n => ({ ...n, data: { ...n.data, onLabelChange: updateNodeLabel } }))))
+    setEdges(next.edges.map(e => ({ ...e, data: { ...e.data, onLabelChange: updateEdgeLabel } })))
+    setArchitectureScene(next.architectureScene)
+    setDiagramMode(complete.diagramMode)
+    setNodeIdCounter(counter => Math.max(counter, nextNumericNodeId(next.nodes)))
+    setShowWelcomeAI(false)
+    pendingDrawFit.current = options.fit !== false && complete.diagramMode === 'draw'
+    window.setTimeout(() => {
+      isRestoringHistory.current = false
+      if (options.fit === false) return
+      if (complete.diagramMode === 'draw' && drawApi.current) { pendingDrawFit.current = false; drawApi.current.fitScene() }
+      else if (complete.diagramMode !== 'draw') fitView({ padding: 0.2 })
+    }, 100)
+  }, [nodes, edges, architectureScene, diagramMode, historyIndex, setNodes, setEdges, updateNodeLabel, updateEdgeLabel, fitView])
+
   // Track when to save history - save after changes stabilize
   const lastChangeTime = useRef<number>(0)
   const saveTimeoutRef = useRef<number>()
 
   useEffect(() => {
-    if (isRestoringHistory.current) return
+    if (isRestoringHistory.current || diagramMode === 'draw') return
 
     // Debounce history saves to avoid saving too frequently
     lastChangeTime.current = Date.now()
@@ -370,7 +437,8 @@ function FlowChartEditor() {
       const currentState = history[historyIndex]
       const hasChanged =
         JSON.stringify(currentState?.nodes) !== JSON.stringify(nodes) ||
-        JSON.stringify(currentState?.edges) !== JSON.stringify(edges)
+        JSON.stringify(currentState?.edges) !== JSON.stringify(edges) ||
+        JSON.stringify(currentState?.architectureScene) !== JSON.stringify(architectureScene)
 
       if (hasChanged) {
         saveToHistory()
@@ -382,7 +450,7 @@ function FlowChartEditor() {
         clearTimeout(saveTimeoutRef.current)
       }
     }
-  }, [nodes, edges, history, historyIndex, saveToHistory])
+  }, [nodes, edges, architectureScene, diagramMode, history, historyIndex, saveToHistory])
 
   // Handle node changes (dragging, selection, etc.).
   // When a container is removed (e.g., via the Delete key), its children are
@@ -482,7 +550,7 @@ function FlowChartEditor() {
       let position = { x: 200, y: 200 } // fallback
       if (reactFlowWrapper.current) {
         const rect = reactFlowWrapper.current.getBoundingClientRect()
-        position = screenToFlowPosition({
+        position = canvasPoint({
           x: rect.left + rect.width / 2,
           y: rect.top + rect.height / 2,
         })
@@ -510,13 +578,13 @@ function FlowChartEditor() {
       setNodeIdCounter((id) => id + 1)
 
       // Center on the new node
-      setCenter(
+      centerCanvas(
         adjustedPosition.x + size.width / 2,
         adjustedPosition.y + size.height / 2,
         { duration: 300, zoom: 1 }
       )
     },
-    [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, nodes, findAvailablePosition, getNodeDimensions, setCenter]
+    [nodeIdCounter, setNodes, updateNodeLabel, canvasPoint, nodes, findAvailablePosition, getNodeDimensions, centerCanvas]
   )
 
   // Add an empty container at the viewport center. Containers are prepended so
@@ -527,7 +595,7 @@ function FlowChartEditor() {
     let position = { x: 200, y: 200 }
     if (reactFlowWrapper.current) {
       const rect = reactFlowWrapper.current.getBoundingClientRect()
-      position = screenToFlowPosition({
+      position = canvasPoint({
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
       })
@@ -549,12 +617,12 @@ function FlowChartEditor() {
     setNodes((nds) => [newNode, ...nds])
     setNodeIdCounter((id) => id + 1)
 
-    setCenter(
+    centerCanvas(
       position.x + size.width / 2,
       position.y + size.height / 2,
       { duration: 300, zoom: 1 }
     )
-  }, [nodeIdCounter, setNodes, updateNodeLabel, screenToFlowPosition, setCenter])
+  }, [nodeIdCounter, setNodes, updateNodeLabel, canvasPoint, centerCanvas])
 
   // Wrap the selected nodes in a new container sized to their bounding box.
   // Positions are converted to parent-relative; nested selections keep their
@@ -656,9 +724,8 @@ function FlowChartEditor() {
 
   // Clear all nodes and edges
   const clearAll = useCallback(() => {
-    setNodes([])
-    setEdges([])
-  }, [setNodes, setEdges])
+    commitDocument({ nodes: [], edges: [], architectureScene: undefined, diagramMode }, { fit: false })
+  }, [commitDocument, diagramMode])
 
   // Get selected nodes and edges
   const getSelectedItems = useCallback(() => {
@@ -755,13 +822,13 @@ function FlowChartEditor() {
     const firstNode = pastedNodes.find((n) => !n.parentNode) || pastedNodes[0]
     if (firstNode) {
       const size = getNodeDimensions(firstNode.type, firstNode.style)
-      setCenter(
+      centerCanvas(
         firstNode.position.x + size.width / 2,
         firstNode.position.y + size.height / 2,
         { duration: 300, zoom: 1 }
       )
     }
-  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel, pasteCount, nodes, findAvailablePosition, getNodeDimensions, setCenter])
+  }, [clipboard, nodeIdCounter, setNodes, setEdges, updateNodeLabel, pasteCount, nodes, findAvailablePosition, getNodeDimensions, centerCanvas])
 
   // Cut selected nodes and edges (copy + delete)
   const cutSelection = useCallback(() => {
@@ -771,6 +838,7 @@ function FlowChartEditor() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (diagramMode === 'draw') return
       const target = e.target as HTMLElement
       if (
         target.tagName === 'INPUT' ||
@@ -808,11 +876,12 @@ function FlowChartEditor() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [copySelection, pasteSelection, cutSelection, undo, redo])
+  }, [copySelection, pasteSelection, cutSelection, undo, redo, diagramMode])
 
   // Control + Scroll to Zoom
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
+      if (diagramMode === 'draw') return
       const wrapper = reactFlowWrapper.current
       if (!wrapper || !wrapper.contains(e.target as Node)) {
         return
@@ -834,7 +903,7 @@ function FlowChartEditor() {
     return () => {
       document.removeEventListener('wheel', handleWheel, { capture: true })
     }
-  }, [zoomIn, zoomOut])
+  }, [zoomIn, zoomOut, diagramMode])
 
   // Toggle preview mode
   const togglePreview = useCallback(() => {
@@ -985,7 +1054,7 @@ function FlowChartEditor() {
     let targetPosition = { x: 400, y: 300 }
     if (reactFlowWrapper.current) {
       const rect = reactFlowWrapper.current.getBoundingClientRect()
-      targetPosition = screenToFlowPosition({
+      targetPosition = canvasPoint({
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
       })
@@ -1050,7 +1119,7 @@ function FlowChartEditor() {
     // 9. Close preview dialog
     setAIProposal(null)
     setAIThreadId(null)
-  }, [aiProposal, nodeIdCounter, reactFlowWrapper, screenToFlowPosition, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges])
+  }, [aiProposal, nodeIdCounter, reactFlowWrapper, canvasPoint, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges])
 
   // Cancel AI proposal
   const cancelAIProposal = useCallback(() => {
@@ -1270,6 +1339,8 @@ function FlowChartEditor() {
   }, [nodesInitialized, fitSharedChart])
 
   const applySharedChart = useCallback((chart: Chart, reason: ApplyReason) => {
+    setArchitectureScene(chart.architectureScene)
+    setDiagramMode(inferDiagramMode(chart))
     const flow = chartToFlow(chart, { onLabelChange: updateNodeLabel, edgeProps: getEdgeStyleProps })
     setNodeIdCounter((counter) => Math.max(counter, nextNumericNodeId(flow.nodes)))
 
@@ -1277,9 +1348,9 @@ function FlowChartEditor() {
       setNodes(flow.nodes)
       setEdges(flow.edges)
       setShowWelcomeAI(false)
-      setDiagramMode(isArchitectureChart(chart.nodes) ? 'architecture' : 'flowchart')
+      setDiagramMode(inferDiagramMode(chart))
       // Undo should not step back to the empty canvas that existed before loading.
-      setHistory([{ nodes: flow.nodes, edges: flow.edges }])
+      setHistory([{ nodes: flow.nodes, edges: flow.edges, architectureScene: chart.architectureScene, diagramMode: inferDiagramMode(chart) }])
       setHistoryIndex(0)
       fitAfterLoadRef.current = true
       return
@@ -1328,7 +1399,25 @@ function FlowChartEditor() {
     }, 3400)
   }, [updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, getViewport, fitSharedChart])
 
-  const shared = useSharedFlow({ nodes, edges, applyChart: applySharedChart })
+  const shared = useSharedFlow({ nodes, edges, architectureScene, mode: diagramMode, applyChart: applySharedChart })
+
+  const handleDrawChange = useCallback((scene: ArchitectureScene, drawingNodes: FlowNode[], drawingEdges: Edge[]) => {
+    // Draw emits completed gestures. Store graph, drawing and mode together so
+    // the same Undo/Redo controls also cover imports and renderer switches.
+    commitDocument({ nodes: drawingNodes, edges: drawingEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: false })
+  }, [commitDocument])
+
+  // Standalone diagrams autosave the complete document, including image assets.
+  useEffect(() => {
+    if (parseSharedLocation(window.location)) return
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(EDITOR_DRAFT_KEY, serializeFlow(nodes, edges, diagramMode, architectureScene))
+        setDraftError(null)
+      } catch { setDraftError('Browser storage is full. Export JSON or share the diagram to save your latest changes.') }
+    }, 500)
+    return () => window.clearTimeout(timer)
+  }, [nodes, edges, diagramMode, architectureScene])
 
   // Compute canvas pan boundaries so the minimap stays locked to the node area.
   // Padding scales with content size but stays tight so you can't pan into empty space.
@@ -1397,6 +1486,15 @@ function FlowChartEditor() {
     updateMinimapVisibility()
   }, [updateMinimapVisibility])
 
+  if (previewMode && diagramMode === 'draw') {
+    return <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
+      <Suspense fallback={<div className="draw-loading">Loading presentation…</div>}>
+        <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} viewMode />
+      </Suspense>
+      <button className="draw-presentation-exit" onClick={togglePreview}>Exit presentation</button>
+    </div>
+  }
+
   if (previewMode) {
     return (
       <PreviewMode
@@ -1421,7 +1519,7 @@ function FlowChartEditor() {
   }
 
   return (
-    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'}`}>
+    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'} ${diagramMode === 'draw' ? 'draw-mode' : ''}`}>
       <Toolbar
         onAddNode={addNode}
         onAddContainer={addContainer}
@@ -1439,15 +1537,17 @@ function FlowChartEditor() {
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         diagramMode={diagramMode}
-        onSetDiagramMode={setDiagramMode}
+        onSetDiagramMode={(mode) => { setDiagramMode(mode); if (mode !== 'flowchart') setShowWelcomeAI(false) }}
         reactFlowWrapper={reactFlowWrapper}
         nodes={nodes}
         edges={edges}
-        onImportJson={(importedNodes, importedEdges, importedMode) => {
-          saveToHistory()
-          setNodes(sortParentsFirst(importedNodes))
-          setEdges(importedEdges)
-          if (importedMode) setDiagramMode(importedMode)
+        architectureScene={architectureScene}
+        onExportDraw={async (format, duration) => {
+          if (!drawApi.current) throw new Error('Drawing editor is still loading.')
+          await drawApi.current.exportImage(format, duration)
+        }}
+        onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
+          commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })
         }}
         share={{
           isShared: !!shared.state.id,
@@ -1460,8 +1560,11 @@ function FlowChartEditor() {
         }}
       />
       <ShareStatus shared={shared} />
+      {draftError && <div className="draw-draft-error" role="alert">{draftError}</div>}
       <div ref={reactFlowWrapper} className="react-flow-wrapper">
-        <ReactFlow
+        {diagramMode === 'draw' ? <Suspense fallback={<div className="draw-loading">Loading drawing tools…</div>}>
+          <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} onReady={handleDrawReady} onUndo={undo} onRedo={redo} canUndo={historyIndex > 0} canRedo={historyIndex < history.length - 1} />
+        </Suspense> : <ReactFlow
           nodes={nodes}
           edges={edges}
           onNodesChange={onNodesChange}
@@ -1517,7 +1620,7 @@ function FlowChartEditor() {
               pannable
             />
           )}
-        </ReactFlow>
+        </ReactFlow>}
       </div>
       {(() => {
         const { selectedNodes, selectedEdges } = getSelectedItems()
@@ -1718,11 +1821,8 @@ function FlowChartEditor() {
           onClose={dismissWelcomeAI}
           variant="welcome"
           onDismiss={dismissWelcomeAI}
-          onImportJson={(importedNodes, importedEdges, importedMode) => {
-            saveToHistory()
-            setNodes(importedNodes)
-            setEdges(importedEdges)
-            if (importedMode) setDiagramMode(importedMode)
+          onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
+            commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })
           }}
         />
       )}

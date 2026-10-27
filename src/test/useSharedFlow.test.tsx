@@ -1,3 +1,4 @@
+import type { ArchitectureScene } from '../shared/architectureScene'
 import { act, renderHook } from '@testing-library/react'
 import type { Node } from 'reactflow'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -9,7 +10,7 @@ import {
   POLL_MAX_MS,
   useSharedFlow,
 } from '../hooks/useSharedFlow'
-import type { Chart } from '../shared/flowTypes'
+import type { Chart, DiagramMode } from '../shared/flowTypes'
 
 const ID = 'Ab3dE5fG7h'
 const START = Date.UTC(2026, 0, 1, 9, 0, 0)
@@ -56,11 +57,11 @@ const fire = (target: EventTarget, type: string) =>
 /** Gaps between consecutive checks, in ms. */
 const gaps = () => pollTimes.slice(1).map((t, i) => t - pollTimes[i])
 
-async function mount(options: { token?: boolean } = {}) {
+async function mount(options: { token?: boolean; architectureScene?: ArchitectureScene; mode?: DiagramMode } = {}) {
   window.history.replaceState(null, '', `/f/${ID}${options.token ? '#edit=secret-token' : ''}`)
   const applyChart = vi.fn()
-  const hook = renderHook((props: { nodes: Node[] }) => useSharedFlow({ nodes: props.nodes, edges: [], applyChart }), {
-    initialProps: { nodes: NO_NODES },
+  const hook = renderHook((props: { nodes: Node[]; architectureScene?: ArchitectureScene; mode?: DiagramMode }) => useSharedFlow({ nodes: props.nodes, edges: [], architectureScene: props.architectureScene, mode: props.mode, applyChart }), {
+    initialProps: { nodes: NO_NODES, architectureScene: options.architectureScene, mode: options.mode },
   })
   await advance(0)
   expect(hook.result.current.state.status).toBe('synced')
@@ -76,7 +77,8 @@ beforeEach(() => {
   fetchMock = vi.fn(async (input: RequestInfo | URL, init: RequestInit = {}) => {
     const url = String(input)
     if (init.method === 'PUT') {
-      remote = { ...chart(remote.version + 1), nodes: JSON.parse(String(init.body)).nodes, updatedVia: 'api' }
+      const payload = JSON.parse(String(init.body))
+      remote = { ...chart(remote.version + 1), nodes: payload.nodes, ...(payload.architectureScene ? { architectureScene: payload.architectureScene } : {}), ...(payload.mode !== undefined ? { mode: payload.mode } : remote.mode !== undefined ? { mode: remote.mode } : {}), updatedVia: 'api' }
       return json(remote)
     }
     if (url.includes('since=')) {
@@ -183,6 +185,46 @@ describe('useSharedFlow adaptive polling', () => {
     const count = pollTimes.length
     await advance(POLL_FAST_MS)
     expect(pollTimes).toHaveLength(count + 1)
+  })
+
+  it('autosaves a drawing-only change and includes it in the PUT payload', async () => {
+    const original: ArchitectureScene = { version: 1, elements: [], files: {} }
+    remote = { ...chart(1), architectureScene: original }
+    const { hook } = await mount({ token: true, architectureScene: original })
+    const edited: ArchitectureScene = { ...original, appState: { viewBackgroundColor: '#f8f9fa' } }
+    hook.rerender({ nodes: NO_NODES, architectureScene: edited })
+    await advance(1000)
+    const put = fetchMock.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')
+    expect(put).toBeDefined()
+    expect(JSON.parse(String(put![1].body)).architectureScene).toEqual(edited)
+    expect(hook.result.current.state.status).toBe('synced')
+    expect(remote.architectureScene).toEqual(edited)
+  })
+
+  it('autosaves mode-only changes while retaining the drawing and graph', async () => {
+    const drawing: ArchitectureScene = { version: 1, elements: [], files: {} }
+    remote = { ...chart(1), mode: 'draw', architectureScene: drawing }
+    const { hook } = await mount({ token: true, architectureScene: drawing, mode: 'draw' })
+    await advance(1000)
+    expect(fetchMock.mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')).toBe(false)
+    hook.rerender({ nodes: NO_NODES, architectureScene: drawing, mode: 'architecture' })
+    await advance(1000)
+    const puts = fetchMock.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === 'PUT')
+    expect(puts).toHaveLength(1)
+    expect(JSON.parse(String(puts[0][1].body))).toMatchObject({ nodes: [], edges: [], mode: 'architecture', architectureScene: drawing, baseVersion: 1 })
+    expect(remote).toMatchObject({ mode: 'architecture', architectureScene: drawing, version: 2 })
+    expect(hook.result.current.state.status).toBe('synced')
+    await advance(POLL_FAST_MS)
+    expect(hook.result.current.state.status).toBe('synced')
+  })
+
+  it('adopts a remote mode-only update through the shared chart callback', async () => {
+    remote = { ...chart(1), mode: 'flowchart' }
+    const { hook, applyChart } = await mount({ mode: 'flowchart' })
+    remote = { ...chart(2), mode: 'draw', architectureScene: { version: 1, elements: [], files: {} } }
+    await advance(POLL_FAST_MS)
+    expect(applyChart).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'draw', architectureScene: remote.architectureScene }), 'remote')
+    expect(hook.result.current.state.status).toBe('synced')
   })
 
   it('backs off on errors and honors Retry-After', async () => {

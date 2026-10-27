@@ -20,6 +20,49 @@
   gap: 4px;
 }
 
+/* Draw has its own compact tool strip. Graph controls stay in their modes. */
+.app.draw-mode .floating-toolbar .graph-tools,
+.app.draw-mode .floating-toolbar .graph-palette {
+  display: none;
+}
+
+.app.draw-mode .floating-toolbar .toolbar-row:first-child > .toolbar-separator {
+  display: none;
+}
+
+.draw-loading {
+  position: absolute;
+  inset: 120px 0 0;
+  display: grid;
+  place-items: center;
+  color: #087f5b;
+}
+
+.draw-presentation-exit {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  z-index: 110;
+  padding: 10px 18px;
+  border: 1px solid #67cbb0;
+  border-radius: 24px;
+  background: #10241e;
+  color: #b5f5df;
+  cursor: pointer;
+}
+
+.draw-draft-error {
+  position: fixed;
+  bottom: 18px;
+  left: 18px;
+  z-index: 101;
+  max-width: 460px;
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: #fff3bf;
+  color: #522e00;
+}
+
 .app.dark-mode .floating-toolbar {
   background: rgba(30, 33, 32, 0.95);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 40px rgba(120, 252, 214, 0.08);
