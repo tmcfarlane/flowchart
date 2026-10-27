@@ -140,7 +140,7 @@ describe('HTTP: api/mcp and api/flows', () => {
     expect((await res.json()).error.code).toBe(-32700)
   })
 
-  it('round trips a native scene larger than the legacy graph cap without losing it on graph PATCH', async () => {
+  it('round trips a drawing and explicit modes while preserving both for older graph clients', async () => {
     const architectureScene = {
       version: 1,
       elements: [{ id: 'image', type: 'image', x: -100, y: 20, width: 200, height: 100, angle: 0.3, fileId: 'asset' }],
@@ -148,24 +148,39 @@ describe('HTTP: api/mcp and api/flows', () => {
     }
     const createdResponse = await fetch(`${base}/api/flows`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title: 'Native scene', nodes: [], edges: [], architectureScene }),
+      body: JSON.stringify({ title: 'Drawing', nodes: [], edges: [], mode: 'draw', architectureScene }),
     })
     expect(createdResponse.status).toBe(201)
     const created = await createdResponse.json()
+    expect(created.chart.mode).toBe('draw')
     expect(created.chart.architectureScene).toEqual(architectureScene)
     const url = `${base}/api/flows/${created.id}`
     const auth = { 'Content-Type': 'application/json', Authorization: `Bearer ${created.editToken}` }
     const patched = await fetch(url, { method: 'PATCH', headers: auth, body: JSON.stringify({ baseVersion: 1, operations: [{ op: 'add_node', node: { id: 'semantic', type: 'service', label: 'API' } }] }) })
     expect(patched.status).toBe(200)
-    expect((await patched.json()).architectureScene).toEqual(architectureScene)
-    const legacyPut = await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify({ nodes: [], edges: [], baseVersion: 2 }) })
+    const patchResult = await patched.json()
+    expect(patchResult.mode).toBe('draw')
+    expect(patchResult.architectureScene).toEqual(architectureScene)
+    const modeOnly = await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify({ nodes: [], edges: [], mode: 'architecture', baseVersion: 2 }) })
+    expect(modeOnly.status).toBe(200)
+    const modeResult = await modeOnly.json()
+    expect(modeResult.mode).toBe('architecture')
+    expect(modeResult.architectureScene).toEqual(architectureScene)
+    const legacyPut = await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify({ nodes: [], edges: [], baseVersion: 3 }) })
     expect(legacyPut.status).toBe(200)
-    expect((await legacyPut.json()).architectureScene).toEqual(architectureScene)
+    const legacyResult = await legacyPut.json()
+    expect(legacyResult.mode).toBe('architecture')
+    expect(legacyResult.architectureScene).toEqual(architectureScene)
+    const invalidMode = await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify({ nodes: [], edges: [], mode: 'unknown', baseVersion: 4 }) })
+    expect(invalidMode.status).toBe(400)
     const read = await fetch(url).then((response) => response.json())
+    expect(read).toMatchObject({ version: 4, mode: 'architecture' })
     expect(read.architectureScene).toEqual(architectureScene)
-    const cleared = await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify({ nodes: [], edges: [], baseVersion: 3, architectureScene: null }) })
+    const cleared = await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify({ nodes: [], edges: [], baseVersion: 4, architectureScene: null }) })
     expect(cleared.status).toBe(200)
-    expect(await cleared.json()).not.toHaveProperty('architectureScene')
+    const clearResult = await cleared.json()
+    expect(clearResult).not.toHaveProperty('architectureScene')
+    expect(clearResult.mode).toBe('architecture')
   })
 
   it('creates, reads, polls, replaces and patches charts over REST', async () => {

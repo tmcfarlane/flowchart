@@ -58,16 +58,16 @@ describe('shared drawing persistence', () => {
   it('stores and returns scenes, preserves them on graph-only edits, and permits explicit removal', async () => {
     const service = new FlowService({ store: new MemoryFlowStore() })
     const drawing = scene()
-    const created = await service.create({ title: 'Native sketch', nodes: [], architectureScene: drawing, source: 'api' })
+    const created = await service.create({ title: 'Native sketch', nodes: [], architectureScene: drawing, mode: 'draw', source: 'api' })
     expect(created.ok).toBe(true)
     if (!created.ok) throw new Error(created.message)
     const { id } = created.chart
-    expect(StoredChartSchema.parse(created.chart).architectureScene).toEqual(drawing)
+    expect(StoredChartSchema.parse(created.chart)).toMatchObject({ architectureScene: drawing, mode: 'draw' })
     expect((await service.get(id))?.architectureScene).toEqual(drawing)
     const patched = await service.applyOperations(id, created.editToken, { operations: [{ op: 'add_node', node: { id: 'api', type: 'service', label: 'API', position: { x: 0, y: 0 } } }], source: 'mcp' })
-    expect(patched.ok && patched.chart.architectureScene).toEqual(drawing)
+    expect(patched.ok && patched.chart).toMatchObject({ architectureScene: drawing, mode: 'draw' })
     const legacyPut = await service.replace(id, created.editToken, { nodes: [], source: 'api' })
-    expect(legacyPut.ok && legacyPut.chart.architectureScene).toEqual(drawing)
+    expect(legacyPut.ok && legacyPut.chart).toMatchObject({ architectureScene: drawing, mode: 'draw' })
     const changed = scene()
     changed.elements[0].angle = 0.8
     const replacement = await service.replace(id, created.editToken, { nodes: [], architectureScene: changed, source: 'api' })
@@ -75,6 +75,25 @@ describe('shared drawing persistence', () => {
     const cleared = await service.replace(id, created.editToken, { nodes: [], architectureScene: null, source: 'api' })
     expect(cleared.ok).toBe(true)
     expect(cleared.ok && cleared.chart).not.toHaveProperty('architectureScene')
+    expect(cleared.ok && cleared.chart.mode).toBe('draw')
+  })
+
+  it('keeps legacy creates additive and validates explicit view changes without losing drawings', async () => {
+    const service = new FlowService({ store: new MemoryFlowStore() })
+    const legacy = await service.create({ title: 'Legacy', nodes: [], source: 'api' })
+    expect(legacy.ok && legacy.chart).not.toHaveProperty('mode')
+    const created = await service.create({ title: 'Drawing', nodes: [], architectureScene: scene(), mode: 'draw', source: 'api' })
+    if (!created.ok) throw new Error(created.message)
+    const switched = await service.replace(created.chart.id, created.editToken, { nodes: [], mode: 'architecture', source: 'api' })
+    expect(switched.ok && switched.chart).toMatchObject({ mode: 'architecture', architectureScene: scene() })
+    const invalid = await service.replace(created.chart.id, created.editToken, { nodes: [], mode: 'invalid' as never, source: 'api' })
+    expect(invalid).toMatchObject({ ok: false, code: 'validation' })
+    expect((await service.get(created.chart.id))?.mode).toBe('architecture')
+    for (const mode of ['flowchart', 'architecture', 'draw'] as const) {
+      expect(CreateFlowBodySchema.parse({ nodes: [], mode }).mode).toBe(mode)
+      expect(ReplaceFlowBodySchema.parse({ nodes: [], mode }).mode).toBe(mode)
+    }
+    expect(CreateFlowBodySchema.safeParse({ nodes: [], mode: 'invalid' }).success).toBe(false)
   })
 
   it('accepts bounded image-bearing drawings larger than the legacy graph cap', async () => {
