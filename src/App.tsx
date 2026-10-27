@@ -92,6 +92,8 @@ export interface BaseFlowEdge {
   sourceHandle?: HandlePosition
   targetHandle?: HandlePosition
   label?: string
+  protocol?: EdgeProtocol
+  commStyle?: CommStyle
 }
 
 export interface BaseFlow {
@@ -1036,7 +1038,7 @@ function FlowChartEditor() {
         sourceHandle,
         targetHandle,
         label: edge.label,
-        ...getEdgeStyleProps(edge.style || 'animated'),
+        ...getEdgeStyleProps(edge.style || (edge.commStyle ? 'default' : 'animated'), { protocol: edge.protocol, commStyle: edge.commStyle }),
       }
     })
 
@@ -1081,6 +1083,7 @@ function FlowChartEditor() {
         body: JSON.stringify({
           messages,
           mode: 'refine',
+          diagramMode,
           flowContext: {
             nodes: aiProposal.nodes.map((n) => ({
               id: n.id,
@@ -1089,6 +1092,9 @@ function FlowChartEditor() {
               position: n.position,
               width: n.width,
               height: n.height,
+              imageUrl: n.imageUrl,
+              parentNode: n.parentNode,
+              containerKind: n.containerKind,
             })),
             edges: aiProposal.edges.map((e) => ({
               id: e.id,
@@ -1098,6 +1104,8 @@ function FlowChartEditor() {
               sourceHandle: e.sourceHandle,
               targetHandle: e.targetHandle,
               label: e.label,
+              protocol: e.protocol,
+              commStyle: e.commStyle,
             })),
           },
         }),
@@ -1141,13 +1149,11 @@ function FlowChartEditor() {
         }
         return refinedProposal.summary
       }
-    } catch (err) {
-      console.error('Refinement error:', err)
     } finally {
       setIsRefining(false)
     }
     return undefined
-  }, [aiProposal, aiThreadId])
+  }, [aiProposal, aiThreadId, diagramMode])
 
   // Preview proposal in presentation mode
   const handlePreviewProposal = useCallback(() => {
@@ -1159,9 +1165,12 @@ function FlowChartEditor() {
       id: node.id,
       type: node.type,
       position: node.position,
+      parentNode: node.parentNode,
+      extent: node.parentNode ? ('parent' as const) : undefined,
       data: {
         label: node.label,
         imageUrl: node.imageUrl,
+        containerKind: node.containerKind,
         onLabelChange: () => {},
       },
       style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
@@ -1174,7 +1183,9 @@ function FlowChartEditor() {
       sourceHandle: edge.sourceHandle || 'bottom',
       targetHandle: edge.targetHandle || 'top',
       label: edge.label,
-      type: 'default' as const,
+      type: edge.style === 'step' ? 'smoothstep' : 'default',
+      animated: edge.commStyle ? edge.commStyle === 'async' : edge.style === 'animated',
+      data: { protocol: edge.protocol, commStyle: edge.commStyle },
       markerEnd: {
         type: MarkerType.ArrowClosed,
         width: 20,
@@ -1187,7 +1198,7 @@ function FlowChartEditor() {
       },
     }))
 
-    setProposalPreview({ nodes: previewNodes, edges: previewEdges })
+    setProposalPreview({ nodes: sortParentsFirst(previewNodes), edges: previewEdges })
   }, [aiProposal, darkMode])
 
   useEffect(() => {
@@ -1701,6 +1712,7 @@ function FlowChartEditor() {
         <AIChat
           nodes={nodes}
           edges={edges}
+          diagramMode={diagramMode}
           onProposalReady={handleAIProposalReady}
           isOpen={true}
           onClose={dismissWelcomeAI}
@@ -1718,6 +1730,7 @@ function FlowChartEditor() {
       <AIChat
         nodes={nodes}
         edges={edges}
+        diagramMode={diagramMode}
         onProposalReady={handleAIProposalReady}
         isOpen={isAIBubbleOpen}
         onClose={() => setIsAIBubbleOpen(false)}

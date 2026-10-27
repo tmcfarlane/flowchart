@@ -12,6 +12,7 @@
  */
 
 import type { BaseFlowNode, BaseFlowEdge } from '../App'
+import { ARCH_NODE_TYPES } from '../shared/flowTypes'
 import { AZURE_ALIASES } from '../shared/azureIconAliases'
 
 // ---------------------------------------------------------------------------
@@ -218,7 +219,7 @@ export function isAzureRelatedFlow(
 
 /**
  * Post-processes an AI proposal: for any node whose label matches an
- * Azure service icon, upgrades it to an image node with the local SVG URL.
+ * Azure service icon, adds its local SVG URL and preserves architecture node types.
  * Only runs if the flow appears Azure-related (to avoid false positives).
  * Returns a new proposal object (does not mutate the input).
  */
@@ -229,10 +230,11 @@ export function resolveAzureIcons(proposal: FlowProposal): FlowProposal {
 
   const enrichedNodes = proposal.nodes.map((node) => {
     // Skip nodes that already have an imageUrl set
-    if (node.imageUrl) return node
+    if (node.imageUrl || node.type === 'container') return node
 
     const iconUrl = resolveAzureIcon(node.label)
     if (iconUrl) {
+      if (ARCH_NODE_TYPES.some(type => type === node.type)) return { ...node, imageUrl: iconUrl }
       return {
         ...node,
         type: 'image',

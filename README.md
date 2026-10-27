@@ -97,7 +97,7 @@ Export to PNG, SVG, animated GIF, or JSON. Import JSON to pick up where you left
 ## Quickstart
 
 ```bash
-# Prerequisites: Node.js 18+, pnpm 10.x
+# Prerequisites: Node.js 20+, pnpm 10.x
 pnpm install
 pnpm dev          # http://localhost:3004
 pnpm test         # run tests
@@ -121,47 +121,21 @@ Tools: `create_flowchart`, `get_flowchart`, `update_flowchart`, `list_node_types
 
 ![An AI agent's edit appearing live in a shared chart](docs/screenshots/mcp-agent-update.png)
 
-## AI Setup (optional)
+## AI setup (optional)
 
-The AI assistant uses **Azure OpenAI** through a serverless proxy (`api/chat.ts`) so credentials stay server-side.
+The canvas runs without AI credentials. Website generation and refinement use your own Azure deployment through `/api/chat`. AI is disabled until you select a routing mode.
 
 ```bash
 cp .env.example .env
 ```
 
-Set these variables (server-side only; do **not** use `VITE_*`):
+Set `AI_ROUTING_MODE=direct` to use Azure without Cloudflare. Set `AI_ROUTING_MODE=gateway` to use your own authenticated Cloudflare AI Gateway. Supply your Azure resource, deployment, key, and verified input/output prices in either mode. Gateway mode also requires your account ID, gateway ID, and Run token. Keep every credential server-side without a `VITE_` prefix.
 
-| Variable                | Description                  |
-| ----------------------- | ---------------------------- |
-| `AZURE_DEPLOYMENT_NAME` | Your Azure OpenAI deployment |
-| `AZURE_RESOURCE_NAME`   | Your Azure resource name     |
-| `AZURE_API_KEY`         | Your Azure API key           |
+Issue #17 targets Azure's `gpt-6-luna` model, version `2026-09-22`. Deployment names are aliases, so confirm the actual model in Azure. The compatible API version is `2024-10-21`; requests omit temperature by default.
 
-For Vercel, add the same variables in your project settings.
+Both modes enforce request/context/output limits, client/global rates, concurrency, and a conservative daily allowance. Production requires shared Redis. The official website requires gateway routing with `AI_REQUIRE_GATEWAY=true`, gateway rate/spend policies, and separate environment budgets. Gateway failure never bypasses those policies. `AI_ENABLED=false` disables inference while canvas editing remains available.
 
-<details>
-<summary><strong>Architecture</strong></summary>
-
-```mermaid
-sequenceDiagram
-  participant User
-  participant UI as React UI
-  participant API as Vercel Function
-  participant Azure as Azure OpenAI
-
-  User->>UI: Prompt (generate or refine)
-  UI->>API: POST /api/chat (flow context optional)
-  API->>Azure: Chat completions (structured output)
-  Azure-->>API: JSON flowchart proposal
-  API-->>UI: Message (JSON string) + finish reason
-  UI-->>User: Preview then insert
-```
-
-- API: [`api/`](api/README.md)
-- AI prompt skill: [`api/flowchart-generation-skill.md`](api/flowchart-generation-skill.md)
-- Icon resolution: [`src/utils/azureIconRegistry.ts`](src/utils/azureIconRegistry.ts)
-
-</details>
+See [AI configuration and operations](api/README.md#apichat) for every setting, direct and gateway setup, payload privacy, Luna pricing, spend-limit margins, and rollout checks.
 
 ## Tech Stack
 

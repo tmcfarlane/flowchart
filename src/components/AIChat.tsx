@@ -66,10 +66,11 @@ interface AIChatProps {
   onClose: () => void
   variant?: 'welcome' | 'full'
   onDismiss?: () => void
+  diagramMode?: DiagramMode
   onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode) => void
 }
 
-function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson }: AIChatProps) {
+function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, diagramMode = 'flowchart' }: AIChatProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -145,13 +146,13 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           const jsonStr = jsonMatch[1].trim()
           parsed = JSON.parse(jsonStr)
         }
-      } catch (e) {
-        console.error('Failed to parse JSON from code block:', e)
+      } catch {
+        console.error('AI returned invalid JSON')
       }
     }
 
     if (!parsed || typeof parsed !== 'object') {
-      console.error('Could not parse response as JSON:', content)
+      console.error('AI returned invalid JSON')
       return null
     }
 
@@ -159,19 +160,19 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
 
     // Validate the structure - nodes and edges are required
     if (!proposal.nodes || !Array.isArray(proposal.nodes)) {
-      console.error('Invalid proposal: missing or invalid nodes array', proposal)
+      console.error('AI returned invalid nodes')
       return null
     }
     
     if (!proposal.edges || !Array.isArray(proposal.edges)) {
-      console.error('Invalid proposal: missing or invalid edges array', proposal)
+      console.error('AI returned invalid edges')
       return null
     }
 
     // Validate each node has required fields
     for (const node of proposal.nodes) {
       if (!node.id || !node.type || !node.label || !node.position) {
-        console.error('Invalid node structure:', node)
+        console.error('AI returned an invalid node')
         return null
       }
     }
@@ -207,7 +208,9 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           position: n.position,
           width: typeof n.style?.width === 'number' ? n.style.width : undefined,
           height: typeof n.style?.height === 'number' ? n.style.height : undefined,
-          imageUrl: typeof n.data.imageUrl === 'string' ? n.data.imageUrl : undefined,
+          imageUrl: typeof n.data.imageUrl === 'string' && !n.data.imageUrl.startsWith('data:') ? n.data.imageUrl : undefined,
+          parentNode: n.parentNode,
+          containerKind: n.data.containerKind,
         })),
         edges: edges.map((e) => ({
           id: e.id,
@@ -217,6 +220,8 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           sourceHandle: typeof e.sourceHandle === 'string' ? e.sourceHandle : undefined,
           targetHandle: typeof e.targetHandle === 'string' ? e.targetHandle : undefined,
           label: typeof e.label === 'string' ? e.label : undefined,
+          protocol: e.data?.protocol,
+          commStyle: e.data?.commStyle,
         })),
       }
 
@@ -243,6 +248,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
         body: JSON.stringify({
           messages: threadMessages.map((m) => ({ role: m.role, content: m.content })),
           flowContext,
+          diagramMode,
         }),
       })
 
@@ -256,8 +262,6 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
       const data = await response.json()
       const content = data.message || 'No response received.'
       const finishReason = data.finishReason as string | undefined
-
-      console.log('AI Response:', content, 'Finish reason:', finishReason)
 
       // Parse the flow proposal (with structured outputs, this should always succeed)
       const proposal = parseFlowProposal(content, finishReason)
@@ -289,11 +293,10 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
       setError(errorMessage)
-      console.error('AI Chat error:', err)
     } finally {
       setIsLoading(false)
     }
-  }, [inputValue, isLoading, nodes, edges, getEdgeStyleFromEdge, onProposalReady, onClose, threadId])
+  }, [inputValue, isLoading, nodes, edges, getEdgeStyleFromEdge, onProposalReady, onClose, threadId, diagramMode])
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
