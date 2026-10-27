@@ -3,7 +3,8 @@ import type { Node, Edge } from 'reactflow'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import { validateArchitectureScene } from '../shared/architectureScene'
 import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/architectureBridge'
-import { createElement, deleteElements, duplicateSelection, expandSelection, getElementBounds, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
+import { drawingFontFamily } from '../utils/drawText'
+import { createElement, deleteElements, duplicateSelection, expandSelection, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
 import DrawSceneSvg from './DrawSceneSvg'
 import DrawToolIcon from './DrawToolIcon'
 import DrawLibrary from './DrawLibrary'
@@ -228,6 +229,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     background.setAttribute('x', String(bounds.x - padding)); background.setAttribute('y', String(bounds.y - padding)); background.setAttribute('width', svg.getAttribute('width')!); background.setAttribute('height', svg.getAttribute('height')!); const stored = draftRef.current.appState?.viewBackgroundColor ?? '#ffffff'
     background.setAttribute('fill', darkMode && ['#fff', '#ffffff', 'white'].includes(stored.toLowerCase()) ? '#0f1211' : stored)
     svg.append(background, content.cloneNode(true))
+    // Only the on-canvas editor hides its original label; exports keep it.
+    for (const label of svg.querySelectorAll('[data-editing-text]')) {
+      label.removeAttribute('visibility'); label.removeAttribute('data-editing-text')
+    }
     // Projected architecture icons may reference local bundled SVG assets.
     // Make the exported scene self-contained before either vector or raster export.
     await Promise.all(Array.from(svg.getElementsByTagName('image')).map(async asset => {
@@ -395,18 +400,22 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     else if (element?.type === 'frame') emit(patchElement(draftRef.current, element.id, { name: value }))
     else {
       const fontSize = element?.fontSize ?? 20, lines = value.split('\n')
-      emit(patchElement(draftRef.current, textEdit.id, { text: value, originalText: value, width: Math.max(24, Math.max(...lines.map(line => line.length)) * fontSize * 0.61), height: Math.max(fontSize * 1.3, lines.length * fontSize * 1.3) }))
+      const next = patchElement(draftRef.current, textEdit.id, { text: value, originalText: value, width: Math.max(24, Math.max(...lines.map(line => line.length)) * fontSize * 0.61), height: Math.max(fontSize * 1.3, lines.length * fontSize * 1.3) })
+      emit(element?.containerId ? rerouteBindings(next, [element.id]) : next)
     }
     setTextEdit(null); wrapper.current?.focus()
   }
   const beginText = (id?: string, point?: Point) => {
     const before = copy(committed.current)
     let next = draftRef.current, element = live(next).find(e => e.id === id)
+    if (element?.locked || (element?.containerId && live(next).find(host => host.id === element?.containerId)?.locked)) return
     if (element && !['text', 'frame'].includes(element.type)) {
       const host = element
       element = live(next).find(e => e.type === 'text' && e.containerId === host.id)
       if (!element) {
-        element = createElement('text', { x: host.x + 12, y: host.y + host.height / 2 - 13 }, undefined, { ...defaults, text: '', originalText: '', containerId: host.id, textAlign: 'center' })
+        const center = getElementCenter(host), width = ['rectangle', 'ellipse', 'diamond'].includes(host.type) ? Math.max(24, host.width - 24) : 180
+        const height = (defaults.fontSize ?? 20) * 1.3
+        element = createElement('text', { x: center.x - width / 2, y: center.y - height / 2 }, undefined, { ...defaults, width, height, text: '', originalText: '', containerId: host.id, textAlign: 'center', verticalAlign: 'middle' })
         next = patchElement({ ...next, elements: [...next.elements, element] }, host.id, { boundElements: [...(host.boundElements ?? []), { id: element.id, type: 'text' }] })
       }
     }
@@ -414,6 +423,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       element = createElement('text', point ?? { x: 120, y: 120 }, undefined, { ...defaults, text: '', originalText: '' })
       next = { ...next, elements: [...next.elements, element] }
     }
+    if (element.locked) return
+    if (element.containerId) next = rerouteBindings(next, [element.id])
     preview(next); select([element.id]); setTextEdit({ id: element.id, value: element.type === 'frame' ? String(element.name ?? '') : element.text ?? '', before })
   }
 
@@ -518,6 +529,12 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }
 
   const hitElement = (point: Point, exclude?: string) => [...live(draftRef.current)].reverse().find(element => element.id !== exclude && inside(point, getElementBounds(element), ['line', 'arrow', 'freedraw'].includes(element.type) ? 6 / viewportRef.current.zoom : 0))
+  const shapeAt = (point: Point) => [...live(draftRef.current)].reverse().find(element => {
+    if (!['rectangle', 'ellipse', 'diamond'].includes(element.type) || !element.width || !element.height) return false
+    const center = getElementCenter(element), local = rotatePoint(point, center, -(element.angle ?? 0))
+    const x = Math.abs(local.x - center.x) / (element.width / 2), y = Math.abs(local.y - center.y) / (element.height / 2)
+    return element.type === 'ellipse' ? x * x + y * y <= 1 : element.type === 'diamond' ? x + y <= 1 : x <= 1 && y <= 1
+  })
   const bindingFor = (point: Point, exclude: string) => {
     const host = [...live(draftRef.current)].reverse().find(element => element.id !== exclude && ['rectangle', 'ellipse', 'diamond', 'image'].includes(element.type) && inside(point, getElementBounds(element), 12 / viewportRef.current.zoom))
     if (!host) return null
@@ -753,7 +770,22 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }
   const selectionBounds = chosen.length ? getSceneBounds(chosen) : null
   const editElement = textEdit ? live(draft).find(e => e.id === textEdit.id) : undefined
-  const textPosition = editElement ? { left: viewport.x + editElement.x * viewport.zoom, top: viewport.y + editElement.y * viewport.zoom } : undefined
+  const editHost = editElement?.containerId ? live(draft).find(element => element.id === editElement.containerId) : undefined
+  const boundText = editElement?.type === 'text' && !!editHost
+  const editorFontSize = (editElement?.fontSize ?? 20) * viewport.zoom
+  const contentWidth = Math.max(0, ...(textEdit?.value.split('\n').map(line => line.length * editorFontSize * 0.61) ?? []))
+  const hostWidth = editHost && ['rectangle', 'ellipse', 'diamond'].includes(editHost.type) ? Math.max(24, editHost.width - 24) * viewport.zoom : 0
+  const editorWidth = boundText ? Math.max(80, (editElement?.width ?? 0) * viewport.zoom + 20, contentWidth + 20, hostWidth + 20) : Math.max(180, (editElement?.width ?? 0) * viewport.zoom + 40)
+  const editorHeight = Math.max(46, (textEdit?.value.split('\n').length ?? 1) * editorFontSize * 1.3 + 18)
+  const textPosition = editElement ? boundText ? {
+    left: viewport.x + getElementCenter(editElement).x * viewport.zoom,
+    top: viewport.y + getElementCenter(editElement).y * viewport.zoom,
+    transform: `translate(-50%, -50%) rotate(${editElement.angle ?? 0}rad)`,
+    textAlign: editElement.textAlign as 'left' | 'center' | 'right' | undefined,
+    fontFamily: drawingFontFamily(editElement.fontFamily),
+    height: editorHeight,
+    paddingTop: Math.max(8, (editorHeight - 2 - (textEdit?.value.split('\n').length ?? 1) * editorFontSize * 1.3) / 2),
+  } : { left: viewport.x + editElement.x * viewport.zoom, top: viewport.y + editElement.y * viewport.zoom } : undefined
   const canUndo = props.onUndo ? props.canUndo : historyIndex.current > 0
   const canRedo = props.onRedo ? props.canRedo : historyIndex.current + 1 < history.current.length
   void historyVersion
@@ -768,12 +800,16 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (viewMode || event.button !== 0) return
       if (pendingConnector.current) { pendingConnector.current.preventBinding = event.ctrlKey || event.metaKey; finishConnector(); return }
       if (pointEditRef.current) { finishPointEditing(); return }
-      const id = (event.target as Element).closest('[data-element-id]')?.getAttribute('data-element-id'); beginText(id ?? undefined, worldPoint({ x: event.clientX, y: event.clientY }))
+      const target = event.target as Element
+      if (tool !== 'selection' || target.closest('[data-resize], [data-rotate], [data-point-index]')) return
+      const point = worldPoint({ x: event.clientX, y: event.clientY })
+      const id = target.closest('[data-element-id]')?.getAttribute('data-element-id') ?? shapeAt(point)?.id
+      beginText(id, point)
     }}>
       {grid && <defs><pattern id="draw-grid" patternUnits="userSpaceOnUse" x={viewport.x} y={viewport.y} width={20 * viewport.zoom} height={20 * viewport.zoom}><circle cx="1" cy="1" r="0.8" fill={darkMode ? '#465e55' : '#b6c9c1'} /></pattern></defs>}
       <rect width="100%" height="100%" fill={grid ? 'url(#draw-grid)' : canvasBackground} data-draw-background="true" />
       <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`} data-draw-viewport="true" data-drawing-layer="true">
-        <g data-draw-content="true"><DrawSceneSvg elements={draft.elements} files={draft.files} darkMode={darkMode} backgroundColor={canvasBackground} selectedIds={selectedIds} /></g>
+        <g data-draw-content="true"><DrawSceneSvg elements={draft.elements} files={draft.files} darkMode={darkMode} backgroundColor={canvasBackground} selectedIds={selectedIds} editingTextId={textEdit?.id} /></g>
         {!viewMode && selectionBounds && <g className="draw-selection" fill="none" stroke="#17b895" strokeWidth={1.5 / viewport.zoom}>
           <rect x={selectionBounds.x - 3 / viewport.zoom} y={selectionBounds.y - 3 / viewport.zoom} width={selectionBounds.width + 6 / viewport.zoom} height={selectionBounds.height + 6 / viewport.zoom} strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`} pointerEvents="none" />
           {!pointEdit && !creatingConnector && <><line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} />
@@ -786,7 +822,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         {marquee && <rect {...marquee} fill="#17b89520" stroke="#17b895" strokeWidth={1 / viewport.zoom} pointerEvents="none" />}
       </g>
     </svg>
-    {textEdit && editElement && <textarea ref={textRef} className="draw-text-editor" aria-label="Edit drawing text" style={{ ...textPosition, width: Math.max(180, editElement.width * viewport.zoom + 40), minHeight: Math.max(46, editElement.height * viewport.zoom + 20), fontSize: (editElement.fontSize ?? 20) * viewport.zoom }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
+    {textEdit && editElement && <textarea ref={textRef} className={`draw-text-editor ${boundText ? 'is-bound' : ''}`} aria-label="Edit drawing text" wrap={boundText ? 'off' : undefined} style={{ ...textPosition, width: editorWidth, minHeight: boundText ? undefined : Math.max(46, editElement.height * viewport.zoom + 20), fontSize: editorFontSize }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
     {!viewMode && <aside className="draw-properties" aria-label="Drawing properties">
       <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
       {pointEdit && editablePath?.id === pointEdit.id && <fieldset className="draw-point-editor"><legend>Connector points</legend><p role="status">Editing connector points</p><p>Arrows move the active point. Enter or Escape finishes.</p><div className="draw-action-grid"><button type="button" onClick={addPathPoint}>Add path point</button><button type="button" disabled={pointEdit.index <= 0 || pointEdit.index >= activePathPointCount - 1} onClick={deletePathPoint}>Delete path point</button><button type="button" onClick={finishPointEditing}>Finish point editing</button></div></fieldset>}
