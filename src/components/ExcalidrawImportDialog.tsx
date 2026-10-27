@@ -10,9 +10,10 @@ interface ExcalidrawImportDialogProps {
   onCancel: () => void
   busy?: boolean
   error?: string | null
+  compatibilityNotes?: string[]
 }
 
-export default function ExcalidrawImportDialog({ filename, scene, onOpen, onInsert, onCancel, busy = false, error }: ExcalidrawImportDialogProps) {
+export default function ExcalidrawImportDialog({ filename, scene, onOpen, onInsert, onCancel, busy = false, error, compatibilityNotes = [] }: ExcalidrawImportDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -47,16 +48,17 @@ export default function ExcalidrawImportDialog({ filename, scene, onOpen, onInse
           <p className="excalidraw-import-filename" title={filename}>{filename}</p>
           <div className="excalidraw-import-stats"><span>{scene.elements.length} elements</span><span>{images} {images === 1 ? 'image' : 'images'}</span><span>{frames} {frames === 1 ? 'frame' : 'frames'}</span></div>
         </div>
-        <p id="excalidraw-import-description">Your shapes, text, connections, styles, and images stay editable in Architecture mode.</p>
+        <p id="excalidraw-import-description">Your shapes, text, connections, styles, and images stay editable in Draw mode.</p>
+        {compatibilityNotes.length > 0 && <div className="excalidraw-import-compatibility" role="note" aria-label="Draw compatibility"><strong>Before you import</strong><ul>{compatibilityNotes.map((note) => <li key={note}>{note}</li>)}</ul></div>}
         {error && <p className="excalidraw-import-inline-error" role="alert">{error}</p>}
         <div className="excalidraw-import-choices">
           <button className="excalidraw-import-choice" onClick={onInsert} disabled={busy}>
             <span className="excalidraw-import-choice-title">Insert into current diagram <span aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12l8-8M4 4h8v8"/></svg></span></span>
-            <span className="excalidraw-import-choice-detail">Keep your work and add the drawing as one unit.</span>
+            <span className="excalidraw-import-choice-detail">Keep your work and add the drawing as one unit in Draw.</span>
           </button>
           <button className="excalidraw-import-choice" onClick={onOpen} disabled={busy}>
             <span className="excalidraw-import-choice-title">Open as new diagram <span aria-hidden="true"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 8h10M8 3l5 5-5 5"/></svg></span></span>
-            <span className="excalidraw-import-choice-detail">Replace the current diagram and fit the drawing into view.</span>
+            <span className="excalidraw-import-choice-detail">Replace the current diagram, open in Draw, and fit the drawing into view.</span>
           </button>
         </div>
         <div className="excalidraw-import-footer"><span>{busy ? 'Preparing the drawing…' : 'Either change can be undone.'}</span><button ref={cancelRef} onClick={onCancel}>Cancel</button></div>

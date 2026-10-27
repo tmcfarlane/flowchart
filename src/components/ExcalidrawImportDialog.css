@@ -20,6 +20,11 @@
 .excalidraw-import-choice:hover { background: #263d33; border-color: #78fcd6; }
 .excalidraw-import-choice:disabled { opacity: .6; cursor: wait; }
 .excalidraw-import-inline-error { padding: 12px; color: #6b3700; background: #fff0c2; border-radius: 8px; font-size: 12px; line-height: 1.5; }
+.excalidraw-import-compatibility { margin-bottom: 18px; padding: 13px 15px; border: 1px solid #667754; border-radius: 10px; color: #e0e6c7; background: #2a3225; font-size: 11px; line-height: 1.5; }
+.excalidraw-import-compatibility strong { display: block; margin-bottom: 6px; font-size: 12px; }
+.excalidraw-import-compatibility ul { margin: 0; padding-left: 17px; }
+.excalidraw-import-compatibility li + li { margin-top: 5px; }
+.light-mode .excalidraw-import-compatibility { color: #63541d; background: #fff9df; border-color: #e5d79a; }
 .excalidraw-import-choice:focus-visible, .excalidraw-import-footer button:focus-visible { outline: 2px solid #78fcd6; outline-offset: 3px; }
 .excalidraw-import-choice-title { display: flex; justify-content: space-between; gap: 15px; font-size: 14px; font-weight: 600; }
 .excalidraw-import-choice-title > span { color: #78fcd6; }

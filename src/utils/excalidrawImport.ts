@@ -16,6 +16,8 @@ const IMAGE_MIME_TYPES = new Set([
 ])
 type ElementRecord = Record<string, unknown>
 
+const ARROWHEADS = new Set(['arrow', 'triangle', 'triangle_outline', 'bar', 'dot', 'dot_outline', 'diamond', 'diamond_outline', 'circle', 'circle_outline', 'crowfoot_one', 'crowfoot_many', 'crowfoot_one_or_many'])
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 
@@ -37,7 +39,50 @@ function requireReference(value: unknown, ids: Set<string>, deleted: Set<string>
   return value
 }
 
-/** Validate before restoring: the editor's tolerant restore utility can otherwise silently drop unsupported content. */
+function validateDrawAppearance(element: ElementRecord, id: string): void {
+  const enums: Record<string, readonly string[]> = {
+    fillStyle: ['solid', 'hachure', 'cross-hatch', 'zigzag'],
+    strokeStyle: ['solid', 'dashed', 'dotted'],
+    textAlign: ['left', 'center', 'right'],
+    verticalAlign: ['top', 'middle', 'bottom'],
+  }
+  for (const [field, supported] of Object.entries(enums)) {
+    if (element[field] != null && !supported.includes(String(element[field]))) throw new Error(`Draw cannot render this drawing's ${field} on element “${id}”. Use a supported style and export again.`)
+  }
+  for (const field of ['strokeWidth', 'roughness', 'fontSize', 'lineHeight']) {
+    if (element[field] != null) {
+      geometry(element[field], field, id, true)
+      if ((field === 'fontSize' || field === 'lineHeight') && element[field] === 0) throw new Error(`Element “${id}” has an invalid ${field}. Use a positive number.`)
+    }
+  }
+  if (element.fontFamily != null && (typeof element.fontFamily !== 'number' || !Number.isInteger(element.fontFamily) || element.fontFamily < 1)) throw new Error(`Element “${id}” has an invalid font family.`)
+  for (const field of ['startArrowhead', 'endArrowhead']) if (element[field] != null && !ARROWHEADS.has(String(element[field]))) throw new Error(`Draw cannot render the ${field} on element “${id}”. Use a supported arrowhead and export again.`)
+  if (element.roundness != null && (!isRecord(element.roundness) || ![1, 2, 3].includes(Number(element.roundness.type)))) throw new Error(`Draw cannot render the corner style on element “${id}”.`)
+  if (element.type === 'image') {
+    if (element.scale != null && (!Array.isArray(element.scale) || element.scale.length !== 2 || !element.scale.every((value) => value === 1 || value === -1))) throw new Error(`Image element “${id}” has an invalid flip transform.`)
+    if (element.crop != null) {
+      if (!isRecord(element.crop)) throw new Error(`Image element “${id}” has an invalid crop.`)
+      for (const field of ['x', 'y', 'width', 'height', 'naturalWidth', 'naturalHeight']) {
+        geometry(element.crop[field], `crop ${field}`, id, true)
+        if (['width', 'height', 'naturalWidth', 'naturalHeight'].includes(field) && element.crop[field] === 0) throw new Error(`Image element “${id}” has an empty crop.`)
+      }
+      const crop = element.crop as Record<string, number>
+      if (crop.x + crop.width > crop.naturalWidth + 0.0001 || crop.y + crop.height > crop.naturalHeight + 0.0001) throw new Error(`Image element “${id}” has a crop outside its image bounds.`)
+    }
+  }
+}
+
+/** Differences that users see before deciding whether to open or insert. Data remains intact. */
+export function getExcalidrawCompatibilityNotes(scene: ArchitectureScene): string[] {
+  const notes: string[] = []
+  if (scene.elements.some((element) => element.type === 'text' && ![2, 3].includes(Number(element.fontFamily ?? 1)))) notes.push('Excalidraw fonts use local font fallbacks in Draw. Text may wrap or measure differently.')
+  if (scene.elements.some((element) => Number(element.roughness ?? 0) > 0 || ['hachure', 'cross-hatch', 'zigzag'].includes(String(element.fillStyle)))) notes.push('Sketch strokes and patterned fills use Draw’s rendering, so their textures can look different.')
+  if (scene.elements.some((element) => element.type === 'freedraw' && Array.isArray(element.pressures) && element.pressures.length > 0)) notes.push('Freehand points and pressure stay editable; stroke smoothing may look slightly different.')
+  if (scene.elements.some((element) => Array.isArray(element.fixedSegments) && element.fixedSegments.length > 0)) notes.push('Fixed elbow segments can move when you edit their path in Draw.')
+  return notes
+}
+
+/** Validate before rendering or application so unsupported file content never disappears silently. */
 export function parseExcalidrawScene(text: string): ArchitectureScene {
   if (new TextEncoder().encode(text).byteLength > EXCALIDRAW_IMPORT_LIMITS.maxBytes) {
     throw new Error('This drawing exceeds the 4 MiB import limit. Remove unused images or split the drawing and try again.')
@@ -75,6 +120,7 @@ export function parseExcalidrawScene(text: string): ArchitectureScene {
       unsupported.add(String(value.type ?? '(missing type)'))
       continue
     }
+    validateDrawAppearance(value, value.id)
     geometry(value.x, 'x coordinate', value.id)
     geometry(value.y, 'y coordinate', value.id)
     geometry(value.width, 'width', value.id, true)
@@ -197,7 +243,7 @@ export function prepareSceneOpen(imported: ArchitectureScene): ArchitectureScene
   return remapScene(imported)
 }
 
-/** Insert the intact native scene as one translated unit, with independent relationships and image assets. */
+/** Insert editable file records as one translated unit, with independent relationships and image assets. */
 export function prepareSceneInsertion(
   imported: ArchitectureScene,
   current: ArchitectureScene | undefined,

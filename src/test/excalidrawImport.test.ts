@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { parseExcalidrawScene, prepareSceneInsertion, prepareSceneOpen, EXCALIDRAW_IMPORT_LIMITS } from '../utils/excalidrawImport'
+import { parseExcalidrawScene, prepareSceneInsertion, prepareSceneOpen, getExcalidrawCompatibilityNotes, EXCALIDRAW_IMPORT_LIMITS } from '../utils/excalidrawImport'
 
 const fixture = (name = 'architecture-complete.excalidraw') =>
   readFileSync(new URL(`./fixtures/excalidraw/${name}`, import.meta.url), 'utf8')
@@ -34,8 +34,8 @@ function refs(scene: ReturnType<typeof parseExcalidrawScene>) {
   }
 }
 
-describe('Excalidraw native scene import', () => {
-  it('imports a file exported by the real native editor using its official serializeAsJSON utility', () => {
+describe('Excalidraw file interoperability', () => {
+  it('imports an actual Excalidraw-exported fixture without requiring an editor runtime', () => {
     const text = fixture('native-editor-roundtrip.excalidraw')
     const exported = JSON.parse(text)
     const scene = parseExcalidrawScene(text)
@@ -137,7 +137,7 @@ describe('Excalidraw native scene import', () => {
     expect(byId(scene.elements, 'request-arrow').points).toEqual(byId(original.elements, 'request-arrow').points)
   })
 
-  it('rejects malformed label and connector associations that native restoration would otherwise discard', () => {
+  it('rejects malformed label and connector associations before applying a scene', () => {
     const wrongContainer = source()
     byId(wrongContainer.elements, 'api-label').containerId = 'request-label'
     expect(() => parse(wrongContainer)).toThrow(/container/i)
@@ -188,6 +188,116 @@ describe('Excalidraw native scene import', () => {
       ...tooManyAssets.files['asset-logo'], id: `asset-${i}`,
     }]))
     expect(() => parse(tooManyAssets)).toThrow(/asset|file|100|limit|many/i)
+  })
+})
+
+describe('custom Draw import compatibility', () => {
+  it('explains local font, sketch-fill, and pressure rendering differences before import', () => {
+    const scene = parseExcalidrawScene(fixture())
+    const before = JSON.stringify(scene)
+    const notes = getExcalidrawCompatibilityNotes(scene)
+    expect(notes).toHaveLength(3)
+    expect(notes).toEqual(expect.arrayContaining([
+      expect.stringMatching(/font.*fallback|fallback.*font/i),
+      expect.stringMatching(/sketch|patterned|texture/i),
+      expect.stringMatching(/pressure|freehand/i),
+    ]))
+    expect(JSON.stringify(scene)).toBe(before)
+  })
+
+  it('identifies pinned elbow constraints while preserving their editable path data', () => {
+    const original = source()
+    const arrow = byId(original.elements, 'request-arrow')
+    arrow.elbowed = true
+    arrow.fixedSegments = [{ index: 1, start: [0, 0], end: [135, -30] }]
+    const scene = parse(original)
+    expect(byId(scene.elements, 'request-arrow')).toMatchObject({
+      points: arrow.points,
+      elbowed: true,
+      fixedSegments: arrow.fixedSegments,
+    })
+    const notes = getExcalidrawCompatibilityNotes(scene)
+    expect(notes).toHaveLength(4)
+    expect(notes).toContainEqual(expect.stringMatching(/fixed.*elbow|elbow.*segment|constraint/i))
+  })
+
+  it('does not show irrelevant compatibility notes for clean sans-serif and monospace drawings', () => {
+    const original = source()
+    for (const element of original.elements) {
+      element.roughness = 0
+      element.fillStyle = 'solid'
+      if (element.type === 'text') element.fontFamily = element.id === 'api-label' ? 2 : 3
+      if (element.type === 'freedraw') element.pressures = []
+    }
+    expect(getExcalidrawCompatibilityNotes(parse(original))).toEqual([])
+  })
+
+  it.each([
+    ['api-service', 'fillStyle', 'gradient'],
+    ['api-service', 'strokeStyle', 'double'],
+    ['api-label', 'textAlign', 'justify'],
+    ['api-label', 'verticalAlign', 'baseline'],
+    ['request-arrow', 'endArrowhead', 'sparkles'],
+    ['request-arrow', 'startArrowhead', 'sparkles'],
+    ['api-service', 'roundness', { type: 99 }],
+    ['api-label', 'fontSize', 0],
+    ['api-label', 'lineHeight', 0],
+    ['api-label', 'fontFamily', 'unavailable-font'],
+  ])('rejects unsupported %s.%s before a scene can be applied', (id, field, value) => {
+    const original = source()
+    byId(original.elements, id as string)[field as string] = value
+    expect(() => parse(original)).toThrow(/Draw|invalid|supported|positive/i)
+  })
+
+  it('retains supported styling, typography, rotation, crops, and image flipping', () => {
+    const original = source()
+    Object.assign(byId(original.elements, 'api-service'), {
+      angle: 0.4, opacity: 61, strokeColor: '#1864ab', strokeWidth: 3,
+      strokeStyle: 'dotted', fillStyle: 'zigzag', roughness: 2, roundness: { type: 2 },
+    })
+    Object.assign(byId(original.elements, 'api-label'), {
+      fontFamily: 3, fontSize: 18, lineHeight: 1.4, textAlign: 'right', verticalAlign: 'bottom',
+    })
+    Object.assign(byId(original.elements, 'logo-image'), {
+      scale: [-1, 1], crop: { x: 10, y: 20, width: 40, height: 30, naturalWidth: 120, naturalHeight: 80 },
+    })
+    const scene = parse(original)
+    for (const id of ['api-service', 'api-label', 'logo-image']) {
+      const expected = { ...byId(original.elements, id) }
+      if (id === 'api-service') {
+        expected.boundElements = (expected.boundElements as Array<{ id: string }>).filter((bound) => bound.id !== 'deleted-label')
+      }
+      expect(byId(scene.elements, id)).toEqual(expected)
+    }
+  })
+
+  it.each([
+    'arrow', 'triangle', 'triangle_outline', 'bar', 'dot', 'dot_outline',
+    'diamond', 'diamond_outline', 'circle', 'circle_outline',
+    'crowfoot_one', 'crowfoot_many', 'crowfoot_one_or_many',
+  ])('retains the supported %s arrowhead at both ends', (arrowhead) => {
+    const original = source()
+    Object.assign(byId(original.elements, 'request-arrow'), { startArrowhead: arrowhead, endArrowhead: arrowhead })
+    expect(byId(parse(original).elements, 'request-arrow')).toMatchObject({ startArrowhead: arrowhead, endArrowhead: arrowhead })
+  })
+
+  it.each([
+    { x: 0, y: 0, width: 0, height: 30, naturalWidth: 100, naturalHeight: 100 },
+    { x: -1, y: 0, width: 20, height: 30, naturalWidth: 100, naturalHeight: 100 },
+    { x: 90, y: 0, width: 20, height: 30, naturalWidth: 100, naturalHeight: 100 },
+    { x: 0, y: 90, width: 20, height: 30, naturalWidth: 100, naturalHeight: 100 },
+    { x: 0, y: 0, width: 20, height: 30, naturalWidth: 100 },
+    { x: 0, y: 0, width: '20', height: 30, naturalWidth: 100, naturalHeight: 100 },
+  ])('rejects malformed or out-of-bounds image crop %# before applying', (crop) => {
+    const original = source()
+    byId(original.elements, 'logo-image').crop = crop
+    expect(() => parse(original)).toThrow(/crop/i)
+  })
+
+  it.each([[[0, 1]], [[2, 1]], [[-1]], [['flip', 1]]])('rejects an invalid image flip transform %#', (scale) => {
+    const original = source()
+    byId(original.elements, 'logo-image').scale = scale
+    expect(() => parse(original)).toThrow(/flip|transform/i)
   })
 })
 
