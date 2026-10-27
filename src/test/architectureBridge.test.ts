@@ -87,6 +87,37 @@ describe('semantic graph/custom Draw bridge', () => {
     expect(graphFromElements(removed, nodes, bare).edges[0].label).toBeUndefined()
   })
 
+  it('keeps vertical connector labels readable on creation, later addition and edits', () => {
+    const nodes = [node('api', 0, 0), node('queue', 0, 250)]
+    const edges = [arrow('order', 'api', 'queue', { label: 'Order placed', data: { protocol: 'event', commStyle: 'async' } })]
+    const created = mergeGraphElements([], nodes, edges, false)
+    const connector = semantic(created, 'order')
+    const caption = created.find(element => element.type === 'text' && element.containerId === connector.id)!
+    expect(connector.width).toBe(0)
+    expect(caption.text).toBe('Order placed · event')
+    expect(caption.width).toBeGreaterThan(120)
+    expect(caption.width).toBeLessThanOrEqual(320)
+    expect(caption.height).toBeLessThan(30)
+
+    const editedEdges = [arrow('order', 'api', 'queue', { label: 'Order placed\nQueue notified', data: { protocol: 'event', commStyle: 'async' } })]
+    const updated = mergeGraphElements(created, nodes, editedEdges, false)
+    const editedCaption = updated.find(element => element.id === caption.id)!
+    expect(editedCaption.text).toBe('Order placed\nQueue notified · event')
+    expect(editedCaption.originalText).toBe(editedCaption.text)
+    expect(editedCaption.height).toBeCloseTo(35)
+    expect(semantic(updated, 'order').points).toEqual(connector.points)
+    expect(semantic(updated, 'order').startBinding).toEqual(connector.startBinding)
+    expect(semantic(updated, 'order').endBinding).toEqual(connector.endBinding)
+    expect(graphFromElements(updated, nodes, editedEdges).edges[0]).toMatchObject({ label: 'Order placed\nQueue notified', data: { protocol: 'event', commStyle: 'async' } })
+
+    const bare = mergeGraphElements([], nodes, [arrow('order', 'api', 'queue', { data: {} })], false)
+    const added = mergeGraphElements(bare, nodes, edges, false)
+    const addedCaption = added.find(element => element.type === 'text' && element.containerId === semantic(added, 'order').id)!
+    expect(addedCaption.width).toBe(caption.width)
+    expect(addedCaption.height).toBe(caption.height)
+    expect(created.filter(element => element.type === 'text' && element.containerId !== connector.id).every(element => element.width <= 160)).toBe(true)
+  })
+
   it('keeps a native custom path when only protocol/appearance metadata changes', () => {
     const nodes = [node('api', 0, 0), node('db', 0, 250)]
     const edges = [arrow('request', 'api', 'db')]

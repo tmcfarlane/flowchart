@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { createEvent, fireEvent, render, screen } from '@testing-library/react'
 import DrawCanvas from '../components/DrawCanvas'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import type { DrawElement } from '../utils/drawScene'
@@ -139,24 +139,52 @@ describe('custom Draw canvas', () => {
     expect(onCommit).not.toHaveBeenCalled()
   })
 
-  it('creates editable text and lets Escape cancel an unfinished label', () => {
+  it.each([
+    { modifier: 'Ctrl', ctrlKey: true, metaKey: false },
+    { modifier: 'Cmd', ctrlKey: false, metaKey: true },
+  ])('keeps multiline text editing open until $modifier+Enter commits it', ({ ctrlKey, metaKey }) => {
     const { surface, scene, onCommit } = renderDrawing()
     fireEvent.keyDown(surface, { key: 't' })
     fireEvent.pointerDown(surface, pointer(100, 120))
     const text = screen.getByLabelText('Edit drawing text')
     fireEvent.change(text, { target: { value: 'Orders API' } })
-    fireEvent.keyDown(text, { key: 'Enter' })
-    expect(scene().elements).toEqual([expect.objectContaining({ type: 'text', text: 'Orders API' })])
-    const committedCount = onCommit.mock.calls.length
+    const enter = createEvent.keyDown(text, { key: 'Enter' })
+    fireEvent(text, enter)
+    expect(enter.defaultPrevented).toBe(false)
+    expect(text).toBeInTheDocument()
+    expect(onCommit).not.toHaveBeenCalled()
+    // JSDOM does not perform the browser's default textarea edit.
+    fireEvent.change(text, { target: { value: 'Orders API\nShipping worker' } })
+    const shiftEnter = createEvent.keyDown(text, { key: 'Enter', shiftKey: true })
+    fireEvent(text, shiftEnter)
+    expect(shiftEnter.defaultPrevented).toBe(false)
+    expect(text).toBeInTheDocument()
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.change(text, { target: { value: 'Orders API\nShipping worker\nEvent queue' } })
+    fireEvent.keyDown(text, { key: 'Enter', ctrlKey, metaKey })
+
+    expect(screen.queryByLabelText('Edit drawing text')).not.toBeInTheDocument()
+    expect(scene().elements).toEqual([expect.objectContaining({ type: 'text', text: 'Orders API\nShipping worker\nEvent queue' })])
+    expect(onCommit).toHaveBeenCalledTimes(1)
+  })
+
+  it('commits text on Escape and drops an empty new text object without changing the document', () => {
+    const { surface, scene, onCommit } = renderDrawing()
+    fireEvent.keyDown(surface, { key: 't' })
+    fireEvent.pointerDown(surface, pointer(100, 120))
+    fireEvent.change(screen.getByLabelText('Edit drawing text'), { target: { value: 'Saved with Escape' } })
+    fireEvent.keyDown(screen.getByLabelText('Edit drawing text'), { key: 'Escape' })
+    expect(scene().elements).toEqual([expect.objectContaining({ type: 'text', text: 'Saved with Escape' })])
+    expect(screen.queryByLabelText('Edit drawing text')).not.toBeInTheDocument()
+    const saved = scene()
+    const commits = onCommit.mock.calls.length
 
     fireEvent.keyDown(surface, { key: 't' })
     fireEvent.pointerDown(surface, pointer(400, 120))
-    const draftText = screen.getByLabelText('Edit drawing text')
-    fireEvent.change(draftText, { target: { value: 'Cancelled label' } })
-    fireEvent.keyDown(draftText, { key: 'Escape' })
-    expect(scene().elements).toHaveLength(1)
-    expect(onCommit).toHaveBeenCalledTimes(committedCount)
-    expect(screen.queryByText('Cancelled label')).not.toBeInTheDocument()
+    fireEvent.keyDown(screen.getByLabelText('Edit drawing text'), { key: 'Escape' })
+    expect(scene()).toEqual(saved)
+    expect(onCommit).toHaveBeenCalledTimes(commits)
+    expect(screen.queryByLabelText('Edit drawing text')).not.toBeInTheDocument()
   })
 
   it('groups and duplicates a selection with independent ids and one undoable command', () => {

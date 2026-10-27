@@ -17,13 +17,17 @@ function labelSize(text: string, fontSize: number, maxWidth: number): { width: n
   return { width, height: Math.max(fontSize * 1.25, rows * fontSize * 1.25) }
 }
 
+// A connector's horizontal span can be zero. Its caption needs a readable
+// measure independent of path geometry; shape labels still fit their shape.
+const labelMaxWidth = (element: DrawElement) => ['arrow', 'line'].includes(element.type) ? 320 : Math.max(20, element.width - 20)
+
 function createElements(skeletons: ElementSkeleton[]): DrawElement[] {
   return skeletons.flatMap(skeleton => {
     const { label, ...properties } = skeleton
     const start = { x: skeleton.x ?? 0, y: skeleton.y ?? 0 }
     const element = createElement(skeleton.type, start, { x: start.x + (skeleton.width ?? 180), y: start.y + (skeleton.height ?? 90) }, properties)
     if (!label?.text) return [element]
-    const size = labelSize(label.text, label.fontSize ?? 18, Math.max(20, element.width - 20))
+    const size = labelSize(label.text, label.fontSize ?? 18, labelMaxWidth(element))
     const center = getElementCenter(element)
     const text = createElement('text', { x: center.x - size.width / 2, y: center.y - size.height / 2 }, undefined, {
       ...size, text: label.text, originalText: label.text, fontSize: label.fontSize ?? 18, fontFamily: label.fontFamily ?? 2,
@@ -73,14 +77,14 @@ function setBoundLabel(output: DrawElement[], container: DrawElement, label: str
   }
   if (previous?.type === 'text') {
     const center = getElementCenter(container)
-    const size = labelSize(label, previous.fontSize ?? fontSize, Math.max(20, container.width - 20))
+    const size = labelSize(label, previous.fontSize ?? fontSize, labelMaxWidth(container))
     output[index] = updateElement(previous, {
       text: label, originalText: label, isDeleted: false,
       ...size, x: center.x - size.width / 2, y: center.y - size.height / 2,
     })
     return
   }
-  const center = getElementCenter(container), size = labelSize(label, fontSize, Math.max(20, container.width - 20))
+  const center = getElementCenter(container), size = labelSize(label, fontSize, labelMaxWidth(container))
   const text = createElement('text', { x: center.x - size.width / 2, y: center.y - size.height / 2 }, undefined, { ...size, text: label, originalText: label, fontSize, fontFamily: 2, containerId: container.id, verticalAlign: 'middle', textAlign: 'center' })
   output.push(text)
 }

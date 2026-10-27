@@ -6,6 +6,7 @@ import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/
 import { createElement, deleteElements, duplicateSelection, expandSelection, getElementBounds, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
 import DrawSceneSvg from './DrawSceneSvg'
 import DrawToolIcon from './DrawToolIcon'
+import DrawLibrary from './DrawLibrary'
 import './DrawCanvas.css'
 
 export interface DrawCanvasApi {
@@ -46,6 +47,7 @@ interface Gesture {
   pointIndex?: number
 }
 interface TextEdit { id: string; value: string; before: ArchitectureScene }
+interface ClipboardInput { target: EventTarget | null; clipboardData: DataTransfer | null; preventDefault: () => void }
 const tools: Array<{ tool: Tool; name: string; shortcut: string; glyph: string }> = [
   { tool: 'selection', name: 'Selection', shortcut: 'V / 1', glyph: '↖' },
   { tool: 'hand', name: 'Hand', shortcut: 'H', glyph: '✋' },
@@ -82,8 +84,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const [draft, setDraft] = useState(seeded)
   const draftRef = useRef(draft)
   const committed = useRef(seeded)
-  const lastEmitted = useRef(scene ? JSON.stringify(scene) : '')
-  const lastGraph = useRef(graphSignature(nodes, edges))
+  const [initialInputSignature] = useState(() => scene ? JSON.stringify(scene) : '')
+  const [initialGraphSignature] = useState(() => graphSignature(nodes, edges))
+  const lastEmitted = useRef(initialInputSignature)
+  const lastGraph = useRef(initialGraphSignature)
   const [viewport, setViewport] = useState<Viewport>({ x: 0, y: 0, zoom: 1 })
   const viewportRef = useRef(viewport); viewportRef.current = viewport
   const [tool, setTool] = useState<Tool>('selection')
@@ -96,6 +100,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const textRef = useRef<HTMLTextAreaElement>(null)
   const [defaults, setDefaults] = useState<Partial<DrawElement>>({ strokeColor: '#0f766e', backgroundColor: 'transparent', strokeWidth: 2, strokeStyle: 'solid', fillStyle: 'solid', roughness: 0, opacity: 100, fontSize: 20, fontFamily: 2, textAlign: 'left', roundness: { type: 3 }, endArrowhead: 'arrow' })
   const [help, setHelp] = useState(false)
+  const [showTextProperties, setShowTextProperties] = useState(false)
+  const styleClipboard = useRef<Partial<DrawElement> | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [grid, setGrid] = useState(false)
   const [snap, setSnap] = useState(false)
@@ -105,6 +111,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const historyIndex = useRef(0)
   const clipboard = useRef<ArchitectureScene | null>(null)
   const pasteOffset = useRef(0)
+  const pasteEvents = useRef(0)
+  const clipboardEvents = useRef<Record<'copy' | 'cut' | 'paste', (event: ClipboardInput) => void>>({ copy: () => {}, cut: () => {}, paste: () => {} })
   const gesture = useRef<Gesture | null>(null)
   const nudgeBefore = useRef<ArchitectureScene | null>(null)
   const heldSpace = useRef(false)
@@ -128,9 +136,15 @@ export default function DrawCanvas(props: DrawCanvasProps) {
 
   const emit = useCallback((next: ArchitectureScene, record = true) => {
     const current = latest.current
-    const graph = graphFromElements(next.elements as DrawElement[], current.nodes, current.edges)
-    const complete: ArchitectureScene = { ...next, elements: [...graph.elements] }
-    if (JSON.stringify(complete) === JSON.stringify(committed.current)) { preview(complete); return }
+    let graph: ReturnType<typeof graphFromElements>, complete: ArchitectureScene
+    try {
+      graph = graphFromElements(next.elements as DrawElement[], current.nodes, current.edges)
+      complete = validateArchitectureScene({ ...next, elements: [...graph.elements] })
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'This change could not be saved.')
+      preview(copy(committed.current)); return false
+    }
+    if (JSON.stringify(complete) === JSON.stringify(committed.current)) { preview(complete); return true }
     if (record && !current.onUndo) {
       history.current = [...history.current.slice(0, historyIndex.current + 1), copy(complete)].slice(-100)
       historyIndex.current = history.current.length - 1
@@ -141,6 +155,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     lastGraph.current = graphSignature(graph.nodes, graph.edges)
     preview(complete)
     current.onChange(complete, graph.nodes, graph.edges)
+    return true
   }, [preview])
 
   const undo = useCallback(() => {
@@ -176,6 +191,20 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     background.setAttribute('x', String(bounds.x - padding)); background.setAttribute('y', String(bounds.y - padding)); background.setAttribute('width', svg.getAttribute('width')!); background.setAttribute('height', svg.getAttribute('height')!); const stored = draftRef.current.appState?.viewBackgroundColor ?? '#ffffff'
     background.setAttribute('fill', darkMode && ['#fff', '#ffffff', 'white'].includes(stored.toLowerCase()) ? '#0f1211' : stored)
     svg.append(background, content.cloneNode(true))
+    // Projected architecture icons may reference local bundled SVG assets.
+    // Make the exported scene self-contained before either vector or raster export.
+    await Promise.all(Array.from(svg.getElementsByTagName('image')).map(async asset => {
+      const href = asset.getAttribute('href') || asset.getAttributeNS('http://www.w3.org/1999/xlink', 'href')
+      if (!href || href.startsWith('data:')) return
+      const url = new URL(href, window.location.href)
+      if (!['https:', 'http:'].includes(url.protocol) || (url.protocol === 'http:' && url.origin !== window.location.origin)) throw new Error('An image cannot be embedded in this export.')
+      const response = await fetch(url, { credentials: 'same-origin' })
+      if (!response.ok) throw new Error('A drawing image could not be loaded for export.')
+      const blob = await response.blob()
+      const dataURL = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('A drawing image could not be embedded.')); reader.readAsDataURL(blob) })
+      asset.setAttribute('href', dataURL)
+      asset.removeAttributeNS('http://www.w3.org/1999/xlink', 'href')
+    }))
     const serialized = new XMLSerializer().serializeToString(svg)
     if (format === 'svg') { download(new Blob([serialized], { type: 'image/svg+xml' }), 'drawing.svg'); return }
     const image = new Image(), url = URL.createObjectURL(new Blob([serialized], { type: 'image/svg+xml' }))
@@ -246,32 +275,85 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }
   const duplicate = () => { const next = duplicateSelection(draftRef.current, selectedRef.current, undefined, true); select(next.selectedIds); emit(next.scene) }
   const copySelection = () => {
-    const ids = new Set(expandSelection(draftRef.current, selectedRef.current))
-    clipboard.current = { ...copy(draftRef.current), elements: draftRef.current.elements.filter(e => ids.has(String(e.id))) }
-    pasteOffset.current = 0
-    if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(JSON.stringify({ type: 'flowchart-drawing', scene: clipboard.current })).catch(() => {})
-  }
-  const pasteSelection = () => {
-    if (!clipboard.current?.elements.length) return
-    pasteOffset.current += 24
-    const next = duplicateSelection(clipboard.current, clipboard.current.elements.map(e => String(e.id)), { x: pasteOffset.current, y: pasteOffset.current })
-    const previousIds = new Set(clipboard.current.elements.map(e => e.id))
-    const added = next.scene.elements.filter(e => !previousIds.has(e.id))
-    select(next.selectedIds)
-    emit({ ...draftRef.current, elements: [...draftRef.current.elements, ...added], files: { ...draftRef.current.files, ...next.scene.files } })
-  }
-  const finishText = (cancel = false) => {
-    if (!textEdit) return
-    if (cancel) preview(textEdit.before)
-    else {
-      const element = draftRef.current.elements.find(e => e.id === textEdit.id) as DrawElement | undefined
-      const value = textEdit.value.trimEnd()
-      if (!value) emit(deleteElements(draftRef.current, [textEdit.id], true))
-      else if (element?.type === 'frame') emit(patchElement(draftRef.current, element.id, { name: value }))
-      else {
-        const fontSize = element?.fontSize ?? 20, lines = value.split('\n')
-        emit(patchElement(draftRef.current, textEdit.id, { text: value, originalText: value, width: Math.max(24, Math.max(...lines.map(line => line.length)) * fontSize * 0.61), height: Math.max(fontSize * 1.3, lines.length * fontSize * 1.3) }))
+    const ids = new Set(expandSelection(draftRef.current, selectedRef.current, true))
+    if (!ids.size) return null
+    const graphIds = new Set(live(draftRef.current).filter(element => ids.has(element.id)).flatMap(element => { const metadata = element.customData?.flowchart as Record<string, unknown> | undefined; return metadata?.kind === 'node' && typeof metadata.id === 'string' ? [metadata.id] : [] }))
+    const elements = draftRef.current.elements.filter(e => ids.has(String(e.id))).map(raw => {
+      const element = copy(raw) as DrawElement
+      const metadata = element.customData?.flowchart as Record<string, unknown> | undefined
+      if (metadata && element.customData) {
+        const saved = metadata.snapshot as Record<string, unknown> | undefined
+        if ((metadata.kind === 'edge' && (!graphIds.has(String(saved?.source)) || !graphIds.has(String(saved?.target)))) || (metadata.kind === 'icon' && !graphIds.has(String(metadata.id)))) delete element.customData.flowchart
+        else if (metadata.kind === 'node' && saved && typeof saved.parentNode === 'string' && !graphIds.has(saved.parentNode)) { const { parentNode: _parent, ...detached } = saved; element.customData.flowchart = { ...metadata, snapshot: detached } }
       }
+      return { ...element, frameId: element.frameId && ids.has(element.frameId) ? element.frameId : null, containerId: element.containerId && ids.has(element.containerId) ? element.containerId : null,
+        boundElements: element.boundElements?.filter(bound => ids.has(bound.id)) ?? null,
+        startBinding: element.startBinding && ids.has(element.startBinding.elementId) ? element.startBinding : null,
+        endBinding: element.endBinding && ids.has(element.endBinding.elementId) ? element.endBinding : null }
+    })
+    const fileIds = new Set(elements.flatMap(element => element.fileId ? [element.fileId] : []))
+    clipboard.current = { ...copy(draftRef.current), elements, files: Object.fromEntries(Object.entries(draftRef.current.files).filter(([id]) => fileIds.has(id))) }
+    pasteOffset.current = 0
+    return clipboard.current
+  }
+  const insertComponent = (component: ArchitectureScene, offset = 0) => {
+    try {
+      const valid = validateArchitectureScene(component), bounds = getSceneBounds(valid.elements), rect = surface.current?.getBoundingClientRect()
+      const center = worldPoint({ x: (rect?.left ?? 0) + (rect?.width ?? 800) / 2, y: (rect?.top ?? 0) + (rect?.height ?? 600) / 2 })
+      const result = duplicateSelection(valid, live(valid).map(element => element.id), { x: center.x - bounds.x - bounds.width / 2 + offset, y: center.y - bounds.y - bounds.height / 2 + offset }, true)
+      const originalIds = new Set(valid.elements.map(element => element.id)), added = result.scene.elements.filter(element => !originalIds.has(element.id))
+      const fileIds = new Set(added.flatMap(raw => { const element = raw as DrawElement; return element.fileId ? [element.fileId] : [] }))
+      const files = Object.fromEntries(Object.entries(result.scene.files).filter(([id]) => fileIds.has(id)))
+      const next = validateArchitectureScene({ ...draftRef.current, elements: [...draftRef.current.elements, ...added], files: { ...draftRef.current.files, ...files } })
+      if (!emit(next)) return false
+      select(result.selectedIds); setTool('selection'); return true
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'This drawing could not be inserted.'); return false }
+  }
+  const pasteSelection = () => { if (clipboard.current?.elements.length) { pasteOffset.current += 24; insertComponent(clipboard.current, pasteOffset.current) } }
+  const writeClipboard = (event: ClipboardInput, cut = false) => {
+    if (editableTarget(event.target) || editableTarget(document.activeElement)) return
+    const selected = copySelection()
+    if (!selected?.elements.length || !event.clipboardData) return
+    const serialized = JSON.stringify({ type: 'flowchart-drawing', scene: selected })
+    event.clipboardData.setData('application/x-flowchart-drawing', serialized)
+    event.clipboardData.setData('text/plain', serialized)
+    event.preventDefault()
+    if (cut) { emit(deleteElements(draftRef.current, selectedRef.current, true)); select([]) }
+  }
+  const readClipboard = (event: ClipboardInput) => {
+    if (editableTarget(event.target) || editableTarget(document.activeElement) || !event.clipboardData) return
+    pasteEvents.current++
+    const text = event.clipboardData.getData('application/x-flowchart-drawing') || event.clipboardData.getData('text/plain')
+    if (!text || text.length > 4 * 1024 * 1024) return
+    try {
+      const parsed = JSON.parse(text) as { type?: string; scene?: unknown }
+      if (parsed.type !== 'flowchart-drawing') return
+      const valid = validateArchitectureScene(parsed.scene)
+      event.preventDefault(); clipboard.current = valid; pasteOffset.current = 0; pasteSelection()
+    } catch { /* Other clipboard formats retain their browser behavior. */ }
+  }
+  clipboardEvents.current = { copy: event => writeClipboard(event), cut: event => writeClipboard(event, true), paste: readClipboard }
+  useEffect(() => {
+    // Some browsers dispatch non-editable canvas clipboard events on body.
+    const listeners = (['copy', 'cut', 'paste'] as const).map(type => {
+      const listener = (event: globalThis.ClipboardEvent) => {
+        if (!event.defaultPrevented && wrapper.current?.contains(document.activeElement) && !wrapper.current.contains(event.target as globalThis.Node | null)) clipboardEvents.current[type](event)
+      }
+      document.addEventListener(type, listener)
+      return { type, listener }
+    })
+    return () => { for (const { type, listener } of listeners) document.removeEventListener(type, listener) }
+  }, [])
+  const finishText = () => {
+    if (!textEdit) return
+    const element = draftRef.current.elements.find(e => e.id === textEdit.id) as DrawElement | undefined
+    const value = textEdit.value.trimEnd()
+    if (!value && !textEdit.before.elements.some(element => element.id === textEdit.id)) preview(textEdit.before)
+    else if (!value) emit(deleteElements(draftRef.current, [textEdit.id], true))
+    else if (element?.type === 'frame') emit(patchElement(draftRef.current, element.id, { name: value }))
+    else {
+      const fontSize = element?.fontSize ?? 20, lines = value.split('\n')
+      emit(patchElement(draftRef.current, textEdit.id, { text: value, originalText: value, width: Math.max(24, Math.max(...lines.map(line => line.length)) * fontSize * 0.61), height: Math.max(fontSize * 1.3, lines.length * fontSize * 1.3) }))
     }
     setTextEdit(null); wrapper.current?.focus()
   }
@@ -301,15 +383,30 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (event.code === 'Space') { event.preventDefault(); heldSpace.current = true; return }
     if (mod && key === 'z') { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return }
     if (mod && key === 'y') { event.preventDefault(); redo(); return }
+    if (event.key === 'PageUp' || event.key === 'PageDown') {
+      event.preventDefault(); const rect = surface.current?.getBoundingClientRect(), direction = event.key === 'PageDown' ? -1 : 1
+      setViewport(view => ({ ...view, x: view.x + (event.shiftKey ? (rect?.width ?? 800) * direction : 0), y: view.y + (event.shiftKey ? 0 : (rect?.height ?? 600) * direction) })); return
+    }
     if (viewMode) return
+    if (mod && event.altKey && key === 'c') {
+      event.preventDefault(); const element = live(draftRef.current).find(item => selectedRef.current.has(item.id))
+      if (element) { const keys = ['strokeColor', 'backgroundColor', 'strokeWidth', 'strokeStyle', 'fillStyle', 'roughness', 'opacity', 'roundness', 'fontSize', 'fontFamily', 'textAlign', 'startArrowhead', 'endArrowhead', 'elbowed']; styleClipboard.current = Object.fromEntries(keys.filter(name => element[name] !== undefined).map(name => [name, copy(element[name])])) }
+      return
+    }
+    if (mod && event.altKey && key === 'v') { event.preventDefault(); if (styleClipboard.current) applyProperties(styleClipboard.current); return }
+    if (mod && event.shiftKey && (['Comma', 'Period'].includes(event.code) || ['<', '>'].includes(key))) {
+      event.preventDefault(); const increase = event.code === 'Period' || key === '>', size = Number(live(draftRef.current).find(element => selectedRef.current.has(element.id) && element.type === 'text')?.fontSize ?? defaults.fontSize ?? 20)
+      applyProperties({ fontSize: Math.max(8, Math.min(144, size + (increase ? 2 : -2))) }); return
+    }
+    if (event.shiftKey && !mod && key === 'f') { event.preventDefault(); setShowTextProperties(true); requestAnimationFrame(() => wrapper.current?.querySelector<HTMLElement>('[aria-label="Font family"]')?.focus()); return }
     if (mod && key === 'a') { event.preventDefault(); select(live(draftRef.current).filter(e => !e.locked).map(e => e.id)); return }
-    if (mod && key === 'c') { event.preventDefault(); copySelection(); return }
-    if (mod && key === 'x') { event.preventDefault(); copySelection(); emit(deleteElements(draftRef.current, selectedRef.current, true)); select([]); return }
-    if (mod && key === 'v') { event.preventDefault(); pasteSelection(); return }
+    if (mod && key === 'c') { copySelection(); return }
+    if (mod && key === 'x') { copySelection(); return }
+    if (mod && key === 'v') { const count = pasteEvents.current; if (clipboard.current) window.setTimeout(() => { if (pasteEvents.current === count) pasteSelection() }, 50); return }
     if (mod && key === 'd') { event.preventDefault(); duplicate(); return }
     if (mod && key === 'g') { event.preventDefault(); groupSelection(event.shiftKey); return }
     if (mod && event.shiftKey && key === 'l') { event.preventDefault(); const locked = live(draftRef.current).filter(e => selectedRef.current.has(e.id)).every(e => e.locked); applyProperties({ locked: !locked }); return }
-    if (mod && (['[', ']'].includes(key) || ['BracketLeft', 'BracketRight'].includes(event.code))) { event.preventDefault(); const forward = event.code === 'BracketRight' || key === ']'; reorder(forward ? event.shiftKey ? 'front' : 'forward' : event.shiftKey ? 'back' : 'backward'); return }
+    if (mod && (['[', ']'].includes(key) || ['BracketLeft', 'BracketRight'].includes(event.code))) { event.preventDefault(); const forward = event.code === 'BracketRight' || key === ']', extreme = event.shiftKey || (event.metaKey && event.altKey); reorder(forward ? extreme ? 'front' : 'forward' : extreme ? 'back' : 'backward'); return }
     if (mod && event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); align(event.key === 'ArrowLeft' ? 'left' : event.key === 'ArrowRight' ? 'right' : event.key === 'ArrowUp' ? 'top' : 'bottom'); return }
     if (mod && ['+', '=', '-', '0'].includes(key)) { event.preventDefault(); setViewport(view => ({ ...view, zoom: key === '0' ? 1 : Math.max(0.1, Math.min(5, view.zoom * (key === '-' ? 0.8 : 1.25))) })); return }
     if (event.shiftKey && (event.code === 'Digit1' || key === '1')) { event.preventDefault(); fitScene(); return }
@@ -332,6 +429,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const aliases: Record<string, Tool> = { v: 'selection', '1': 'selection', h: 'hand', r: 'rectangle', '2': 'rectangle', d: 'diamond', '3': 'diamond', o: 'ellipse', '4': 'ellipse', a: 'arrow', '5': 'arrow', l: 'line', '6': 'line', p: 'freedraw', '7': 'freedraw', t: 'text', '8': 'text', '9': 'image', e: 'eraser', '0': 'eraser', f: 'frame' }
     if (aliases[key]) { event.preventDefault(); setActiveTool(aliases[key]) }
     else if (key === 'q') { event.preventDefault(); setKeepTool(value => !value) }
+    else if (key === 's' || key === 'g') { event.preventDefault(); wrapper.current?.querySelector<HTMLElement>(key === 's' ? '[aria-label="Stroke color"]' : '[aria-label="Background color"]')?.focus() }
   }
   const onKeyUp = (event: KeyboardEvent<HTMLElement>) => {
     if (event.code === 'Space') heldSpace.current = false
@@ -341,7 +439,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const hitElement = (point: Point, exclude?: string) => [...live(draftRef.current)].reverse().find(element => element.id !== exclude && inside(point, getElementBounds(element), ['line', 'arrow', 'freedraw'].includes(element.type) ? 6 / viewportRef.current.zoom : 0))
   const bindingFor = (point: Point, exclude: string) => {
     const host = [...live(draftRef.current)].reverse().find(element => element.id !== exclude && ['rectangle', 'ellipse', 'diamond', 'image'].includes(element.type) && inside(point, getElementBounds(element), 12 / viewportRef.current.zoom))
-    return host ? { elementId: host.id, focus: 0, gap: 0, fixedPoint: [Math.max(0, Math.min(1, (point.x - host.x) / Math.max(1, host.width))), Math.max(0, Math.min(1, (point.y - host.y) / Math.max(1, host.height)))] as [number, number] } : null
+    if (!host) return null
+    const local = rotatePoint(point, { x: host.x + host.width / 2, y: host.y + host.height / 2 }, -(host.angle ?? 0))
+    return { elementId: host.id, focus: 0, gap: 0, fixedPoint: [Math.max(0, Math.min(1, (local.x - host.x) / Math.max(1, host.width))), Math.max(0, Math.min(1, (local.y - host.y) / Math.max(1, host.height)))] as [number, number] }
   }
   const onPointerDown = (event: PointerEvent<SVGSVGElement>) => {
     if (textEdit) return
@@ -361,7 +461,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       const next = { ...before, elements: [...before.elements, element] }
       preview(next); select([element.id]); gesture.current = { ...base, kind: 'create', base: next, elementId: element.id }
     } else {
-      const id = target.closest('[data-element-id]')?.getAttribute('data-element-id'), hit = live(before).find(e => e.id === id)
+      const id = target.closest('[data-element-id]')?.getAttribute('data-element-id')
+      const clicked = live(before).find(element => element.id === id)
+      const hit = clicked?.containerId && !event.ctrlKey && !event.metaKey ? live(before).find(element => element.id === clicked.containerId) ?? clicked : clicked
       if (hit && (!hit.locked || event.ctrlKey || event.metaKey)) {
         const expanded = expandSelection(before, [hit.id], event.ctrlKey || event.metaKey)
         const chosen = event.shiftKey ? new Set([...selectedRef.current, ...expanded]) : selectedRef.current.has(hit.id) ? new Set(selectedRef.current) : new Set(expanded)
@@ -420,10 +522,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     }
     if (active.kind === 'point' && active.elementId) {
       const element = live(active.base).find(e => e.id === active.elementId)!
-      const center = { x: element.x + element.width / 2, y: element.y + element.height / 2 }, local = rotatePoint(point, center, -(element.angle ?? 0))
-      const points = (element.points ?? [[0, 0], [element.width, element.height]]).map(p => [...p] as [number, number])
-      points[active.pointIndex!] = [local.x - element.x, local.y - element.y]
-      preview(patchElement(active.base, element.id, { points, ...(active.pointIndex === 0 ? { startBinding: null } : active.pointIndex === points.length - 1 ? { endBinding: null } : {}) })); return
+      const worldPoints = getWorldPoints(element)
+      worldPoints[active.pointIndex!] = point
+      const unrotated = worldPoints.map(position => rotatePoint(position, { x: 0, y: 0 }, -(element.angle ?? 0)))
+      const xs = unrotated.map(position => position.x), ys = unrotated.map(position => position.y)
+      const center = { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2 }
+      const worldCenter = rotatePoint(center, { x: 0, y: 0 }, element.angle ?? 0), origin = unrotated[0]
+      const points = unrotated.map(position => [position.x - origin.x, position.y - origin.y] as [number, number])
+      preview(patchElement(active.base, element.id, { x: worldCenter.x - center.x + origin.x, y: worldCenter.y - center.y + origin.y, width: Math.max(...xs) - Math.min(...xs), height: Math.max(...ys) - Math.min(...ys), points, ...(active.pointIndex === 0 ? { startBinding: null } : active.pointIndex === points.length - 1 ? { endBinding: null } : {}) })); return
     }
     if (active.kind === 'create' && active.elementId) {
       const element = live(active.base).find(e => e.id === active.elementId)!
@@ -453,6 +559,11 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (element.type === 'frame') next = { ...next, elements: next.elements.map(raw => { const item = raw as DrawElement; return item.id !== element.id && item.type !== 'frame' && inside({ x: item.x, y: item.y }, element) && inside({ x: item.x + item.width, y: item.y + item.height }, element) ? { ...item, frameId: element.id } : item }) }
       if (!keepTool) setTool('selection')
     }
+    if (active.kind === 'point' && active.elementId && !event.ctrlKey && !event.metaKey) {
+      const element = live(next).find(item => item.id === active.elementId)!
+      const endpoint = active.pointIndex === 0 ? 'startBinding' : active.pointIndex === (element.points?.length ?? 0) - 1 ? 'endBinding' : null
+      if (endpoint) next = rerouteBindings(patchElement(next, element.id, { [endpoint]: bindingFor(worldPoint({ x: event.clientX, y: event.clientY }), element.id) }), [element.id])
+    }
     emit(next)
   }
 
@@ -475,7 +586,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (file.size > 3 * 1024 * 1024) { setMessage('Choose an image smaller than 3 MB so the complete diagram can be saved.'); return }
     const dataURL = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file) })
     const image = new Image(); image.src = dataURL
-    await image.decode().catch(() => {})
+    try { await image.decode(); if (!image.naturalWidth || !image.naturalHeight) throw new Error('Empty image') } catch { setMessage('This image could not be decoded. Choose a valid image file.'); return }
     const rect = surface.current?.getBoundingClientRect(), center = worldPoint({ x: (rect?.left ?? 0) + (rect?.width ?? 800) / 2, y: (rect?.top ?? 0) + (rect?.height ?? 600) / 2 })
     const width = Math.min(360, image.naturalWidth || 240), height = width * (image.naturalHeight || 180) / (image.naturalWidth || 240), id = newDrawId('image')
     const element = createElement('image', { x: center.x - width / 2, y: center.y - height / 2 }, { x: center.x + width / 2, y: center.y + height / 2 }, { fileId: id, status: 'saved', scale: [1, 1] })
@@ -485,7 +596,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const storedBackground = draft.appState?.viewBackgroundColor ?? '#ffffff'
   const canvasBackground = darkMode && ['#ffffff', '#fff', 'white'].includes(storedBackground.toLowerCase()) ? '#0f1211' : storedBackground
   const chosen = live(draft).filter(element => selectedIds.has(element.id)), first = chosen[0]
-  const property = <K extends keyof DrawElement>(key: K, fallback: DrawElement[K]) => (first?.[key] ?? defaults[key] ?? fallback)
+  const property = <K extends keyof DrawElement>(key: K, fallback: DrawElement[K]) => {
+    const primary = ['fontSize', 'fontFamily', 'textAlign'].includes(String(key)) ? chosen.find(element => element.type === 'text') ?? first : first
+    return primary?.[key] ?? defaults[key] ?? fallback
+  }
   const selectionBounds = chosen.length ? getSceneBounds(chosen) : null
   const editElement = textEdit ? live(draft).find(e => e.id === textEdit.id) : undefined
   const textPosition = editElement ? { left: viewport.x + editElement.x * viewport.zoom, top: viewport.y + editElement.y * viewport.zoom } : undefined
@@ -493,7 +607,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const canRedo = props.onRedo ? props.canRedo : historyIndex.current + 1 < history.current.length
   void historyVersion
 
-  return <section ref={wrapper} className={`draw-canvas ${darkMode ? 'draw-dark' : 'draw-light'} ${viewMode ? 'draw-presentation' : ''}`} aria-label="Draw canvas" tabIndex={0} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as globalThis.Node | null)) { heldSpace.current = false; if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) } } }}>
+  return <section ref={wrapper} className={`draw-canvas ${darkMode ? 'draw-dark' : 'draw-light'} ${viewMode ? 'draw-presentation' : ''}`} aria-label="Draw canvas" tabIndex={0} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onCopy={event => clipboardEvents.current.copy(event)} onCut={event => clipboardEvents.current.cut(event)} onPaste={event => clipboardEvents.current.paste(event)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as globalThis.Node | null)) { heldSpace.current = false; if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) } } }}>
     {!viewMode && <div className="draw-tools" role="toolbar" aria-label="Drawing tools">
       {tools.map(item => <button key={item.tool} type="button" aria-label={`${item.name} tool`} aria-pressed={tool === item.tool} className={tool === item.tool ? 'active' : ''} title={`${item.name} (${item.shortcut})`} onClick={() => setActiveTool(item.tool)}><DrawToolIcon tool={item.tool} /><small>{item.shortcut.split(' / ').slice(-1)[0]}</small></button>)}
       <span className="draw-divider" />
@@ -516,7 +630,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         {marquee && <rect {...marquee} fill="#17b89520" stroke="#17b895" strokeWidth={1 / viewport.zoom} pointerEvents="none" />}
       </g>
     </svg>
-    {textEdit && editElement && <textarea ref={textRef} className="draw-text-editor" aria-label="Edit drawing text" style={{ ...textPosition, width: Math.max(180, editElement.width * viewport.zoom + 40), minHeight: Math.max(46, editElement.height * viewport.zoom + 20), fontSize: (editElement.fontSize ?? 20) * viewport.zoom }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); finishText(true) } else if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
+    {textEdit && editElement && <textarea ref={textRef} className="draw-text-editor" aria-label="Edit drawing text" style={{ ...textPosition, width: Math.max(180, editElement.width * viewport.zoom + 40), minHeight: Math.max(46, editElement.height * viewport.zoom + 20), fontSize: (editElement.fontSize ?? 20) * viewport.zoom }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
     {!viewMode && <aside className="draw-properties" aria-label="Drawing properties">
       <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
       <div className="draw-property-pair"><label>Stroke<input aria-label="Stroke color" type="color" value={String(property('strokeColor', '#0f766e')).startsWith('#') ? String(property('strokeColor', '#0f766e')) : '#0f766e'} onChange={event => applyProperties({ strokeColor: event.target.value })} /></label><label>Fill<input aria-label="Background color" type="color" value={String(property('backgroundColor', 'transparent')).startsWith('#') ? String(property('backgroundColor', 'transparent')) : '#ffffff'} onChange={event => applyProperties({ backgroundColor: event.target.value })} /></label></div>
@@ -526,14 +640,15 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <label>Sketch<select aria-label="Roughness" value={Number(property('roughness', 0))} onChange={event => applyProperties({ roughness: Number(event.target.value) })}><option value="0">Clean</option><option value="1">Sketch</option><option value="2">Loose</option></select></label>
       <label>Corners<select aria-label="Corners" value={property('roundness', null) ? 'rounded' : 'sharp'} onChange={event => applyProperties({ roundness: event.target.value === 'rounded' ? { type: 3 } : null })}><option value="rounded">Rounded</option><option value="sharp">Sharp</option></select></label>
       <label>Opacity <span>{Number(property('opacity', 100))}%</span><input aria-label="Opacity" type="range" min="0" max="100" value={Number(property('opacity', 100))} onChange={event => applyProperties({ opacity: Number(event.target.value) })} /></label>
-      {(tool === 'text' || chosen.some(e => e.type === 'text')) && <fieldset><legend>Text</legend><div className="draw-property-pair"><label>Size<input aria-label="Font size" type="number" min="8" max="144" value={Number(property('fontSize', 20))} onChange={event => applyProperties({ fontSize: Math.max(8, Number(event.target.value)) })} /></label><label>Font<select aria-label="Font family" value={Number(property('fontFamily', 2))} onChange={event => applyProperties({ fontFamily: Number(event.target.value) })}><option value="2">Sans</option><option value="1">Hand</option><option value="3">Mono</option></select></label></div><label>Alignment<select aria-label="Text alignment" value={String(property('textAlign', 'left'))} onChange={event => applyProperties({ textAlign: event.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label></fieldset>}
+      {(tool === 'text' || showTextProperties || chosen.some(e => e.type === 'text')) && <fieldset><legend>Text</legend><div className="draw-property-pair"><label>Size<input aria-label="Font size" type="number" min="8" max="144" value={Number(property('fontSize', 20))} onChange={event => applyProperties({ fontSize: Math.max(8, Number(event.target.value)) })} /></label><label>Font<select aria-label="Font family" value={Number(property('fontFamily', 2))} onChange={event => applyProperties({ fontFamily: Number(event.target.value) })}><option value="2">Sans</option><option value="1">Hand</option><option value="3">Mono</option>{![1, 2, 3].includes(Number(property('fontFamily', 2))) && <option value={Number(property('fontFamily', 2))}>Imported font {Number(property('fontFamily', 2))} (local fallback)</option>}</select></label></div><label>Alignment<select aria-label="Text alignment" value={String(property('textAlign', 'left'))} onChange={event => applyProperties({ textAlign: event.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label></fieldset>}
       {(['line', 'arrow'].includes(tool) || chosen.some(e => ['line', 'arrow'].includes(e.type))) && <fieldset><legend>Connection</legend>{(['startArrowhead', 'endArrowhead'] as const).map(key => <label key={key}>{key === 'startArrowhead' ? 'Start' : 'End'}<select aria-label={key === 'startArrowhead' ? 'Start arrowhead' : 'End arrowhead'} value={String(property(key, key === 'endArrowhead' ? 'arrow' : null) ?? 'none')} onChange={event => applyProperties({ [key]: event.target.value === 'none' ? null : event.target.value })}>{['none', 'arrow', 'triangle', 'dot', 'bar', 'diamond'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>)}<label>Routing<select aria-label="Arrow routing" value={first?.elbowed ? 'elbow' : first?.roundness ? 'curved' : 'sharp'} onChange={event => applyProperties({ elbowed: event.target.value === 'elbow', roundness: event.target.value === 'curved' ? { type: 2 } : null })}><option value="sharp">Sharp</option><option value="curved">Curved</option><option value="elbow">Elbow</option></select></label></fieldset>}
       {chosen.length > 0 && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: !chosen.every(e => e.locked) })}>{chosen.every(e => e.locked) ? 'Unlock' : 'Lock'}</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
     </aside>}
     <div className="draw-bottom-controls"><button aria-label="Zoom out" onClick={() => setViewport(view => ({ ...view, zoom: Math.max(0.1, view.zoom / 1.2) }))}>−</button><span>{Math.round(viewport.zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setViewport(view => ({ ...view, zoom: Math.min(5, view.zoom * 1.2) }))}>+</button><button aria-label="Fit drawing" title="Fit all (Shift+1)" onClick={fitScene}>Fit</button>{!viewMode && <><span className="draw-divider" /><button aria-label="Undo drawing" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>↶</button><button aria-label="Redo drawing" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>↷</button><button aria-label="Snap to grid" aria-pressed={grid} onClick={() => setGrid(value => !value)}>Grid</button><button aria-label="Snap to objects" aria-pressed={snap} onClick={() => setSnap(value => !value)}>Snap</button></>}</div>
+    {!viewMode && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}
     {!viewMode && <button className="draw-help-toggle" aria-label="Keyboard shortcuts" onClick={() => setHelp(value => !value)}>?</button>}
     {message && <div className="draw-message" role="alert">{message}<button aria-label="Dismiss drawing message" onClick={() => setMessage(null)}>×</button></div>}
-    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}</div></div></section></div>}
+    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}</div></div></section></div>}
     <input ref={fileInput} className="draw-image-input" aria-label="Choose drawing image" type="file" accept="image/*" onChange={event => { void uploadImage(event.target.files?.[0]).catch(error => setMessage(error instanceof Error ? error.message : 'The image could not be read.')); event.target.value = '' }} />
   </section>
 }

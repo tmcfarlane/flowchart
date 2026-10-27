@@ -1,5 +1,6 @@
 import { memo, useId } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { getAzureIconUrl } from '../utils/azureIconIds'
 
 export interface DrawSceneSvgProps {
   elements: readonly Record<string, unknown>[]
@@ -27,7 +28,7 @@ const color = (value: unknown, fallback = 'none') => {
 const ink = (value: unknown, dark: boolean) => {
   const candidate = color(value, '#1e1e1e')
   if (dark && ['#000', '#000000', '#1e1e1e', '#111827', '#0f1211', '#1e293b', '#0f172a', '#1f2937', '#334155'].includes(candidate.toLowerCase())) return '#dcece6'
-  if (dark && candidate.toLowerCase() === '#087f5b') return '#78fcd6'
+  if (dark && ['#087f5b', '#0f766e'].includes(candidate.toLowerCase())) return '#78fcd6'
   return candidate
 }
 const safeId = (value: unknown) => {
@@ -177,7 +178,33 @@ function fontFamily(value: unknown): string {
   return 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif'
 }
 
-function ElementGraphic({ element, files, prefix, darkMode }: { element: ElementRecord; files: DrawSceneSvgProps['files']; prefix: string; darkMode: boolean }) {
+function semanticIconSource(element: ElementRecord): string | undefined {
+  const metadata = object(element.customData) && object(element.customData.flowchart) ? element.customData.flowchart : undefined
+  if (metadata?.kind !== 'node' || !object(metadata.snapshot)) return undefined
+  const snapshot = metadata.snapshot
+  const source = typeof snapshot.icon === 'string' ? getAzureIconUrl(snapshot.icon) ?? snapshot.imageUrl : snapshot.imageUrl
+  if (typeof source !== 'string' || !source || /[\s\\\u0000-\u001f\u007f]/.test(source)) return undefined
+  if (/^data:image\//i.test(source) || /^\/(?!\/)/.test(source)) return source
+  try {
+    const url = new URL(source)
+    return url.protocol === 'https:' && !url.username && !url.password ? source : undefined
+  } catch { return undefined }
+}
+
+/** Semantic icons are a view of original graph metadata, never extra objects. */
+function SemanticIcon({ element }: { element: ElementRecord }) {
+  const source = semanticIconSource(element)
+  if (!source) return null
+  const width = number(element.width), height = number(element.height)
+  const padding = Math.min(10, Math.max(3, width * 0.06))
+  const size = Math.max(0, Math.min(28, width - padding * 2, height - padding * 2))
+  if (!size) return null
+  const x = element.type === 'ellipse' || element.type === 'diamond' ? (width - size) / 2 : padding
+  const y = element.type === 'diamond' ? Math.max(padding, height * 0.2) : padding
+  return <image data-semantic-icon="true" href={source} x={x} y={y} width={size} height={size} preserveAspectRatio="xMidYMid meet" pointerEvents="none" />
+}
+
+function ElementGraphic({ element, files, prefix, darkMode, textBackdrop }: { element: ElementRecord; files: DrawSceneSvgProps['files']; prefix: string; darkMode: boolean; textBackdrop?: string }) {
   const type = string(element.type), width = number(element.width), height = number(element.height)
   const strokeWidth = Math.max(0.2, number(element.strokeWidth, 2)), stroke = ink(element.strokeColor, darkMode)
   const background = color(element.backgroundColor, 'transparent')
@@ -192,6 +219,7 @@ function ElementGraphic({ element, files, prefix, darkMode }: { element: Element
       {patterned && <FillPattern id={pattern} style={fillStyle} paint={background} width={strokeWidth} />}
       <path d={path} fill={fill} {...shapeStyle} />
       {number(element.roughness) > 0 && <path d={sketchPath(element)} fill="none" {...shapeStyle} opacity={0.65} />}
+      <SemanticIcon element={element} />
       <path d={path} fill="transparent" stroke="transparent" strokeWidth={Math.max(10, strokeWidth)} pointerEvents="all" />
     </>
   }
@@ -235,6 +263,7 @@ function ElementGraphic({ element, files, prefix, darkMode }: { element: Element
     const totalHeight = lines.length * lineHeight
     const top = element.verticalAlign === 'middle' ? (height - totalHeight) / 2 : element.verticalAlign === 'bottom' ? height - totalHeight : 0
     return <>
+      {textBackdrop && <rect data-draw-label-backdrop="true" x={-5} y={top - 3} width={Math.max(1, width) + 10} height={totalHeight + 6} rx={4} fill={textBackdrop} pointerEvents="none" />}
       <rect width={Math.max(1, width)} height={Math.max(height, totalHeight)} fill="transparent" pointerEvents="all" />
       <text x={x} y={top + size * 0.84} fill={stroke} fontFamily={fontFamily(element.fontFamily)} fontSize={size} textAnchor={alignment === 'center' ? 'middle' : alignment === 'right' ? 'end' : 'start'} style={{ whiteSpace: 'pre', userSelect: 'none' }}>
         {lines.map((line, index) => <tspan key={index} x={x} dy={index ? lineHeight : 0}>{line || '\u00a0'}</tspan>)}
@@ -263,6 +292,9 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
   const prefix = `draw-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const surfaceIsDark = darkSurface(backgroundColor, darkMode)
   const live = elements.filter(element => !element.isDeleted)
+  const byId = new Map(live.map(element => [string(element.id), element]))
+  const canvasPaint = color(backgroundColor, darkMode ? '#0f1211' : '#ffffff')
+  const labelBackdrop = canvasPaint === 'transparent' || canvasPaint === 'none' ? (darkMode ? '#0f1211' : '#ffffff') : canvasPaint
   const frames = new Map(live.filter(element => element.type === 'frame').map(element => [string(element.id), element]))
   const clipId = (id: string) => `${prefix}-frame-${safeId(id)}`
   const clipChain = (element: ElementRecord): string[] => {
@@ -282,7 +314,9 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
       if (element.type === 'frame' && !showFrames) return null
       const id = string(element.id), center = drawElementCenter(element)
       const style: CSSProperties = { cursor: element.locked ? 'not-allowed' : undefined }
-      let graphic: ReactNode = <g transform={`rotate(${number(element.angle) * 180 / Math.PI} ${center.x} ${center.y}) translate(${number(element.x)} ${number(element.y)})`}><ElementGraphic element={element} files={files} prefix={prefix} darkMode={surfaceIsDark} /></g>
+      const host = element.type === 'text' && typeof element.containerId === 'string' ? byId.get(element.containerId) : undefined
+      const textBackdrop = host?.type === 'arrow' || host?.type === 'line' ? labelBackdrop : undefined
+      let graphic: ReactNode = <g transform={`rotate(${number(element.angle) * 180 / Math.PI} ${center.x} ${center.y}) translate(${number(element.x)} ${number(element.y)})`}><ElementGraphic element={element} files={files} prefix={prefix} darkMode={surfaceIsDark} textBackdrop={textBackdrop} /></g>
       for (const frameId of clipChain(element)) graphic = <g key={frameId} clipPath={`url(#${clipId(frameId)})`}>{graphic}</g>
       return <g key={id} data-element-id={id} data-element-type={string(element.type)} data-selected={selectedIds?.has(id) ? 'true' : undefined} aria-label={string(element.text, string(element.name, string(element.type, 'Drawing object')))} role="img" opacity={Math.max(0, Math.min(100, number(element.opacity, 100))) / 100} style={style}>{graphic}</g>
     })}
