@@ -555,6 +555,16 @@
   color: #374151;
 }
 
+.ai-welcome-import-drawing {
+  display: flex; justify-content: center; align-items: center; gap: 8px; width: 100%;
+  margin-top: 16px; padding: 10px; border: 1px dashed #b7c8c0; border-radius: 8px;
+  color: #087d55; background: transparent; font: inherit; font-size: 12px; cursor: pointer;
+}
+.ai-welcome-import-drawing:hover { background: #ecfdf5; }
+.ai-welcome-import-drawing:focus-visible { outline: 2px solid #10b981; outline-offset: 3px; }
+.dark-mode .ai-welcome-import-drawing { color: #78fcd6; border-color: #345747; }
+.dark-mode .ai-welcome-import-drawing:hover { background: #1b3026; }
+
 /* Welcome variant - dark mode */
 .app.dark-mode .ai-welcome-prompt {
   background: #0f1211;

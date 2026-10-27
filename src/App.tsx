@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense, type DragEvent } from 'react'
 import ReactFlow, {
   Node as FlowNode,
   Edge,
@@ -33,6 +33,7 @@ import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
 import AIInsertPreviewDialog from './components/AIInsertPreviewDialog'
+import ExcalidrawImportDialog from './components/ExcalidrawImportDialog'
 import { resolveAzureIcons } from './utils/azureIconRegistry'
 import { getMessages, addMessage as addThreadMessage } from './utils/conversationStore'
 import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from './utils/nesting'
@@ -41,9 +42,11 @@ import { useSharedFlow, type ApplyReason } from './hooks/useSharedFlow'
 import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
 import { parseSharedLocation } from './utils/shareApi'
 import { inferDiagramMode, nextNumericNodeId, type Chart, type DiagramMode } from './shared/flowTypes'
-import type { ArchitectureScene } from './shared/architectureScene'
+import { validateArchitectureScene, serializedByteLength, MAX_ARCHITECTURE_DOCUMENT_BYTES, type ArchitectureScene } from './shared/architectureScene'
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { parseFlowJson, serializeFlow } from './utils/exportUtils'
+import { readDiagramFile } from './utils/diagramImport'
+import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 
 const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
 const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
@@ -274,6 +277,12 @@ function FlowChartEditor() {
   const [aiThreadId, setAIThreadId] = useState<string | null>(null)
   const [proposalPreview, setProposalPreview] = useState<{ nodes: FlowNode[]; edges: Edge[] } | null>(null)
   const [showMinimap, setShowMinimap] = useState(false)
+  const [pendingImport, setPendingImport] = useState<{ filename: string; scene: ArchitectureScene; point?: { x: number; y: number } } | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const [isFileDragOver, setIsFileDragOver] = useState(false)
+  const importRequest = useRef(0)
+  const fileDragDepth = useRef(0)
 
   const canvasPoint = useCallback((point: { x: number; y: number }) => {
     return diagramMode === 'draw' && drawApi.current
@@ -418,6 +427,95 @@ function FlowChartEditor() {
       else if (complete.diagramMode !== 'draw') fitView({ padding: 0.2 })
     }, 100)
   }, [nodes, edges, architectureScene, diagramMode, historyIndex, setNodes, setEdges, updateNodeLabel, updateEdgeLabel, fitView])
+
+  // Async file reads must apply to the current document, even when an older
+  // callback began decoding while the user was still editing.
+  const importTarget = useRef({ nodes, edges, architectureScene, diagramMode, darkMode, canvasPoint, commitDocument })
+  importTarget.current = { nodes, edges, architectureScene, diagramMode, darkMode, canvasPoint, commitDocument }
+  const cancelImport = useCallback(() => {
+    importRequest.current += 1
+    setPendingImport(null)
+    setImportError(null)
+    setIsImporting(false)
+  }, [])
+
+  const readImportFile = useCallback(async (file: File, point?: { x: number; y: number }) => {
+    const request = ++importRequest.current
+    setIsImporting(true)
+    setImportError(null)
+    setPendingImport(null)
+    try {
+      const imported = await readDiagramFile(file)
+      if (request !== importRequest.current) return
+      if (imported.kind === 'excalidraw') {
+        setPendingImport({ filename: file.name, scene: imported.scene, point })
+      } else {
+        const document = imported.document
+        importTarget.current.commitDocument({ nodes: document.nodes, edges: document.edges, diagramMode: document.mode, architectureScene: document.architectureScene })
+      }
+    } catch (error) {
+      if (request === importRequest.current) {
+        const message = error instanceof Error ? error.message : 'Could not import this drawing.'
+        setImportError(/^image\//.test(file.type) && message.includes('valid JSON') ? 'Use the Image tool to add images. To import an editable drawing, choose a .excalidraw or .json file.' : message)
+      }
+    } finally {
+      if (request === importRequest.current) setIsImporting(false)
+    }
+  }, [])
+
+  const applyExcalidrawImport = useCallback(async (destination: 'open' | 'insert') => {
+    if (!pendingImport || isImporting) return
+    const request = ++importRequest.current
+    setIsImporting(true)
+    setImportError(null)
+    try {
+      const before = importTarget.current
+      let scene = destination === 'open' ? prepareSceneOpen(pendingImport.scene) : pendingImport.scene
+      if (destination === 'insert') {
+        const signature = JSON.stringify(flowToChart(before.nodes, before.edges, before.architectureScene, before.diagramMode))
+        const { mergeGraphElements } = await import('./utils/architectureBridge')
+        if (request !== importRequest.current) return
+        const current = importTarget.current
+        if (current.diagramMode !== before.diagramMode || JSON.stringify(flowToChart(current.nodes, current.edges, current.architectureScene, current.diagramMode)) !== signature) {
+          throw new Error('The diagram changed while preparing the import. Try inserting again to use its latest contents.')
+        }
+        const existing = before.diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : before.architectureScene
+        const drawingElements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], before.nodes, before.edges, before.darkMode)
+        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(drawingElements)), files: existing?.files ?? {}, appState: existing?.appState }
+        const rect = reactFlowWrapper.current?.getBoundingClientRect()
+        const point = pendingImport.point ?? before.canvasPoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
+        scene = prepareSceneInsertion(scene, baseScene, point)
+      }
+      validateArchitectureScene(scene)
+      const nextNodes = destination === 'insert' ? before.nodes : []
+      const nextEdges = destination === 'insert' ? before.edges : []
+      // Allow the same document to save/share immediately after importing.
+      if (serializedByteLength(flowToChart(nextNodes, nextEdges, scene, 'draw')) + 1024 > MAX_ARCHITECTURE_DOCUMENT_BYTES) {
+        throw new Error('The combined diagram exceeds the 4 MiB document limit. Open this drawing as a new diagram or use smaller images.')
+      }
+      if (request !== importRequest.current) return
+      before.commitDocument({ nodes: nextNodes, edges: nextEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: destination === 'open' })
+      setPendingImport(null)
+    } catch (error) {
+      if (request === importRequest.current) setImportError(error instanceof Error ? error.message : 'Could not import this drawing.')
+    } finally {
+      if (request === importRequest.current) setIsImporting(false)
+    }
+  }, [pendingImport, isImporting])
+
+  const isFileDrag = (event: DragEvent<HTMLDivElement>) => Array.from(event.dataTransfer.types).includes('Files')
+  const handleFileDrop = (event: DragEvent<HTMLDivElement>) => {
+    if (!isFileDrag(event)) return
+    fileDragDepth.current = 0
+    setIsFileDragOver(false)
+    const files = Array.from(event.dataTransfer.files)
+    event.preventDefault()
+    event.stopPropagation()
+    if (files.length !== 1) { setImportError('Drop one .json or .excalidraw drawing at a time.'); return }
+    // Every diagram drop uses content validation and a deliberate destination;
+    // raster/SVG image uploads stay available through the Draw Image tool.
+    void readImportFile(files[0], canvasPoint({ x: event.clientX, y: event.clientY }))
+  }
 
   // Track when to save history - save after changes stabilize
   const lastChangeTime = useRef<number>(0)
@@ -1549,6 +1647,7 @@ function FlowChartEditor() {
         onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
           commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })
         }}
+        onImportFile={readImportFile}
         share={{
           isShared: !!shared.state.id,
           canEdit: shared.state.canEdit,
@@ -1561,7 +1660,29 @@ function FlowChartEditor() {
       />
       <ShareStatus shared={shared} />
       {draftError && <div className="draw-draft-error" role="alert">{draftError}</div>}
-      <div ref={reactFlowWrapper} className="react-flow-wrapper">
+      <div
+        ref={reactFlowWrapper}
+        className="react-flow-wrapper"
+        onDragEnterCapture={(event) => {
+          if (!isFileDrag(event)) return
+          event.preventDefault()
+          fileDragDepth.current += 1
+          setIsFileDragOver(true)
+        }}
+        onDragOverCapture={(event) => {
+          if (!isFileDrag(event)) return
+          event.preventDefault()
+          event.dataTransfer.dropEffect = 'copy'
+        }}
+        onDragLeaveCapture={(event) => {
+          if (!isFileDrag(event)) return
+          fileDragDepth.current = Math.max(0, fileDragDepth.current - 1)
+          if (!fileDragDepth.current) setIsFileDragOver(false)
+        }}
+        onDropCapture={handleFileDrop}
+        onDragEnd={() => { fileDragDepth.current = 0; setIsFileDragOver(false) }}
+      >
+        {isFileDragOver && <div className="diagram-file-drop" role="status"><strong>Drop your drawing here</strong><span>Excalidraw scenes and Flowchart JSON files</span></div>}
         {diagramMode === 'draw' ? <Suspense fallback={<div className="draw-loading">Loading drawing tools…</div>}>
           <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} onReady={handleDrawReady} onUndo={undo} onRedo={redo} canUndo={historyIndex > 0} canRedo={historyIndex < history.length - 1} />
         </Suspense> : <ReactFlow
@@ -1824,6 +1945,7 @@ function FlowChartEditor() {
           onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
             commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })
           }}
+          onImportFile={readImportFile}
         />
       )}
       {/* Full AI chat overlay (triggered by pill button) */}
@@ -1847,6 +1969,9 @@ function FlowChartEditor() {
           darkMode={darkMode}
         />
       )}
+      {pendingImport && <ExcalidrawImportDialog filename={pendingImport.filename} scene={pendingImport.scene} onOpen={() => { void applyExcalidrawImport('open') }} onInsert={() => { void applyExcalidrawImport('insert') }} onCancel={cancelImport} busy={isImporting} error={importError} compatibilityNotes={getExcalidrawCompatibilityNotes(pendingImport.scene)} />}
+      {isImporting && !pendingImport && <div className="diagram-import-notice" role="status"><span>Reading and validating your drawing…</span><button onClick={cancelImport}>Cancel</button></div>}
+      {importError && !pendingImport && <div className="diagram-import-notice error" role="alert"><span><strong>Couldn’t import drawing</strong>{importError}</span><button onClick={() => setImportError(null)} aria-label="Dismiss import error">Dismiss</button></div>}
       {/* Show pill when welcome prompt is not visible and AI bubble is not open */}
       {!isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
         <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">

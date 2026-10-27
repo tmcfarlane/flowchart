@@ -1,0 +1,464 @@
+{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "https://excalidraw.com",
+  "elements": [
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "platform-frame",
+      "type": "frame",
+      "x": -350,
+      "y": -200,
+      "width": 800,
+      "height": 600,
+      "name": "Order platform"
+    },
+    {
+      "angle": 0.17,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#d0ebff",
+      "fillStyle": "cross-hatch",
+      "strokeWidth": 2,
+      "strokeStyle": "dashed",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [
+        "backend"
+      ],
+      "frameId": "platform-frame",
+      "roundness": {
+        "type": 3
+      },
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "api-label",
+          "type": "text"
+        },
+        {
+          "id": "request-arrow",
+          "type": "arrow"
+        },
+        {
+          "id": "deleted-label",
+          "type": "text"
+        }
+      ],
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "api-service",
+      "type": "rectangle",
+      "x": -250,
+      "y": -100,
+      "width": 180,
+      "height": 100,
+      "customData": {
+        "fixtureRole": "service"
+      }
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [
+        "backend"
+      ],
+      "frameId": "platform-frame",
+      "roundness": null,
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "api-label",
+      "type": "text",
+      "x": -230,
+      "y": -70,
+      "width": 140,
+      "height": 30,
+      "text": "Orders API",
+      "originalText": "Orders API",
+      "fontSize": 24,
+      "fontFamily": 5,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "api-service",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "#d3f9d8",
+      "fillStyle": "solid",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [
+        "storage"
+      ],
+      "frameId": "platform-frame",
+      "roundness": {
+        "type": 3
+      },
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "request-arrow",
+          "type": "arrow"
+        }
+      ],
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "orders-db",
+      "type": "ellipse",
+      "x": 200,
+      "y": -100,
+      "width": 140,
+      "height": 140
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [
+        "backend"
+      ],
+      "frameId": "platform-frame",
+      "roundness": {
+        "type": 3
+      },
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": [
+        {
+          "id": "request-label",
+          "type": "text"
+        }
+      ],
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "request-arrow",
+      "type": "arrow",
+      "x": -70,
+      "y": -40,
+      "width": 270,
+      "height": 10,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          135,
+          -30
+        ],
+        [
+          270,
+          10
+        ]
+      ],
+      "startBinding": {
+        "elementId": "api-service",
+        "focus": 0,
+        "gap": 5
+      },
+      "endBinding": {
+        "elementId": "orders-db",
+        "focus": 0.2,
+        "gap": 5
+      },
+      "startArrowhead": null,
+      "endArrowhead": "arrow",
+      "elbowed": false
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": "platform-frame",
+      "roundness": null,
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "request-label",
+      "type": "text",
+      "x": 30,
+      "y": -85,
+      "width": 90,
+      "height": 25,
+      "text": "HTTPS",
+      "originalText": "HTTPS",
+      "fontSize": 20,
+      "fontFamily": 5,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "request-arrow",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#e03131",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": "platform-frame",
+      "roundness": null,
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "annotation",
+      "type": "freedraw",
+      "x": -220,
+      "y": 160,
+      "width": 60,
+      "height": 30,
+      "points": [
+        [
+          0,
+          0
+        ],
+        [
+          20,
+          20
+        ],
+        [
+          40,
+          -10
+        ],
+        [
+          60,
+          10
+        ]
+      ],
+      "pressures": [
+        0.5,
+        0.8,
+        0.6,
+        0.3
+      ],
+      "simulatePressure": false,
+      "lastCommittedPoint": null
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": "platform-frame",
+      "roundness": null,
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "logo-image",
+      "type": "image",
+      "x": 20,
+      "y": 140,
+      "width": 80,
+      "height": 80,
+      "fileId": "asset-logo",
+      "status": "saved",
+      "scale": [
+        1,
+        1
+      ],
+      "crop": null
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": "platform-frame",
+      "roundness": null,
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": false,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "independent-note",
+      "type": "text",
+      "x": 150,
+      "y": 180,
+      "width": 180,
+      "height": 25,
+      "text": "Editable native scene",
+      "originalText": "Editable native scene",
+      "fontSize": 20,
+      "fontFamily": 5,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null,
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": null,
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": true,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "deleted-label",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 80,
+      "height": 20,
+      "text": "Removed label",
+      "originalText": "Removed label",
+      "fontSize": 20,
+      "fontFamily": 5,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": "api-service",
+      "lineHeight": 1.25,
+      "autoResize": true
+    },
+    {
+      "angle": 0,
+      "strokeColor": "#1e1e1e",
+      "backgroundColor": "transparent",
+      "fillStyle": "hachure",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "roughness": 1,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "roundness": {
+        "type": 3
+      },
+      "seed": 41,
+      "version": 1,
+      "versionNonce": 17,
+      "isDeleted": true,
+      "boundElements": null,
+      "updated": 1793131200000,
+      "link": null,
+      "locked": false,
+      "id": "deleted-shape",
+      "type": "rectangle",
+      "x": 900,
+      "y": 900,
+      "width": 120,
+      "height": 80
+    }
+  ],
+  "appState": {
+    "viewBackgroundColor": "#f8f9fa",
+    "gridSize": 20,
+    "scrollX": 780,
+    "scrollY": 500,
+    "zoom": {
+      "value": 0.8
+    },
+    "selectedElementIds": {
+      "api-service": true
+    }
+  },
+  "files": {
+    "asset-logo": {
+      "id": "asset-logo",
+      "dataURL": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGNQOjoPAAKSAYZTYziuAAAAAElFTkSuQmCC",
+      "mimeType": "image/png",
+      "created": 1793131200000,
+      "lastRetrieved": 1793131200000
+    }
+  }
+}
