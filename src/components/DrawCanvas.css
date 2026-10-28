@@ -8,6 +8,25 @@
 .draw-tools button { display: flex; align-items: center; justify-content: center; position: relative; width: 39px; height: 38px; border: 0; border-radius: 9px; background: transparent; font-size: 23px; }
 .draw-tools button small { position: absolute; right: 4px; bottom: 2px; font-size: 9px; opacity: .65; }
 .draw-tools button:hover, .draw-tools button.active, .draw-tools button[aria-pressed="true"] { background: var(--draw-hover); color: var(--draw-accent); }
+.draw-extra-menu-wrap { position: relative; }
+.draw-extra-menu { position: absolute; top: 46px; right: 0; width: 226px; padding: 8px; border: 1px solid var(--draw-border); border-radius: 12px; background: var(--draw-panel); box-shadow: 0 12px 35px #0003; }
+.draw-extra-menu button { width: 100%; height: 38px; justify-content: flex-start; gap: 9px; padding: 0 8px; font-size: 12px; white-space: nowrap; }
+.draw-extra-menu button svg { flex: none; }
+.draw-extra-menu button kbd { margin-left: auto; color: var(--draw-muted); font-size: 11px; }
+.draw-extra-menu hr { border: 0; border-top: 1px solid var(--draw-border); margin: 5px 0; }
+.draw-extra-dialog { width: min(480px, 100%); padding: 24px; border: 1px solid var(--draw-border); border-radius: 16px; background: var(--draw-panel); box-shadow: 0 20px 90px #0005; }
+.draw-extra-dialog h2 { margin: 0 0 8px; font-size: 20px; }
+.draw-extra-dialog p { margin: 0 0 18px; color: var(--draw-muted); font-size: 13px; }
+.draw-extra-dialog input, .draw-extra-dialog textarea { box-sizing: border-box; width: 100%; min-height: 42px; padding: 10px; border: 1px solid var(--draw-border); border-radius: 8px; background: var(--draw-panel); color: var(--draw-text); font: inherit; }
+.draw-extra-dialog textarea { height: 180px; resize: vertical; font-family: monospace; }
+.draw-extra-dialog > div { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+.draw-extra-dialog button, .draw-embed-actions button { padding: 8px 12px; border: 1px solid var(--draw-border); border-radius: 8px; background: var(--draw-hover); }
+.draw-embed-actions { display: grid; gap: 5px; margin-bottom: 14px; font-size: 11px; color: var(--draw-muted); }
+.draw-live-embed { position: absolute; z-index: 3; overflow: hidden; border: 2px solid var(--draw-accent); border-radius: 10px; background: var(--draw-panel); }
+.draw-live-embed button { position: absolute; z-index: 1; top: 4px; right: 4px; padding: 5px 8px; border: 1px solid var(--draw-border); border-radius: 6px; background: var(--draw-panel); font-size: 11px; }
+.draw-live-embed iframe { width: 100%; height: 100%; border: 0; }
+.draw-laser-trace.is-fading { animation: draw-laser-fade .9s linear forwards; }
+@keyframes draw-laser-fade { from { opacity: 1; } to { opacity: 0; } }
 .draw-divider { width: 1px; height: 23px; background: var(--draw-border); margin: 0 4px; }
 .draw-properties { position: absolute; top: 76px; left: 16px; z-index: 4; width: 204px; max-height: calc(100% - 150px); overflow: auto; padding: 16px; border: 1px solid var(--draw-border); border-radius: 15px; background: var(--draw-panel); box-shadow: 0 7px 24px #0000000c; scrollbar-width: thin; }
 .draw-properties-heading { display: flex; flex-direction: column; gap: 4px; margin-bottom: 18px; }.draw-properties-heading strong { font-size: 14px; }.draw-properties-heading span { font-size: 11px; color: var(--draw-muted); }

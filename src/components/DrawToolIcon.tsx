@@ -16,6 +16,13 @@ export default function DrawToolIcon({ tool }: { tool: string }) {
     image: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="2" /><path d="m4 18 5-5 4 4 4-6 4 7" /></>,
     eraser: <><path d="m4 13 9-10 8 8-10 10H8l-4-4v-4Zm5-6 8 8M11 21h10" /></>,
     frame: <><path d="M7 3v18M17 3v18M3 7h18M3 17h18" /></>,
+    more: <><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></>,
+    laser: <><path d="M3 18c4-1 5-8 10-8 3 0 3 4 8 2" /><circle cx="19" cy="5" r="2" /></>,
+    eyedropper: <><path d="m15 4 5 5-11 11H5v-4L16 5m-4 3 5 5" /></>,
+    fill: <><path d="m12 3 8 9-8 9-8-9 8-9Z" /><path d="M4 13h16" /></>,
+    shape: <><path d="M3 16c4-15 6 4 10-7 2-5 4-3 8-6M5 20h14v-8H5v8Z" /></>,
+    embed: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18m-14 6h4m3 0h4" /></>,
+    mermaid: <><rect x="2" y="2" width="7" height="6" rx="1" /><rect x="15" y="16" width="7" height="6" rx="1" /><path d="M9 5h6v14m-5-6h5" /></>,
     lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></>,
     unlock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 7.5-2M12 14v3" /></>,
   }

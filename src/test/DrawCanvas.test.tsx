@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createEvent, fireEvent, render, screen } from '@testing-library/react'
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react'
 import DrawCanvas from '../components/DrawCanvas'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import type { DrawElement } from '../utils/drawScene'
@@ -24,17 +24,22 @@ const rectangle = (id: string, x: number): DrawElement => ({ id, type: 'rectangl
 function renderDrawing(initial = empty(), parentHistory?: { onUndo: () => void; onRedo: () => void }) {
   const onCommit = vi.fn()
   let current = initial
+  let replaceScene: (next: ArchitectureScene) => void = () => {}
+  let changeViewMode: (next: boolean) => void = () => {}
   function Harness() {
     const [scene, setScene] = useState(initial)
+    const [viewMode, setViewMode] = useState(false)
+    replaceScene = next => { current = next; setScene(next) }
+    changeViewMode = setViewMode
     return <>
-      <DrawCanvas scene={scene} nodes={[]} edges={[]} darkMode={false}
+      <DrawCanvas scene={scene} nodes={[]} edges={[]} darkMode={false} viewMode={viewMode}
         onChange={next => { current = next; onCommit(next); setScene(next) }}
         {...parentHistory} canUndo={!!parentHistory} canRedo={!!parentHistory} />
       <textarea aria-label="Outside canvas prompt" />
     </>
   }
   const rendered = render(<Harness />)
-  return { ...rendered, onCommit, scene: () => current, surface: screen.getByTestId('draw-surface'), canvas: screen.getByRole('region', { name: 'Draw canvas' }) }
+  return { ...rendered, onCommit, scene: () => current, replaceScene: (next: ArchitectureScene) => act(() => replaceScene(next)), setViewMode: (next: boolean) => act(() => changeViewMode(next)), surface: screen.getByTestId('draw-surface'), canvas: screen.getByRole('region', { name: 'Draw canvas' }) }
 }
 
 const pointer = (x: number, y: number) => ({ pointerId: 1, pointerType: 'mouse', button: 0, buttons: 1, clientX: x, clientY: y })
@@ -46,6 +51,128 @@ function drawRectangle(surface: HTMLElement) {
 }
 
 describe('custom Draw canvas', () => {
+  it('keeps laser marks transient and fills only an unlocked closed shape', () => {
+    const initial = { ...empty(), elements: [rectangle('open', 100), { ...rectangle('locked', 320), locked: true }] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    fireEvent.click(screen.getByLabelText('More drawing tools'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Laser pointer/ }))
+    fireEvent.pointerDown(surface, pointer(450, 400))
+    fireEvent.pointerMove(surface, pointer(470, 420))
+    fireEvent.pointerUp(surface, pointer(470, 420))
+    expect(surface.querySelector('.draw-laser-trace')).toBeInTheDocument()
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.keyDown(surface, { key: 'b' })
+    fireEvent.pointerDown(surface, pointer(160, 150))
+    expect((scene().elements[0] as DrawElement).backgroundColor).toBe('#b2f2dc')
+    fireEvent.pointerDown(surface, pointer(380, 150))
+    expect((scene().elements[1] as DrawElement).backgroundColor).toBe('transparent')
+    expect(onCommit).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['undo', 'scene replacement', 'view mode', 'Escape', 'pointer cancel', 'lost capture', 'blur'])('cancels an unfinished laser trace on %s', ending => {
+    vi.useFakeTimers()
+    try {
+      const onUndo = vi.fn(), onRedo = vi.fn()
+      const { surface, onCommit, replaceScene, setViewMode } = renderDrawing(empty(), { onUndo, onRedo })
+      fireEvent.keyDown(surface, { key: 'k' })
+      fireEvent.pointerDown(surface, pointer(450, 400))
+      fireEvent.pointerMove(surface, pointer(470, 420))
+      expect(surface.querySelector('.draw-laser-trace:not(.is-fading)')).toBeInTheDocument()
+      if (ending === 'undo') fireEvent.keyDown(surface, { key: 'z', ctrlKey: true })
+      if (ending === 'scene replacement') replaceScene({ ...empty(), appState: { viewBackgroundColor: '#ffeecc' } })
+      if (ending === 'view mode') setViewMode(true)
+      if (ending === 'Escape') fireEvent.keyDown(surface, { key: 'Escape' })
+      if (ending === 'pointer cancel') fireEvent.pointerCancel(surface, pointer(470, 420))
+      if (ending === 'lost capture') fireEvent.lostPointerCapture(surface)
+      if (ending === 'blur') fireEvent.blur(window)
+      fireEvent.pointerUp(surface, pointer(470, 420))
+      act(() => vi.advanceTimersByTime(1200))
+      expect(surface.querySelector('.draw-laser-trace')).not.toBeInTheDocument()
+      expect(onCommit).not.toHaveBeenCalled()
+    } finally { vi.useRealTimers() }
+  })
+
+  it('resets ordinary eyedropper activation to stroke after explicit fill sampling', () => {
+    const initial = { ...empty(), elements: [{ ...rectangle('source', 100), strokeColor: '#ab1234', backgroundColor: '#00aaff' }, rectangle('target', 320)] }
+    const { surface, scene } = renderDrawing(initial)
+    fireEvent.pointerDown(surface.querySelector('[data-element-id="target"]')!, pointer(380, 150))
+    fireEvent.pointerUp(surface, pointer(380, 150))
+    fireEvent.keyDown(surface, { key: 'G', shiftKey: true })
+    fireEvent.pointerDown(surface, pointer(150, 150))
+    expect((scene().elements[1] as DrawElement).backgroundColor).toBe('#00aaff')
+    fireEvent.keyDown(surface, { key: 'i' })
+    fireEvent.pointerDown(surface, pointer(150, 150))
+    expect((scene().elements[1] as DrawElement).strokeColor).toBe('#ab1234')
+    fireEvent.keyDown(surface, { key: 'G', shiftKey: true })
+    fireEvent.click(screen.getByLabelText('More drawing tools'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Eyedropper/ }))
+    fireEvent.pointerDown(surface, pointer(150, 150))
+    expect(screen.getByRole('alert')).toHaveTextContent('Stroke sampled')
+  })
+
+  it('discards an unfinished click connector before opening Mermaid import', () => {
+    const { surface, scene, onCommit } = renderDrawing()
+    fireEvent.keyDown(surface, { key: 'a' })
+    fireEvent.pointerDown(surface, pointer(600, 400))
+    fireEvent.pointerUp(surface, pointer(600, 400))
+    fireEvent.pointerMove(surface, pointer(750, 500))
+    expect(surface.querySelector('[data-element-type="arrow"]')).toBeInTheDocument()
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByLabelText('More drawing tools'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Import Mermaid/ }))
+    expect(surface.querySelector('[data-element-type="arrow"]')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Mermaid source'), { target: { value: 'flowchart LR\nA[Start] -->|go| B[End]' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Import shapes' }))
+    expect(scene().elements).toHaveLength(6)
+    expect(scene().elements.filter(element => element.type === 'arrow')).toHaveLength(1)
+    expect(onCommit).toHaveBeenCalledTimes(1)
+  })
+
+  it('discards an unfinished click connector before opening the embed dialog', () => {
+    const { surface, scene, onCommit } = renderDrawing()
+    fireEvent.keyDown(surface, { key: 'a' })
+    fireEvent.pointerDown(surface, pointer(600, 400))
+    fireEvent.pointerUp(surface, pointer(600, 400))
+    fireEvent.pointerMove(surface, pointer(750, 500))
+    fireEvent.click(screen.getByLabelText('More drawing tools'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Embed URL/ }))
+    expect(surface.querySelector('[data-element-type="arrow"]')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('Embed URL'), { target: { value: 'https://example.com' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add card' }))
+    expect(scene().elements).toHaveLength(1)
+    expect(scene().elements[0].type).toBe('embeddable')
+    expect(onCommit).toHaveBeenCalledTimes(1)
+  })
+
+  it('samples paint into unlocked selection and imports Mermaid as one scene change', () => {
+    const initial = { ...empty(), elements: [{ ...rectangle('source', 100), strokeColor: '#ab1234' }, rectangle('target', 320)] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    fireEvent.pointerDown(surface.querySelector('[data-element-id="target"]')!, pointer(380, 150))
+    fireEvent.pointerUp(surface, pointer(380, 150))
+    fireEvent.keyDown(surface, { key: 'i' })
+    fireEvent.pointerDown(surface, pointer(150, 150))
+    expect((scene().elements[1] as DrawElement).strokeColor).toBe('#ab1234')
+    fireEvent.click(screen.getByLabelText('More drawing tools'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Import Mermaid/ }))
+    fireEvent.change(screen.getByLabelText('Mermaid source'), { target: { value: 'flowchart TB\nA[Start] -->|go| B{Decide}' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Import shapes' }))
+    expect(scene().elements.some(item => item.type === 'diamond')).toBe(true)
+    expect(onCommit).toHaveBeenCalledTimes(2)
+  })
+
+  it('rejects unsafe embeds and stores a static HTTPS card', () => {
+    const { scene, onCommit } = renderDrawing()
+    fireEvent.click(screen.getByLabelText('More drawing tools'))
+    fireEvent.click(screen.getByRole('menuitem', { name: /Embed URL/ }))
+    fireEvent.change(screen.getByLabelText('Embed URL'), { target: { value: 'javascript:alert(1)' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add card' }))
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByLabelText('Embed URL'), { target: { value: 'https://example.com/page' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Add card' }))
+    expect(scene().elements[0]).toMatchObject({ type: 'embeddable', link: 'https://example.com/page' })
+    expect(screen.queryByTitle('Live web embed')).not.toBeInTheDocument()
+    expect(onCommit).toHaveBeenCalledTimes(1)
+  })
   it('implements the familiar tool aliases and persistent-tool toggle in our toolbar', () => {
     const { surface } = renderDrawing()
     for (const [key, name] of [
