@@ -62,8 +62,9 @@ export function inspectDrawGeometry(scene: ArchitectureScene, plan: DrawProposal
     }
     if (element.roundness || element.elbowed || element.routing === 'elbow') add('unsupported-geometry', [element.id], 'Only validated sharp paths may be generated.')
     if (element.type === 'freedraw') {
-      for (const text of elements.filter(candidate => candidate.type === 'text')) {
-        if (points.slice(1).some((point, index) => segmentHitsBox(points[index], point, inflate(text, 2)))) add('text-overlap', [element.id, text.id], 'Move the annotation stroke away from text.')
+      const protectedText = [...elements.filter(candidate => candidate.type === 'text'), ...obstacles.filter(obstacle => byId.get(obstacle.id)?.type === 'frame')]
+      for (const text of protectedText) {
+        if (points.slice(1).some((point, index) => segmentHitsBox(points[index], point, inflate(text, 2)))) add('text-overlap', [element.id, text.id], 'Move the annotation stroke away from text and frame titles.')
       }
       continue
     }

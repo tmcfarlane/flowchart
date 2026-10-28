@@ -205,6 +205,21 @@ export function routeConnector(path: DrawElement, source: DrawElement | undefine
     if (!middle) continue
     const candidate = simplify([start.point, ...middle, end.point])
     if (pathIsClear(candidate, obstacles, source, target, budget) && captionFits(candidate, caption, obstacles, path.type)) return candidate
+    if (!caption) continue
+    const left = Math.min(start.lead.x, end.lead.x, ...obstacles.map(box => box.x)) - caption.width / 2 - 24
+    const right = Math.max(start.lead.x, end.lead.x, ...obstacles.map(box => box.x + box.width)) + caption.width / 2 + 24
+    const top = Math.min(start.lead.y, end.lead.y, ...obstacles.map(box => box.y)) - caption.height / 2 - 24
+    const bottom = Math.max(start.lead.y, end.lead.y, ...obstacles.map(box => box.y + box.height)) + caption.height / 2 + 24
+    const corridors = [
+      [{ x: start.lead.x, y: top }, { x: end.lead.x, y: top }],
+      [{ x: start.lead.x, y: bottom }, { x: end.lead.x, y: bottom }],
+      [{ x: left, y: start.lead.y }, { x: left, y: end.lead.y }],
+      [{ x: right, y: start.lead.y }, { x: right, y: end.lead.y }],
+    ]
+    for (const corridor of corridors) {
+      const labelled = simplify([start.point, start.lead, ...corridor, end.lead, end.point])
+      if (pathIsClear(labelled, obstacles, source, target, budget) && captionFits(labelled, caption, obstacles, path.type)) return labelled
+    }
   }
   return null
 }

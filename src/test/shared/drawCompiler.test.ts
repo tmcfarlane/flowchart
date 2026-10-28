@@ -128,6 +128,11 @@ describe('canonical Draw compilation', () => {
     expect(shaft).toBe(true)
   })
 
+  it('reserves a wider outside corridor when a nearby pair needs a long caption', () => {
+    const scene = compile(plan([shape('a', 0, 0), shape('b', 250, 0), arrow('edge', [{ x: 180, y: 50 }, { x: 250, y: 50 }], 'a', 'b', 'Review handoff together')]))
+    clearConnectors(scene.elements as DrawElement[])
+  })
+
   it('keeps a line caption at its native center on a visible shaft', () => {
     const scene = compile(plan([{ ...arrow('line', [{ x: 0, y: 0 }, { x: 500, y: 0 }], null, null, 'Section divider'), type: 'line' }]))
     const caption = scene.elements.find(element => element.type === 'text') as DrawElement
@@ -151,6 +156,16 @@ describe('canonical Draw compilation', () => {
     expect(inspectDrawGeometry(scene, proposal)).toContainEqual(expect.objectContaining({ code: 'unsupported-geometry' }))
     edge.startBinding!.elementId = 'missing'
     expect(inspectDrawGeometry(scene, proposal)).toContainEqual(expect.objectContaining({ code: 'native-document' }))
+  })
+
+  it('protects frame titles from connector and freehand strokes', () => {
+    const frame = { id: 'frame', type: 'frame' as const, x: 100, y: 100, width: 400, height: 300, name: 'Protected title', children: [] }
+    const points = [{ x: 50, y: 80 }, { x: 400, y: 80 }]
+    const scene = compile(plan([frame, arrow('edge', points, null, null)]))
+    const edge = scene.elements.find(element => element.id === 'edge') as DrawElement
+    expect(getWorldPoints(edge)).not.toEqual(points)
+    const stroke = { ...arrow('pen', points, null, null), type: 'freedraw' as const }
+    expect(compileDrawProposal(plan([frame, stroke]))).toMatchObject({ ok: false, issues: [expect.objectContaining({ code: 'text-overlap', elementIds: ['pen', 'frame'] })] })
   })
 
   it('returns bounded resource diagnostics for a large visibility graph', () => {
