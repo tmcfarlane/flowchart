@@ -164,14 +164,14 @@ function contrast(paint: Rgba, surface: Rgba): number {
   const a = luminance(composite(paint, surface)), b = luminance(surface)
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
 }
-function readableTextColor(authored: unknown, surface: Rgba): string {
+function readableColor(authored: unknown, surface: Rgba, minimumContrast = 4.5): string {
   const original = color(authored, '#1e1e1e'), paint = rgba(original)
-  if (!paint || contrast(paint, surface) >= 4.5) return original
+  if (!paint || contrast(paint, surface) >= minimumContrast) return original
   const themed = ink(original, luminance(surface) < 0.18), themedPaint = rgba(themed)
-  if (themed !== original && themedPaint && contrast(themedPaint, surface) >= 4.5) return themed
+  if (themed !== original && themedPaint && contrast(themedPaint, surface) >= minimumContrast) return themed
   const dark = '#1e293b', light = '#dcece6'
   const darkContrast = contrast(rgba(dark)!, surface), lightContrast = contrast(rgba(light)!, surface)
-  if (Math.max(darkContrast, lightContrast) >= 4.5) return darkContrast >= lightContrast ? dark : light
+  if (Math.max(darkContrast, lightContrast) >= minimumContrast) return darkContrast >= lightContrast ? dark : light
   return contrast(rgba('#000000')!, surface) >= contrast(rgba('#ffffff')!, surface) ? '#000000' : '#ffffff'
 }
 function shapeContainsPoint(element: ElementRecord, point: { x: number; y: number }): boolean {
@@ -258,9 +258,9 @@ function SemanticIcon({ element }: { element: ElementRecord }) {
   return <image data-semantic-icon="true" href={source} x={x} y={y} width={size} height={size} preserveAspectRatio="xMidYMid meet" pointerEvents="none" />
 }
 
-function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textColor }: { element: ElementRecord; files: DrawSceneSvgProps['files']; prefix: string; darkMode: boolean; textBackdrop?: string; textColor?: string }) {
+function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textColor, pathColor }: { element: ElementRecord; files: DrawSceneSvgProps['files']; prefix: string; darkMode: boolean; textBackdrop?: string; textColor?: string; pathColor?: string }) {
   const type = string(element.type), width = number(element.width), height = number(element.height)
-  const strokeWidth = Math.max(0.2, number(element.strokeWidth, 2)), stroke = ink(element.strokeColor, darkMode)
+  const strokeWidth = Math.max(0.2, number(element.strokeWidth, 2)), stroke = pathColor ?? ink(element.strokeColor, darkMode)
   const background = color(element.backgroundColor, 'transparent')
   const pattern = `${prefix}-fill-${safeId(element.id)}`
   const fillStyle = string(element.fillStyle, 'solid')
@@ -412,8 +412,10 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
       const style: CSSProperties = { cursor: element.locked ? 'pointer' : undefined }
       const host = element.type === 'text' && typeof element.containerId === 'string' ? byId.get(element.containerId) : undefined
       const textBackdrop = host?.type === 'arrow' || host?.type === 'line' ? labelBackdrop : undefined
-      const textColor = element.type === 'text' ? readableTextColor(element.strokeColor, textSurface(element, index, host)) : undefined
-      let graphic: ReactNode = <g transform={`rotate(${number(element.angle) * 180 / Math.PI} ${center.x} ${center.y}) translate(${number(element.x)} ${number(element.y)})`}><ElementGraphic element={element} files={files} prefix={prefix} darkMode={surfaceIsDark} textBackdrop={textBackdrop} textColor={textColor} /></g>
+      const textColor = element.type === 'text' ? readableColor(element.strokeColor, textSurface(element, index, host)) : undefined
+      const pathColor = ['line', 'arrow', 'freedraw'].includes(string(element.type)) && rgba(color(element.strokeColor, '#1e1e1e'))?.[3] !== 0
+        ? readableColor(element.strokeColor, canvasSurface, 3) : undefined
+      let graphic: ReactNode = <g transform={`rotate(${number(element.angle) * 180 / Math.PI} ${center.x} ${center.y}) translate(${number(element.x)} ${number(element.y)})`}><ElementGraphic element={element} files={files} prefix={prefix} darkMode={surfaceIsDark} textBackdrop={textBackdrop} textColor={textColor} pathColor={pathColor} /></g>
       for (const frameId of clipChain(element)) graphic = <g key={frameId} clipPath={`url(#${clipId(frameId)})`}>{graphic}</g>
       return <g key={id} data-element-id={id} data-element-type={string(element.type)} data-editing-text={element.type === 'text' && id === editingTextId ? 'true' : undefined} visibility={element.type === 'text' && id === editingTextId ? 'hidden' : undefined} data-selected={selectedIds?.has(id) ? 'true' : undefined} aria-label={string(element.text, string(element.name, string(element.type, 'Drawing object')))} role="img" opacity={Math.max(0, Math.min(100, number(element.opacity, 100))) / 100} style={style}>{graphic}</g>
     })}

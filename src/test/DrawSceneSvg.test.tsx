@@ -38,6 +38,68 @@ describe('custom Draw arrowheads', () => {
   })
 })
 
+describe('Draw path contrast uses the actual canvas surface', () => {
+  const arrow = (strokeColor: string) => ({ id: 'arrow', type: 'arrow', x: 20, y: 30, width: 240, height: 0, angle: 0, points: [[0, 0], [240, 0]], strokeWidth: 2, strokeColor, startArrowhead: 'arrow', endArrowhead: 'triangle' })
+  const contrast = (first: string, second: string) => {
+    const luminance = (hex: string) => {
+      const channels = [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16) / 255)
+        .map(channel => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+    }
+    const a = luminance(first), b = luminance(second)
+    return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+  }
+  const paint = (container: HTMLElement) => container.querySelector('[data-element-id="arrow"] path[marker-end]')!.getAttribute('stroke')!
+
+  it.each([
+    ['black', '#000000', '#475569'],
+    ['#0f1211', '#0f1211', '#475569'],
+    ['#0f1211', '#0f1211', '#7f5539'],
+    ['#777777', '#777777', '#475569'],
+    ['#777777', '#777777', '#777777'],
+    ['white', '#ffffff', '#e2e8f0'],
+    ['#f8fafc', '#f8fafc', '#94a3b8'],
+  ])('makes a low-contrast %s path visible without changing stored records', (backgroundColor, backgroundHex, strokeColor) => {
+    const element = arrow(strokeColor), original = JSON.stringify(element)
+    expect(contrast(strokeColor, backgroundHex)).toBeLessThan(3)
+    const { container } = render(<svg><DrawSceneSvg elements={[element]} files={{}} darkMode={backgroundHex === '#ffffff' || backgroundHex === '#f8fafc'} backgroundColor={backgroundColor} /></svg>)
+    const visible = paint(container)
+    expect(contrast(visible, backgroundHex)).toBeGreaterThanOrEqual(3)
+    expect(visible).not.toBe(strokeColor)
+    const tips = container.querySelectorAll('[data-element-id="arrow"] marker path')
+    expect(tips).toHaveLength(2)
+    for (const tip of tips) expect(tip).toHaveAttribute('stroke', visible)
+    expect(tips[1]).toHaveAttribute('fill', visible)
+    expect(JSON.stringify(element)).toBe(original)
+  })
+
+  it.each([
+    ['#0f1211', '#e2e8f0'],
+    ['#0f1211', '#f59e0b'],
+    ['#ffffff', '#475569'],
+    ['#ffffff', '#0f766e'],
+    ['#ffffff', '#3b82f6'],
+  ])('preserves a clear authored %s path color %s', (backgroundColor, strokeColor) => {
+    expect(contrast(strokeColor, backgroundColor)).toBeGreaterThanOrEqual(3)
+    const { container } = render(<svg><DrawSceneSvg elements={[arrow(strokeColor)]} files={{}} darkMode backgroundColor={backgroundColor} /></svg>)
+    expect(paint(container)).toBe(strokeColor)
+    for (const tip of container.querySelectorAll('marker path')) expect(tip).toHaveAttribute('stroke', strokeColor)
+  })
+
+  it.each(['line', 'freedraw'])('adapts %s ink while retaining shape outlines and explicit invisible strokes', type => {
+    const elements = [
+      { ...arrow('#475569'), id: 'path', type },
+      { id: 'shape', type: 'rectangle', x: 400, y: 0, width: 100, height: 80, strokeColor: '#475569', backgroundColor: '#ffffff' },
+      { ...arrow('transparent'), id: 'invisible' },
+    ]
+    const { container } = render(<svg><DrawSceneSvg elements={elements} files={{}} backgroundColor="#0f1211" /></svg>)
+    const visible = container.querySelector('[data-element-id="path"] path')!.getAttribute('stroke')!
+    expect(contrast(visible, '#0f1211')).toBeGreaterThanOrEqual(3)
+    expect(container.querySelector('[data-element-id="shape"] path')).toHaveAttribute('stroke', '#475569')
+    expect(container.querySelector('[data-element-id="invisible"] path[marker-end]')).toHaveAttribute('stroke', 'transparent')
+  })
+})
+
 describe('custom Draw semantic icons', () => {
   it('shows a stable Azure icon on the original projected shape without adding scene objects', () => {
     const element = graphShape({ icon: 'azure-app-services', imageUrl: 'https://example.com/fallback.png' })
