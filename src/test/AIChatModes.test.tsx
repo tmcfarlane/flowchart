@@ -75,6 +75,33 @@ describe('AIChat generation modes', () => {
     expect(getContext).toHaveBeenCalledTimes(1)
   })
 
+  it('omits context when App cannot supply a safe one', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(drawing))
+    vi.stubGlobal('fetch', fetchMock)
+    const onReady = vi.fn()
+    const getContext = vi.fn(() => undefined)
+    render(<AIChat
+      nodes={[
+        { id: 'embedded', type: 'image', position: { x: 0, y: 0 }, data: { label: 'Embedded', imageUrl: 'data:image/png;base64,SECRET' } },
+        { id: 'external', type: 'image', position: { x: 10, y: 10 }, data: { label: 'External', imageUrl: 'https://example.test/image.png' } },
+      ]}
+      edges={[]} isOpen onClose={vi.fn()} diagramMode="flowchart"
+      generationMode="draw" onGenerationModeChange={vi.fn()}
+      getGenerationContext={getContext} onProposalReady={onReady}
+    />)
+    fireEvent.change(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...'), { target: { value: 'Sketch a floor plan' } })
+    fireEvent.click(screen.getByRole('button', { name: /Generate drawing/i }))
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(drawing, expect.any(String)))
+    const requestBody = fetchMock.mock.calls[0][1].body as string
+    const request = JSON.parse(requestBody)
+    expect(request.diagramMode).toBe('draw')
+    expect(request.flowContext).toBeUndefined()
+    expect(request.drawContext).toBeUndefined()
+    expect(requestBody).not.toContain('data:image')
+    expect(requestBody).not.toContain('https://example.test/image.png')
+    expect(getContext).toHaveBeenCalledTimes(1)
+  })
+
   it('generates a graph from a Draw board using the chosen output mode', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(flowchart))
     vi.stubGlobal('fetch', fetchMock)

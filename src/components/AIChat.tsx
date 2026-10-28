@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Node, Edge } from 'reactflow'
 import './AIChat.css'
-import { type DiagramMode, type EdgeStyle, DIAGRAM_MODES } from '../shared/flowTypes'
+import { type DiagramMode, DIAGRAM_MODES } from '../shared/flowTypes'
 import { parseGenerationProposal, normalizeGenerationProposal, type AIGenerationContext, type AIGenerationProposal } from '../shared/aiGeneration'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
@@ -102,7 +102,7 @@ interface AIChatProps {
   onEditSelection?: () => void
 }
 
-function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, diagramMode = 'flowchart', generationMode, onGenerationModeChange, getGenerationContext, generationRevision = 0, selectedCount = 0, onEditSelection }: AIChatProps) {
+function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, generationMode, onGenerationModeChange, getGenerationContext, generationRevision = 0, selectedCount = 0, onEditSelection }: AIChatProps) {
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -156,12 +156,6 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
     return () => clearInterval(interval)
   }, [isLoading])
 
-  const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
-    if (edge.animated) return 'animated'
-    if (edge.type === 'step') return 'step'
-    return 'default'
-  }, [])
-
   const sendMessage = useCallback(async (overrideText?: string) => {
     const userPrompt = (overrideText ?? inputValue).trim()
     if (!userPrompt || requestRef.current || !isOpen) return
@@ -175,30 +169,6 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
 
     try {
       const context = getGenerationContext()
-      const fallbackFlowContext = !context && diagramMode !== 'draw' ? {
-        nodes: nodes.map((n) => ({
-          id: n.id,
-          type: n.type,
-          label: n.data.label,
-          position: n.position,
-          width: typeof n.style?.width === 'number' ? n.style.width : undefined,
-          height: typeof n.style?.height === 'number' ? n.style.height : undefined,
-          imageUrl: typeof n.data.imageUrl === 'string' && !n.data.imageUrl.startsWith('data:') ? n.data.imageUrl : undefined,
-          parentNode: n.parentNode,
-          containerKind: n.data.containerKind,
-        })),
-        edges: edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          style: getEdgeStyleFromEdge(e),
-          sourceHandle: typeof e.sourceHandle === 'string' ? e.sourceHandle : undefined,
-          targetHandle: typeof e.targetHandle === 'string' ? e.targetHandle : undefined,
-          label: typeof e.label === 'string' ? e.label : undefined,
-          protocol: e.data?.protocol,
-          commStyle: e.data?.commStyle,
-        })),
-        } : undefined
       const existingThread = threadRef.current?.mode === outputMode ? threadRef.current.id : null
       const messages = existingThread ? getMessages(existingThread) : []
       const response = await fetch('/api/chat', {
@@ -209,7 +179,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           mode: 'generate',
           diagramMode: outputMode,
           messages: [...messages.map((message) => ({ role: message.role, content: message.content })), { role: 'user', content: userPrompt }],
-          ...(context ?? (fallbackFlowContext ? { flowContext: fallbackFlowContext } : {})),
+          ...(context ?? {}),
         }),
       })
       if (requestRef.current !== request || targetRef.current !== outputMode || revisionRef.current !== revision || !openRef.current) return
@@ -249,7 +219,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
         setIsLoading(false)
       }
     }
-  }, [inputValue, isOpen, nodes, edges, getEdgeStyleFromEdge, onProposalReady, onClose, diagramMode, generationMode, generationRevision, getGenerationContext])
+  }, [inputValue, isOpen, onProposalReady, onClose, generationMode, generationRevision, getGenerationContext])
 
   const handleClose = useCallback(() => {
     cancelRequest()
