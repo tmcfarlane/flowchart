@@ -1,0 +1,596 @@
+{
+  "version": 4,
+  "mode": "draw",
+  "nodes": [],
+  "edges": [],
+  "architectureScene": {
+    "version": 1,
+    "elements": [
+      {
+        "id": "import-47dabaf7-c3cf-4229-b11a-74cfb1f589fe",
+        "type": "text",
+        "x": 310,
+        "y": 167,
+        "width": 468.48,
+        "height": 41.6,
+        "angle": 0,
+        "strokeColor": "#123456",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "A gentler way to wake up",
+        "originalText": "A gentler way to wake up",
+        "fontSize": 32,
+        "fontFamily": 2,
+        "textAlign": "left",
+        "verticalAlign": "top",
+        "containerId": null
+      },
+      {
+        "id": "import-9a9aac2c-ed49-49e6-a199-39723fe3a607",
+        "type": "text",
+        "x": 310,
+        "y": 222,
+        "width": 625.86,
+        "height": 23.400000000000002,
+        "angle": 0,
+        "strokeColor": "#123456",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Make mornings easier with a few small, repeatable habits.",
+        "originalText": "Make mornings easier with a few small, repeatable habits.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "left",
+        "verticalAlign": "top",
+        "containerId": null
+      },
+      {
+        "id": "import-944fc614-e81d-4b7c-8fd7-49729b13ff21",
+        "type": "rectangle",
+        "x": 310,
+        "y": 317,
+        "width": 180,
+        "height": 210,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#e7f1f5",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-d3a75a84-5af6-4b3a-895b-7ee3f7504541",
+            "type": "text"
+          },
+          {
+            "id": "import-0f9fc07f-e3e9-4348-b4c0-02c00d940170",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-d3a75a84-5af6-4b3a-895b-7ee3f7504541",
+        "type": "text",
+        "x": 323.14,
+        "y": 328.4,
+        "width": 153.72,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "1. Prepare\ntonight\n\nChoose a\nbedtime and\nput your alarm\nacross the\nroom.",
+        "originalText": "1. Prepare tonight\n\nChoose a bedtime and put your alarm across the room.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-944fc614-e81d-4b7c-8fd7-49729b13ff21"
+      },
+      {
+        "id": "import-2c605e41-0539-44f5-abb5-b6309067dc0e",
+        "type": "rectangle",
+        "x": 510,
+        "y": 317,
+        "width": 180,
+        "height": 210,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#e7f4ef",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-8d5e3a9b-1383-4bf3-ac8f-f6f5df7f5d41",
+            "type": "text"
+          },
+          {
+            "id": "import-0f9fc07f-e3e9-4348-b4c0-02c00d940170",
+            "type": "arrow"
+          },
+          {
+            "id": "import-adfdca6d-5dd8-483f-a148-c7e4b04ea56b",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-8d5e3a9b-1383-4bf3-ac8f-f6f5df7f5d41",
+        "type": "text",
+        "x": 534.12,
+        "y": 328.4,
+        "width": 131.76,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "2. Keep a\nsteady time\n\nWake at a\nsimilar time\neach day,\nincluding\nweekends.",
+        "originalText": "2. Keep a steady time\n\nWake at a similar time each day, including weekends.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-2c605e41-0539-44f5-abb5-b6309067dc0e"
+      },
+      {
+        "id": "import-0f9fc07f-e3e9-4348-b4c0-02c00d940170",
+        "type": "arrow",
+        "x": 490,
+        "y": 422,
+        "width": 20,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            20,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-944fc614-e81d-4b7c-8fd7-49729b13ff21",
+          "focus": 0,
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "import-2c605e41-0539-44f5-abb5-b6309067dc0e",
+          "focus": 0,
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-fefadefd-a5c8-462a-8712-1054d2c17212",
+        "type": "rectangle",
+        "x": 710,
+        "y": 317,
+        "width": 180,
+        "height": 210,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#f7efdf",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-c04f62c2-3865-4cc7-bd0b-12a9a852956b",
+            "type": "text"
+          },
+          {
+            "id": "import-adfdca6d-5dd8-483f-a148-c7e4b04ea56b",
+            "type": "arrow"
+          },
+          {
+            "id": "import-be0ff9fa-a57a-4a73-9b71-d297632cef12",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-c04f62c2-3865-4cc7-bd0b-12a9a852956b",
+        "type": "text",
+        "x": 723.14,
+        "y": 340.1,
+        "width": 153.72,
+        "height": 163.8,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "3. Get out of\nbed\n\nWhen the alarm\nrings, stand\nup. Skip the\nsnooze button.",
+        "originalText": "3. Get out of bed\n\nWhen the alarm rings, stand up. Skip the snooze button.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-fefadefd-a5c8-462a-8712-1054d2c17212"
+      },
+      {
+        "id": "import-adfdca6d-5dd8-483f-a148-c7e4b04ea56b",
+        "type": "arrow",
+        "x": 690,
+        "y": 422,
+        "width": 20,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            20,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-2c605e41-0539-44f5-abb5-b6309067dc0e",
+          "focus": 0,
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "import-fefadefd-a5c8-462a-8712-1054d2c17212",
+          "focus": 0,
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-7bc1b712-250b-4f50-a533-845f9416cb46",
+        "type": "rectangle",
+        "x": 910,
+        "y": 317,
+        "width": 180,
+        "height": 210,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#f2e9f5",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-9e77e257-d692-4797-a1cc-661432af3c3f",
+            "type": "text"
+          },
+          {
+            "id": "import-be0ff9fa-a57a-4a73-9b71-d297632cef12",
+            "type": "arrow"
+          },
+          {
+            "id": "import-7af488d2-c304-434b-8143-7787c6fcdf46",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-9e77e257-d692-4797-a1cc-661432af3c3f",
+        "type": "text",
+        "x": 923.14,
+        "y": 328.4,
+        "width": 153.72,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "4. Find bright\nlight\n\nOpen the\ncurtains or\nstep outside.\nHave a glass\nof water.",
+        "originalText": "4. Find bright light\n\nOpen the curtains or step outside. Have a glass of water.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-7bc1b712-250b-4f50-a533-845f9416cb46"
+      },
+      {
+        "id": "import-be0ff9fa-a57a-4a73-9b71-d297632cef12",
+        "type": "arrow",
+        "x": 890,
+        "y": 422,
+        "width": 20,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            20,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-fefadefd-a5c8-462a-8712-1054d2c17212",
+          "focus": 0,
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "import-7bc1b712-250b-4f50-a533-845f9416cb46",
+          "focus": 0,
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-4ba00056-da8b-4ad1-abe1-302f161a399d",
+        "type": "rectangle",
+        "x": 1110,
+        "y": 317,
+        "width": 180,
+        "height": 210,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#eaf0fa",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-10ffd884-2d50-401d-8262-1210515882fb",
+            "type": "text"
+          },
+          {
+            "id": "import-7af488d2-c304-434b-8143-7787c6fcdf46",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-10ffd884-2d50-401d-8262-1210515882fb",
+        "type": "text",
+        "x": 1123.1399999999999,
+        "y": 328.4,
+        "width": 153.72,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "5. Move, then\nbegin\n\nStretch or\nwalk for 5\nminutes. Start\nwith one easy\ntask.",
+        "originalText": "5. Move, then begin\n\nStretch or walk for 5 minutes. Start with one easy task.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-4ba00056-da8b-4ad1-abe1-302f161a399d"
+      },
+      {
+        "id": "import-7af488d2-c304-434b-8143-7787c6fcdf46",
+        "type": "arrow",
+        "x": 1090,
+        "y": 422,
+        "width": 20,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            20,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-7bc1b712-250b-4f50-a533-845f9416cb46",
+          "focus": 0,
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "import-4ba00056-da8b-4ad1-abe1-302f161a399d",
+          "focus": 0,
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-fb680d97-d84c-45e3-849e-876caa6d04bc",
+        "type": "rectangle",
+        "x": 400,
+        "y": 567,
+        "width": 800,
+        "height": 90,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#f1f5f9",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-f13652db-e05d-4864-a3ca-52bdc38cf7b7",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "import-f13652db-e05d-4864-a3ca-52bdc38cf7b7",
+        "type": "text",
+        "x": 415.7,
+        "y": 588.6,
+        "width": 768.6,
+        "height": 46.800000000000004,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "If mornings feel especially hard, shift bedtime earlier in small steps\nand make sure you are getting enough sleep.",
+        "originalText": "If mornings feel especially hard, shift bedtime earlier in small steps and make sure you are getting enough sleep.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-fb680d97-d84c-45e3-849e-876caa6d04bc"
+      }
+    ],
+    "files": {}
+  }
+}

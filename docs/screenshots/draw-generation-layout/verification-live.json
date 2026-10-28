@@ -1,0 +1,28 @@
+{
+  "url": "http://127.0.0.1:3055/",
+  "baseline": false,
+  "live": true,
+  "checks": [
+    "preview leaves document unchanged",
+    "bound labels fit their rectangular hosts",
+    "insert creates editable native Draw records",
+    "live model leaves at least 96 world pixels for every connected card gap and arrow",
+    "one undo, redo, reload, and JSON export preserve the inserted scene",
+    "no browser page errors"
+  ],
+  "broken_labels": [],
+  "fitted_label_count": 5,
+  "arrow_lengths": [
+    100.10627642736308,
+    100.10627642736308,
+    100.10627642736308,
+    100.10627642736308
+  ],
+  "connected_shape_gaps": [
+    100.0,
+    100.0,
+    100.0,
+    100.0
+  ],
+  "provider": {}
+}
