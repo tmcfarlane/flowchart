@@ -1,0 +1,129 @@
+{
+  "captured": [
+    {
+      "event": "verification_run",
+      "sourceRevision": "880b6834b180e42907c74a2b4fb6c21163abcca7",
+      "fixtureSha256": "917e85f1daaec12044b566a30c239088cac6430e13af1d23dec4a1154b733991"
+    },
+    {
+      "event": "native_parser",
+      "boundedSource": true,
+      "boundedDocumentBytes": true
+    },
+    {
+      "event": "fixture_provider",
+      "call": 1,
+      "case": "captured",
+      "format": "json_schema"
+    },
+    {
+      "event": "ai_request",
+      "requestId": "b532abb6-bc1a-48e9-9185-95ff8e1a670f",
+      "environment": "verification-fixture",
+      "routing": "direct",
+      "status": 200,
+      "outcome": "success",
+      "attempts": 1,
+      "usageReported": true,
+      "model": "verification-fixture"
+    },
+    {
+      "event": "fixture_provider",
+      "call": 2,
+      "case": "captured",
+      "format": "json_schema"
+    },
+    {
+      "event": "ai_request",
+      "requestId": "b915cd53-58fd-430b-b54f-ee972e408f34",
+      "environment": "verification-fixture",
+      "routing": "direct",
+      "status": 200,
+      "outcome": "success",
+      "attempts": 1,
+      "usageReported": true,
+      "model": "verification-fixture"
+    },
+    {
+      "event": "fixture_provider",
+      "call": 3,
+      "case": "rejected",
+      "format": "json_schema"
+    },
+    {
+      "event": "fixture_provider",
+      "call": 4,
+      "case": "rejected",
+      "format": "json_schema"
+    },
+    {
+      "event": "ai_request",
+      "requestId": "533ac3c6-cb15-4096-af55-a8e5be8b5e67",
+      "environment": "verification-fixture",
+      "routing": "direct",
+      "status": 502,
+      "outcome": "invalid_layout",
+      "attempts": 2,
+      "usageReported": true,
+      "model": "verification-fixture"
+    }
+  ],
+  "morning-replay": [
+    {
+      "event": "verification_run",
+      "sourceRevision": "880b6834b180e42907c74a2b4fb6c21163abcca7",
+      "fixtureSha256": "dae5910e5adc857dc0d26f8da8735f53eb11b80ea55d455f6189cdac3b26a6b9"
+    },
+    {
+      "event": "native_parser",
+      "boundedSource": true,
+      "boundedDocumentBytes": true
+    },
+    {
+      "event": "fixture_provider",
+      "call": 1,
+      "case": "captured",
+      "format": "json_schema"
+    },
+    {
+      "event": "ai_request",
+      "requestId": "e46a2e52-2011-4ac0-9fc2-97cf9fa9a54a",
+      "environment": "verification-fixture",
+      "routing": "direct",
+      "status": 200,
+      "outcome": "success",
+      "attempts": 1,
+      "usageReported": true,
+      "model": "verification-fixture"
+    }
+  ],
+  "workshop-replay": [
+    {
+      "event": "verification_run",
+      "sourceRevision": "880b6834b180e42907c74a2b4fb6c21163abcca7",
+      "fixtureSha256": "2fe440189df51d89ca561507a9b19f92750f10b1085a110e6b23883b27c216bb"
+    },
+    {
+      "event": "native_parser",
+      "boundedSource": true,
+      "boundedDocumentBytes": true
+    },
+    {
+      "event": "fixture_provider",
+      "call": 1,
+      "case": "captured",
+      "format": "json_schema"
+    },
+    {
+      "event": "ai_request",
+      "requestId": "98380f98-0a87-415a-9ac6-a9e962967e54",
+      "environment": "verification-fixture",
+      "routing": "direct",
+      "status": 200,
+      "outcome": "success",
+      "attempts": 1,
+      "usageReported": true,
+      "model": "verification-fixture"
+    }
+  ]
+}

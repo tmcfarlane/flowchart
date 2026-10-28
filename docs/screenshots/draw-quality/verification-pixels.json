@@ -1,0 +1,67 @@
+{
+  "status": "PASS",
+  "method": "Pillow RGB region equality of original unmodified PNG files; Tesseract default page segmentation recognizes every full label in the light PNG",
+  "regions": {
+    "Target users": {
+      "region": [
+        265,
+        490,
+        356,
+        522
+      ],
+      "identical": true,
+      "dark_sha256": "e3cf0c3445ae1cfbb0fa2b38e61edcbdd057d293f689c6b6d2b3ff52b45a2e06",
+      "light_sha256": "e3cf0c3445ae1cfbb0fa2b38e61edcbdd057d293f689c6b6d2b3ff52b45a2e06"
+    },
+    "Core messaging": {
+      "region": [
+        498,
+        490,
+        615,
+        522
+      ],
+      "identical": true,
+      "dark_sha256": "cdfc145db2f5203c7a079d395bb49136c6838b832f84182b99a218d06e54deb4",
+      "light_sha256": "cdfc145db2f5203c7a079d395bb49136c6838b832f84182b99a218d06e54deb4"
+    },
+    "Launch channels": {
+      "region": [
+        385,
+        651,
+        506,
+        682
+      ],
+      "identical": true,
+      "dark_sha256": "1bf21608bceb5968e8f0c94b3e908291ace800f13e0b84e87358b9d44d4a8ad2",
+      "light_sha256": "1bf21608bceb5968e8f0c94b3e908291ace800f13e0b84e87358b9d44d4a8ad2"
+    },
+    "Ready to launch?": {
+      "region": [
+        1192,
+        520,
+        1315,
+        551
+      ],
+      "identical": true,
+      "dark_sha256": "5cd4cd57cc088e9223aa6fb84237480609de6a144fcf71c484ffd74332717717",
+      "light_sha256": "5cd4cd57cc088e9223aa6fb84237480609de6a144fcf71c484ffd74332717717"
+    },
+    "Finalize launch checklist": {
+      "region": [
+        1123,
+        686,
+        1290,
+        718
+      ],
+      "identical": true,
+      "dark_sha256": "dc4ec2ed1f4af1a1a18d916f2b740838fc7ff0aa65358b78272c81b565b7cdf3",
+      "light_sha256": "dc4ec2ed1f4af1a1a18d916f2b740838fc7ff0aa65358b78272c81b565b7cdf3"
+    }
+  },
+  "ocr_light": "$B Flowchart QP Architecture Draw & Gey @ Share) Open-Source\n\nExplore Decide\n\nTarget users insights Core messaging\n\nReady to launch?\n\nLaunch channels\n\nhandoff\n\nFinalize launch checklist\n\n\u2014~~__\u2014\u2014_\n\nNeed clarity on pricing and onboarding timing.\n\nDecision gate after beta feedback review.\n\n\u00a9 Flowchart\n",
+  "original_png_sha256": {
+    "dark": "39685c3010f66d051172e40cae603019e44562e79dcf0bf15cbb4913b85fb2a2",
+    "light": "15f5da82c86d385c991351bcf5585411f98cdeb356e37ec21a0e74f731eb1748"
+  },
+  "source_revision": "880b6834b180e42907c74a2b4fb6c21163abcca7"
+}

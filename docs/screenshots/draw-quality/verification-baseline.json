@@ -1,0 +1,141 @@
+{
+  "source_revision": "1d8073ff74d1506a1a027ebbd96a5de74459f2dd",
+  "source": "docs/screenshots/ai-draw-tools/live-export.json",
+  "status": "REPRODUCED",
+  "primary_crossing": {
+    "arrow_id": "import-4cde77e8-bbf5-4ed8-a480-386b36882248",
+    "card_id": "import-6942d3b8-ec77-4b65-b020-4e505fdeb309",
+    "last_segment": [
+      [
+        1160.0,
+        767.4499999999999
+      ],
+      [
+        1376.5488704422387,
+        385.8355214891661
+      ]
+    ],
+    "card_bounds": [
+      1190.0,
+      497.45000000000005,
+      1450.0,
+      587.45
+    ]
+  },
+  "crossings": [
+    {
+      "arrow": "import-4cde77e8-bbf5-4ed8-a480-386b36882248",
+      "obstacle": "import-0001979f-5c58-40df-a38e-1ef82b0df95c",
+      "obstacle_type": "text",
+      "segment": 0,
+      "points": [
+        [
+          347.53109344483994,
+          547.170047304262
+        ],
+        [
+          410.0,
+          767.4499999999999
+        ]
+      ],
+      "bounds": [
+        49.99999999999997,
+        587.45,
+        555.0799999999999,
+        610.8500000000001
+      ]
+    },
+    {
+      "arrow": "import-4cde77e8-bbf5-4ed8-a480-386b36882248",
+      "obstacle": "import-6942d3b8-ec77-4b65-b020-4e505fdeb309",
+      "obstacle_type": "rectangle",
+      "segment": 2,
+      "points": [
+        [
+          1160.0,
+          767.4499999999999
+        ],
+        [
+          1376.5488704422387,
+          385.8355214891661
+        ]
+      ],
+      "bounds": [
+        1190.0,
+        497.45000000000005,
+        1450.0,
+        587.45
+      ]
+    },
+    {
+      "arrow": "import-4cde77e8-bbf5-4ed8-a480-386b36882248",
+      "obstacle": "import-73b8ccce-59f4-47d8-82bc-82e1c3457984",
+      "obstacle_type": "text",
+      "segment": 2,
+      "points": [
+        [
+          1160.0,
+          767.4499999999999
+        ],
+        [
+          1376.5488704422387,
+          385.8355214891661
+        ]
+      ],
+      "bounds": [
+        1237.65,
+        519.05,
+        1402.35,
+        565.8499999999999
+      ]
+    },
+    {
+      "arrow": "import-4cde77e8-bbf5-4ed8-a480-386b36882248",
+      "obstacle": "import-0e5bf96b-7e59-453f-abd7-de04febc6b16",
+      "obstacle_type": "text",
+      "segment": 2,
+      "points": [
+        [
+          1160.0,
+          767.4499999999999
+        ],
+        [
+          1376.5488704422387,
+          385.8355214891661
+        ]
+      ],
+      "bounds": [
+        1170.0,
+        627.45,
+        1620.1799999999998,
+        650.8500000000001
+      ]
+    },
+    {
+      "arrow": "import-4cde77e8-bbf5-4ed8-a480-386b36882248",
+      "obstacle": "import-20dcf908-9b5d-4368-91d7-e81eff1943c4",
+      "obstacle_type": "text",
+      "segment": 2,
+      "points": [
+        [
+          1160.0,
+          767.4499999999999
+        ],
+        [
+          1376.5488704422387,
+          385.8355214891661
+        ]
+      ],
+      "bounds": [
+        1344.8919502139656,
+        432.8875803019153,
+        1370.5119502139655,
+        451.08758030191535
+      ]
+    }
+  ],
+  "checks": [
+    "independent segment/rectangle oracle detects the saved card crossing",
+    "actual browser renders the captured native scene in dark and light themes"
+  ]
+}

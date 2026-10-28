@@ -1,0 +1,277 @@
+{
+  "url": "http://127.0.0.1:3064/",
+  "live": false,
+  "source_revision": "880b683",
+  "method": "real handleChat with exact saved cloud source plan fixture",
+  "oracle_negative_controls": {
+    "short_arrow_marker_inside_source": "REPRODUCED",
+    "violations": [
+      {
+        "arrow": "short-arrow",
+        "end": -1,
+        "terminal_segment_too_short": 4.0,
+        "marker_size": 16
+      },
+      {
+        "arrow": "short-arrow",
+        "end": -1,
+        "obstacle": "near-source",
+        "marker_vertices": [
+          [
+            88.0,
+            42.0
+          ],
+          [
+            88.0,
+            58.0
+          ],
+          [
+            104.0,
+            50.0
+          ]
+        ],
+        "bounds": [
+          -2.0,
+          -2.0,
+          102.0,
+          102.0
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case": "morning-replay",
+      "prompt": "Create a calm, practical morning routine to help someone wake up and start their day. Make it easy to read and follow.",
+      "request_id": "e46a2e52-2011-4ac0-9fc2-97cf9fa9a54a",
+      "quality": {
+        "connector_crossings": [],
+        "marker_crossings": [],
+        "shape_collisions": [],
+        "native_type_counts": {
+          "text": 7,
+          "rectangle": 6,
+          "arrow": 5
+        }
+      },
+      "canonical_insertion": {
+        "translation": [
+          -210,
+          467.5
+        ],
+        "remapped_ids": 18,
+        "elements": 18
+      },
+      "native_edits": {
+        "native_property_edit_undo_redo": true,
+        "frame_move_and_undo": false
+      },
+      "exports": {
+        "native_export": {
+          "translation": [
+            0,
+            0.0
+          ],
+          "remapped_ids": 0,
+          "elements": 18
+        },
+        "native_reimport": {
+          "translation": [
+            0,
+            0.0
+          ],
+          "remapped_ids": 18,
+          "elements": 18
+        },
+        "reimport_native_edit_and_undo": true,
+        "svg_embedded_font": true
+      },
+      "replay_matches_original_cloud_file": {
+        "translation": [
+          0,
+          0
+        ],
+        "remapped_ids": 0,
+        "elements": 18
+      },
+      "connector_paint_contrast": {
+        "threshold": 3,
+        "dark": [
+          {
+            "id": "import-cc18b5cd-18fd-472e-8432-172bd682f3fd",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-cc18b5cd-18fd-472e-8432-172bd682f3fd",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-c45ac4ec-4f97-414d-94e6-d1cbf4bb68b2",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-c45ac4ec-4f97-414d-94e6-d1cbf4bb68b2",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-1db2c38d-7b8b-4358-81ed-244f63786130",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-1db2c38d-7b8b-4358-81ed-244f63786130",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-bf9082dd-506a-4cb0-9da1-2e1260bb87ac",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-bf9082dd-506a-4cb0-9da1-2e1260bb87ac",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-9bdc467a-9a57-4c67-bf60-eb9786d8461c",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          },
+          {
+            "id": "import-9bdc467a-9a57-4c67-bf60-eb9786d8461c",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(220, 236, 230)",
+            "opacity": 1,
+            "contrast": 15.412600133366354
+          }
+        ],
+        "light": [
+          {
+            "id": "import-cc18b5cd-18fd-472e-8432-172bd682f3fd",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-cc18b5cd-18fd-472e-8432-172bd682f3fd",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-c45ac4ec-4f97-414d-94e6-d1cbf4bb68b2",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-c45ac4ec-4f97-414d-94e6-d1cbf4bb68b2",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-1db2c38d-7b8b-4358-81ed-244f63786130",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-1db2c38d-7b8b-4358-81ed-244f63786130",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-bf9082dd-506a-4cb0-9da1-2e1260bb87ac",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-bf9082dd-506a-4cb0-9da1-2e1260bb87ac",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-9bdc467a-9a57-4c67-bf60-eb9786d8461c",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          },
+          {
+            "id": "import-9bdc467a-9a57-4c67-bf60-eb9786d8461c",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(71, 85, 105)",
+            "opacity": 1,
+            "contrast": 7.577663953533317
+          }
+        ]
+      },
+      "failed_compile": null,
+      "checks": [
+        "backend response is the finalized native document",
+        "independent segment, marker, shape, and measured frame-title checks pass",
+        "font-ready browser ink remains inside finalized text bounds",
+        "actual connector shafts and marker paint exceed 3:1 contrast on dark and light surfaces",
+        "response, preview, presentation, insertion, undo, redo, reload and native exports retain canonical geometry",
+        "generated elements remain editable and native Excalidraw roundtrip preserves bindings"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}

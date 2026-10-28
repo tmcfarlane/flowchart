@@ -1,0 +1,159 @@
+{
+  "url": "http://127.0.0.1:3063/",
+  "live": true,
+  "source_revision": "b478259",
+  "method": "real cloud provider via /api/chat",
+  "oracle_negative_controls": {
+    "short_arrow_marker_inside_source": "REPRODUCED",
+    "violations": [
+      {
+        "arrow": "short-arrow",
+        "end": -1,
+        "terminal_segment_too_short": 4.0,
+        "marker_size": 16
+      },
+      {
+        "arrow": "short-arrow",
+        "end": -1,
+        "obstacle": "near-source",
+        "marker_vertices": [
+          [
+            88.0,
+            42.0
+          ],
+          [
+            88.0,
+            58.0
+          ],
+          [
+            104.0,
+            50.0
+          ]
+        ],
+        "bounds": [
+          -2.0,
+          -2.0,
+          102.0,
+          102.0
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case": "morning",
+      "prompt": "Create a calm, practical morning routine to help someone wake up and start their day. Make it easy to read and follow.",
+      "request_id": "ccb4dc00-c659-4061-94ba-36edf781821e",
+      "quality": {
+        "connector_crossings": [],
+        "marker_crossings": [],
+        "shape_collisions": [],
+        "native_type_counts": {
+          "text": 7,
+          "rectangle": 6,
+          "arrow": 5
+        }
+      },
+      "canonical_insertion": {
+        "translation": [
+          -210,
+          467.5
+        ],
+        "remapped_ids": 18,
+        "elements": 18
+      },
+      "native_edits": {
+        "native_property_edit_undo_redo": true,
+        "frame_move_and_undo": false
+      },
+      "exports": {
+        "native_export": {
+          "translation": [
+            0,
+            0.0
+          ],
+          "remapped_ids": 0,
+          "elements": 18
+        },
+        "native_reimport": {
+          "translation": [
+            0,
+            0.0
+          ],
+          "remapped_ids": 18,
+          "elements": 18
+        },
+        "reimport_native_edit_and_undo": true,
+        "svg_embedded_font": true
+      },
+      "failed_compile": null,
+      "checks": [
+        "backend response is the finalized native document",
+        "independent segment, marker, shape, and measured frame-title checks pass",
+        "font-ready browser ink remains inside finalized text bounds",
+        "response, preview, presentation, insertion, undo, redo, reload and native exports retain canonical geometry",
+        "generated elements remain editable and native Excalidraw roundtrip preserves bindings"
+      ],
+      "status": "PASS"
+    },
+    {
+      "case": "workshop",
+      "prompt": "Plan a product-launch workshop covering exploration, a readiness decision, final launch actions, and the handoff to decision makers. Make the whiteboard clear enough to present to the team.",
+      "request_id": "d2786bda-fa07-4e26-8b75-d84785aaf7ec",
+      "quality": {
+        "connector_crossings": [],
+        "marker_crossings": [],
+        "shape_collisions": [],
+        "native_type_counts": {
+          "text": 9,
+          "rectangle": 5,
+          "diamond": 1,
+          "arrow": 5,
+          "frame": 1
+        }
+      },
+      "canonical_insertion": {
+        "translation": [
+          -230,
+          332
+        ],
+        "remapped_ids": 21,
+        "elements": 21
+      },
+      "native_edits": {
+        "native_property_edit_undo_redo": true,
+        "frame_move_and_undo": true
+      },
+      "exports": {
+        "native_export": {
+          "translation": [
+            0,
+            0
+          ],
+          "remapped_ids": 0,
+          "elements": 21
+        },
+        "native_reimport": {
+          "translation": [
+            0,
+            0
+          ],
+          "remapped_ids": 21,
+          "elements": 21
+        },
+        "reimport_native_edit_and_undo": true,
+        "svg_embedded_font": true
+      },
+      "failed_compile": null,
+      "checks": [
+        "backend response is the finalized native document",
+        "independent segment, marker, shape, and measured frame-title checks pass",
+        "font-ready browser ink remains inside finalized text bounds",
+        "response, preview, presentation, insertion, undo, redo, reload and native exports retain canonical geometry",
+        "generated elements remain editable and native Excalidraw roundtrip preserves bindings"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}

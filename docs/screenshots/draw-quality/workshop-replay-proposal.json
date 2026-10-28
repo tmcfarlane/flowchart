@@ -1,0 +1,206 @@
+{
+  "outputMode": "draw",
+  "summary": "A left-to-right product launch workshop flow showing exploration activities, a readiness decision, launch execution, and handoff to decision makers with clear spacing and presentation-friendly grouping.",
+  "elements": [
+    {
+      "id": "title",
+      "type": "text",
+      "x": 40,
+      "y": -120,
+      "text": "Product Launch Workshop",
+      "fontSize": 32,
+      "strokeColor": "#0f172a"
+    },
+    {
+      "id": "exploration",
+      "type": "rectangle",
+      "x": 40,
+      "y": 20,
+      "width": 260,
+      "height": 140,
+      "label": "Exploration\n\nReview customer insights, market signals, product positioning, and launch goals.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#dbeafe"
+    },
+    {
+      "id": "alignment",
+      "type": "rectangle",
+      "x": 460,
+      "y": 20,
+      "width": 260,
+      "height": 140,
+      "label": "Cross-Functional Alignment\n\nConfirm messaging, owners, timelines, risks, and launch dependencies.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#e0f2fe"
+    },
+    {
+      "id": "readiness",
+      "type": "diamond",
+      "x": 900,
+      "y": 0,
+      "width": 240,
+      "height": 180,
+      "label": "Launch Ready?",
+      "strokeColor": "#334155",
+      "backgroundColor": "#fef3c7"
+    },
+    {
+      "id": "launch_actions",
+      "type": "rectangle",
+      "x": 1320,
+      "y": -120,
+      "width": 280,
+      "height": 160,
+      "label": "Final Launch Actions\n\nPublish assets, enable support teams, monitor rollout, and coordinate communications.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#dcfce7"
+    },
+    {
+      "id": "handoff",
+      "type": "rectangle",
+      "x": 1780,
+      "y": -120,
+      "width": 280,
+      "height": 160,
+      "label": "Decision-Maker Handoff\n\nShare launch status, open risks, KPIs, and recommended next steps.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#ede9fe"
+    },
+    {
+      "id": "rework",
+      "type": "rectangle",
+      "x": 1320,
+      "y": 220,
+      "width": 280,
+      "height": 140,
+      "label": "Refine Plan\n\nAddress blockers, update launch materials, and revisit unresolved risks.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#fee2e2"
+    },
+    {
+      "id": "arrow_explore_align",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 300,
+          "y": 90
+        },
+        {
+          "x": 460,
+          "y": 90
+        }
+      ],
+      "sourceId": "exploration",
+      "targetId": "alignment",
+      "label": "",
+      "strokeColor": "#334155"
+    },
+    {
+      "id": "arrow_align_ready",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 720,
+          "y": 90
+        },
+        {
+          "x": 900,
+          "y": 90
+        }
+      ],
+      "sourceId": "alignment",
+      "targetId": "readiness",
+      "label": "",
+      "strokeColor": "#334155"
+    },
+    {
+      "id": "arrow_yes_launch",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1140,
+          "y": 90
+        },
+        {
+          "x": 1220,
+          "y": 90
+        },
+        {
+          "x": 1220,
+          "y": -40
+        },
+        {
+          "x": 1320,
+          "y": -40
+        }
+      ],
+      "sourceId": "readiness",
+      "targetId": "launch_actions",
+      "label": "Yes",
+      "strokeColor": "#334155"
+    },
+    {
+      "id": "arrow_launch_handoff",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1600,
+          "y": -40
+        },
+        {
+          "x": 1780,
+          "y": -40
+        }
+      ],
+      "sourceId": "launch_actions",
+      "targetId": "handoff",
+      "label": "",
+      "strokeColor": "#334155"
+    },
+    {
+      "id": "arrow_no_rework",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1020,
+          "y": 180
+        },
+        {
+          "x": 1020,
+          "y": 290
+        },
+        {
+          "x": 1320,
+          "y": 290
+        }
+      ],
+      "sourceId": "readiness",
+      "targetId": "rework",
+      "label": "No",
+      "strokeColor": "#334155"
+    },
+    {
+      "id": "workshop_frame",
+      "type": "frame",
+      "x": 0,
+      "y": -180,
+      "width": 2140,
+      "height": 620,
+      "name": "Launch Workshop Flow",
+      "children": [
+        "title",
+        "exploration",
+        "alignment",
+        "readiness",
+        "launch_actions",
+        "handoff",
+        "rework",
+        "arrow_explore_align",
+        "arrow_align_ready",
+        "arrow_yes_launch",
+        "arrow_launch_handoff",
+        "arrow_no_rework"
+      ]
+    }
+  ]
+}

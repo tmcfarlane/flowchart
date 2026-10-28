@@ -1,0 +1,280 @@
+{
+  "url": "http://127.0.0.1:3062/",
+  "live": false,
+  "source_revision": "880b683",
+  "method": "real handleChat with captured provider response fixture",
+  "oracle_negative_controls": {
+    "short_arrow_marker_inside_source": "REPRODUCED",
+    "violations": [
+      {
+        "arrow": "short-arrow",
+        "end": -1,
+        "terminal_segment_too_short": 4.0,
+        "marker_size": 16
+      },
+      {
+        "arrow": "short-arrow",
+        "end": -1,
+        "obstacle": "near-source",
+        "marker_vertices": [
+          [
+            88.0,
+            42.0
+          ],
+          [
+            88.0,
+            58.0
+          ],
+          [
+            104.0,
+            50.0
+          ]
+        ],
+        "bounds": [
+          -2.0,
+          -2.0,
+          102.0,
+          102.0
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case": "captured",
+      "prompt": "Reproduce the captured product-launch workshop drawing with its requested pen emphasis and cross-frame handoff.",
+      "request_id": "b915cd53-58fd-430b-b54f-ee972e408f34",
+      "quality": {
+        "connector_crossings": [],
+        "marker_crossings": [],
+        "shape_collisions": [],
+        "native_type_counts": {
+          "frame": 2,
+          "ellipse": 3,
+          "text": 10,
+          "line": 1,
+          "arrow": 4,
+          "freedraw": 1,
+          "diamond": 1,
+          "rectangle": 1
+        }
+      },
+      "canonical_insertion": {
+        "translation": [
+          -120,
+          102
+        ],
+        "remapped_ids": 23,
+        "elements": 23
+      },
+      "native_edits": {
+        "native_property_edit_undo_redo": true,
+        "frame_move_and_undo": true
+      },
+      "exports": {
+        "native_export": {
+          "translation": [
+            0,
+            0
+          ],
+          "remapped_ids": 0,
+          "elements": 23
+        },
+        "native_reimport": {
+          "translation": [
+            0,
+            0
+          ],
+          "remapped_ids": 23,
+          "elements": 23
+        },
+        "reimport_native_edit_and_undo": true,
+        "svg_embedded_font": true
+      },
+      "replay_matches_original_cloud_file": null,
+      "connector_paint_contrast": {
+        "threshold": 3,
+        "dark": [
+          {
+            "id": "import-c87da2cd-7f01-4df4-aca2-02bb6c922c25",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(136, 136, 136)",
+            "opacity": 1,
+            "contrast": 5.313369961159166
+          },
+          {
+            "id": "import-685b075e-f42a-4def-be0f-4dcd9c528a1c",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 3.6734851479120203
+          },
+          {
+            "id": "import-685b075e-f42a-4def-be0f-4dcd9c528a1c",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 3.6734851479120203
+          },
+          {
+            "id": "import-5ff5bec5-ceb8-4451-bba5-c3178b888271",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 3.6734851479120203
+          },
+          {
+            "id": "import-5ff5bec5-ceb8-4451-bba5-c3178b888271",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 3.6734851479120203
+          },
+          {
+            "id": "import-30acef53-0fb5-4484-95e8-ca16eda91dd0",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(217, 72, 15)",
+            "opacity": 1,
+            "contrast": 4.380718096256319
+          },
+          {
+            "id": "import-a6d332ef-d392-4db1-b09f-5dc0d0a3b50d",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(138, 63, 252)",
+            "opacity": 1,
+            "contrast": 3.7646478495854354
+          },
+          {
+            "id": "import-a6d332ef-d392-4db1-b09f-5dc0d0a3b50d",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(138, 63, 252)",
+            "opacity": 1,
+            "contrast": 3.7646478495854354
+          },
+          {
+            "id": "import-29412ce8-e6e1-456d-a047-bb884407ab5b",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(194, 37, 92)",
+            "opacity": 1,
+            "contrast": 3.3302906555935934
+          },
+          {
+            "id": "import-29412ce8-e6e1-456d-a047-bb884407ab5b",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(194, 37, 92)",
+            "opacity": 1,
+            "contrast": 3.3302906555935934
+          }
+        ],
+        "light": [
+          {
+            "id": "import-c87da2cd-7f01-4df4-aca2-02bb6c922c25",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(136, 136, 136)",
+            "opacity": 1,
+            "contrast": 3.5448862152994005
+          },
+          {
+            "id": "import-685b075e-f42a-4def-be0f-4dcd9c528a1c",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 5.127363028214465
+          },
+          {
+            "id": "import-685b075e-f42a-4def-be0f-4dcd9c528a1c",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 5.127363028214465
+          },
+          {
+            "id": "import-5ff5bec5-ceb8-4451-bba5-c3178b888271",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 5.127363028214465
+          },
+          {
+            "id": "import-5ff5bec5-ceb8-4451-bba5-c3178b888271",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(46, 125, 50)",
+            "opacity": 1,
+            "contrast": 5.127363028214465
+          },
+          {
+            "id": "import-30acef53-0fb5-4484-95e8-ca16eda91dd0",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(217, 72, 15)",
+            "opacity": 1,
+            "contrast": 4.299590048534585
+          },
+          {
+            "id": "import-a6d332ef-d392-4db1-b09f-5dc0d0a3b50d",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(138, 63, 252)",
+            "opacity": 1,
+            "contrast": 5.003201543584798
+          },
+          {
+            "id": "import-a6d332ef-d392-4db1-b09f-5dc0d0a3b50d",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(138, 63, 252)",
+            "opacity": 1,
+            "contrast": 5.003201543584798
+          },
+          {
+            "id": "import-29412ce8-e6e1-456d-a047-bb884407ab5b",
+            "part": "marker",
+            "channel": "stroke",
+            "color": "rgb(194, 37, 92)",
+            "opacity": 1,
+            "contrast": 5.655750167170266
+          },
+          {
+            "id": "import-29412ce8-e6e1-456d-a047-bb884407ab5b",
+            "part": "shaft",
+            "channel": "stroke",
+            "color": "rgb(194, 37, 92)",
+            "opacity": 1,
+            "contrast": 5.655750167170266
+          }
+        ]
+      },
+      "failed_compile": {
+        "http_status": 502,
+        "code": "invalid_layout",
+        "board_unchanged": true,
+        "error_visible": true
+      },
+      "checks": [
+        "backend response is the finalized native document",
+        "independent segment, marker, shape, and measured frame-title checks pass",
+        "font-ready browser ink remains inside finalized text bounds",
+        "actual connector shafts and marker paint exceed 3:1 contrast on dark and light surfaces",
+        "response, preview, presentation, insertion, undo, redo, reload and native exports retain canonical geometry",
+        "generated elements remain editable and native Excalidraw roundtrip preserves bindings"
+      ],
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS"
+}
