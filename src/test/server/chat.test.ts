@@ -59,7 +59,7 @@ describe('chat routing and configuration', () => {
     const ctx = context()
     const response = await post(await server(ctx))
     expect(response.status).toBe(200)
-    expect(await response.json()).toMatchObject({ role: 'assistant', finishReason: 'stop', message: JSON.stringify(PROPOSAL) })
+    expect(await response.json()).toMatchObject({ role: 'assistant', finishReason: 'stop', message: JSON.stringify({ ...PROPOSAL, outputMode: 'flowchart' }) })
     const [url, init] = ctx.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe('https://operator-resource.openai.azure.com/openai/deployments/operator-deployment/chat/completions?api-version=2024-10-21')
     const body = JSON.parse(String(init.body))
@@ -220,7 +220,7 @@ describe('chat admission and validation', () => {
     expect(await response.json()).toMatchObject({ code: 'truncated' })
   })
 
-  it.each(['architecture', 'draw'])('preserves %s and refinement context in the shared handler', async diagramMode => {
+  it.each(['flowchart', 'architecture'])('preserves %s and refinement context in the shared handler', async diagramMode => {
     const ctx = context()
     const chart = { nodes: [{ id: 'db', type: 'database', label: 'Orders', position: { x: 0, y: 0 } }], edges: [] }
     const response = await post(await server(ctx), { ...REQUEST, diagramMode, mode: 'refine', flowContext: chart })
@@ -229,10 +229,107 @@ describe('chat admission and validation', () => {
     const body = JSON.parse(String(call[1].body))
     expect(body.messages[0].content).toContain('EXISTING DIAGRAM TO REFINE')
     expect(body.messages[0].content).toContain('Orders')
-    expect(body.messages[0].content).toContain('architecture diagram')
+    expect(body.messages[0].content).toContain(diagramMode === 'architecture' ? 'architecture diagram' : 'flowchart')
+    expect(JSON.parse((await response.json()).message).outputMode).toBe(diagramMode)
   })
 
   it('does not accept disabled routing as a provider endpoint', () => {
     expect(providerEndpoint({ kind: 'direct', azure: { resource: 'own', deployment: 'own-model', apiVersion: '2024-10-21', apiKey: 'secret' } })).toContain('own.openai.azure.com')
+  })
+})
+
+
+const DRAW_PROPOSAL = {
+  outputMode: 'draw', summary: 'Workshop sketch',
+  elements: [
+    { id: 'box', type: 'rectangle', x: 0, y: 0, width: 200, height: 100, label: 'Ideas', strokeColor: '#123', backgroundColor: 'transparent' },
+    { id: 'title', type: 'text', x: 0, y: -50, text: 'Workshop', fontSize: 24, strokeColor: '#123' },
+    { id: 'arrow', type: 'arrow', points: [{ x: 200, y: 50 }, { x: 300, y: 50 }], sourceId: 'box', targetId: null, label: 'Next', strokeColor: '#123' },
+    { id: 'line', type: 'line', points: [{ x: 0, y: 150 }, { x: 300, y: 150 }], sourceId: null, targetId: null, label: '', strokeColor: '#123' },
+  ],
+}
+const DRAW_CONTEXT = { elements: [{ id: 'old', type: 'image', x: 0, y: 0, width: 50, height: 50, text: null }], omittedElementCount: 1 }
+const DRAW_REQUEST = { ...REQUEST, diagramMode: 'draw', mode: 'generate', drawContext: DRAW_CONTEXT }
+
+describe('native Draw generation', () => {
+  it('uses native instructions, safe live context and strict structured output', async () => {
+    const ctx = context(ENV, vi.fn(async () => upstream(DRAW_PROPOSAL)))
+    const response = await post(await server(ctx), DRAW_REQUEST)
+    expect(response.status).toBe(200)
+    expect(JSON.parse((await response.json()).message)).toEqual(DRAW_PROPOSAL)
+    const call = ctx.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
+    const body = JSON.parse(String(call[1].body))
+    expect(body.response_format.json_schema.name).toBe('DrawProposal')
+    expect(body.response_format.json_schema.strict).toBe(true)
+    expect(body.messages[0].content).toContain('native editable Draw drawing')
+    expect(body.messages[0].content).toContain('standalone text')
+    expect(body.messages[0].content).toContain(JSON.stringify(DRAW_CONTEXT))
+    expect(body.messages[0].content).not.toContain('Create an architecture diagram')
+  })
+
+  it('refines the previous bounded drawing with its exact output mode', async () => {
+    const ctx = context(ENV, vi.fn(async () => upstream(DRAW_PROPOSAL)))
+    const response = await post(await server(ctx), { ...REQUEST, mode: 'refine', diagramMode: 'draw', drawProposal: DRAW_PROPOSAL })
+    expect(response.status).toBe(200)
+    const call = ctx.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
+    const prompt = JSON.parse(String(call[1].body)).messages[0].content
+    expect(prompt).toContain('PREVIOUS DRAW PROPOSAL TO REFINE')
+    expect(prompt).toContain(JSON.stringify(DRAW_PROPOSAL))
+    expect(prompt).toContain('Return the COMPLETE drawing')
+  })
+
+  it.each([
+    { ...DRAW_REQUEST, flowContext: { nodes: [], edges: [] } },
+    { ...DRAW_REQUEST, drawContext: { ...DRAW_CONTEXT, files: { private: 'data:image/png;base64,secret' } } },
+    { ...DRAW_REQUEST, drawContext: { ...DRAW_CONTEXT, elements: [{ ...DRAW_CONTEXT.elements[0], fileId: 'private' }] } },
+    { ...DRAW_REQUEST, drawContext: { ...DRAW_CONTEXT, elements: [{ ...DRAW_CONTEXT.elements[0], customData: { secret: true } }] } },
+    { ...REQUEST, diagramMode: 'draw', flowContext: { ...PROPOSAL, summary: undefined, nodes: [{ ...PROPOSAL.nodes[0], imageUrl: 'https://example.com/private.png' }] } },
+    { ...REQUEST, diagramMode: 'draw', flowContext: { nodes: [{ ...PROPOSAL.nodes[0], imageUrl: 'data:image/png;base64,secret' }], edges: [] } },
+    { ...REQUEST, mode: 'refine', diagramMode: 'draw', flowContext: { nodes: [], edges: [] } },
+    { ...REQUEST, mode: 'refine', diagramMode: 'draw', drawProposal: { ...DRAW_PROPOSAL, outputMode: 'architecture' } },
+    { ...DRAW_REQUEST, mode: 'refine', drawProposal: DRAW_PROPOSAL },
+    { ...REQUEST, mode: 'refine', diagramMode: 'flowchart', drawProposal: DRAW_PROPOSAL },
+    { ...DRAW_REQUEST, drawProposal: DRAW_PROPOSAL },
+  ])('rejects unsafe context or mismatched refinement before provider access %#', async request => {
+    const ctx = context()
+    expect((await post(await server(ctx), request)).status).toBe(400)
+    expect(ctx.dependencies.fetch).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    PROPOSAL,
+    { ...DRAW_PROPOSAL, outputMode: 'architecture' },
+    { ...DRAW_PROPOSAL, files: {} },
+    { ...DRAW_PROPOSAL, elements: [{ ...DRAW_PROPOSAL.elements[0], customData: {} }] },
+    { ...DRAW_PROPOSAL, elements: [{ ...DRAW_PROPOSAL.elements[2], targetId: 'missing' }] },
+    { ...DRAW_PROPOSAL, elements: [DRAW_PROPOSAL.elements[0], { ...DRAW_PROPOSAL.elements[2], targetId: 'box' }] },
+  ])('rejects invalid native provider proposals %#', async proposal => {
+    const response = await post(await server(context(ENV, vi.fn(async () => upstream(proposal)))), DRAW_REQUEST)
+    expect(response.status).toBe(502)
+    expect(await response.json()).toMatchObject({ code: 'invalid_diagram' })
+  })
+
+  it('uses one format fallback and still validates native output', async () => {
+    const fetcher = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ error: { param: 'response_format', code: 'unsupported_value' } }), { status: 400 })).mockResolvedValueOnce(upstream(DRAW_PROPOSAL))
+    const response = await post(await server(context(ENV, fetcher)), DRAW_REQUEST)
+    expect(response.status).toBe(200)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    expect(JSON.parse(String(fetcher.mock.calls[1][1].body)).response_format).toEqual({ type: 'json_object' })
+    const invalidFallback = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ error: { param: 'response_format', code: 'unsupported_value' } }), { status: 400 })).mockResolvedValueOnce(upstream(PROPOSAL))
+    expect((await post(await server(context(ENV, invalidFallback)), DRAW_REQUEST)).status).toBe(502)
+  })
+
+  it('supports graph output from safe Draw context and Draw output from safe graph context', async () => {
+    const graph = context()
+    const graphResponse = await post(await server(graph), { ...REQUEST, diagramMode: 'architecture', drawContext: DRAW_CONTEXT })
+    expect(graphResponse.status).toBe(200)
+    expect(JSON.parse((await graphResponse.json()).message).outputMode).toBe('architecture')
+    const graphCall = graph.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(String(graphCall[1].body)).messages[0].content).toContain('CURRENT DRAW CONTEXT')
+    const draw = context(ENV, vi.fn(async () => upstream(DRAW_PROPOSAL)))
+    const drawResponse = await post(await server(draw), { ...REQUEST, diagramMode: 'draw', flowContext: { nodes: PROPOSAL.nodes, edges: [] } })
+    expect(drawResponse.status).toBe(200)
+    const drawCall = draw.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(String(drawCall[1].body)).messages[0].content).toContain('CURRENT GRAPH CONTEXT')
   })
 })
