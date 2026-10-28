@@ -4,6 +4,7 @@ import { DrawGenerationContextSchema, type DrawProposal } from '../shared/drawGe
 import { captureDrawGenerationContext, drawProposalToScene } from '../utils/drawGeneration'
 import { getWorldPoints, moveElements, type DrawElement } from '../utils/drawScene'
 import { prepareSceneInsertion } from '../utils/excalidrawImport'
+import { drawingTextSize } from '../utils/drawText'
 
 const proposal: DrawProposal = {
   outputMode: 'draw', summary: 'A small system sketch', elements: [
@@ -70,6 +71,35 @@ describe('native Draw generation', () => {
       const dx = Math.abs(x - centerX) / halfWidth, dy = Math.abs(y - centerY) / halfHeight
       expect(type === 'diamond' ? dx + dy : dx * dx + dy * dy).toBeLessThan(1)
     }
+  })
+
+  it.each(['rectangle', 'ellipse', 'diamond', 'arrow'] as const)('wraps %s captions between words and preserves paragraphs', type => {
+    const text = '1. Prepare tonight\n\nChoose a bedtime and put your alarm across the room.'
+    const item = type === 'arrow'
+      ? { id: 'host', type, points: [{ x: 0, y: 0 }, { x: 400, y: 0 }], sourceId: null, targetId: null, label: text, strokeColor: '#123456' }
+      : { id: 'host', type, x: 0, y: 0, width: 180, height: 210, label: text, strokeColor: '#123456', backgroundColor: '#ffffff' }
+    const drawing = drawProposalToScene({ outputMode: 'draw', summary: '', elements: [item] })
+    const label = drawing.elements.find(item => item.type === 'text') as DrawElement
+    expect(label.text!.split(/\s+/)).toEqual(text.split(/\s+/))
+    expect(label.text).toContain('\n\n')
+    expect(label.originalText).toBe(text)
+    expect(label.containerId).toBe('host')
+    expect(label.height).toBe(drawingTextSize(label.text!, { fontSize: label.fontSize }).height)
+    for (const line of label.text!.split('\n')) {
+      expect(drawingTextSize(line, { fontSize: label.fontSize }).width).toBeLessThanOrEqual(type === 'arrow' ? 320 : 156)
+    }
+  })
+
+  it('wraps an oversized token without losing content or splitting Unicode codepoints', () => {
+    const text = '🙂'.repeat(30) + '\n\n' + 'oversizedunbrokenidentifier'.repeat(3)
+    const drawing = drawProposalToScene({ outputMode: 'draw', summary: '', elements: [
+      { id: 'box', type: 'rectangle', x: 0, y: 0, width: 180, height: 80, label: text, strokeColor: '#123456', backgroundColor: 'transparent' },
+    ] })
+    const label = drawing.elements.find(item => item.type === 'text') as DrawElement
+    expect(label.text!.replace(/\n/g, '')).toBe(text.replace(/\n/g, ''))
+    expect(label.text).toContain('\n\n')
+    expect(label.text).not.toMatch(/[\uD800-\uDBFF]\n|\n[\uDC00-\uDFFF]/)
+    for (const line of label.text!.split('\n')) expect(drawingTextSize(line, { fontSize: label.fontSize }).width).toBeLessThanOrEqual(156)
   })
 
   it('rejects an invalid reference even if a caller bypasses its TypeScript type', () => {
