@@ -36,5 +36,9 @@ AI proposes updates to selected existing objects only. This work does not claim
 complete feature parity with an external editor. Native macOS keyboard execution
 remains unverified; the browser evidence uses Linux Chromium.
 
+The [audit evidence index](draw-parity-audit/README.md) links the archived
+design decisions, independent reviews, and final verification logs. It also
+resolves historical workspace paths in the [decision trail](draw-parity-decisions.tsv).
+
 The [decision trail](draw-parity-decisions.tsv) records the scope and review
 findings that led to this stack.

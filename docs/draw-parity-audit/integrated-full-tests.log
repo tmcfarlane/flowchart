@@ -1,0 +1,278 @@
+
+> flowchart@1.0.0 test
+> vitest --run
+
+
+ RUN  v2.1.9 /workspace/flowchart-draw-parity
+
+ ✓ src/test/DrawCanvas.test.tsx (39 tests) 1430ms
+stderr | src/test/SharedFlow.test.tsx > Share button > saves the current canvas and shows view and edit links
+Warning: Received NaN for the `cx` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `cy` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `r` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `x` attribute. If this is expected, cast the value to a string.
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `y` attribute. If this is expected, cast the value to a string.
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+
+ ✓ src/test/SharedFlow.test.tsx (15 tests) 6842ms
+   ✓ App on a shared link > persists a mode-only switch to Draw without losing the semantic graph 854ms
+   ✓ App on a shared link > saves edits made in the browser back with the token and base version 855ms
+   ✓ App on a shared link > saves a Draw-only edit with graph content and optimistic concurrency intact 852ms
+   ✓ App on a shared link > never overwrites a newer remote version: it asks instead 866ms
+   ✓ App on a shared link > applies agent updates live while the tab is visible 3029ms
+ ✓ src/test/DrawHotkeys.test.tsx (22 tests) 874ms
+ ✓ src/test/AISelectionEdit.test.tsx (14 tests) 3243ms
+   ✓ selected-node AI editing in the app > previews then atomically edits selected flowchart nodes in place with undo/redo and persistence 901ms
+   ✓ selected-node AI editing in the app > previews then atomically edits selected architecture nodes in place with undo/redo and persistence 621ms
+   ✓ selected-node AI editing in the app > synchronizes an applied edit through the existing shared-chart save with its base version 892ms
+stderr | src/test/App.test.tsx > AI Flowchart Assistant > shows error message when AI response is invalid
+AI returned invalid JSON
+
+ ✓ src/test/App.test.tsx (23 tests) 805ms
+ ✓ src/test/drawScene.test.ts (13 tests) 14ms
+stderr | src/test/ArchitectureMode.test.tsx > Architecture Mode > adds each architecture node type to the existing React Flow canvas
+Warning: Received NaN for the `cx` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `cy` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `r` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `x` attribute. If this is expected, cast the value to a string.
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `y` attribute. If this is expected, cast the value to a string.
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+
+ ✓ src/test/ArchitectureMode.test.tsx (20 tests) 1792ms
+   ✓ Architecture Mode > autosaves scene-only edits and restores them after reload 538ms
+   ✓ Architecture Mode > retains a drawing while explicitly saving and reopening Architecture mode 595ms
+ ✓ src/test/shared/selectionEdit.test.ts (31 tests) 28ms
+ ✓ src/test/DrawShapeLabels.test.tsx (11 tests) 862ms
+ ✓ src/test/DrawSceneSvg.test.tsx (16 tests) 87ms
+ ✓ src/test/DrawMedia.test.tsx (10 tests) 609ms
+ ✓ src/test/drawSelectionEdit.test.ts (30 tests) 31ms
+ ✓ src/test/useSharedFlow.test.tsx (12 tests) 145ms
+ ✓ src/test/architectureBridge.test.ts (10 tests) 12ms
+ ✓ src/test/selectionEditClient.test.ts (8 tests) 23ms
+ ✓ src/test/AIDrawEdit.test.tsx (8 tests) 3825ms
+   ✓ App selected Draw AI > previews without a write then applies exactly one undoable transaction and preserves other elements 1821ms
+   ✓ App selected Draw AI > keeps drawing shortcuts from changing the selection behind the AI dialog 589ms
+   ✓ App selected Draw AI > saves one applied Draw transaction through the existing shared chart endpoint 905ms
+ ✓ src/test/drawGeometry.test.ts (10 tests) 10ms
+stderr | src/test/Containers.test.tsx > Containers UI > renders containers alongside architecture nodes
+Warning: Received NaN for the `cx` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `cy` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `r` attribute. If this is expected, cast the value to a string.
+    at circle
+    at DotPattern (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:16:23)
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `x` attribute. If this is expected, cast the value to a string.
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+Warning: Received NaN for the `y` attribute. If this is expected, cast the value to a string.
+    at pattern
+    at svg
+    at Background (file:///workspace/flowchart-15/node_modules/@reactflow/background/dist/esm/index.mjs:31:23)
+    at Wrapper (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4062:20)
+    at div
+    at file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4096:33
+    at div
+    at div
+    at FlowChartEditor (/workspace/flowchart-draw-parity/src/App.tsx:102:50)
+    at ReactFlowProvider (file:///workspace/flowchart-15/node_modules/@reactflow/core/dist/esm/index.mjs:4053:30)
+    at App
+
+ ✓ src/test/Containers.test.tsx (16 tests) 302ms
+ ✓ src/test/DrawLibrary.test.tsx (8 tests) 224ms
+ ✓ src/test/DrawCommands.test.tsx (5 tests) 452ms
+ ✓ src/test/architectureScenePersistence.test.ts (7 tests) 6ms
+ ✓ src/test/drawExtraTools.test.ts (6 tests) 13ms
+ ✓ src/test/ExcalidrawImportDialog.test.tsx (5 tests) 123ms
+ ✓ src/test/DrawSelectionEditBoundary.test.tsx (4 tests) 210ms
+ ✓ src/test/diagramImport.test.ts (5 tests) 17ms
+ ✓ src/test/drawText.test.ts (2 tests) 5ms
+ ✓ src/test/analytics.test.ts (2 tests) 5ms
+ ✓ src/test/excalidrawImport.test.ts (66 tests) 73ms
+ ✓ src/test/server/http.test.ts (19 tests) 478ms
+ ✓ src/test/server/mcpServer.test.ts (20 tests) 445ms
+ ✓ src/test/shared/layout.test.ts (14 tests) 231ms
+ ✓ src/test/server/chat.test.ts (31 tests) 2169ms
+   ✓ chat admission and validation > bounds slow response bodies and retains uncertain leases 1005ms
+   ✓ chat admission and validation > bounds admission latency without starting an unprotected provider call 1003ms
+ ✓ src/test/shared/flowService.test.ts (15 tests) 395ms
+ ✓ src/test/shared/flowSchema.test.ts (23 tests) 58ms
+ ✓ src/test/shared/rateLimit.test.ts (16 tests) 61ms
+ ✓ src/test/server/selectionEditChat.test.ts (17 tests) 154ms
+ ✓ src/test/shared/store.test.ts (14 tests) 12ms
+ ✓ src/test/shared/architectureScene.test.ts (7 tests) 97ms
+ ✓ src/test/server/aiAdmission.test.ts (16 tests | 3 skipped) 13ms
+ ✓ src/test/server/drawSelectionEditChat.test.ts (11 tests) 167ms
+ ✓ src/test/shared/patch.test.ts (10 tests) 7ms
+ ✓ src/test/shared/icons.test.ts (9 tests) 66ms
+ ✓ src/test/shared/tokens.test.ts (7 tests) 148ms
+ ✓ src/test/server/aiConfigDeployment.test.ts (10 tests) 10ms
+
+ Test Files  44 passed (44)
+      Tests  654 passed | 3 skipped (657)
+   Start at  00:39:12
+   Duration  54.18s (transform 1.74s, setup 1.78s, collect 11.25s, tests 26.57s, environment 7.15s, prepare 2.22s)

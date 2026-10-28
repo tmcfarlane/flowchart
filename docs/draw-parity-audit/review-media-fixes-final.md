@@ -1,0 +1,30 @@
+The goal is to complete issue 15 clipboard and image crop behavior in the custom Draw editor while preserving scene persistence and one transaction per completed edit.
+
+Verdict **PASS** for this media unit. All four original findings are fixed. No remaining media correctness issue was found in the bounded review. The combined branch still needs the integration check below.
+
+Reviewed `/workspace/flowchart-draw-media-fixes` at exact HEAD `e732064169ab68b6de704aecbadeff967f1f6ddf` against `85ec3050aa39248686f31a183420a0b2996d20b1`. I also inspected the fixes against originally reviewed `13218d6ac2159b27af231d1b1b57825ac172c098`. The checkout was clean before and after verification. No source edits, tracked artifact changes, nested agents, commits, or PR operations occurred.
+
+The review followed the pstack and Codex mapping files and applied the supplied no-comments rules directly, as the parent prohibited nested agents. Prove It Works changed the verification method. I ran the actual Chromium workflows and inspected persisted scenes and the exported PNG instead of relying on the implementation report.
+
+- Plain-text paste during a pending connector now discards the connector before capturing the committed scene. Native Ctrl+Shift+V saved exactly the two original elements plus text. Escape left the displayed and saved counts equal. The fix is in `DrawCanvas.tsx:571` and the committed insertion sources at `:382` and `:399`.
+- Async paste and image upload use the typed `AsyncScene` snapshot, interaction generation, document epoch, and scene signatures at `DrawCanvas.tsx:58` and `:164`. Beginning crop increments generation before any crop field changes. Independent Chromium checks held text completion until an unmodified crop session had opened and closed, then confirmed the text remained rejected. Another check held pasted-image decode until a crop preview had changed, then confirmed no crop or image was saved. The focused test independently covers replacement during pasted-image decode. The API replacement path increments epoch even for equal scene content at `:304`.
+- Crop takes focus immediately and preserves ordinary keyboard movement within its controls. Chromium observed initial Crop x focus, Tab to Crop y, Shift+Tab wrapping to Finish crop, and Tab wrapping back to Crop x. Native Enter and Space on Cancel both restored the original scene without a commit and returned focus to the canvas. The dialog handler at `:965` preserves native button activation.
+- Crop pointer movement uses the inverse SVG screen CTM at `DrawCanvas.tsx:511`. The committed verifier passed both portrait 200 by 800 and landscape 800 by 200 cases. Each dimension followed a 10 CSS pixel drag according to the measured CTM, within its stated rounding tolerance. Crop previews remained unsaved until finish.
+
+Enter from crop fields and the Finish button remain functional. An independent Escape test changed width to 250, finished, undid once to the exact original scene, and redid once to width 250. Explicit Cancel restored the prior crop. Rotation and horizontal image flip survived cropping in the browser verifier.
+
+Clipboard closure and PNG behavior remain intact. Native frame copy/paste produced a new frame, child rectangle, and attached label with remapped frame and container references. The selected PNG measured 728 by 528 pixels, matching the selected 300 by 200 frame with shared padding at 2x output scale. I inspected the exported PNG and observed the frame, child, attached label, and hatching. The distant unselected rectangle was absent. The original media verifier produced a valid 11,960-byte PNG and successfully pasted it as an external image. Crop persistence survived zoom, pan, and reload unchanged.
+
+Independent verification ran on Linux Chromium `/usr/bin/chromium` against a Vite server started from the reviewed checkout on port 3149. Browser scripts were copied to scratch and only their origin changed. Their screenshot paths resolve beside those scratch copies.
+
+- `npx vitest run src/test/DrawMedia.test.tsx src/test/DrawCanvas.test.tsx src/test/drawScene.test.ts src/test/DrawSceneSvg.test.tsx` passed 60 tests across four files. Log is `review-media-fixes-final-tests.log`.
+- `review-media-fixes-final-browser/verify_draw_media_fixes.py` passed five scenarios and wrote four screenshots. Result is `fixes.log`.
+- `review-media-fixes-final-browser/verify_draw_media.py` passed and wrote four screenshots. Result is `media.log`.
+- `review-media-fixes-final-browser/independent.py` passed four extra native keyboard and async scenarios. Result is `independent.json`.
+- `review-media-fixes-final-browser/closure.py` recorded native clipboard closure, PNG dimensions, and persistence in `closure.json`. The inspected PNG is `selected-frame.png`.
+
+All paths above are relative to `/workspace/scratch/issue15-pstack`. These checks cover changed media behavior. They do not claim native macOS verification or a full combined-branch gate.
+
+The required integration check is to apply the command slice's `modalOpen` policy to crop and verify it on the combined branch. While crop is active, unrelated mutation commands and clipboard copy/cut/paste paths must not commit its transient preview, including when a dialog button has focus. Preserve initial focus, Tab wrapping, native Cancel activation, Enter/Escape finish, and one undo transaction after that integration. The standalone absence of the command slice policy is not a new media finding here, per the parent's explicit ownership instruction.
+
+The introduced-comment audit found no added TypeScript, CSS, or Python comments, no added docstrings, and no lint or TypeScript suppressions in the exact diff. The original review's redundant Python module docstring has been removed. Existing exporter and clipboard comments are unchanged and outside the introduced scope. This read-only review deleted and restored zero comments. There are zero HOLD comments, MUST KILL flags, encoding offers, unenforced constraints, or open comment findings. No comment-review rerun or architecture sketch was needed.

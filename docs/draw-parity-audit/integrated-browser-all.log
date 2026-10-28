@@ -1,0 +1,499 @@
+Running docs/screenshots/draw-commands/verify_draw_commands.py
+Draw commands browser verification passed
+Running scripts/verify-draw-command-focus.py
+PASS: command focus, modal keyboard isolation, clear cancel, and undo
+Running scripts/verify-draw-geometry.py
+PASS: connected creation and undo/redo; binding navigation; both flips; concave lasso and cancellation; clean export content; no browser errors
+Running docs/screenshots/draw-media/verify_draw_media.py
+{"status": "PASS", "png_bytes": 11960, "screenshots": 4}
+Running docs/screenshots/draw-media/verify_draw_media_fixes.py
+{"status": "PASS", "scenarios": 5, "screenshots": 4}
+Running scripts/verify-draw-extra-tools.py
+Verified 12 retained elements, undo/redo, export/import roundtrip, reload, four regressions, and eleven screenshots.
+Running scripts/verify-draw-selection-ai.py
+{"provider": "explicit browser response stub", "checks": ["preview does not save", "exact selected scope", "relationship context without private metadata", "sparse apply preserves all other fields", "one Undo and Redo", "reload persistence", "no browser runtime errors", "cancel does not save", "browser rejects bound geometry proposal"], "httpStatus": 200}
+Running scripts/verify-draw-ai-text-layout.py
+[
+  {
+    "case": "standalone",
+    "preview": {
+      "bounds": {
+        "left": 350,
+        "right": 1690.24072265625,
+        "top": 286.9033398628234,
+        "bottom": 316.76555109024036
+      },
+      "view": {
+        "x": 310,
+        "y": 252.5,
+        "width": 1788,
+        "height": 120
+      },
+      "lines": 1,
+      "fontSize": "20",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fits": true
+    },
+    "button": {
+      "color": "rgb(231, 236, 235)",
+      "background": "rgba(0, 0, 0, 0)",
+      "panel": "rgb(25, 35, 31)",
+      "height": 29
+    },
+    "savedText": {
+      "id": "label",
+      "type": "text",
+      "x": 350,
+      "y": 292.5,
+      "width": 1708,
+      "height": 26,
+      "angle": 0,
+      "strokeColor": "#0f766e",
+      "backgroundColor": "transparent",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "fillStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "isDeleted": false,
+      "locked": false,
+      "boundElements": null,
+      "text": "Review incoming customer orders, validate each delivery address, reserve warehouse inventory, and send a clear confirmation to the customer.",
+      "originalText": "Review incoming customer orders, validate each delivery address, reserve warehouse inventory, and send a clear confirmation to the customer.",
+      "fontSize": 20,
+      "fontFamily": 2,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null
+    },
+    "exportedSvg": {
+      "bounds": {
+        "left": 350,
+        "right": 1691.703125,
+        "top": 288.29999923706055,
+        "bottom": 315.29999923706055
+      },
+      "view": {
+        "x": 318,
+        "y": 260.5,
+        "width": 1772,
+        "height": 451.5
+      },
+      "lines": 1,
+      "fontSize": "20",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fits": true
+    },
+    "png": {
+      "width": 3544,
+      "height": 904,
+      "contentBounds": [
+        67,
+        67,
+        2745,
+        842
+      ],
+      "lastLineCrop": [
+        64,
+        55,
+        2748,
+        110
+      ]
+    },
+    "contrastRatio": 13.519131589202152,
+    "lightContrastRatio": 11.371728967144682,
+    "hoverBackground": "rgb(39, 72, 61)",
+    "disabledStyle": {
+      "opacity": "0.45",
+      "cursor": "default"
+    }
+  },
+  {
+    "case": "bound",
+    "preview": {
+      "bounds": {
+        "left": -675.6919811144452,
+        "right": 1581.951470381186,
+        "top": -170.80953499293244,
+        "bottom": 763.662310485714
+      },
+      "view": {
+        "x": -739.037109375,
+        "y": -215.98519897460938,
+        "width": 2378.07421875,
+        "height": 1041.9703369140625
+      },
+      "lines": 3,
+      "fontSize": "28",
+      "fontFamily": "ui-monospace, \"SFMono-Regular\", Consolas, monospace",
+      "fits": true
+    },
+    "button": {
+      "color": "rgb(231, 236, 235)",
+      "background": "rgba(0, 0, 0, 0)",
+      "panel": "rgb(25, 35, 31)",
+      "height": 29
+    },
+    "savedText": {
+      "id": "label",
+      "type": "text",
+      "x": -745.5999999999999,
+      "y": 229.39999999999998,
+      "width": 2391.2,
+      "height": 151.20000000000002,
+      "angle": 0.35,
+      "strokeColor": "#0f766e",
+      "backgroundColor": "transparent",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "fillStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "isDeleted": false,
+      "locked": false,
+      "boundElements": null,
+      "text": "Review incoming customer orders, validate each delivery address, reserve warehouse inventory, and send a clear confirmation to the customer.\nKeep the customer informed.\nDispatch the shipment.",
+      "originalText": "Review incoming customer orders, validate each delivery address, reserve warehouse inventory, and send a clear confirmation to the customer.\nKeep the customer informed.\nDispatch the shipment.",
+      "fontSize": 28,
+      "fontFamily": 3,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "host",
+      "lineHeight": 1.8
+    },
+    "exportedSvg": {
+      "bounds": {
+        "left": -676.9771841313088,
+        "right": 1584.64433192273,
+        "top": -172.75077976533078,
+        "bottom": 761.7463007237596
+      },
+      "view": {
+        "x": -731.037109375,
+        "y": -207.98519897460938,
+        "width": 2362.07421875,
+        "height": 1025.9703369140625
+      },
+      "lines": 3,
+      "fontSize": "28",
+      "fontFamily": "ui-monospace, \"SFMono-Regular\", Consolas, monospace",
+      "fits": true
+    },
+    "png": {
+      "width": 4096,
+      "height": 1780,
+      "contentBounds": [
+        161,
+        71,
+        3992,
+        1543
+      ],
+      "lastLineCrop": [
+        1712,
+        816,
+        2337,
+        1092
+      ]
+    },
+    "contrastRatio": 13.519131589202152,
+    "lightContrastRatio": 11.371728967144682,
+    "hoverBackground": "rgb(39, 72, 61)",
+    "disabledStyle": {
+      "opacity": "0.45",
+      "cursor": "default"
+    }
+  },
+  {
+    "case": "wide-glyphs",
+    "preview": {
+      "bounds": {
+        "left": 350.00000000000045,
+        "right": 2205.977416992188,
+        "top": 289.0453269481659,
+        "bottom": 342.4018714427948
+      },
+      "view": {
+        "x": 310,
+        "y": 252.5,
+        "width": 1940.3975830078125,
+        "height": 132
+      },
+      "lines": 2,
+      "fontSize": "20",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fits": true
+    },
+    "button": {
+      "color": "rgb(231, 236, 235)",
+      "background": "rgba(0, 0, 0, 0)",
+      "panel": "rgb(25, 35, 31)",
+      "height": 29
+    },
+    "savedText": {
+      "id": "label",
+      "type": "text",
+      "x": 350,
+      "y": 292.5,
+      "width": 1860.3975830078125,
+      "height": 52,
+      "angle": 0,
+      "strokeColor": "#0f766e",
+      "backgroundColor": "transparent",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "fillStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "isDeleted": false,
+      "locked": false,
+      "boundElements": null,
+      "text": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b",
+      "originalText": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b",
+      "fontSize": 20,
+      "fontFamily": 2,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null
+    },
+    "exportedSvg": {
+      "bounds": {
+        "left": 350,
+        "right": 2208.9783935546875,
+        "top": 288.29992246627813,
+        "bottom": 340.30002164840704
+      },
+      "view": {
+        "x": 318,
+        "y": 260.5,
+        "width": 1924.3975830078125,
+        "height": 451.5
+      },
+      "lines": 2,
+      "fontSize": "20",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fits": true
+    },
+    "png": {
+      "width": 3848,
+      "height": 904,
+      "contentBounds": [
+        64,
+        69,
+        3780,
+        842
+      ],
+      "lastLineCrop": [
+        63,
+        105,
+        2622,
+        160
+      ]
+    },
+    "contrastRatio": 13.519131589202152,
+    "lightContrastRatio": 11.371728967144682,
+    "hoverBackground": "rgb(39, 72, 61)",
+    "disabledStyle": {
+      "opacity": "0.45",
+      "cursor": "default"
+    }
+  },
+  {
+    "case": "ordinary-canvas",
+    "preview": {
+      "bounds": {
+        "left": 350.00000000000045,
+        "right": 2205.977416992188,
+        "top": 289.0453269481659,
+        "bottom": 342.4018714427948
+      },
+      "view": {
+        "x": 310,
+        "y": 252.5,
+        "width": 1940.3975830078125,
+        "height": 132
+      },
+      "lines": 2,
+      "fontSize": "20",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fits": true
+    },
+    "button": {
+      "color": "rgb(231, 236, 235)",
+      "background": "rgba(0, 0, 0, 0)",
+      "panel": "rgb(25, 35, 31)",
+      "height": 29
+    },
+    "savedText": {
+      "id": "label",
+      "type": "text",
+      "x": 350,
+      "y": 292.5,
+      "width": 1860.3975830078125,
+      "height": 52,
+      "angle": 0,
+      "strokeColor": "#0f766e",
+      "backgroundColor": "transparent",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "fillStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "isDeleted": false,
+      "locked": false,
+      "boundElements": null,
+      "text": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b",
+      "originalText": "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW\n\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b\u914d\u9001\u5148\u3092\u78ba\u8a8d\u3059\u308b",
+      "fontSize": 20,
+      "fontFamily": 2,
+      "textAlign": "left",
+      "verticalAlign": "top",
+      "containerId": null
+    },
+    "exportedSvg": {
+      "bounds": {
+        "left": 350,
+        "right": 2208.9783935546875,
+        "top": 288.29992246627813,
+        "bottom": 340.30002164840704
+      },
+      "view": {
+        "x": 318,
+        "y": 260.5,
+        "width": 1924.3975830078125,
+        "height": 451.5
+      },
+      "lines": 2,
+      "fontSize": "20",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fits": true
+    },
+    "png": {
+      "width": 3848,
+      "height": 904,
+      "contentBounds": [
+        64,
+        69,
+        3780,
+        842
+      ],
+      "lastLineCrop": [
+        63,
+        105,
+        2622,
+        160
+      ]
+    },
+    "contrastRatio": 13.519131589202152,
+    "lightContrastRatio": 11.371728967144682,
+    "hoverBackground": "rgb(39, 72, 61)",
+    "disabledStyle": {
+      "opacity": "0.45",
+      "cursor": "default"
+    }
+  },
+  {
+    "case": "connector",
+    "preview": {
+      "bounds": {
+        "left": 164.40716910362232,
+        "right": 585.592868566513,
+        "top": 359.8337502479554,
+        "bottom": 392.851179599762
+      },
+      "view": {
+        "x": 121.5,
+        "y": 190,
+        "width": 518.5,
+        "height": 248.1999969482422
+      },
+      "lines": 1,
+      "fontSize": "28",
+      "fontFamily": "ui-monospace, \"SFMono-Regular\", Consolas, monospace",
+      "fits": true
+    },
+    "button": {
+      "color": "rgb(231, 236, 235)",
+      "background": "rgba(0, 0, 0, 0)",
+      "panel": "rgb(25, 35, 31)",
+      "height": 29
+    },
+    "savedText": {
+      "id": "label",
+      "type": "text",
+      "x": 161.5,
+      "y": 361.8,
+      "width": 427,
+      "height": 36.4,
+      "angle": 0,
+      "strokeColor": "#0f766e",
+      "backgroundColor": "transparent",
+      "strokeWidth": 2,
+      "strokeStyle": "solid",
+      "fillStyle": "solid",
+      "roughness": 0,
+      "opacity": 100,
+      "groupIds": [],
+      "frameId": null,
+      "isDeleted": false,
+      "locked": false,
+      "boundElements": null,
+      "text": "Dispatch confirmed orders",
+      "originalText": "Dispatch confirmed orders",
+      "fontSize": 28,
+      "fontFamily": 3,
+      "textAlign": "center",
+      "verticalAlign": "middle",
+      "containerId": "host"
+    },
+    "exportedSvg": {
+      "bounds": {
+        "left": 164.28125,
+        "right": 585.71875,
+        "top": 360.01998710632324,
+        "bottom": 393.01998710632324
+      },
+      "view": {
+        "x": 129.5,
+        "y": 198,
+        "width": 862.5,
+        "height": 514
+      },
+      "lines": 1,
+      "fontSize": "28",
+      "fontFamily": "ui-monospace, \"SFMono-Regular\", Consolas, monospace",
+      "fits": true
+    },
+    "png": {
+      "width": 1726,
+      "height": 1028,
+      "contentBounds": [
+        54,
+        62,
+        1664,
+        966
+      ],
+      "lastLineCrop": [
+        69,
+        324,
+        913,
+        391
+      ]
+    },
+    "contrastRatio": 13.519131589202152,
+    "lightContrastRatio": 11.371728967144682,
+    "hoverBackground": "rgb(39, 72, 61)",
+    "disabledStyle": {
+      "opacity": "0.45",
+      "cursor": "default"
+    }
+  }
+]
+PASS: combined Draw browser verifiers
