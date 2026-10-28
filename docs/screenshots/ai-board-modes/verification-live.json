@@ -1,0 +1,13 @@
+{
+  "provider": "configured local API",
+  "checks": [
+    "live local API returned a native Draw proposal",
+    "live native preview left the document unchanged",
+    "live insertion retained the graph, authored drawing, and embedded image bytes"
+  ],
+  "screenshots": [
+    "10-live-cross-target-draw.png",
+    "11-live-native-draw-preview.png",
+    "12-live-native-draw-inserted.png"
+  ]
+}

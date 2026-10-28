@@ -174,7 +174,7 @@ describe('AI Flowchart Assistant', () => {
     const aiButton = screen.getByLabelText('Open AI Assistant')
     fireEvent.click(aiButton)
 
-    expect(screen.getByText("What's the vibe today?")).toBeInTheDocument()
+    expect(screen.getByText("What's your flow?")).toBeInTheDocument()
     expect(screen.getByPlaceholderText(/Describe any process, workflow, or plan/i)).toBeInTheDocument()
   })
 
@@ -185,12 +185,12 @@ describe('AI Flowchart Assistant', () => {
     fireEvent.click(screen.getByText('No, thank you'))
     const aiButton = screen.getByLabelText('Open AI Assistant')
     fireEvent.click(aiButton)
-    expect(screen.getByText("What's the vibe today?")).toBeInTheDocument()
+    expect(screen.getByText("What's your flow?")).toBeInTheDocument()
 
     // Close bubble
     const closeButton = screen.getByLabelText('Close')
     fireEvent.click(closeButton)
-    expect(screen.queryByText("What's the vibe today?")).not.toBeInTheDocument()
+    expect(screen.queryByText("What's your flow?")).not.toBeInTheDocument()
   })
 
   it('shows preview dialog when AI returns a valid proposal', async () => {
@@ -198,10 +198,8 @@ describe('AI Flowchart Assistant', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        message: `Here's a simple login flow:
-
-\`\`\`json
-{
+        message: `{
+  "outputMode": "flowchart",
   "summary": "Basic login flow with authentication",
   "nodes": [
     { "id": "1", "type": "step", "label": "Login Page", "position": { "x": 0, "y": 0 } },
@@ -212,8 +210,7 @@ describe('AI Flowchart Assistant', () => {
     { "id": "e1-2", "source": "1", "target": "2", "style": "animated" },
     { "id": "e2-3", "source": "2", "target": "3", "style": "default" }
   ]
-}
-\`\`\``,
+}`,
         role: 'assistant',
       }),
     })
@@ -246,15 +243,14 @@ describe('AI Flowchart Assistant', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        message: `\`\`\`json
-{
+        message: `{
+  "outputMode": "flowchart",
   "summary": "Test flow",
   "nodes": [
     { "id": "1", "type": "step", "label": "Test Node", "position": { "x": 0, "y": 0 } }
   ],
   "edges": []
-}
-\`\`\``,
+}`,
         role: 'assistant',
       }),
     })
@@ -290,15 +286,14 @@ describe('AI Flowchart Assistant', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        message: `\`\`\`json
-{
+        message: `{
+  "outputMode": "flowchart",
   "summary": "Test flow",
   "nodes": [
     { "id": "1", "type": "step", "label": "Should Not Appear", "position": { "x": 0, "y": 0 } }
   ],
   "edges": []
-}
-\`\`\``,
+}`,
         role: 'assistant',
       }),
     })
@@ -360,13 +355,12 @@ describe('AI Flowchart Assistant', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        message: `\`\`\`json
-{
+        message: `{
+  "outputMode": "flowchart",
   "summary": "Test",
   "nodes": [{ "id": "1", "type": "step", "label": "Test", "position": { "x": 0, "y": 0 } }],
   "edges": []
-}
-\`\`\``,
+}`,
         role: 'assistant',
       }),
     })
@@ -401,6 +395,7 @@ describe('AI Flowchart Assistant', () => {
 
   it('sends architecture metadata for refinement and displays rate-limit feedback', async () => {
     const proposal = {
+      outputMode: 'architecture',
       summary: 'Order system',
       nodes: [
         { id: 'api', type: 'service', label: 'Order API', position: { x: 0, y: 0 } },
@@ -412,9 +407,8 @@ describe('AI Flowchart Assistant', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 429, json: async () => ({ error: 'AI has reached its daily usage limit. Please try again tomorrow.' }) })
     render(<App />)
     fireEvent.click(screen.getByLabelText('Architecture Mode'))
-    fireEvent.click(screen.getByLabelText('Open AI Assistant'))
-    fireEvent.change(screen.getByPlaceholderText(/Describe any process, workflow, or plan/i), { target: { value: 'Draw an order system' } })
-    fireEvent.click(screen.getByText('Generate Flowchart'))
+    fireEvent.change(screen.getByPlaceholderText(/Describe your services/i), { target: { value: 'Draw an order system' } })
+    fireEvent.click(screen.getByText('Generate architecture diagram'))
     await screen.findByText('Preview AI Proposal')
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).diagramMode).toBe('architecture')
     fireEvent.change(screen.getByPlaceholderText(/Describe how to refine/i), { target: { value: 'Add a retry' } })

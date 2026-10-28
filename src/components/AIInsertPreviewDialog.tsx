@@ -13,7 +13,12 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { nodeTypes, edgeTypes } from '../flow/registry'
 import { sortParentsFirst } from '../utils/nesting'
-import { BaseFlowNode, BaseFlowEdge, EdgeStyle } from '../App'
+import type { EdgeStyle } from '../App'
+import type { AIGenerationProposal } from '../shared/aiGeneration'
+import type { ArchitectureScene } from '../shared/architectureScene'
+import { drawProposalToScene } from '../utils/drawGeneration'
+import { getSceneBounds } from '../utils/drawScene'
+import DrawSceneSvg from './DrawSceneSvg'
 import './AIInsertPreviewDialog.css'
 
 // Estimate rendered size of a node based on its type and explicit dimensions.
@@ -109,18 +114,23 @@ function resolveOverlaps(inputNodes: FlowNode[]): FlowNode[] {
   return nodes
 }
 
-interface FlowProposal {
-  summary?: string
-  nodes: BaseFlowNode[]
-  edges: BaseFlowEdge[]
+export function NativeProposalPreview({ scene, darkMode }: { scene: ArchitectureScene; darkMode: boolean }) {
+  const bounds = getSceneBounds(scene.elements)
+  return <svg className="ai-native-preview" role="img" aria-label="Draw proposal preview" viewBox={`${bounds.x - 32} ${bounds.y - 32} ${Math.max(64, bounds.width + 64)} ${Math.max(64, bounds.height + 64)}`}>
+    <DrawSceneSvg elements={scene.elements} files={scene.files} darkMode={darkMode} />
+  </svg>
 }
 
 interface AIInsertPreviewDialogProps {
-  proposal: FlowProposal
+  proposal: AIGenerationProposal
   onInsert: () => void
   onCancel: () => void
   onPreview: () => void
   onRefine: (instruction: string) => Promise<string | undefined>
+  refinementInput: string
+  onRefinementInputChange: (value: string) => void
+  onCancelRefine: () => void
+  error?: string | null
   isRefining?: boolean
   darkMode: boolean
 }
@@ -130,15 +140,17 @@ interface ChatBubble {
   content: string
 }
 
-function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, isRefining, darkMode }: AIInsertPreviewDialogProps) {
-  const [isFullscreen, setIsFullscreen] = useState(proposal.nodes.length >= 8)
-  const [refinementInput, setRefinementInput] = useState('')
+function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, refinementInput, onRefinementInputChange, onCancelRefine, error, isRefining, darkMode }: AIInsertPreviewDialogProps) {
+  const [isFullscreen, setIsFullscreen] = useState(proposal.outputMode === 'draw' ? proposal.elements.length >= 8 : proposal.nodes.length >= 8)
   const [refinementError, setRefinementError] = useState<string | null>(null)
   const [showChat, setShowChat] = useState(true)
   const [chatMessages, setChatMessages] = useState<ChatBubble[]>([])
   const { fitView } = useReactFlow()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const chatBodyRef = useRef<HTMLDivElement>(null)
+
+  const targetLabel = { flowchart: 'Flowchart', architecture: 'Architecture', draw: 'Draw' }[proposal.outputMode]
+  const drawScene = useMemo(() => proposal.outputMode === 'draw' ? drawProposalToScene(proposal) : null, [proposal])
 
   // Convert proposal nodes/edges to React Flow format
   const getEdgeStyleProps = useCallback((style?: EdgeStyle, commStyle?: 'sync' | 'async') => ({
@@ -147,6 +159,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
   }), [])
 
   const nodes: FlowNode[] = useMemo(() => {
+    if (proposal.outputMode === 'draw') return []
     const rawNodes: FlowNode[] = proposal.nodes.map((node) => ({
       id: node.id,
       type: node.type,
@@ -163,7 +176,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
     }))
 
     return sortParentsFirst(resolveOverlaps(rawNodes))
-  }, [proposal.nodes])
+  }, [proposal])
 
   // Lock the canvas pan boundaries to the node area so the minimap stays focused
   const translateExtent = useMemo((): [[number, number], [number, number]] => {
@@ -189,7 +202,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
 
   const strokeColor = darkMode ? '#78fcd6' : '#555'
 
-  const edges: Edge[] = proposal.edges.map((edge) => ({
+  const edges: Edge[] = (proposal.outputMode === 'draw' ? [] : proposal.edges).map((edge) => ({
     id: edge.id || `e${edge.source}-${edge.target}`,
     source: edge.source,
     target: edge.target,
@@ -251,17 +264,17 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
   const handleRefine = useCallback(async () => {
     const instruction = refinementInput.trim()
     if (!instruction || isRefining) return
-    // Show user message immediately
-    setChatMessages((prev) => [...prev, { role: 'user', content: instruction }])
-    setRefinementInput('')
     setRefinementError(null)
     try {
       const summary = await onRefine(instruction)
-      if (summary) setChatMessages((prev) => [...prev, { role: 'assistant', content: summary }])
+      if (summary !== undefined) {
+        onRefinementInputChange('')
+        setChatMessages((prev) => [...prev, { role: 'user', content: instruction }, { role: 'assistant', content: summary }])
+      }
     } catch (error) {
       setRefinementError(error instanceof Error ? error.message : 'AI is temporarily unavailable.')
     }
-  }, [refinementInput, isRefining, onRefine])
+  }, [refinementInput, isRefining, onRefine, onRefinementInputChange])
 
   return (
     <div
@@ -275,6 +288,8 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
         <div className="ai-preview-header">
           <div>
             <h2 id="ai-preview-title" className="ai-preview-title">Preview AI Proposal</h2>
+            <p className="ai-preview-target">Insert into {targetLabel}</p>
+            {error && <p role="alert">{error}</p>}
             {proposal.summary && (
               <p className="ai-preview-summary">{proposal.summary}</p>
             )}
@@ -313,7 +328,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
         <div className="ai-preview-content">
           <div className="ai-preview-content-row">
             <div className="ai-preview-flow">
-              <ReactFlow
+              {drawScene ? <NativeProposalPreview scene={drawScene} darkMode={darkMode} /> : <ReactFlow
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
@@ -350,13 +365,13 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
                   }}
                   pannable
                 />
-              </ReactFlow>
+              </ReactFlow>}
             </div>
 
             {showChat ? (
               <div className="ai-preview-chat-sidebar">
                 <div className="ai-preview-chat-header">
-                  <span>Refine this flowchart</span>
+                  <span>Refine this {proposal.outputMode === 'draw' ? 'drawing' : 'diagram'}</span>
                   <button
                     className="ai-preview-chat-toggle"
                     onClick={() => setShowChat(false)}
@@ -388,9 +403,9 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
                   <textarea
                     ref={textareaRef}
                     className="ai-preview-chat-input"
-                    placeholder="Describe how to refine this flowchart…"
+                    placeholder={`Describe how to refine this ${proposal.outputMode === 'draw' ? 'drawing' : 'diagram'}…`}
                     value={refinementInput}
-                    onChange={(e) => setRefinementInput(e.target.value)}
+                    onChange={(e) => onRefinementInputChange(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
@@ -410,12 +425,13 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
                           <circle cx="8" cy="8" r="6" opacity="0.25" />
                           <path d="M14 8a6 6 0 0 0-6-6" strokeLinecap="round" />
                         </svg>
-                        Regenerating…
+                        Regenerating {targetLabel}…
                       </span>
                     ) : (
                       'Regenerate'
                     )}
                   </button>
+                  {isRefining && <button className="ai-preview-chat-cancel" onClick={onCancelRefine}>Cancel refinement</button>}
                 </div>
               </div>
             ) : (
@@ -436,7 +452,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
 
         <div className="ai-preview-actions">
           <span className="ai-preview-meta">
-            {proposal.nodes.length} nodes · {proposal.edges.length} edges
+            {proposal.outputMode === 'draw' ? `${proposal.elements.length} drawing objects` : `${proposal.nodes.length} nodes · ${proposal.edges.length} edges`}
           </span>
           <button
             className="ai-preview-button cancel"
@@ -447,6 +463,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
           <button
             className="ai-preview-button present"
             onClick={onPreview}
+            disabled={isRefining}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
               <path d="M4 2l10 6-10 6V2z" />

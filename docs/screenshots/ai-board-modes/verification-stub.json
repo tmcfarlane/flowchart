@@ -1,0 +1,38 @@
+{
+  "provider": "browser route stub",
+  "checks": [
+    "flowchart is the welcome and full prompt default",
+    "architecture is the welcome and full prompt default",
+    "draw is the welcome and full prompt default",
+    "explicit Draw target leaves Flowchart unchanged before Insert",
+    "native SVG preview and refine preserve captured Draw output",
+    "native presentation preserves the unsent refinement prompt on exit",
+    "request context omits private drawing and image bytes",
+    "native text, free line, shape labels, and bound arrow are editable scene records",
+    "existing graph, native records, and asset bytes survive exactly",
+    "one Undo and Redo, reload, and exported JSON preserve the document",
+    "editing a generated bound label and dragging its host reroutes the bound arrow while preserving old content",
+    "native Draw preview renders in the light theme",
+    "closing a pending request discards its late reply and retains the typed prompt",
+    "closing a pending welcome request retains its text in the full prompt and discards its late reply"
+  ],
+  "screenshots": [
+    "01-welcome-architecture.png",
+    "01-welcome-draw.png",
+    "01-welcome-flowchart.png",
+    "02-full-architecture.png",
+    "02-full-draw.png",
+    "02-full-flowchart.png",
+    "03-cross-target-draw-dark.png",
+    "04-native-draw-preview-dark.png",
+    "05-refined-native-draw-preview-dark.png",
+    "05b-native-draw-presentation.png",
+    "06-native-draw-inserted-dark.png",
+    "07-native-draw-inserted-light.png",
+    "08-cross-target-draw-light.png",
+    "09-native-draw-preview-light.png",
+    "10-cancelled-welcome-prompt-retained.png",
+    "11-edited-bound-drawing.png"
+  ],
+  "retainedContentAfterNativeEdit": "The existing Draw bridge adds graph snapshot mirror fields and null boundElements during any Draw edit. The verifier checks every original graph and native field and the exact asset bytes after editing."
+}

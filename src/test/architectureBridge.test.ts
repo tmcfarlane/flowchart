@@ -74,6 +74,17 @@ describe('semantic graph/custom Draw bridge', () => {
     expect(changed.find(e => e.id === freeform.id)).toMatchObject(freeform)
   })
 
+  it('keeps unrelated native records byte-for-byte when projecting a graph', () => {
+    const note = { id: 'old-note', type: 'text', x: 15, y: 20, width: 100, height: 30, angle: 0, text: 'Keep me', customData: { owner: 'user' } } as DrawElement
+    const shape = { id: 'sketch', type: 'rectangle', x: 0, y: 100, width: 100, height: 70, angle: 0, boundElements: [{ id: 'native-label', type: 'text' }] } as DrawElement
+    const label = { id: 'native-label', type: 'text', x: 10, y: 110, width: 70, height: 30, angle: 0, text: 'Native', containerId: 'sketch' } as DrawElement
+    const merged = mergeGraphElements([note, shape, label], [node('api', 300, 0)], [], false)
+    expect(merged.slice(0, 3)).toEqual([note, shape, label])
+    expect(merged[0]).toBe(note)
+    expect(merged[1]).toBe(shape)
+    expect(merged[2]).toBe(label)
+  })
+
   it('adds and removes bound edge labels on graph edits', () => {
     const nodes = [node('api', 0, 0), node('db', 0, 250)]
     const bare = [arrow('request', 'api', 'db', { data: {} })]

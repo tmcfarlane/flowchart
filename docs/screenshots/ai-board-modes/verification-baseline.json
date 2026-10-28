@@ -1,0 +1,9 @@
+{
+  "provider": "old app baseline",
+  "checks": [
+    "the old Draw prompt has no output selector"
+  ],
+  "screenshots": [
+    "00-before-draw-ai.png"
+  ]
+}

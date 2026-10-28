@@ -32,7 +32,10 @@ import { nodeTypes, edgeTypes } from './flow/registry'
 import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
-import AIInsertPreviewDialog from './components/AIInsertPreviewDialog'
+import AIInsertPreviewDialog, { NativeProposalPreview } from './components/AIInsertPreviewDialog'
+import { FlowGenerationContextSchema, normalizeGenerationProposal, parseGenerationProposal, type AIGenerationContext, type AIGenerationProposal } from './shared/aiGeneration'
+import { captureDrawGenerationContext, drawProposalToScene } from './utils/drawGeneration'
+import { mergeGraphElements } from './utils/architectureBridge'
 import ExcalidrawImportDialog from './components/ExcalidrawImportDialog'
 import { resolveAzureIcons } from './utils/azureIconRegistry'
 import { getMessages, addMessage as addThreadMessage } from './utils/conversationStore'
@@ -41,7 +44,7 @@ import ShareStatus from './components/ShareStatus'
 import { useSharedFlow, type ApplyReason } from './hooks/useSharedFlow'
 import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
 import { parseSharedLocation } from './utils/shareApi'
-import { inferDiagramMode, nextNumericNodeId, type Chart, type DiagramMode } from './shared/flowTypes'
+import { LIMITS, inferDiagramMode, nextNumericNodeId, type Chart, type DiagramMode } from './shared/flowTypes'
 import { validateArchitectureScene, serializedByteLength, MAX_ARCHITECTURE_DOCUMENT_BYTES, type ArchitectureScene } from './shared/architectureScene'
 import { applyDrawEdit, captureDrawEdit, drawEditIsCurrent, type DrawEditSnapshot } from './utils/drawSelectionEdit'
 import { validateDrawEdit } from './shared/drawSelectionEdit'
@@ -130,6 +133,16 @@ interface HistoryState {
   edges: Edge[]
   architectureScene?: ArchitectureScene
   diagramMode?: DiagramMode
+}
+
+function validateAIInsertion(nodes: FlowNode[], edges: Edge[], scene: ArchitectureScene | undefined, mode: DiagramMode) {
+  if (nodes.length > LIMITS.maxNodes || edges.length > LIMITS.maxEdges) {
+    throw new Error(`The combined diagram exceeds the ${LIMITS.maxNodes} node or ${LIMITS.maxEdges} edge limit.`)
+  }
+  const maxBytes = scene ? MAX_ARCHITECTURE_DOCUMENT_BYTES : LIMITS.maxChartBytes
+  if (serializedByteLength(flowToChart(nodes, edges, scene, mode)) + 1024 > maxBytes) {
+    throw new Error(`The combined diagram exceeds the ${scene ? '4 MiB' : '256 KiB'} document limit.`)
+  }
 }
 
 interface DrawEditSession {
@@ -302,12 +315,22 @@ function FlowChartEditor() {
     if (diagramMode !== 'draw' && drawLocalViewRef.current) { drawLocalViewRef.current = false; setDrawLocalView(false) }
   }, [diagramMode])
   const [isAIBubbleOpen, setIsAIBubbleOpen] = useState(false)
-  const [aiProposal, setAIProposal] = useState<FlowProposal | null>(null)
+  const [aiProposal, setAIProposal] = useState<AIGenerationProposal | null>(null)
   // A shared link (/f/:id) opens a chart, so skip the empty-canvas welcome prompt.
   const [showWelcomeAI, setShowWelcomeAI] = useState(() => !parseSharedLocation(window.location) && !initialDraft?.nodes.length && !initialDraft?.architectureScene?.elements.some(e => !e.isDeleted))
+  const [generationPrompt, setGenerationPrompt] = useState('')
+  const [refinementPrompt, setRefinementPrompt] = useState('')
+  const [generationMode, setGenerationMode] = useState<DiagramMode>(initialDraft?.mode ?? 'flowchart')
+  const [aiInsertError, setAIInsertError] = useState<string | null>(null)
   const [isRefining, setIsRefining] = useState(false)
+  const refineRequest = useRef<{ id: number; controller?: AbortController }>({ id: 0 })
+  const cancelRefinement = useCallback(() => {
+    refineRequest.current.controller?.abort()
+    refineRequest.current = { id: refineRequest.current.id + 1 }
+    setIsRefining(false)
+  }, [])
   const [aiThreadId, setAIThreadId] = useState<string | null>(null)
-  const [proposalPreview, setProposalPreview] = useState<{ nodes: FlowNode[]; edges: Edge[] } | null>(null)
+  const [proposalPreview, setProposalPreview] = useState<{ outputMode: 'draw'; scene: ArchitectureScene } | { outputMode: 'flowchart' | 'architecture'; nodes: FlowNode[]; edges: Edge[] } | null>(null)
   const [showMinimap, setShowMinimap] = useState(false)
   const [pendingImport, setPendingImport] = useState<{ filename: string; scene: ArchitectureScene; point?: { x: number; y: number } } | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
@@ -327,6 +350,31 @@ function FlowChartEditor() {
   const revision = useRef({ signature: '', value: 0 })
   const authoredSignature = authoredGraphSignature(nodes, edges)
   if (authoredSignature !== revision.current.signature) revision.current = { signature: authoredSignature, value: revision.current.value + 1 }
+
+  useEffect(() => { setGenerationMode(diagramMode) }, [diagramMode])
+  const aiDocumentEpoch = documentEpoch.current
+  useEffect(() => {
+    cancelRefinement()
+    setAIProposal(null)
+    setRefinementPrompt('')
+    setProposalPreview(null)
+    setAIThreadId(null)
+    setAIInsertError(null)
+  }, [aiDocumentEpoch, cancelRefinement])
+  useEffect(() => () => refineRequest.current.controller?.abort(), [])
+
+  const getGenerationContext = useCallback((): AIGenerationContext | undefined => {
+    if (diagramMode === 'draw') {
+      const scene = drawApi.current?.getScene() ?? architectureScene
+      return scene ? { drawContext: captureDrawGenerationContext(scene) } : undefined
+    }
+    const chart = flowToChart(nodes, edges)
+    const context = FlowGenerationContextSchema.safeParse({
+      nodes: chart.nodes.map(({ icon: _icon, ...node }) => ({ ...node, imageUrl: generationMode === 'draw' || node.imageUrl?.startsWith('data:') ? undefined : node.imageUrl })),
+      edges: chart.edges,
+    })
+    return context.success ? { flowContext: context.data } : undefined
+  }, [nodes, edges, architectureScene, diagramMode, generationMode])
 
   const canvasPoint = useCallback((point: { x: number; y: number }) => {
     return diagramMode === 'draw' && drawApi.current
@@ -531,7 +579,7 @@ function FlowChartEditor() {
         }
         const existing = before.diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : before.architectureScene
         const drawingElements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], before.nodes, before.edges, before.darkMode)
-        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(drawingElements)), files: existing?.files ?? {}, appState: existing?.appState }
+        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(drawingElements)), files: existing?.files ?? {}, ...(existing?.appState ? { appState: existing.appState } : {}) }
         const rect = reactFlowWrapper.current?.getBoundingClientRect()
         const point = pendingImport.point ?? before.canvasPoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
         scene = prepareSceneInsertion(scene, baseScene, point)
@@ -1281,8 +1329,9 @@ function FlowChartEditor() {
   // Toggle AI Bubble
   const toggleAI = useCallback(() => {
     setShowWelcomeAI(false)
+    if (!isAIBubbleOpen) setGenerationMode(diagramMode)
     setIsAIBubbleOpen((prev) => !prev)
-  }, [])
+  }, [diagramMode, isAIBubbleOpen])
 
   const toggleDarkMode = useCallback(() => {
     setDarkMode((prev) => !prev)
@@ -1303,224 +1352,204 @@ function FlowChartEditor() {
   }, [fitView, getViewport, setViewport])
 
   // Handle AI proposal ready - open preview dialog
-  const handleAIProposalReady = useCallback((proposal: FlowProposal, threadId?: string) => {
+  const handleAIProposalReady = useCallback((proposal: AIGenerationProposal, threadId?: string) => {
+    cancelRefinement()
+    setAIInsertError(null)
+    setProposalPreview(null)
     setAIProposal(proposal)
-    if (threadId) setAIThreadId(threadId)
-  }, [])
+    setRefinementPrompt('')
+    setAIThreadId(threadId ?? null)
+  }, [cancelRefinement])
 
   // Insert AI proposal into canvas (insert-as-new algorithm)
   const insertAIProposal = useCallback(() => {
     if (!aiProposal) return
 
-    // 1. Generate unique IDs for the new nodes
-    const idMap = new Map<string, string>()
-    let currentCounter = nodeIdCounter
+    setAIInsertError(null)
+    try {
+      if (aiProposal.outputMode === 'draw') {
+        const existing = diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : architectureScene
+        const elements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], nodes, edges, darkMode)
+        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(elements)), files: existing?.files ?? {}, ...(existing?.appState ? { appState: existing.appState } : {}) }
+        const rect = reactFlowWrapper.current?.getBoundingClientRect()
+        const point = drawApi.current
+          ? drawApi.current.viewportToScenePoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
+          : { x: 400, y: 300 }
+        const scene = prepareSceneInsertion(drawProposalToScene(aiProposal), baseScene, point)
+        validateAIInsertion(nodes, edges, scene, 'draw')
+        cancelRefinement()
+        commitDocument({ nodes, edges, architectureScene: scene, diagramMode: 'draw' })
+        setAIProposal(null)
+        setAIThreadId(null)
+        return
+      }
+      if (!aiProposal.nodes.length) throw new Error('This proposal has no content to insert.')
 
-    aiProposal.nodes.forEach((node) => {
-      const newId = currentCounter.toString()
-      idMap.set(node.id, newId)
-      currentCounter++
-    })
+      const idMap = new Map<string, string>()
+      let currentCounter = nodeIdCounter
 
-    // 2. Calculate bounding box of proposal nodes
-    let minX = Infinity
-    let minY = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-
-    aiProposal.nodes.forEach((node) => {
-      const width = node.width || (node.type === 'decision' ? 160 : 180)
-      const height = node.height || (node.type === 'decision' ? 160 : 80)
-      const abs = getAbsolutePosition(node, aiProposal.nodes)
-
-      minX = Math.min(minX, abs.x)
-      minY = Math.min(minY, abs.y)
-      maxX = Math.max(maxX, abs.x + width)
-      maxY = Math.max(maxY, abs.y + height)
-    })
-
-    // 3. Calculate centroid of proposal
-    const proposalCenterX = (minX + maxX) / 2
-    const proposalCenterY = (minY + maxY) / 2
-
-    // 4. Get viewport center position
-    let targetPosition = { x: 400, y: 300 }
-    if (reactFlowWrapper.current) {
-      const rect = reactFlowWrapper.current.getBoundingClientRect()
-      targetPosition = canvasPoint({
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2,
+      aiProposal.nodes.forEach((node) => {
+        const newId = currentCounter.toString()
+        idMap.set(node.id, newId)
+        currentCounter++
       })
+
+      let minX = Infinity
+      let minY = Infinity
+      let maxX = -Infinity
+      let maxY = -Infinity
+
+      aiProposal.nodes.forEach((node) => {
+        const width = node.width || (node.type === 'decision' ? 160 : 180)
+        const height = node.height || (node.type === 'decision' ? 160 : 80)
+        const abs = getAbsolutePosition(node, aiProposal.nodes)
+
+        minX = Math.min(minX, abs.x)
+        minY = Math.min(minY, abs.y)
+        maxX = Math.max(maxX, abs.x + width)
+        maxY = Math.max(maxY, abs.y + height)
+      })
+
+      const proposalCenterX = (minX + maxX) / 2
+      const proposalCenterY = (minY + maxY) / 2
+
+      let targetPosition = { x: 400, y: 300 }
+      if (reactFlowWrapper.current) {
+        const rect = reactFlowWrapper.current.getBoundingClientRect()
+        targetPosition = canvasPoint({
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        })
+      }
+
+      const offsetX = targetPosition.x - proposalCenterX
+      const offsetY = targetPosition.y - proposalCenterY
+
+      const newNodes: FlowNode[] = aiProposal.nodes.map((node) => {
+        const newId = idMap.get(node.id)!
+        const newParent = node.parentNode ? idMap.get(node.parentNode) : undefined
+        return {
+          id: newId,
+          type: node.type,
+          position: newParent
+            ? node.position
+            : {
+                x: node.position.x + offsetX,
+                y: node.position.y + offsetY,
+              },
+          parentNode: newParent,
+          extent: newParent ? ('parent' as const) : undefined,
+          data: {
+            label: node.label,
+            imageUrl: node.imageUrl,
+            containerKind: node.containerKind,
+            onLabelChange: updateNodeLabel,
+          },
+          style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
+        }
+      })
+
+      const newEdges: Edge[] = aiProposal.edges.map((edge, index) => {
+        const newSource = idMap.get(edge.source)!
+        const newTarget = idMap.get(edge.target)!
+
+        const sourceHandle = edge.sourceHandle || 'bottom'
+        const targetHandle = edge.targetHandle || 'top'
+
+        return {
+          id: `ai-${newSource}-${newTarget}-${index}`,
+          source: newSource,
+          target: newTarget,
+          sourceHandle,
+          targetHandle,
+          label: edge.label,
+          ...getEdgeStyleProps(edge.style || (edge.commStyle ? 'default' : 'animated'), { protocol: edge.protocol, commStyle: edge.commStyle }),
+        }
+      })
+
+      const nextNodes = sortParentsFirst([...nodes, ...newNodes])
+      const nextEdges = [...edges, ...newEdges]
+      const retainedScene = diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : architectureScene
+      validateAIInsertion(nextNodes, nextEdges, retainedScene, aiProposal.outputMode)
+      cancelRefinement()
+      commitDocument({ nodes: nextNodes, edges: nextEdges, architectureScene: retainedScene, diagramMode: aiProposal.outputMode })
+      setAIProposal(null)
+      setAIThreadId(null)
+    } catch (error) {
+      setAIInsertError(error instanceof Error ? error.message : 'Could not insert this proposal.')
     }
+  }, [aiProposal, nodeIdCounter, canvasPoint, updateNodeLabel, getEdgeStyleProps, nodes, edges, architectureScene, diagramMode, darkMode, cancelRefinement, commitDocument])
 
-    // 5. Calculate offset to move proposal to viewport center
-    const offsetX = targetPosition.x - proposalCenterX
-    const offsetY = targetPosition.y - proposalCenterY
-
-    // 6. Create new nodes with remapped IDs and offset positions.
-    // Children of containers keep parent-relative positions (only top-level
-    // nodes are offset); parentNode references are remapped.
-    const newNodes: FlowNode[] = aiProposal.nodes.map((node) => {
-      const newId = idMap.get(node.id)!
-      const newParent = node.parentNode ? idMap.get(node.parentNode) : undefined
-      return {
-        id: newId,
-        type: node.type,
-        position: newParent
-          ? node.position
-          : {
-              x: node.position.x + offsetX,
-              y: node.position.y + offsetY,
-            },
-        parentNode: newParent,
-        extent: newParent ? ('parent' as const) : undefined,
-        data: {
-          label: node.label,
-          imageUrl: node.imageUrl,
-          containerKind: node.containerKind,
-          onLabelChange: updateNodeLabel,
-        },
-        style: node.width || node.height ? { width: node.width, height: node.height } : undefined,
-      }
-    })
-
-    // 7. Create new edges with remapped IDs and default handles
-    const newEdges: Edge[] = aiProposal.edges.map((edge) => {
-      const newSource = idMap.get(edge.source)!
-      const newTarget = idMap.get(edge.target)!
-      
-      // Add default handles if not specified (bottom-to-top for vertical flows)
-      const sourceHandle = edge.sourceHandle || 'bottom'
-      const targetHandle = edge.targetHandle || 'top'
-      
-      return {
-        id: edge.id ? `${idMap.get(edge.id.split('-')[0]) || 'e'}-${newSource}-${newTarget}` : `e${newSource}-${newTarget}`,
-        source: newSource,
-        target: newTarget,
-        sourceHandle,
-        targetHandle,
-        label: edge.label,
-        ...getEdgeStyleProps(edge.style || (edge.commStyle ? 'default' : 'animated'), { protocol: edge.protocol, commStyle: edge.commStyle }),
-      }
-    })
-
-    // 8. Add nodes and edges to existing state (parents before children)
-    setNodes((nds) => sortParentsFirst([...nds, ...newNodes]))
-    setEdges((eds) => [...eds, ...newEdges])
-    setNodeIdCounter(currentCounter)
-
-    // 9. Close preview dialog
-    setAIProposal(null)
-    setAIThreadId(null)
-  }, [aiProposal, nodeIdCounter, reactFlowWrapper, canvasPoint, updateNodeLabel, getEdgeStyleProps, setNodes, setEdges])
-
-  // Cancel AI proposal
   const cancelAIProposal = useCallback(() => {
+    cancelRefinement()
     setAIProposal(null)
+    setRefinementPrompt('')
     setAIThreadId(null)
-  }, [])
+    setProposalPreview(null)
+    setAIInsertError(null)
+  }, [cancelRefinement])
 
   // Dismiss welcome AI prompt
   const dismissWelcomeAI = useCallback(() => {
     setShowWelcomeAI(false)
   }, [])
 
-  // Refine AI proposal via chat sidebar
   const handleRefineProposal = useCallback(async (instruction: string): Promise<string | undefined> => {
     if (!aiProposal) return undefined
+    cancelRefinement()
+    const controller = new AbortController()
+    const request = { id: refineRequest.current.id + 1, controller }
+    refineRequest.current = request
+    const epoch = documentEpoch.current
     setIsRefining(true)
     try {
-      // Build messages: use thread history if available, otherwise single message
-      let messages: { role: string; content: string }[]
-      if (aiThreadId) {
-        addThreadMessage(aiThreadId, { role: 'user', content: instruction })
-        messages = getMessages(aiThreadId).map((m) => ({ role: m.role, content: m.content }))
-      } else {
-        messages = [{ role: 'user', content: instruction }]
-      }
-
+      const messages = [
+        ...(aiThreadId ? getMessages(aiThreadId).map(({ role, content }) => ({ role, content })) : []),
+        { role: 'user', content: instruction },
+      ]
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           messages,
           mode: 'refine',
-          diagramMode,
-          flowContext: {
-            nodes: aiProposal.nodes.map((n) => ({
-              id: n.id,
-              type: n.type,
-              label: n.label,
-              position: n.position,
-              width: n.width,
-              height: n.height,
-              imageUrl: n.imageUrl,
-              parentNode: n.parentNode,
-              containerKind: n.containerKind,
-            })),
-            edges: aiProposal.edges.map((e) => ({
-              id: e.id,
-              source: e.source,
-              target: e.target,
-              style: e.style,
-              sourceHandle: e.sourceHandle,
-              targetHandle: e.targetHandle,
-              label: e.label,
-              protocol: e.protocol,
-              commStyle: e.commStyle,
-            })),
-          },
+          diagramMode: aiProposal.outputMode,
+          ...(aiProposal.outputMode === 'draw'
+            ? { drawProposal: aiProposal }
+            : { flowContext: { nodes: aiProposal.nodes, edges: aiProposal.edges } }),
         }),
       })
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         throw new Error(errorData.error || `API request failed with status ${response.status}`)
       }
-
       const data = await response.json()
-      const content = data.message || ''
-
-      let parsed: Record<string, unknown> | null = null
-      try {
-        parsed = JSON.parse(content) as Record<string, unknown>
-      } catch {
-        // Try extracting from code block
-        const jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/) || content.match(/```\s*\n([\s\S]*?)\n```/)
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[1].trim()) as Record<string, unknown>
-          } catch { /* noop */ }
-        }
+      const parsed = parseGenerationProposal(data.message, aiProposal.outputMode, data.finishReason)
+      const refinedProposal = parsed.outputMode === 'draw' ? parsed : normalizeGenerationProposal({ ...resolveAzureIcons(parsed), outputMode: parsed.outputMode }, parsed.outputMode)
+      if (controller.signal.aborted || refineRequest.current.id !== request.id || documentEpoch.current !== epoch) return undefined
+      setAIProposal(refinedProposal)
+      if (aiThreadId) {
+        addThreadMessage(aiThreadId, { role: 'user', content: instruction })
+        addThreadMessage(aiThreadId, { role: 'assistant', content: refinedProposal.summary })
       }
-
-      if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) {
-        const refinedProposal = resolveAzureIcons({
-          summary: (parsed.summary as string) || (parsed.explanation as string) || 'Refined flowchart',
-          nodes: parsed.nodes as BaseFlowNode[],
-          edges: parsed.edges as BaseFlowEdge[],
-        })
-        setAIProposal(refinedProposal)
-
-        // Save assistant summary to thread
-        if (aiThreadId) {
-          addThreadMessage(aiThreadId, {
-            role: 'assistant',
-            content: refinedProposal.summary || 'Refined flowchart',
-          })
-        }
-        return refinedProposal.summary
-      }
+      return refinedProposal.summary
+    } catch (error) {
+      if (controller.signal.aborted || refineRequest.current.id !== request.id || documentEpoch.current !== epoch) return undefined
+      throw error
     } finally {
-      setIsRefining(false)
+      if (refineRequest.current.id === request.id) setIsRefining(false)
     }
-    return undefined
-  }, [aiProposal, aiThreadId, diagramMode])
+  }, [aiProposal, aiThreadId, cancelRefinement])
 
   // Preview proposal in presentation mode
   const handlePreviewProposal = useCallback(() => {
     if (!aiProposal) return
 
+    if (aiProposal.outputMode === 'draw') {
+      setProposalPreview({ outputMode: 'draw', scene: drawProposalToScene(aiProposal) })
+      return
+    }
     const strokeColor = darkMode ? '#78fcd6' : '#555'
 
     const previewNodes: FlowNode[] = aiProposal.nodes.map((node) => ({
@@ -1560,7 +1589,7 @@ function FlowChartEditor() {
       },
     }))
 
-    setProposalPreview({ nodes: sortParentsFirst(previewNodes), edges: previewEdges })
+    setProposalPreview({ outputMode: aiProposal.outputMode, nodes: sortParentsFirst(previewNodes), edges: previewEdges })
   }, [aiProposal, darkMode])
 
   useEffect(() => {
@@ -1804,6 +1833,10 @@ function FlowChartEditor() {
 
   // Preview proposal in presentation mode (returns to proposal dialog on exit)
   if (proposalPreview) {
+    if (proposalPreview.outputMode === 'draw') return <div className={`app ai-native-presentation ${darkMode ? 'dark-mode' : 'light-mode'}`}>
+      <NativeProposalPreview scene={proposalPreview.scene} darkMode={darkMode} />
+      <button className="draw-presentation-exit" onClick={() => setProposalPreview(null)}>Exit presentation</button>
+    </div>
     return (
       <PreviewMode
         nodes={proposalPreview.nodes}
@@ -1834,7 +1867,7 @@ function FlowChartEditor() {
         darkMode={darkMode}
         onToggleDarkMode={toggleDarkMode}
         diagramMode={diagramMode}
-        onSetDiagramMode={(mode) => { setDiagramMode(mode); if (mode !== 'flowchart') setShowWelcomeAI(false) }}
+        onSetDiagramMode={setDiagramMode}
         reactFlowWrapper={reactFlowWrapper}
         nodes={nodes}
         edges={edges}
@@ -2160,6 +2193,12 @@ function FlowChartEditor() {
           nodes={nodes}
           edges={edges}
           diagramMode={diagramMode}
+          generationPrompt={generationPrompt}
+          onGenerationPromptChange={setGenerationPrompt}
+          generationMode={generationMode}
+          onGenerationModeChange={setGenerationMode}
+          getGenerationContext={getGenerationContext}
+          generationRevision={aiDocumentEpoch}
           onProposalReady={handleAIProposalReady}
           isOpen={true}
           onClose={dismissWelcomeAI}
@@ -2178,6 +2217,12 @@ function FlowChartEditor() {
         diagramMode={diagramMode}
         onEditSelection={diagramMode !== 'draw' ? openSelectionEdit : undefined}
         selectedCount={nodes.filter(node => node.selected).length}
+        generationPrompt={generationPrompt}
+        onGenerationPromptChange={setGenerationPrompt}
+        generationMode={generationMode}
+        onGenerationModeChange={setGenerationMode}
+        getGenerationContext={getGenerationContext}
+        generationRevision={aiDocumentEpoch}
         onProposalReady={handleAIProposalReady}
         isOpen={isAIBubbleOpen}
         onClose={() => setIsAIBubbleOpen(false)}
@@ -2190,7 +2235,11 @@ function FlowChartEditor() {
           onCancel={cancelAIProposal}
           onPreview={handlePreviewProposal}
           onRefine={handleRefineProposal}
+          refinementInput={refinementPrompt}
+          onRefinementInputChange={setRefinementPrompt}
           isRefining={isRefining}
+          onCancelRefine={cancelRefinement}
+          error={aiInsertError}
           darkMode={darkMode}
         />
       )}

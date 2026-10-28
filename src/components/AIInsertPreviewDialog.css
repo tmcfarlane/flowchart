@@ -185,7 +185,7 @@
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-.ai-preview-button.present:hover {
+.ai-preview-button.present:hover:not(:disabled) {
   background: rgba(16, 185, 129, 0.2);
   border-color: rgba(16, 185, 129, 0.5);
   transform: translateY(-1px);
@@ -464,7 +464,7 @@
   border: 1px solid rgba(120, 252, 214, 0.25);
 }
 
-.app.dark-mode .ai-preview-button.present:hover {
+.app.dark-mode .ai-preview-button.present:hover:not(:disabled) {
   background: rgba(120, 252, 214, 0.15);
   border-color: rgba(120, 252, 214, 0.4);
 }
@@ -588,4 +588,37 @@
   .ai-preview-chat-expand {
     display: flex;
   }
+}
+
+.ai-native-preview {
+  width: 100%;
+  height: 100%;
+  min-height: 260px;
+  display: block;
+}
+
+.ai-preview-target {
+  margin: 6px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ai-native-presentation {
+  height: 100vh;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.ai-preview-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-preview-chat-cancel {
+  padding: 8px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
 }

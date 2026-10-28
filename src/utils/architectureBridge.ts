@@ -189,12 +189,16 @@ export function mergeGraphElements(elements: readonly DrawElement[], nodes: Node
   }
   // Conversion restores reciprocal boundElements for newly created connectors.
   const bound = new Map<string, Array<{ id: string; type: 'arrow' | 'text' }>>()
+  const semanticTargets = new Set<string>()
   for (const element of output) {
     if (element.isDeleted) continue
     if (element.type === 'text' && element.containerId) bound.set(element.containerId, [...(bound.get(element.containerId) ?? []), { id: element.id, type: 'text' }])
-    if (element.type === 'arrow') for (const binding of [element.startBinding, element.endBinding]) if (binding) bound.set(binding.elementId, [...(bound.get(binding.elementId) ?? []), { id: element.id, type: 'arrow' }])
+    if (element.type === 'arrow') for (const binding of [element.startBinding, element.endBinding]) if (binding) {
+      bound.set(binding.elementId, [...(bound.get(binding.elementId) ?? []), { id: element.id, type: 'arrow' }])
+      if (bridgeData(element)) semanticTargets.add(binding.elementId)
+    }
   }
-  return withContainerGroups(output.map(e => ({ ...e, boundElements: bound.get(e.id) ?? null })), chart.nodes, chart.edges) as DrawElement[]
+  return withContainerGroups(output.map(e => bridgeData(e) || semanticTargets.has(e.id) ? { ...e, boundElements: bound.get(e.id) ?? null } : e), chart.nodes, chart.edges) as DrawElement[]
 }
 
 /** Reconcile semantic shapes edited in the native editor back into the graph. */

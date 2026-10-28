@@ -1,34 +1,22 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Node, Edge } from 'reactflow'
 import './AIChat.css'
-import { BaseFlowNode, BaseFlowEdge, EdgeStyle, DiagramMode } from '../App'
+import { type DiagramMode, DIAGRAM_MODES } from '../shared/flowTypes'
+import { parseGenerationProposal, normalizeGenerationProposal, type AIGenerationContext, type AIGenerationProposal } from '../shared/aiGeneration'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
 import { parseFlowJson } from '../utils/exportUtils'
 import type { ArchitectureScene } from '../shared/architectureScene'
 
-const LOADING_MESSAGES = [
-  'Thinking about your flowchart...',
-  'Analyzing the structure...',
-  'Generating ideas...',
-  'Working on it...',
-  'Processing your request...',
-  'Designing the flow...',
-]
-
-// Pre-loaded starter prompts across categories
-const ALL_STARTER_PROMPTS = [
-  // Casual / Everyday
+const FLOW_STARTER_PROMPTS = [
   { emoji: '\u{1F96A}', text: 'Make a PB&J sandwich' },
   { emoji: '\u{1F5FA}\uFE0F', text: 'Plan a weekend road trip' },
   { emoji: '\u{1F382}', text: 'Organize a birthday party' },
   { emoji: '\u{2615}', text: 'My morning routine' },
   { emoji: '\u{1F3E0}', text: 'Moving to a new apartment' },
-  // Fitness / Health
   { emoji: '\u{1F4AA}', text: 'Plan my afternoon workout' },
   { emoji: '\u{1F957}', text: 'Weekly meal prep plan' },
   { emoji: '\u{1F3C3}', text: '30-day fitness challenge' },
-  // Technical
   { emoji: '\u{1F680}', text: 'CI/CD deployment pipeline' },
   { emoji: '\u{1F510}', text: 'User authentication flow' },
   { emoji: '\u{1F41B}', text: 'Debug a production issue' },
@@ -36,7 +24,6 @@ const ALL_STARTER_PROMPTS = [
   { emoji: '\u{1F4E1}', text: 'API request lifecycle' },
   { emoji: '\u{1F500}', text: 'Git branching strategy' },
   { emoji: '\u{1F6E1}\uFE0F', text: 'Incident response runbook' },
-  // Business
   { emoji: '\u{1F4CB}', text: 'Customer onboarding process' },
   { emoji: '\u{1F4E6}', text: 'Product launch checklist' },
   { emoji: '\u{1F4CA}', text: 'Quarterly planning cycle' },
@@ -48,259 +35,214 @@ const ALL_STARTER_PROMPTS = [
   { emoji: '\u{1F91D}', text: 'Client proposal workflow' },
 ]
 
-function pickRandomPrompts(count: number) {
-  const shuffled = [...ALL_STARTER_PROMPTS].sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, count)
+const MODE_COPY: Record<DiagramMode, {
+  heading: string
+  placeholder: string
+  button: string
+  loading: string
+  starters: { emoji: string; text: string }[]
+}> = {
+  flowchart: {
+    heading: "What's your flow?",
+    placeholder: 'Describe any process, workflow, or plan...',
+    button: 'Generate Flowchart',
+    loading: 'Generating flowchart...',
+    starters: FLOW_STARTER_PROMPTS,
+  },
+  architecture: {
+    heading: 'What should we architect?',
+    placeholder: 'Describe your services, data stores, and connections...',
+    button: 'Generate architecture diagram',
+    loading: 'Generating architecture diagram...',
+    starters: [
+      { emoji: '☁️', text: 'Design a cloud app with API, database, and cache' },
+      { emoji: '🔐', text: 'Map an authentication system' },
+      { emoji: '📦', text: 'Show an order processing architecture' },
+      { emoji: '📡', text: 'Design a real-time messaging system' },
+    ],
+  },
+  draw: {
+    heading: 'What should we draw?',
+    placeholder: 'Describe shapes, labels, and lines to draw...',
+    button: 'Generate drawing',
+    loading: 'Generating drawing...',
+    starters: [
+      { emoji: '🖊️', text: 'Sketch a workshop whiteboard' },
+      { emoji: '💡', text: 'Draw a mind map for a product launch' },
+      { emoji: '📱', text: 'Make a labeled mobile app wireframe' },
+      { emoji: '🗺️', text: 'Draw a simple event floor plan' },
+    ],
+  },
 }
 
-interface FlowProposal {
-  summary?: string
-  nodes: BaseFlowNode[]
-  edges: BaseFlowEdge[]
+const MODE_LABELS: Record<DiagramMode, string> = {
+  flowchart: 'Flowchart', architecture: 'Architecture', draw: 'Draw',
+}
+
+function pickRandomPrompts(count: number) {
+  return [...FLOW_STARTER_PROMPTS].sort(() => Math.random() - 0.5).slice(0, count)
 }
 
 interface AIChatProps {
   nodes: Node[]
   edges: Edge[]
-  onProposalReady: (proposal: FlowProposal, threadId?: string) => void
+  onProposalReady: (proposal: AIGenerationProposal, threadId?: string) => void
   isOpen: boolean
   onClose: () => void
   variant?: 'welcome' | 'full'
   onDismiss?: () => void
   diagramMode?: DiagramMode
+  generationMode: DiagramMode
+  onGenerationModeChange: (mode: DiagramMode) => void
+  generationPrompt: string
+  onGenerationPromptChange: (value: string) => void
+  getGenerationContext: () => AIGenerationContext | undefined
+  generationRevision?: number
   onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
   onImportFile?: (file: File) => void
   selectedCount?: number
   onEditSelection?: () => void
 }
 
-function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, diagramMode = 'flowchart', selectedCount = 0, onEditSelection }: AIChatProps) {
-  const [inputValue, setInputValue] = useState('')
+function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, generationMode, onGenerationModeChange, generationPrompt: inputValue, onGenerationPromptChange: setInputValue, getGenerationContext, generationRevision = 0, selectedCount = 0, onEditSelection }: AIChatProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const welcomeFileInputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
-  const [starterPrompts] = useState(() => pickRandomPrompts(4))
+  const [flowStarterPrompts] = useState(() => pickRandomPrompts(4))
 
-  const [threadId, setThreadId] = useState<string | null>(null)
-  const [currentLoadingMessage, setCurrentLoadingMessage] = useState('')
   const [loadingProgress, setLoadingProgress] = useState(0)
+  const requestRef = useRef<{ controller: AbortController } | null>(null)
+  const targetRef = useRef(generationMode)
+  const openRef = useRef(isOpen)
+  const revisionRef = useRef(generationRevision)
+  const threadRef = useRef<{ mode: DiagramMode; id: string } | null>(null)
+  targetRef.current = generationMode
+  openRef.current = isOpen
+  revisionRef.current = generationRevision
+  const copy = MODE_COPY[generationMode]
+  const starterPrompts = generationMode === 'flowchart' ? flowStarterPrompts : copy.starters
+
+  const cancelRequest = useCallback(() => {
+    requestRef.current?.controller.abort()
+    requestRef.current = null
+    setIsLoading(false)
+  }, [])
+
+  useEffect(() => {
+    cancelRequest()
+    threadRef.current = null
+  }, [generationMode, generationRevision, cancelRequest])
+
+  useEffect(() => {
+    if (!isOpen) cancelRequest()
+  }, [isOpen, cancelRequest])
+
+  useEffect(() => () => {
+    requestRef.current?.controller.abort()
+    requestRef.current = null
+  }, [])
 
   useEffect(() => {
     if (!isLoading) {
-      setCurrentLoadingMessage('')
       setLoadingProgress(0)
       return
     }
-
-    // Calibrated for ~15-18 second API calls.
-    // Uses an ease-out curve: fast initial progress, then gradual slowdown.
-    const EXPECTED_DURATION_MS = 18_000
-    const MAX_PROGRESS = 94
     const startTime = Date.now()
-
-    setCurrentLoadingMessage(LOADING_MESSAGES[0])
     setLoadingProgress(2)
-
-    // Rotate loading messages every 3.5s (slower to feel calmer over 18s)
-    let messageIndex = 0
-    const messageInterval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % LOADING_MESSAGES.length
-      setCurrentLoadingMessage(LOADING_MESSAGES[messageIndex])
-    }, 3500)
-
-    // Update progress on an ease-out curve tied to elapsed time
-    const progressInterval = setInterval(() => {
-      const elapsed = Date.now() - startTime
-      const t = Math.min(elapsed / EXPECTED_DURATION_MS, 1) // 0 → 1 over expected duration
-      // Ease-out cubic: fast start, gradual slowdown approaching MAX_PROGRESS
-      const eased = 1 - Math.pow(1 - t, 3)
-      setLoadingProgress(Math.min(eased * MAX_PROGRESS, MAX_PROGRESS))
+    const interval = setInterval(() => {
+      const t = Math.min((Date.now() - startTime) / 18_000, 1)
+      setLoadingProgress(Math.min((1 - Math.pow(1 - t, 3)) * 94, 94))
     }, 200)
-
-    return () => {
-      clearInterval(messageInterval)
-      clearInterval(progressInterval)
-    }
+    return () => clearInterval(interval)
   }, [isLoading])
 
-  // Parse flow proposal from assistant message
-  // With structured outputs, the API returns raw JSON directly (no code block wrapper)
-  const parseFlowProposal = (content: string, finishReason?: string): FlowProposal | null => {
-    // Check for truncation due to token limit
-    if (finishReason === 'length') {
-      console.error('Response was truncated due to token limit')
-      return null
-    }
-
-    let parsed: unknown = null
-
-    // Try direct JSON parse first (structured outputs return raw JSON)
-    try {
-      parsed = JSON.parse(content)
-    } catch {
-      // Fall back to code block extraction for backward compatibility
-      try {
-        let jsonMatch = content.match(/```json\s*\n([\s\S]*?)\n```/)
-        if (!jsonMatch) {
-          jsonMatch = content.match(/```\s*\n([\s\S]*?)\n```/)
-        }
-        
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[1].trim()
-          parsed = JSON.parse(jsonStr)
-        }
-      } catch {
-        console.error('AI returned invalid JSON')
-      }
-    }
-
-    if (!parsed || typeof parsed !== 'object') {
-      console.error('AI returned invalid JSON')
-      return null
-    }
-
-    const proposal = parsed as Record<string, unknown>
-
-    // Validate the structure - nodes and edges are required
-    if (!proposal.nodes || !Array.isArray(proposal.nodes)) {
-      console.error('AI returned invalid nodes')
-      return null
-    }
-    
-    if (!proposal.edges || !Array.isArray(proposal.edges)) {
-      console.error('AI returned invalid edges')
-      return null
-    }
-
-    // Validate each node has required fields
-    for (const node of proposal.nodes) {
-      if (!node.id || !node.type || !node.label || !node.position) {
-        console.error('AI returned an invalid node')
-        return null
-      }
-    }
-
-    return {
-      summary: (proposal.summary as string) || (proposal.explanation as string) || 'Flowchart proposal',
-      nodes: proposal.nodes as BaseFlowNode[],
-      edges: proposal.edges as BaseFlowEdge[],
-    }
-  }
-
-  const getEdgeStyleFromEdge = useCallback((edge: Edge): EdgeStyle => {
-    if (edge.animated) return 'animated'
-    if (edge.type === 'step') return 'step'
-    return 'default'
-  }, [])
-
   const sendMessage = useCallback(async (overrideText?: string) => {
-    const userPrompt = (overrideText || inputValue).trim()
-    if (!userPrompt || isLoading) return
+    const userPrompt = (overrideText ?? inputValue).trim()
+    if (!userPrompt || requestRef.current || !isOpen) return
 
-    setInputValue('')
+    const outputMode = generationMode
+    const revision = generationRevision
+    const request = { controller: new AbortController() }
+    requestRef.current = request
     setIsLoading(true)
     setError(null)
 
     try {
-      // Build context about the current flowchart
-      const flowContext = {
-        nodes: nodes.map((n) => ({
-          id: n.id,
-          type: n.type,
-          label: n.data.label,
-          position: n.position,
-          width: typeof n.style?.width === 'number' ? n.style.width : undefined,
-          height: typeof n.style?.height === 'number' ? n.style.height : undefined,
-          imageUrl: typeof n.data.imageUrl === 'string' && !n.data.imageUrl.startsWith('data:') ? n.data.imageUrl : undefined,
-          parentNode: n.parentNode,
-          containerKind: n.data.containerKind,
-        })),
-        edges: edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          style: getEdgeStyleFromEdge(e),
-          sourceHandle: typeof e.sourceHandle === 'string' ? e.sourceHandle : undefined,
-          targetHandle: typeof e.targetHandle === 'string' ? e.targetHandle : undefined,
-          label: typeof e.label === 'string' ? e.label : undefined,
-          protocol: e.data?.protocol,
-          commStyle: e.data?.commStyle,
-        })),
-      }
-
-      // Create or reuse a conversation thread
-      let currentThreadId = threadId
-      if (!currentThreadId) {
-        currentThreadId = createThread()
-        setThreadId(currentThreadId)
-      }
-
-      // Add user message to thread
-      addThreadMessage(currentThreadId, { role: 'user', content: userPrompt })
-
-      // Build full message history from thread
-      const threadMessages = getMessages(currentThreadId)
-
-      // Call our serverless function proxy at /api/chat
-      // The API uses structured outputs to guarantee valid JSON matching our schema
+      const context = getGenerationContext()
+      const existingThread = threadRef.current?.mode === outputMode ? threadRef.current.id : null
+      const messages = existingThread ? getMessages(existingThread) : []
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
+        signal: request.controller.signal,
         body: JSON.stringify({
-          messages: threadMessages.map((m) => ({ role: m.role, content: m.content })),
-          flowContext,
-          diagramMode,
+          mode: 'generate',
+          diagramMode: outputMode,
+          messages: [...messages.map((message) => ({ role: message.role, content: message.content })), { role: 'user', content: userPrompt }],
+          ...(context ?? {}),
         }),
       })
-
+      if (requestRef.current !== request || targetRef.current !== outputMode || revisionRef.current !== revision || !openRef.current) return
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(
-          errorData.error || `API request failed with status ${response.status}`
-        )
+        throw new Error(errorData.error || `API request failed with status ${response.status}`)
       }
 
       const data = await response.json()
-      const content = data.message || 'No response received.'
-      const finishReason = data.finishReason as string | undefined
-
-      // Parse the flow proposal (with structured outputs, this should always succeed)
-      const proposal = parseFlowProposal(content, finishReason)
-
-      if (!proposal) {
-        // Handle specific error cases
-        if (finishReason === 'length') {
-          throw new Error('The AI response was cut off due to length limits. Try a simpler request.')
+      if (requestRef.current !== request || targetRef.current !== outputMode || revisionRef.current !== revision || !openRef.current) return
+      let proposal: AIGenerationProposal
+      try {
+        proposal = parseGenerationProposal(data.message, outputMode, data.finishReason)
+        if (proposal.outputMode !== 'draw') {
+          proposal = normalizeGenerationProposal({ ...proposal, nodes: resolveAzureIcons(proposal).nodes }, outputMode)
         }
+      } catch (parseError) {
+        if (data.finishReason === 'length') throw parseError
         throw new Error('Could not parse AI response. Please try again or rephrase your request.')
       }
+      if (requestRef.current !== request || targetRef.current !== outputMode || revisionRef.current !== revision || !openRef.current) return
 
-      // Enrich proposal with Azure icons (local-only, no API calls)
-      const enrichedProposal = resolveAzureIcons(proposal)
-
-      // Save assistant summary to thread
-      if (currentThreadId && proposal) {
-        addThreadMessage(currentThreadId, {
-          role: 'assistant',
-          content: proposal.summary || 'Generated flowchart',
-        })
-      }
-
-      // Notify parent with the enriched proposal
-      onProposalReady(enrichedProposal, currentThreadId || undefined)
-      
-      // Close the bubble after successful proposal
+      const currentThreadId = existingThread ?? createThread()
+      threadRef.current = { mode: outputMode, id: currentThreadId }
+      addThreadMessage(currentThreadId, { role: 'user', content: userPrompt })
+      addThreadMessage(currentThreadId, { role: 'assistant', content: proposal.summary || MODE_COPY[outputMode].button })
+      setInputValue('')
+      onProposalReady(proposal, currentThreadId)
       onClose()
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred'
-      setError(errorMessage)
+      if (requestRef.current === request && !request.controller.signal.aborted && targetRef.current === outputMode && revisionRef.current === revision && openRef.current) {
+        setError(err instanceof Error ? err.message : 'Unknown error occurred')
+      }
     } finally {
-      setIsLoading(false)
+      if (requestRef.current === request) {
+        requestRef.current = null
+        setIsLoading(false)
+      }
     }
-  }, [inputValue, isLoading, nodes, edges, getEdgeStyleFromEdge, onProposalReady, onClose, threadId, diagramMode])
+  }, [inputValue, isOpen, onProposalReady, onClose, generationMode, generationRevision, getGenerationContext, setInputValue])
+
+  const handleClose = useCallback(() => {
+    cancelRequest()
+    onClose()
+  }, [cancelRequest, onClose])
+
+  const modeSelector = (
+    <label className="ai-generation-mode">
+      <span>Generate for</span>
+      <select
+        value={generationMode}
+        onChange={(event) => {
+          cancelRequest()
+          threadRef.current = null
+          onGenerationModeChange(event.target.value as DiagramMode)
+        }}
+        disabled={isLoading}
+      >
+        {DIAGRAM_MODES.map((mode) => <option key={mode} value={mode}>{MODE_LABELS[mode]}</option>)}
+      </select>
+    </label>
+  )
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -313,12 +255,12 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
-        onClose()
+        handleClose()
       }
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
+  }, [isOpen, handleClose])
 
   const handleWelcomeImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -378,7 +320,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
             style={{ display: 'none' }}
             aria-label="Import JSON or Excalidraw file"
           />
-          <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
+          <button className="ai-bubble-close" onClick={handleClose} title="Close" aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M1 1l12 12M13 1L1 13" />
             </svg>
@@ -400,11 +342,12 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
               </a>
             </p>
           )}
-          {!isLoading && <p className="ai-welcome-heading">What's your flow?</p>}
+          {!isLoading && <p className="ai-welcome-heading">{copy.heading}</p>}
 
+          {modeSelector}
           {isLoading ? (
             <div className="loading-indicator">
-              <div className="loading-message">{currentLoadingMessage}</div>
+              <div className="loading-message">{copy.loading}</div>
               <div className="loading-progress-bar">
                 <div className="loading-progress-fill" style={{ width: `${loadingProgress}%` }}></div>
               </div>
@@ -433,7 +376,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Describe any process, workflow, or plan..."
+                placeholder={copy.placeholder}
                 rows={2}
                 autoFocus
               />
@@ -442,7 +385,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
                 onClick={() => sendMessage()}
                 disabled={!inputValue.trim()}
               >
-                Generate Flowchart
+                {copy.button}
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
                 </svg>
@@ -451,7 +394,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           )}
 
           {error && (
-            <div className="ai-bubble-error">
+            <div className="ai-bubble-error" role="alert">
               {error}
             </div>
           )}
@@ -459,7 +402,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           {!isLoading && (
             <>
               {onImportFile && <button className="ai-welcome-import-drawing" onClick={() => welcomeFileInputRef.current?.click()}>Import Excalidraw <span aria-hidden="true">↗</span></button>}
-              <button className="ai-welcome-dismiss" onClick={onDismiss}>
+              <button className="ai-welcome-dismiss" onClick={() => { cancelRequest(); onDismiss?.() }}>
                 No, thank you
               </button>
             </>
@@ -490,7 +433,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
   return (
     <div
       className="ai-bubble-overlay"
-      onClick={onClose}
+      onClick={handleClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="ai-bubble-title"
@@ -502,7 +445,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
             FlowChart
             <span className="ai-bubble-subtitle">by <a href="https://zeroclickdev.ai" target="_blank" rel="noopener noreferrer" className="ai-bubble-subtitle-link">Zero Click Dev</a></span>
           </span>
-          <button className="ai-bubble-close" onClick={onClose} title="Close" aria-label="Close">
+          <button className="ai-bubble-close" onClick={handleClose} title="Close" aria-label="Close">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M1 1l12 12M13 1L1 13" />
             </svg>
@@ -510,14 +453,15 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
         </div>
 
         <div className="ai-bubble-content">
-          {!isLoading && <p className="ai-welcome-heading">What's the vibe today?</p>}
+          {!isLoading && <p className="ai-welcome-heading">{copy.heading}</p>}
           {!isLoading && onEditSelection && <button className="ai-selection-action" onClick={onEditSelection} disabled={selectedCount === 0}>
             <span>✦ Edit selected nodes</span><span>{selectedCount} node{selectedCount === 1 ? '' : 's'}</span>
           </button>}
 
+          {modeSelector}
           {isLoading ? (
             <div className="loading-indicator">
-              <div className="loading-message">{currentLoadingMessage}</div>
+              <div className="loading-message">{copy.loading}</div>
               <div className="loading-progress-bar">
                 <div className="loading-progress-fill" style={{ width: `${loadingProgress}%` }}></div>
               </div>
@@ -546,7 +490,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Describe any process, workflow, or plan..."
+                placeholder={copy.placeholder}
                 rows={2}
                 autoFocus
               />
@@ -555,7 +499,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
                 onClick={() => sendMessage()}
                 disabled={!inputValue.trim()}
               >
-                Generate Flowchart
+                {copy.button}
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                   <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
                 </svg>
@@ -564,7 +508,7 @@ function AIChat({ nodes, edges, onProposalReady, isOpen, onClose, variant = 'ful
           )}
 
           {error && (
-            <div className="ai-bubble-error">
+            <div className="ai-bubble-error" role="alert">
               {error}
             </div>
           )}
