@@ -30,14 +30,22 @@ const frame = z.strictObject({
   name: z.string().trim().min(1).max(100).refine(value => !/[\r\n]/.test(value)),
   children: z.array(id).max(DRAW_GENERATION_LIMITS.elements - 1),
 })
+const overlap = z.strictObject({ firstId: id, secondId: id, reason: z.enum(['venn', 'overlay', 'container']) })
 const proposal = z.strictObject({
   outputMode: z.literal('draw'), summary: z.string().max(DRAW_GENERATION_LIMITS.summary),
   elements: z.array(z.union([shape, standaloneText, path, frame])).min(1).max(DRAW_GENERATION_LIMITS.elements),
+  overlaps: z.array(overlap).max(DRAW_GENERATION_LIMITS.elements).optional(),
 })
 
 export const DrawProposalSchema = proposal.superRefine((value, ctx) => {
   const elements = new Map(value.elements.map(element => [element.id, element]))
   if (elements.size !== value.elements.length) ctx.addIssue({ code: 'custom', message: 'Duplicate drawing element IDs.' })
+  const pairs = new Set<string>()
+  for (const pair of value.overlaps ?? []) {
+    const key = [pair.firstId, pair.secondId].sort().join(':')
+    if (pair.firstId === pair.secondId || !elements.has(pair.firstId) || !elements.has(pair.secondId) || elements.get(pair.firstId)?.type === 'frame' || elements.get(pair.secondId)?.type === 'frame' || pairs.has(key)) ctx.addIssue({ code: 'custom', message: 'Overlap permissions need distinct existing non-frame elements and unique pairs.' })
+    pairs.add(key)
+  }
   const owners = new Set<string>()
   for (const element of value.elements) {
     if (element.type === 'frame') {
@@ -96,7 +104,8 @@ export const DrawGenerationContextSchema = z.strictObject({
 })
 export type DrawGenerationContext = z.infer<typeof DrawGenerationContextSchema>
 
-const { $schema: _dialect, ...jsonSchema } = z.toJSONSchema(proposal, { target: 'draft-7' })
+const strictProposal = proposal.extend({ overlaps: z.array(overlap).max(DRAW_GENERATION_LIMITS.elements) })
+const { $schema: _dialect, ...jsonSchema } = z.toJSONSchema(strictProposal, { target: 'draft-7' })
 export const DRAW_PROPOSAL_RESPONSE_FORMAT = {
   type: 'json_schema',
   json_schema: { name: 'DrawProposal', strict: true, schema: jsonSchema },

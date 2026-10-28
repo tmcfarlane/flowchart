@@ -53,6 +53,20 @@ describe('shared generation boundary', () => {
     expect(DrawProposalSchema.safeParse({ ...drawing, elements: [frame, shape, { ...arrow, targetId: 'section' }] }).success).toBe(false)
   })
 
+  it('retains bounded explicit overlap permissions while accepting legacy plans', () => {
+    expect(DrawProposalSchema.parse(drawing)).toEqual(drawing)
+    const overlapping = { ...drawing, overlaps: [{ firstId: 'box', secondId: 'arrow', reason: 'overlay' }] }
+    expect(DrawProposalSchema.parse(overlapping)).toEqual(overlapping)
+    expect(DRAW_PROPOSAL_RESPONSE_FORMAT.json_schema.schema.required).toContain('overlaps')
+    for (const overlaps of [
+      [{ firstId: 'box', secondId: 'box', reason: 'venn' }],
+      [{ firstId: 'box', secondId: 'missing', reason: 'overlay' }],
+      [{ firstId: 'box', secondId: 'arrow', reason: 'overlay' }, { firstId: 'arrow', secondId: 'box', reason: 'container' }],
+      [{ firstId: 'box', secondId: 'arrow', reason: 'anything' }],
+    ]) expect(DrawProposalSchema.safeParse({ ...drawing, overlaps }).success).toBe(false)
+    expect(DrawProposalSchema.safeParse({ ...drawing, elements: [frame, ...drawing.elements], overlaps: [{ firstId: 'box', secondId: 'section', reason: 'container' }] }).success).toBe(false)
+  })
+
   it.each([
     { ...drawing, files: {} },
     { ...drawing, elements: [{ ...shape, customData: {} }] },
