@@ -316,3 +316,76 @@ describe('custom Draw canvas', () => {
     expect(scene().elements.map(element => element.id)).toEqual(['one', 'two', 'three'])
   })
 })
+
+
+describe('Draw geometry commands', () => {
+  it.each([false, true])('keeps a deep-selected bound label in place across flips (locked host: %s)', locked => {
+    const host = { ...rectangle('host', 100), locked }
+    const label: DrawElement = { id: 'label', type: 'text', x: 120, y: 120, width: 80, height: 30, angle: 0,
+      strokeColor: '#087f5b', backgroundColor: 'transparent', opacity: 100, groupIds: [], containerId: host.id, text: 'Bound label' }
+    const { surface, canvas, scene, onCommit } = renderDrawing({ ...empty(), elements: [host, label] })
+    const text = surface.querySelector('[data-element-id="label"]')!
+    fireEvent.pointerDown(text, { ...pointer(130, 130), ctrlKey: true })
+    fireEvent.pointerUp(surface, { ...pointer(130, 130), ctrlKey: true })
+    expect(text).toHaveAttribute('data-selected', 'true')
+    expect(surface.querySelector('[data-element-id="host"]')).not.toHaveAttribute('data-selected', 'true')
+    fireEvent.keyDown(canvas, { key: 'H', code: 'KeyH', shiftKey: true })
+    fireEvent.keyDown(canvas, { key: 'V', code: 'KeyV', shiftKey: true })
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(scene().elements).toEqual([host, label])
+  })
+
+  it('creates and flips in single transactions, navigates without history and preserves alignment', () => {
+    const { surface, canvas, scene, onCommit } = renderDrawing({ ...empty(), elements: [rectangle('source', 100)] })
+    const source = surface.querySelector('[data-element-id="source"]')!
+    fireEvent.pointerDown(source, pointer(150, 150)); fireEvent.pointerUp(surface, pointer(150, 150))
+    onCommit.mockClear()
+    fireEvent.keyDown(screen.getByLabelText('Stroke width'), { key: 'ArrowRight', ctrlKey: true })
+    fireEvent.keyDown(screen.getByLabelText('Stroke width'), { key: 'H', shiftKey: true })
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.keyDown(canvas, { key: 'ArrowRight', ctrlKey: true })
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    expect(scene().elements).toHaveLength(3)
+    const clone = scene().elements[1]
+    expect(clone.x).toBe(340)
+    fireEvent.keyDown(canvas, { key: 'ArrowLeft', altKey: true })
+    expect(source).toHaveAttribute('data-selected', 'true')
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(canvas, { key: 'a', ctrlKey: true })
+    fireEvent.keyDown(canvas, { key: 'H', shiftKey: true })
+    expect(onCommit).toHaveBeenCalledTimes(2)
+    expect(scene().elements[0].x).toBe(340)
+    fireEvent.keyDown(canvas, { key: 'ArrowLeft', ctrlKey: true, shiftKey: true })
+    expect(scene().elements).toHaveLength(3)
+    expect(scene().elements[0].x).toBe(scene().elements[1].x)
+  })
+
+  it('selects through lasso without history and restores selection on cancellation', () => {
+    const { surface, canvas, onCommit } = renderDrawing({ ...empty(), elements: [rectangle('source', 100), rectangle('other', 500)] })
+    fireEvent.keyDown(canvas, { key: 'j' })
+    fireEvent.pointerDown(surface, pointer(90, 90))
+    for (const [x, y] of [[280, 90], [280, 220], [90, 220]]) fireEvent.pointerMove(surface, pointer(x, y))
+    expect(screen.getByTestId('draw-lasso')).toBeInTheDocument()
+    expect(surface.querySelector('[data-draw-content] [data-testid="draw-lasso"]')).toBeNull()
+    fireEvent.pointerUp(surface, pointer(90, 90))
+    expect(surface.querySelector('[data-element-id="source"]')).toHaveAttribute('data-selected', 'true')
+    expect(surface.querySelector('[data-element-id="other"]')).not.toHaveAttribute('data-selected')
+    fireEvent.pointerDown(surface, pointer(490, 90)); fireEvent.pointerMove(surface, pointer(700, 240))
+    fireEvent.keyDown(canvas, { key: 'Escape' })
+    expect(surface.querySelector('[data-element-id="source"]')).toHaveAttribute('data-selected', 'true')
+    expect(screen.queryByTestId('draw-lasso')).toBeNull()
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.pointerDown(surface, pointer(490, 90)); fireEvent.pointerMove(surface, pointer(700, 240)); fireEvent.pointerCancel(surface)
+    expect(surface.querySelector('[data-element-id="source"]')).toHaveAttribute('data-selected', 'true')
+    expect(onCommit).not.toHaveBeenCalled()
+  })
+
+  it('suppresses geometry mutations in view mode', () => {
+    const onCommit = vi.fn()
+    render(<DrawCanvas scene={{ ...empty(), elements: [rectangle('source', 100)] }} nodes={[]} edges={[]} darkMode={false} viewMode onChange={onCommit} />)
+    const surface = screen.getByTestId('draw-surface')
+    fireEvent.keyDown(surface, { key: 'ArrowRight', ctrlKey: true })
+    fireEvent.keyDown(surface, { key: 'H', shiftKey: true })
+    expect(onCommit).not.toHaveBeenCalled()
+  })
+})
