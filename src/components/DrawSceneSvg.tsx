@@ -2,6 +2,8 @@ import { memo, useId } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { getAzureIconUrl } from '../utils/azureIconIds'
 import { drawingFontFamily as fontFamily } from '../utils/drawText'
+import { DRAW_FONT_BASELINE, DRAW_FONT_INSET, DRAW_LINE_HEIGHT, isGeneratedDrawFont } from '../shared/drawFont'
+import { DRAW_FONT_FACE_CSS } from '../utils/drawFontFace'
 
 export interface DrawSceneSvgProps {
   elements: readonly Record<string, unknown>[]
@@ -278,7 +280,7 @@ function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textCo
   if (type === 'frame') return <>
     {patterned && <FillPattern id={pattern} style={fillStyle} paint={background} width={strokeWidth} />}
     <rect width={width} height={height} rx={4} fill={fill} stroke={darkMode ? '#5d786f' : '#8ba49b'} strokeWidth={1} strokeDasharray="6 4" />
-    <text x={0} y={-9} fontSize={13} fontFamily={fontFamily(2)} fill={darkMode ? '#a9c0b7' : '#526b61'}>{string(element.name, 'Frame')}</text>
+    <text x={isGeneratedDrawFont(element.customData) ? DRAW_FONT_INSET : 0} y={-9} fontSize={13} fontFamily={fontFamily(2, element.customData)} style={isGeneratedDrawFont(element.customData) ? { fontKerning: 'none', fontVariantLigatures: 'none' } : undefined} fill={darkMode ? '#a9c0b7' : '#526b61'}>{string(element.name, 'Frame')}</text>
     <rect width={width} height={height} fill="transparent" stroke="transparent" strokeWidth={10} pointerEvents="stroke" />
   </>
   if (type === 'line' || type === 'arrow') {
@@ -307,17 +309,19 @@ function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textCo
     </>
   }
   if (type === 'text') {
-    const size = Math.max(1, number(element.fontSize, 20)), lineHeight = size * Math.max(0.8, number(element.lineHeight, 1.25))
+    const generated = (element.fontFamily === 2 || element.fontFamily === undefined) && isGeneratedDrawFont(element.customData)
+    const size = Math.max(1, number(element.fontSize, 20)), lineHeight = size * Math.max(generated ? DRAW_LINE_HEIGHT : 0.8, number(element.lineHeight, generated ? DRAW_LINE_HEIGHT : 1.25))
     const text = string(element.text, string(element.originalText))
     const lines = lineBreaks(text, width, size, element.autoResize)
     const alignment = string(element.textAlign, 'left')
-    const x = alignment === 'center' ? width / 2 : alignment === 'right' ? width : 0
+    const inset = generated ? DRAW_FONT_INSET : 0
+    const x = alignment === 'center' ? width / 2 : alignment === 'right' ? width - inset : inset
     const totalHeight = lines.length * lineHeight
-    const top = element.verticalAlign === 'middle' ? (height - totalHeight) / 2 : element.verticalAlign === 'bottom' ? height - totalHeight : 0
+    const top = element.verticalAlign === 'middle' ? (height - totalHeight) / 2 : element.verticalAlign === 'bottom' ? height - totalHeight - inset : inset
     return <>
       {textBackdrop && <rect data-draw-label-backdrop="true" x={-5} y={top - 3} width={Math.max(1, width) + 10} height={totalHeight + 6} rx={4} fill={textBackdrop} pointerEvents="none" />}
       <rect width={Math.max(1, width)} height={Math.max(height, totalHeight)} fill="transparent" pointerEvents="all" />
-      <text x={x} y={top + size * 0.84} fill={textColor ?? stroke} fontFamily={fontFamily(element.fontFamily)} fontSize={size} textAnchor={alignment === 'center' ? 'middle' : alignment === 'right' ? 'end' : 'start'} style={{ whiteSpace: 'pre', userSelect: 'none' }}>
+      <text data-draw-generated-font={generated ? 'true' : undefined} x={x} y={top + size * (generated ? DRAW_FONT_BASELINE : 0.84)} fill={textColor ?? stroke} fontFamily={fontFamily(element.fontFamily, element.customData)} fontSize={size} textAnchor={alignment === 'center' ? 'middle' : alignment === 'right' ? 'end' : 'start'} style={{ whiteSpace: 'pre', userSelect: 'none', ...(generated ? { fontKerning: 'none', fontVariantLigatures: 'none' } : {}) }}>
         {lines.map((line, index) => <tspan key={index} x={x} dy={index ? lineHeight : 0}>{line || '\u00a0'}</tspan>)}
       </text>
     </>
@@ -397,6 +401,7 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
     return chain
   }
   return <g data-draw-scene="true">
+    {live.some(element => isGeneratedDrawFont(element.customData)) && <defs><style>{DRAW_FONT_FACE_CSS}</style></defs>}
     <defs>{[...frames.entries()].map(([id, frame]) => {
       const center = drawElementCenter(frame)
       return <clipPath key={id} id={clipId(id)} clipPathUnits="userSpaceOnUse"><rect x={number(frame.x)} y={number(frame.y)} width={number(frame.width)} height={number(frame.height)} transform={`rotate(${number(frame.angle) * 180 / Math.PI} ${center.x} ${center.y})`} /></clipPath>

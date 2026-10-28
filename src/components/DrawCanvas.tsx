@@ -4,6 +4,7 @@ import type { ArchitectureScene } from '../shared/architectureScene'
 import { SUPPORTED_ARCHITECTURE_IMAGE_MIME_TYPES, validateArchitectureScene } from '../shared/architectureScene'
 import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/architectureBridge'
 import { drawingFontFamily, drawingTextSize } from '../utils/drawText'
+import { DRAW_FONT_FAMILY, DRAW_LINE_HEIGHT, isGeneratedDrawFont } from '../shared/drawFont'
 import { cropImageElement, validImageCrop, type ImageCrop } from '../utils/drawMedia'
 import { mermaidToScene, recognizeStroke, safeEmbedUrl, type PaintTarget } from '../utils/drawExtraTools'
 import { createElement, deleteElements, duplicateSelection, editableSelection, expandSelection, lockedElementIds, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
@@ -312,6 +313,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const ids = selectedOnly ? new Set(expandSelection(source, selectedRef.current, true)) : null
     const elements = live(source).filter(element => !ids || ids.has(element.id))
     if (!content || !elements.length) throw new Error(selectedOnly ? 'Select a drawing object before copying PNG.' : 'Draw something before exporting.')
+    if (elements.some(element => isGeneratedDrawFont(element.customData))) await document.fonts.load(`16px "${DRAW_FONT_FAMILY}"`)
     const snapshot = content.cloneNode(true) as Element
     if (ids) for (const item of snapshot.querySelectorAll('[data-element-id]')) if (!ids.has(item.getAttribute('data-element-id') ?? '')) item.remove()
     const bounds = getSceneBounds(elements), padding = 32
@@ -1138,19 +1140,22 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const cropSource = cropElement?.fileId ? draft.files[cropElement.fileId]?.dataURL : undefined
   const editHost = editElement?.containerId ? live(draft).find(element => element.id === editElement.containerId) : undefined
   const boundText = editElement?.type === 'text' && !!editHost
+  const generatedEditingFont = !!editElement && (editElement.fontFamily === 2 || editElement.fontFamily === undefined) && isGeneratedDrawFont(editElement.customData)
+  const editorLineHeight = generatedEditingFont ? DRAW_LINE_HEIGHT : 1.3
   const editorFontSize = (editElement?.fontSize ?? 20) * viewport.zoom
-  const contentWidth = Math.max(0, ...(textEdit?.value.split('\n').map(line => line.length * editorFontSize * 0.61) ?? []))
+  const contentWidth = generatedEditingFont ? drawingTextSize(textEdit?.value ?? '', { ...editElement, fontSize: editorFontSize }).width : Math.max(0, ...(textEdit?.value.split('\n').map(line => line.length * editorFontSize * 0.61) ?? []))
   const hostWidth = editHost && ['rectangle', 'ellipse', 'diamond'].includes(editHost.type) ? Math.max(24, editHost.width - 24) * viewport.zoom : 0
   const editorWidth = boundText ? Math.max(80, (editElement?.width ?? 0) * viewport.zoom + 20, contentWidth + 20, hostWidth + 20) : Math.max(180, (editElement?.width ?? 0) * viewport.zoom + 40)
-  const editorHeight = Math.max(46, (textEdit?.value.split('\n').length ?? 1) * editorFontSize * 1.3 + 18)
+  const editorHeight = Math.max(46, (textEdit?.value.split('\n').length ?? 1) * editorFontSize * editorLineHeight + 18)
+  const editorFontStyle = generatedEditingFont ? { fontFamily: drawingFontFamily(editElement.fontFamily, editElement.customData), fontKerning: 'none', fontVariantLigatures: 'none', lineHeight: editorLineHeight } as const : {}
   const textPosition = editElement ? boundText ? {
     left: viewport.x + getElementCenter(editElement).x * viewport.zoom,
     top: viewport.y + getElementCenter(editElement).y * viewport.zoom,
     transform: `translate(-50%, -50%) rotate(${editElement.angle ?? 0}rad)`,
     textAlign: editElement.textAlign as 'left' | 'center' | 'right' | undefined,
-    fontFamily: drawingFontFamily(editElement.fontFamily),
+    fontFamily: drawingFontFamily(editElement.fontFamily, editElement.customData),
     height: editorHeight,
-    paddingTop: Math.max(8, (editorHeight - 2 - (textEdit?.value.split('\n').length ?? 1) * editorFontSize * 1.3) / 2),
+    paddingTop: Math.max(8, (editorHeight - 2 - (textEdit?.value.split('\n').length ?? 1) * editorFontSize * editorLineHeight) / 2),
   } : { left: viewport.x + editElement.x * viewport.zoom, top: viewport.y + editElement.y * viewport.zoom } : undefined
   const canUndo = props.onUndo ? props.canUndo : historyIndex.current > 0
   const canRedo = props.onRedo ? props.canRedo : historyIndex.current + 1 < history.current.length
@@ -1199,7 +1204,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       </g>
     </svg>
     {activeEmbed && activeEmbedUrl && !viewMode && <div className="draw-live-embed" style={{ left: viewport.x + activeEmbed.x * viewport.zoom, top: viewport.y + activeEmbed.y * viewport.zoom, width: activeEmbed.width * viewport.zoom, height: activeEmbed.height * viewport.zoom }}><button type="button" aria-label="Close live embed" onClick={() => setLiveEmbed(null)}>Close preview</button><iframe title="Live web embed" src={activeEmbedUrl} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="lazy" /></div>}
-    {textEdit && editElement && <textarea ref={textRef} className={`draw-text-editor ${boundText ? 'is-bound' : ''}`} aria-label="Edit drawing text" wrap={boundText ? 'off' : undefined} style={{ ...textPosition, width: editorWidth, minHeight: boundText ? undefined : Math.max(46, editElement.height * viewport.zoom + 20), fontSize: editorFontSize }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
+    {textEdit && editElement && <textarea ref={textRef} className={`draw-text-editor ${boundText ? 'is-bound' : ''}`} aria-label="Edit drawing text" wrap={boundText ? 'off' : undefined} style={{ ...textPosition, width: editorWidth, minHeight: boundText ? undefined : Math.max(46, editElement.height * viewport.zoom + 20), fontSize: editorFontSize, ...editorFontStyle }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
     {cropEdit && <div className="draw-crop-overlay"><section ref={cropDialogRef} className="draw-crop-dialog" role="dialog" aria-modal="true" aria-label="Crop image" onKeyDown={event => {
       event.stopPropagation()
       if (event.key === 'Tab') {
