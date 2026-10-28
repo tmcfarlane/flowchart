@@ -11,11 +11,21 @@ function wrapText(text: string, fontSize: number, maxWidth: number): string {
   return text.split('\n').flatMap(source => {
     const lines: string[] = []
     let line = ''
-    for (const char of source) {
-      if (line && drawingTextSize(line + char, { fontSize }).width > maxWidth) {
+    for (const word of source.split(/(\s+)/)) {
+      if (line && drawingTextSize(line + word, { fontSize }).width > maxWidth) {
         lines.push(line.trimEnd())
-        line = char.trimStart()
-      } else line += char
+        line = word.trimStart()
+      } else line += word
+      if (drawingTextSize(line, { fontSize }).width > maxWidth) {
+        const token = line
+        line = ''
+        for (const char of token) {
+          if (line && drawingTextSize(line + char, { fontSize }).width > maxWidth) {
+            lines.push(line)
+            line = char
+          } else line += char
+        }
+      }
     }
     lines.push(line)
     return lines
