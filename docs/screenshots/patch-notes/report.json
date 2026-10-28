@@ -1,0 +1,43 @@
+{
+  "sourceRevision": "459e3d77632cf961c0182bf22754269ca3e37150",
+  "url": "http://127.0.0.1:3081/",
+  "verifiedAt": "2026-10-28T16:58:09.099997+00:00",
+  "chromium": "154.0.8037.57",
+  "playwright": "1.62.0",
+  "checks": [
+    "Unseen notes precede the AI welcome; Escape acknowledges them without dismissing the welcome; a seen reload stays closed",
+    "Older and malformed records open; equal and future records stay closed; reading and opening never acknowledge a release",
+    "Escape, close, Got it, and backdrop persist acknowledgment; card clicks keep notes open; the saved graph and Draw board survive every route and reload",
+    "Manual toolbar access works in every mode and both themes; focus stays inside after Tab, text clicks, text selection, and outside focus attempts; closing restores the entry and shortcuts preserve the draft and undo/redo transactions",
+    "Closing the AI assistant, opening manual notes, and reopening the assistant preserves an unsent prompt; notes hide the floating AI entry",
+    "At 390 by 667, both themes keep the dialog and dismiss controls within the viewport, and the manual toolbar entry remains reachable",
+    "When reads and writes of the acknowledgment key throw SecurityError, explicit dismissal remains effective throughout the page session and manual reopening still works",
+    "Shared loading defers unseen notes without acknowledging them, completion opens them, and an acknowledged release does not interrupt presentation or its exit",
+    "A failed shared load keeps unseen notes deferred and leaves the acknowledgment absent"
+  ],
+  "negativeControl": {
+    "sourceRevision": "f3b3651c6dcf70621223b41622f8f87370691dbe",
+    "observedOn": "2026-10-28",
+    "action": "Click a release highlight, press Control+z, wait 600ms, and press Escape",
+    "focusAfterClick": "BODY outside the dialog",
+    "visibleNodes": {
+      "before": 2,
+      "after": 1
+    },
+    "persistedDraftNodes": {
+      "before": 2,
+      "after": 1
+    },
+    "redoEnabled": {
+      "before": false,
+      "after": true
+    },
+    "escapeLeftNotesOpen": true
+  },
+  "limits": [
+    "Presentation is exercised after explicit acknowledgment. Pending unseen notes during presentation need controller and App tests.",
+    "Shared responses are browser-routed fixtures. No live AI or shared backend calls are made.",
+    "The existing full AI overlay blocks toolbar clicks. Prompt preservation uses its Close control before opening notes, then reopens the assistant.",
+    "Acknowledgment is local to one browser profile and origin. When its storage is unavailable, page-session dismissal may repeat after a full reload."
+  ]
+}
