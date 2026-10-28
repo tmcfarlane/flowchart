@@ -335,6 +335,19 @@ function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textCo
       <rect width={width} height={height} fill="transparent" pointerEvents="all" />
     </g>
   }
+  if (type === 'embeddable' || type === 'iframe') {
+    const url = string(element.link)
+    let host = 'Web link'
+    try { const parsed = new URL(url); if (parsed.protocol === 'https:') host = parsed.hostname } catch { host = 'Web link' }
+    return <>
+      <rect width={width} height={height} rx={12} fill={darkMode ? '#233b32' : '#eef9f3'} stroke={stroke} strokeWidth={1.5} />
+      <rect x={0} y={0} width={width} height={32} rx={12} fill={darkMode ? '#315044' : '#d9f2e5'} />
+      <circle cx={17} cy={16} r={4} fill="#e56a64" /><circle cx={31} cy={16} r={4} fill="#e3b45a" /><circle cx={45} cy={16} r={4} fill="#69b58b" />
+      <text x={16} y={Math.min(height - 20, 76)} fill={stroke} fontSize={Math.min(18, Math.max(12, width / 18))} fontFamily={fontFamily(2)}>{host.slice(0, 34)}</text>
+      <text x={16} y={Math.min(height - 10, 104)} fill={stroke} opacity={0.68} fontSize={12} fontFamily={fontFamily(2)}>Web embed · activate to view</text>
+      <rect width={width} height={height} fill="transparent" pointerEvents="all" />
+    </>
+  }
   // Persisted unsupported records remain visible and selectable instead of disappearing.
   return <><rect width={width} height={height} fill="transparent" stroke={stroke} strokeDasharray="4 4" /><text x={8} y={20} fill={stroke} fontFamily={fontFamily(2)} fontSize={13}>{string(element.type, 'Object')}</text></>
 }
