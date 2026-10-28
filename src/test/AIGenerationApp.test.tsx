@@ -57,6 +57,21 @@ describe('AI proposal document transactions', () => {
     expect(screen.getByLabelText('Generate for')).toHaveValue('draw')
   })
 
+  it('retains a cancelled welcome prompt when reopening the full assistant', async () => {
+    let complete!: (value: ReturnType<typeof response>) => void
+    fetchMock.mockImplementationOnce(() => new Promise(resolve => { complete = resolve }))
+    render(<App />)
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Keep my workshop instructions' } })
+    fireEvent.click(screen.getByText('Generate Flowchart'))
+    fireEvent.click(screen.getByLabelText('Close'))
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true)
+    fireEvent.click(screen.getByLabelText('Open AI Assistant'))
+    expect(screen.getByRole('textbox')).toHaveValue('Keep my workshop instructions')
+    await act(async () => { complete(response({ outputMode: 'flowchart', summary: 'Cancelled', nodes: [], edges: [] })) })
+    expect(screen.queryByText('Preview AI Proposal')).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox')).toHaveValue('Keep my workshop instructions')
+  })
+
   it('previews native drawing objects, retains old content, and commits Draw plus insertion as one undo step', async () => {
     const nodes = [{ id: 'old-node', type: 'step', position: { x: 600, y: 400 }, data: { label: 'Existing graph' } }]
     localStorage.setItem(draftKey, serializeFlow(nodes, [], 'flowchart', retainedScene))
@@ -120,6 +135,9 @@ describe('AI proposal document transactions', () => {
     expect(screen.queryByText('Stale refinement')).not.toBeInTheDocument()
     expect(input).toHaveValue('Add another stage')
     expect(screen.getByText('Insert into Draw')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Present'))
+    fireEvent.click(screen.getByText('Exit presentation'))
+    expect(screen.getByPlaceholderText(/Describe how to refine/)).toHaveValue('Add another stage')
   })
 
   it('inserts a graph proposal from Draw while retaining the native scene and undoing the mode atomically', async () => {

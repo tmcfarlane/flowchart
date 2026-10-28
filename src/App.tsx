@@ -318,6 +318,8 @@ function FlowChartEditor() {
   const [aiProposal, setAIProposal] = useState<AIGenerationProposal | null>(null)
   // A shared link (/f/:id) opens a chart, so skip the empty-canvas welcome prompt.
   const [showWelcomeAI, setShowWelcomeAI] = useState(() => !parseSharedLocation(window.location) && !initialDraft?.nodes.length && !initialDraft?.architectureScene?.elements.some(e => !e.isDeleted))
+  const [generationPrompt, setGenerationPrompt] = useState('')
+  const [refinementPrompt, setRefinementPrompt] = useState('')
   const [generationMode, setGenerationMode] = useState<DiagramMode>(initialDraft?.mode ?? 'flowchart')
   const [aiInsertError, setAIInsertError] = useState<string | null>(null)
   const [isRefining, setIsRefining] = useState(false)
@@ -354,6 +356,7 @@ function FlowChartEditor() {
   useEffect(() => {
     cancelRefinement()
     setAIProposal(null)
+    setRefinementPrompt('')
     setProposalPreview(null)
     setAIThreadId(null)
     setAIInsertError(null)
@@ -1354,6 +1357,7 @@ function FlowChartEditor() {
     setAIInsertError(null)
     setProposalPreview(null)
     setAIProposal(proposal)
+    setRefinementPrompt('')
     setAIThreadId(threadId ?? null)
   }, [cancelRefinement])
 
@@ -1479,6 +1483,7 @@ function FlowChartEditor() {
   const cancelAIProposal = useCallback(() => {
     cancelRefinement()
     setAIProposal(null)
+    setRefinementPrompt('')
     setAIThreadId(null)
     setProposalPreview(null)
     setAIInsertError(null)
@@ -2188,6 +2193,8 @@ function FlowChartEditor() {
           nodes={nodes}
           edges={edges}
           diagramMode={diagramMode}
+          generationPrompt={generationPrompt}
+          onGenerationPromptChange={setGenerationPrompt}
           generationMode={generationMode}
           onGenerationModeChange={setGenerationMode}
           getGenerationContext={getGenerationContext}
@@ -2210,6 +2217,8 @@ function FlowChartEditor() {
         diagramMode={diagramMode}
         onEditSelection={diagramMode !== 'draw' ? openSelectionEdit : undefined}
         selectedCount={nodes.filter(node => node.selected).length}
+        generationPrompt={generationPrompt}
+        onGenerationPromptChange={setGenerationPrompt}
         generationMode={generationMode}
         onGenerationModeChange={setGenerationMode}
         getGenerationContext={getGenerationContext}
@@ -2226,6 +2235,8 @@ function FlowChartEditor() {
           onCancel={cancelAIProposal}
           onPreview={handlePreviewProposal}
           onRefine={handleRefineProposal}
+          refinementInput={refinementPrompt}
+          onRefinementInputChange={setRefinementPrompt}
           isRefining={isRefining}
           onCancelRefine={cancelRefinement}
           error={aiInsertError}

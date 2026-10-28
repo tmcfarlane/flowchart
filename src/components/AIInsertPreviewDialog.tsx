@@ -127,6 +127,8 @@ interface AIInsertPreviewDialogProps {
   onCancel: () => void
   onPreview: () => void
   onRefine: (instruction: string) => Promise<string | undefined>
+  refinementInput: string
+  onRefinementInputChange: (value: string) => void
   onCancelRefine: () => void
   error?: string | null
   isRefining?: boolean
@@ -138,9 +140,8 @@ interface ChatBubble {
   content: string
 }
 
-function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, onCancelRefine, error, isRefining, darkMode }: AIInsertPreviewDialogProps) {
+function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, refinementInput, onRefinementInputChange, onCancelRefine, error, isRefining, darkMode }: AIInsertPreviewDialogProps) {
   const [isFullscreen, setIsFullscreen] = useState(proposal.outputMode === 'draw' ? proposal.elements.length >= 8 : proposal.nodes.length >= 8)
-  const [refinementInput, setRefinementInput] = useState('')
   const [refinementError, setRefinementError] = useState<string | null>(null)
   const [showChat, setShowChat] = useState(true)
   const [chatMessages, setChatMessages] = useState<ChatBubble[]>([])
@@ -267,13 +268,13 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
     try {
       const summary = await onRefine(instruction)
       if (summary !== undefined) {
-        setRefinementInput('')
+        onRefinementInputChange('')
         setChatMessages((prev) => [...prev, { role: 'user', content: instruction }, { role: 'assistant', content: summary }])
       }
     } catch (error) {
       setRefinementError(error instanceof Error ? error.message : 'AI is temporarily unavailable.')
     }
-  }, [refinementInput, isRefining, onRefine])
+  }, [refinementInput, isRefining, onRefine, onRefinementInputChange])
 
   return (
     <div
@@ -404,7 +405,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
                     className="ai-preview-chat-input"
                     placeholder={`Describe how to refine this ${proposal.outputMode === 'draw' ? 'drawing' : 'diagram'}…`}
                     value={refinementInput}
-                    onChange={(e) => setRefinementInput(e.target.value)}
+                    onChange={(e) => onRefinementInputChange(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault()
