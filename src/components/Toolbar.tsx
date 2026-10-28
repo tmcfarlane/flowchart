@@ -19,6 +19,7 @@ interface ToolbarProps {
   canUndo: boolean
   canRedo: boolean
   onClearAll: () => void
+  clearRequest?: number
   toolMode: ToolMode
   onSetToolMode: (mode: ToolMode) => void
   darkMode: boolean
@@ -47,6 +48,7 @@ function Toolbar({
   canUndo,
   canRedo,
   onClearAll,
+  clearRequest,
   toolMode,
   onSetToolMode,
   darkMode,
@@ -63,6 +65,18 @@ function Toolbar({
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
+  const clearDialogRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!isClearConfirmOpen) return
+    const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    clearDialogRef.current?.querySelector('button')?.focus()
+    return () => { if (returnFocus?.isConnected) returnFocus.focus() }
+  }, [isClearConfirmOpen])
+  const lastClearRequest = useRef(clearRequest)
+  useEffect(() => {
+    if (clearRequest !== lastClearRequest.current) setIsClearConfirmOpen(true)
+    lastClearRequest.current = clearRequest
+  }, [clearRequest])
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [gifDuration, setGifDuration] = useState(2)
@@ -622,8 +636,19 @@ function Toolbar({
 
       {isClearConfirmOpen && (
         <div
+          ref={clearDialogRef}
           className="confirm-overlay"
           onClick={handleCancelClear}
+          onKeyDown={(event) => {
+            event.stopPropagation()
+            if (event.key === 'Escape') { event.preventDefault(); handleCancelClear() }
+            if (event.key === 'Tab') {
+              const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+              const first = buttons[0], last = buttons[buttons.length - 1]
+              if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+              else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+            }
+          }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="clear-confirm-title"

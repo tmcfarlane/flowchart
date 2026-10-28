@@ -285,6 +285,12 @@ function FlowChartEditor() {
   const [clipboard, setClipboard] = useState<{ nodes: FlowNode[]; edges: Edge[] }>({ nodes: [], edges: [] })
   const [pasteCount, setPasteCount] = useState(0)
   const [darkMode, setDarkMode] = useState(true)
+  const [drawClearRequest, setDrawClearRequest] = useState(0)
+  const [drawLocalView, setDrawLocalView] = useState(false)
+  const drawLocalViewRef = useRef(false)
+  useEffect(() => {
+    if (diagramMode !== 'draw' && drawLocalViewRef.current) { drawLocalViewRef.current = false; setDrawLocalView(false) }
+  }, [diagramMode])
   const [isAIBubbleOpen, setIsAIBubbleOpen] = useState(false)
   const [aiProposal, setAIProposal] = useState<FlowProposal | null>(null)
   // A shared link (/f/:id) opens a chart, so skip the empty-canvas welcome prompt.
@@ -392,6 +398,7 @@ function FlowChartEditor() {
 
   // Undo handler
   const undo = useCallback(() => {
+    if (drawLocalViewRef.current) return
     if (historyIndex > 0) {
       documentEpoch.current++
       const newIndex = historyIndex - 1
@@ -410,6 +417,7 @@ function FlowChartEditor() {
 
   // Redo handler
   const redo = useCallback(() => {
+    if (drawLocalViewRef.current) return
     if (historyIndex < history.length - 1) {
       documentEpoch.current++
       const newIndex = historyIndex + 1
@@ -429,6 +437,7 @@ function FlowChartEditor() {
   // Opening another document is a single transaction, including the scene and
   // mode. Keep both sides so diagram Undo/Redo works across renderer switches.
   const commitDocument = useCallback((next: HistoryState, options: { fit?: boolean } = {}) => {
+    if (drawLocalViewRef.current) return
     documentEpoch.current++
     const previous: HistoryState = { nodes, edges, architectureScene, diagramMode }
     const complete = { ...next, diagramMode: next.diagramMode ?? diagramMode }
@@ -1741,8 +1750,8 @@ function FlowChartEditor() {
   }
 
   return (
-    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'} ${diagramMode === 'draw' ? 'draw-mode' : ''}`}>
-      <Toolbar
+    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'} ${diagramMode === 'draw' ? 'draw-mode' : ''} ${drawLocalView ? 'draw-local-view' : ''}`}>
+      {!drawLocalView && <Toolbar
         onAddNode={addNode}
         onAddContainer={addContainer}
         onAddImage={addImageNode}
@@ -1754,6 +1763,7 @@ function FlowChartEditor() {
         canUndo={historyIndex > 0}
         canRedo={historyIndex < history.length - 1}
         onClearAll={clearAll}
+        clearRequest={drawClearRequest}
         toolMode={toolMode}
         onSetToolMode={setToolMode}
         darkMode={darkMode}
@@ -1781,8 +1791,8 @@ function FlowChartEditor() {
           createError: shared.state.createError,
           onCreate: shared.createShare,
         }}
-      />
-      <ShareStatus shared={shared} />
+      />}
+      {!drawLocalView && <ShareStatus shared={shared} />}
       {draftError && <div className="draw-draft-error" role="alert">{draftError}</div>}
       <div
         ref={reactFlowWrapper}
@@ -1808,7 +1818,7 @@ function FlowChartEditor() {
       >
         {isFileDragOver && <div className="diagram-file-drop" role="status"><strong>Drop your drawing here</strong><span>Excalidraw scenes and Flowchart JSON files</span></div>}
         {diagramMode === 'draw' ? <Suspense fallback={<div className="draw-loading">Loading drawing tools…</div>}>
-          <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} onReady={handleDrawReady} onUndo={undo} onRedo={redo} canUndo={historyIndex > 0} canRedo={historyIndex < history.length - 1} />
+          <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} onReady={handleDrawReady} onUndo={undo} onRedo={redo} canUndo={historyIndex > 0} canRedo={historyIndex < history.length - 1} onToggleTheme={toggleDarkMode} onRequestClear={() => setDrawClearRequest(value => value + 1)} onViewChange={viewing => { drawLocalViewRef.current = viewing; setDrawLocalView(viewing) }} />
         </Suspense> : <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -2076,7 +2086,7 @@ function FlowChartEditor() {
           onCancel={closeSelectionEdit}
         />
       </Suspense>}
-      {showWelcomeAI && nodes.length === 0 && !isAIBubbleOpen && !aiProposal && (
+      {!drawLocalView && showWelcomeAI && nodes.length === 0 && !isAIBubbleOpen && !aiProposal && (
         <AIChat
           nodes={nodes}
           edges={edges}
@@ -2093,7 +2103,7 @@ function FlowChartEditor() {
         />
       )}
       {/* Full AI chat overlay (triggered by pill button) */}
-      <AIChat
+      {!drawLocalView && <AIChat
         nodes={nodes}
         edges={edges}
         diagramMode={diagramMode}
@@ -2103,8 +2113,8 @@ function FlowChartEditor() {
         isOpen={isAIBubbleOpen}
         onClose={() => setIsAIBubbleOpen(false)}
         variant="full"
-      />
-      {aiProposal && (
+      />}
+      {!drawLocalView && aiProposal && (
         <AIInsertPreviewDialog
           proposal={aiProposal}
           onInsert={insertAIProposal}
@@ -2115,11 +2125,11 @@ function FlowChartEditor() {
           darkMode={darkMode}
         />
       )}
-      {pendingImport && <ExcalidrawImportDialog filename={pendingImport.filename} scene={pendingImport.scene} onOpen={() => { void applyExcalidrawImport('open') }} onInsert={() => { void applyExcalidrawImport('insert') }} onCancel={cancelImport} busy={isImporting} error={importError} compatibilityNotes={getExcalidrawCompatibilityNotes(pendingImport.scene)} />}
+      {!drawLocalView && pendingImport && <ExcalidrawImportDialog filename={pendingImport.filename} scene={pendingImport.scene} onOpen={() => { void applyExcalidrawImport('open') }} onInsert={() => { void applyExcalidrawImport('insert') }} onCancel={cancelImport} busy={isImporting} error={importError} compatibilityNotes={getExcalidrawCompatibilityNotes(pendingImport.scene)} />}
       {isImporting && !pendingImport && <div className="diagram-import-notice" role="status"><span>Reading and validating your drawing…</span><button onClick={cancelImport}>Cancel</button></div>}
       {importError && !pendingImport && <div className="diagram-import-notice error" role="alert"><span><strong>Couldn’t import drawing</strong>{importError}</span><button onClick={() => setImportError(null)} aria-label="Dismiss import error">Dismiss</button></div>}
       {/* Show pill when welcome prompt is not visible and AI bubble is not open */}
-      {!isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
+      {!drawLocalView && !isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
         <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">
           <img src={darkMode ? '/logo/logo_color.svg' : '/logo/logo_dark_pointer.svg'} alt="" className="ai-pill-logo" />
           <span className="ai-pill-brand">FlowChart</span>
