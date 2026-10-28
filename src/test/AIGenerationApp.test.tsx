@@ -1,3 +1,4 @@
+import { seedReturningVisitor } from './helpers/returningVisitor'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import App from '../App'
@@ -35,6 +36,7 @@ const draft = () => parseFlowJson(localStorage.getItem(draftKey)!)
 
 beforeEach(() => {
   localStorage.clear()
+  seedReturningVisitor()
   sessionStorage.clear()
   window.history.replaceState(null, '', '/')
   fetchMock.mockReset()

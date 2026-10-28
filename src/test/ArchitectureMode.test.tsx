@@ -1,3 +1,4 @@
+import { seedReturningVisitor } from './helpers/returningVisitor'
 import { beforeEach, describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import App from '../App'
@@ -8,6 +9,7 @@ vi.mock('../components/DrawCanvas', async () => import('./mocks/DrawCanvas'))
 
 beforeEach(() => {
   localStorage.clear()
+  seedReturningVisitor()
   window.history.replaceState(null, '', '/')
 })
 

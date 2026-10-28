@@ -38,6 +38,8 @@ import { captureDrawGenerationContext } from './utils/drawGeneration'
 import { sceneFromDrawing, drawingFromScene } from './shared/drawDocument'
 import { mergeGraphElements } from './utils/architectureBridge'
 import ExcalidrawImportDialog from './components/ExcalidrawImportDialog'
+import PatchNotesDialog from './components/PatchNotesDialog'
+import { usePatchNotes } from './hooks/usePatchNotes'
 import { resolveAzureIcons } from './utils/azureIconRegistry'
 import { getMessages, addMessage as addThreadMessage } from './utils/conversationStore'
 import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from './utils/nesting'
@@ -1726,6 +1728,13 @@ function FlowChartEditor() {
   }, [updateNodeLabel, getEdgeStyleProps, setNodes, setEdges, getViewport, fitSharedChart])
 
   const shared = useSharedFlow({ nodes, edges, architectureScene, mode: diagramMode, applyChart: applySharedChart })
+  const patchNotes = usePatchNotes(
+    !previewMode && !proposalPreview && !drawLocalView &&
+    ['idle', 'synced', 'saving'].includes(shared.state.status) &&
+    !isAIBubbleOpen && !aiProposal && !isRefining &&
+    !selectionEdit && !selectionEditBusy && !pendingSelectionEdit && !drawEdit &&
+    !pendingImport && !isImporting && !importError,
+  )
 
   const handleDrawChange = useCallback((scene: ArchitectureScene, drawingNodes: FlowNode[], drawingEdges: Edge[]) => {
     // Draw emits completed gestures. Store graph, drawing and mode together so
@@ -1887,6 +1896,7 @@ function FlowChartEditor() {
           commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })
         }}
         onImportFile={readImportFile}
+        onOpenPatchNotes={() => { setIsAIBubbleOpen(false); patchNotes.open() }}
         share={{
           isShared: !!shared.state.id,
           canEdit: shared.state.canEdit,
@@ -2195,7 +2205,7 @@ function FlowChartEditor() {
           onCancel={closeSelectionEdit}
         />
       </Suspense>}
-      {!drawLocalView && showWelcomeAI && nodes.length === 0 && !isAIBubbleOpen && !aiProposal && (
+      {!drawLocalView && !patchNotes.isOpen && showWelcomeAI && nodes.length === 0 && !isAIBubbleOpen && !aiProposal && (
         <AIChat
           nodes={nodes}
           edges={edges}
@@ -2253,8 +2263,9 @@ function FlowChartEditor() {
       {!drawLocalView && pendingImport && <ExcalidrawImportDialog filename={pendingImport.filename} scene={pendingImport.scene} onOpen={() => { void applyExcalidrawImport('open') }} onInsert={() => { void applyExcalidrawImport('insert') }} onCancel={cancelImport} busy={isImporting} error={importError} compatibilityNotes={getExcalidrawCompatibilityNotes(pendingImport.scene)} />}
       {isImporting && !pendingImport && <div className="diagram-import-notice" role="status"><span>Reading and validating your drawing…</span><button onClick={cancelImport}>Cancel</button></div>}
       {importError && !pendingImport && <div className="diagram-import-notice error" role="alert"><span><strong>Couldn’t import drawing</strong>{importError}</span><button onClick={() => setImportError(null)} aria-label="Dismiss import error">Dismiss</button></div>}
+      {patchNotes.isOpen && <PatchNotesDialog onDismiss={patchNotes.dismiss} />}
       {/* Show pill when welcome prompt is not visible and AI bubble is not open */}
-      {!drawLocalView && !isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
+      {!drawLocalView && !patchNotes.isOpen && !isAIBubbleOpen && !(showWelcomeAI && nodes.length === 0 && !aiProposal) && (
         <button className="ai-floating-pill" onClick={toggleAI} aria-label="Open AI Assistant">
           <img src={darkMode ? '/logo/logo_color.svg' : '/logo/logo_dark_pointer.svg'} alt="" className="ai-pill-logo" />
           <span className="ai-pill-brand">FlowChart</span>
