@@ -9,6 +9,8 @@ export interface DrawLibraryProps {
   scene: ArchitectureScene
   selectedIds: ReadonlySet<string>
   onInsert: (component: ArchitectureScene) => void | boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export interface DrawingComponent {
@@ -86,15 +88,13 @@ function readLibrary(): LibraryState {
 }
 
 /** First-party, browser-local reusable multi-object drawing components. */
-export default function DrawLibrary({ scene, selectedIds, onInsert }: DrawLibraryProps) {
+export default function DrawLibrary({ scene, selectedIds, onInsert, open, onOpenChange }: DrawLibraryProps) {
   const [library, setLibrary] = useState<LibraryState>(readLibrary)
-  const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const panelId = `draw-library-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   const button = useRef<HTMLButtonElement>(null)
-  const nameInput = useRef<HTMLInputElement>(null)
   const wrapper = useRef<HTMLDivElement>(null)
   const count = scene.elements.filter(element => !element.isDeleted && selectedIds.has(String(element.id))).length
 
@@ -105,13 +105,12 @@ export default function DrawLibrary({ scene, selectedIds, onInsert }: DrawLibrar
   }, [])
   useEffect(() => {
     if (!open) return
-    nameInput.current?.focus()
     const closeOutside = (event: globalThis.PointerEvent) => {
-      if (event.target instanceof Node && !wrapper.current?.contains(event.target)) setOpen(false)
+      if (event.target instanceof Node && !wrapper.current?.contains(event.target)) onOpenChange(false)
     }
     document.addEventListener('pointerdown', closeOutside)
     return () => document.removeEventListener('pointerdown', closeOutside)
-  }, [open])
+  }, [open, onOpenChange])
 
   const persist = (items: DrawingComponent[]) => {
     const data = { version: 1, items }
@@ -142,17 +141,18 @@ export default function DrawLibrary({ scene, selectedIds, onInsert }: DrawLibrar
   return <div ref={wrapper} className="draw-library" onKeyDown={event => {
     if (!open) return
     event.stopPropagation()
-    if (event.key === 'Escape') { event.preventDefault(); setOpen(false); button.current?.focus() }
+    if (event.key === 'Escape') { event.preventDefault(); onOpenChange(false); button.current?.focus() }
   }}>
-    <button ref={button} type="button" className="draw-library-toggle" aria-expanded={open} aria-controls={panelId} onClick={() => { setOpen(value => !value); setError(null); setNotice(null) }}>
+    <button ref={button} type="button" className="draw-library-toggle" aria-expanded={open} aria-controls={panelId} onClick={() => { onOpenChange(!open); setError(null); setNotice(null) }}>
       <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><rect x="2" y="2" width="6" height="6" rx="1"/><rect x="12" y="2" width="6" height="6" rx="1"/><rect x="2" y="12" width="6" height="6" rx="1"/><rect x="12" y="12" width="6" height="6" rx="1"/></svg>
       Components
     </button>
     {open && <aside id={panelId} className="draw-library-panel" role="dialog" aria-modal="false" aria-labelledby={`${panelId}-title`}>
-      <div className="draw-library-heading"><div><strong id={`${panelId}-title`}>Your components</strong><span>Reusable objects, saved in this browser</span></div><button type="button" aria-label="Close components" onClick={() => { setOpen(false); button.current?.focus() }}>×</button></div>
+      <div className="draw-library-heading"><div><strong id={`${panelId}-title`}>Your components</strong><span>Reusable objects, saved in this browser</span></div><button type="button" aria-label="Close components" onClick={() => { onOpenChange(false); button.current?.focus() }}>×</button></div>
+      <div className="draw-library-body">
       <form className="draw-library-save" onSubmit={event => { event.preventDefault(); save() }}>
         <label htmlFor={`${panelId}-name`}>Component name</label>
-        <input ref={nameInput} id={`${panelId}-name`} value={name} maxLength={60} placeholder="e.g. API with cache" onChange={event => setName(event.target.value)} disabled={library.blocked} />
+        <input id={`${panelId}-name`} value={name} maxLength={60} placeholder="e.g. API with cache" onChange={event => setName(event.target.value)} disabled={library.blocked} />
         <button type="submit" disabled={!count || !name.trim() || library.blocked}>Save selection <span>{count ? `${count} ${count === 1 ? 'object' : 'objects'}` : 'Select objects first'}</span></button>
       </form>
       {(error || library.error) && <p className="draw-library-error" role="alert">{error || library.error}</p>}
@@ -174,6 +174,7 @@ export default function DrawLibrary({ scene, selectedIds, onInsert }: DrawLibrar
             <button type="button" className="draw-library-delete" aria-label={`Delete component ${item.name}`} onClick={() => remove(item)} title={`Delete ${item.name}`}>×</button>
           </div>
         })}
+      </div>
       </div>
     </aside>}
   </div>

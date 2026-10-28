@@ -157,6 +157,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const viewportRef = useRef(viewport); viewportRef.current = viewport
   const [tool, setTool] = useState<Tool>('selection')
   const [extraMenu, setExtraMenu] = useState(false)
+  const [inspector, setInspector] = useState<null | 'properties' | 'components'>(null)
+  const toolsShell = useRef<HTMLDivElement>(null)
+  const moreToolsButton = useRef<HTMLButtonElement>(null)
+  const propertiesButton = useRef<HTMLButtonElement>(null)
   const [extraDialog, setExtraDialog] = useState<'embed' | 'mermaid' | null>(null)
   const [extraInput, setExtraInput] = useState('')
   const [sampleTarget, setSampleTarget] = useState<PaintTarget>('strokeColor')
@@ -210,6 +214,15 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const interactionGeneration = useRef(0)
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+
+  useEffect(() => {
+    if (!extraMenu) return
+    const closeOutside = (event: globalThis.PointerEvent) => {
+      if (!toolsShell.current?.contains(event.target as globalThis.Node)) setExtraMenu(false)
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    return () => document.removeEventListener('pointerdown', closeOutside)
+  }, [extraMenu])
 
   const modalOpen = () => panel.kind !== 'closed' || help || !!cropEdit || !!textEdit || !!document.querySelector('[role="dialog"]')
   const preview = useCallback((next: ArchitectureScene) => { interactionGeneration.current++; draftRef.current = next; setDraft(next) }, [])
@@ -1165,14 +1178,16 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   void historyVersion
 
   return <section ref={wrapper} className={`draw-canvas ${darkMode ? 'draw-dark' : 'draw-light'} ${viewMode ? 'draw-presentation' : ''} ${zen ? 'draw-zen' : ''}`} aria-label="Draw canvas" tabIndex={0} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onCopy={event => clipboardEvents.current.copy(event)} onCut={event => clipboardEvents.current.cut(event)} onPaste={event => clipboardEvents.current.paste(event)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as globalThis.Node | null)) { heldSpace.current = false; if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) } } }}>
-    {!readOnly && !zen && <div className="draw-tools" role="toolbar" aria-label="Drawing tools">
+    {!readOnly && !zen && <div ref={toolsShell} className="draw-tools draw-tools-shell" role="toolbar" aria-label="Drawing tools">
+      <div className="draw-tools-scroll">
       {tools.map(item => <button key={item.tool} type="button" aria-label={`${item.name} tool`} aria-pressed={tool === item.tool} className={tool === item.tool ? 'active' : ''} title={`${item.name} (${item.shortcut})`} onClick={() => setActiveTool(item.tool)}><DrawToolIcon tool={item.tool} /><small>{item.shortcut.split(' / ').slice(-1)[0]}</small></button>)}
-      <div className="draw-extra-menu-wrap"><button type="button" aria-label="More drawing tools" aria-expanded={extraMenu} aria-pressed={extraTools.some(item => item.tool === tool)} onClick={() => setExtraMenu(open => !open)}><DrawToolIcon tool="more" /></button>
-        {extraMenu && <div className="draw-extra-menu" role="menu" aria-label="More drawing tools">{extraTools.map(item => <button type="button" role="menuitem" key={item.tool} onClick={() => setActiveTool(item.tool)}><DrawToolIcon tool={item.tool} /><span>{item.name}</span><kbd>{item.shortcut}</kbd></button>)}<hr /><button type="button" role="menuitem" onClick={() => openExtraDialog('embed')}><DrawToolIcon tool="embed" /><span>Embed URL</span></button><button type="button" role="menuitem" onClick={() => openExtraDialog('mermaid')}><DrawToolIcon tool="mermaid" /><span>Import Mermaid</span></button></div>}
       </div>
+      <button ref={moreToolsButton} type="button" aria-label="More drawing tools" aria-expanded={extraMenu} aria-controls="draw-extra-menu" aria-pressed={extraTools.some(item => item.tool === tool)} onClick={() => setExtraMenu(open => !open)} onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setExtraMenu(false) } }}><DrawToolIcon tool="more" /></button>
       <span className="draw-divider" />
       <button type="button" aria-label="Keep tool selected" aria-pressed={keepTool} title="Keep tool selected (Q)" onClick={() => setKeepTool(value => !value)}><DrawToolIcon tool={keepTool ? 'lock' : 'unlock'} /></button>
+        {extraMenu && <div id="draw-extra-menu" className="draw-extra-menu" role="menu" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); setExtraMenu(false); moreToolsButton.current?.focus() } }} aria-label="More drawing tools">{extraTools.map(item => <button type="button" role="menuitem" key={item.tool} onClick={() => setActiveTool(item.tool)}><DrawToolIcon tool={item.tool} /><span>{item.name}</span><kbd>{item.shortcut}</kbd></button>)}<hr /><button type="button" role="menuitem" onClick={() => openExtraDialog('embed')}><DrawToolIcon tool="embed" /><span>Embed URL</span></button><button type="button" role="menuitem" onClick={() => openExtraDialog('mermaid')}><DrawToolIcon tool="mermaid" /><span>Import Mermaid</span></button></div>}
     </div>}
+    {!readOnly && !zen && <button ref={propertiesButton} className="draw-properties-toggle" aria-expanded={inspector === 'properties'} aria-controls="drawing-properties" onClick={() => setInspector(value => value === 'properties' ? null : 'properties')}>{chosen.length ? 'Selection' : 'Appearance'}</button>}
     <svg ref={surface} className={`draw-surface tool-${tool} ${isPanning ? 'is-panning' : ''}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (gesture.current?.kind === 'laser') cancelLaser(); if (gesture.current?.kind === 'lasso') select(gesture.current.ids); setLasso(null); if (pendingConnector.current && gesture.current?.kind !== 'pan') cancelConnector(); else if (gesture.current && gesture.current.kind !== 'pan') preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null) }} onLostPointerCapture={() => { if (gesture.current?.kind === 'laser') cancelLaser(); if (gesture.current?.kind === 'lasso') { select(gesture.current.ids); gesture.current = null; setLasso(null) } if (gesture.current?.kind === 'pan') { gesture.current = null; setIsPanning(false) } }} onContextMenu={event => event.preventDefault()} onDoubleClick={event => {
       if (readOnly || event.button !== 0) return
       if (pendingConnector.current) { pendingConnector.current.preventBinding = event.ctrlKey || event.metaKey; finishConnector(); return }
@@ -1232,8 +1247,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <p>{cropEdit.crop.naturalWidth} × {cropEdit.crop.naturalHeight} source pixels</p>
       <div className="draw-crop-actions"><button type="button" onClick={cancelCrop}>Cancel crop</button><button type="button" onClick={finishCrop}>Finish crop</button></div>
     </section></div>}
-    {!readOnly && <aside className="draw-properties" aria-label="Drawing properties">
-      <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{lockedOnly ? 'Locked selection' : hasLocked ? 'Editing unlocked objects' : chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
+    {!readOnly && <aside id="drawing-properties" className="draw-properties" data-mobile-open={inspector === 'properties'} aria-label="Drawing properties" onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { setInspector(null); propertiesButton.current?.focus() } }}>
+      <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{lockedOnly ? 'Locked selection' : hasLocked ? 'Editing unlocked objects' : chosen.length ? 'Edit selection' : 'For new drawings'}</span><button className="draw-properties-close" aria-label="Close drawing properties" onClick={() => { setInspector(null); propertiesButton.current?.focus() }}>×</button></div>
+      <div className="draw-properties-body">
       {hasLocked && !creatingConnector && <div className="draw-locked-selection"><p>{chosen.some(element => !element.locked && lockedIds.has(element.id)) ? 'Unlock also unlocks the containing frame or shape.' : lockedOnly ? 'Unlock to edit this selection.' : 'Locked objects stay unchanged.'}</p><button type="button" onClick={() => applyProperties({ locked: false })}>Unlock</button></div>}
       {!lockedOnly && <>
         {first && ['embeddable', 'iframe'].includes(first.type) && <div className="draw-embed-actions"><button type="button" onClick={() => { try { safeEmbedUrl(String(first.link ?? '')); setLiveEmbed(first.id) } catch (error) { setMessage(error instanceof Error ? error.message : 'Invalid embed URL.') } }}>Load live content</button><span>Live content loads only when you choose it.</span></div>}
@@ -1249,9 +1265,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         {(['line', 'arrow'].includes(tool) || chosen.some(e => ['line', 'arrow'].includes(e.type))) && <fieldset><legend>Connection</legend>{(['startArrowhead', 'endArrowhead'] as const).map(key => <label key={key}>{key === 'startArrowhead' ? 'Start' : 'End'}<select aria-label={key === 'startArrowhead' ? 'Start arrowhead' : 'End arrowhead'} value={String(property(key, key === 'endArrowhead' ? 'arrow' : null) ?? 'none')} onChange={event => applyProperties({ [key]: event.target.value === 'none' ? null : event.target.value })}>{['none', 'arrow', 'triangle', 'dot', 'bar', 'diamond'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>)}<label>Routing<select aria-label="Arrow routing" value={first?.elbowed ? 'elbow' : first?.roundness ? 'curved' : 'sharp'} onChange={event => applyProperties({ elbowed: event.target.value === 'elbow', roundness: event.target.value === 'curved' ? { type: 2 } : null })}><option value="sharp">Sharp</option><option value="curved">Curved</option><option value="elbow">Elbow</option></select></label></fieldset>}
         {chosen.length > 0 && !creatingConnector && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: true })}>Lock</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}{props.onEditSelection && <button className="draw-ai-action" onClick={props.onEditSelection} disabled={hasLocked}>Edit selection with AI</button>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
       </>}
+      </div>
     </aside>}
     {!zen && <div className="draw-bottom-controls"><button aria-label="Zoom out" onClick={() => setViewport(view => ({ ...view, zoom: Math.max(0.1, view.zoom / 1.2) }))}>−</button><span>{Math.round(viewport.zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setViewport(view => ({ ...view, zoom: Math.min(5, view.zoom * 1.2) }))}>+</button><button aria-label="Fit drawing" title="Fit all (Shift+1)" onClick={fitScene}>Fit</button>{!readOnly && <><span className="draw-divider" /><button aria-label="Undo drawing" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>↶</button><button aria-label="Redo drawing" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>↷</button><button aria-label="Snap to grid" aria-pressed={grid} onClick={() => setGrid(value => !value)}>Grid</button><button aria-label="Snap to objects" aria-pressed={snap} onClick={() => setSnap(value => !value)}>Snap</button></>}</div>}
-    {!readOnly && !zen && !creatingConnector && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}
+    {!readOnly && !zen && !creatingConnector && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} open={inspector === 'components'} onOpenChange={open => setInspector(value => open ? 'components' : value === 'components' ? null : value)} />}
     {!zen && <button className="draw-help-toggle" aria-label="Keyboard shortcuts" onClick={() => setHelp(value => !value)}>?</button>}
     {localView && <span className="draw-view-badge">View mode · Alt/Option R to edit</span>}
     {message && <div className="draw-message" role="alert">{message}<button aria-label="Dismiss drawing message" onClick={() => setMessage(null)}>×</button></div>}
