@@ -68,6 +68,15 @@ function doubleClick(surface: Element, target: Element = surface, x = 220, y = 2
   }
   fireEvent.doubleClick(target, { clientX: x, clientY: y, button: 0, detail: 2 })
 }
+function capturedDoubleClick(surface: Element, target: Element, x: number, y: number) {
+  vi.spyOn(document, 'elementFromPoint').mockReturnValue(target)
+  for (const detail of [1, 2]) {
+    fireEvent.pointerDown(target, pointer(x, y))
+    fireEvent.pointerUp(surface, pointer(x, y, { buttons: 0 }))
+    fireEvent.click(surface, { clientX: x, clientY: y, button: 0, detail })
+  }
+  fireEvent.doubleClick(surface, { clientX: x, clientY: y, button: 0, detail: 2 })
+}
 function finish(value: string, method: 'keyboard' | 'blur' = 'keyboard') {
   const editor = screen.getByRole('textbox', { name: 'Edit drawing text', exact: true })
   fireEvent.change(editor, { target: { value } })
@@ -76,6 +85,59 @@ function finish(value: string, method: 'keyboard' | 'blur' = 'keyboard') {
 }
 
 describe('shape-bound Draw labels', () => {
+  it.each(['rectangle', 'ellipse', 'diamond'])('binds a label when a captured double-click hits the %s outline area', type => {
+    const { surface, scene, onCommit } = renderDrawing({ ...empty(), elements: [shape({ type })] })
+    capturedDoubleClick(surface, surface.querySelector('[data-element-id="shape"]')!, 99.5, 200)
+    expect(screen.getByRole('textbox', { name: 'Edit drawing text' })).toHaveFocus()
+    finish('Attached label')
+    const label = live(scene()).find(item => item.type === 'text')!
+    expect(label.containerId).toBe('shape')
+    expectCentered(label, element(scene(), 'shape'))
+    expect(onCommit).toHaveBeenCalledOnce()
+  })
+
+  it('reopens existing standalone text after pointer capture without creating a duplicate', () => {
+    const initial = { ...empty(), elements: [boundLabel({ containerId: null })] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    capturedDoubleClick(surface, surface.querySelector('[data-element-id="label"]')!, 200, 200)
+    expect(screen.getByRole('textbox', { name: 'Edit drawing text' })).toHaveValue('Existing label')
+    finish('Updated label')
+    expect(live(scene())).toHaveLength(1)
+    expect(element(scene(), 'label')).toMatchObject({ text: 'Updated label', containerId: null })
+    expect(onCommit).toHaveBeenCalledOnce()
+  })
+
+  it.each(['line', 'arrow'])('binds a midpoint label to a captured %s double-click', type => {
+    const initial = { ...empty(), elements: [shape({ type, height: 0, points: [[0, 0], [240, 0]] })] }
+    const { surface, scene } = renderDrawing(initial)
+    capturedDoubleClick(surface, surface.querySelector('[data-element-id="shape"]')!, 220, 120)
+    finish('Connected label')
+    const label = live(scene()).find(item => item.type === 'text')!
+    expect(label.containerId).toBe('shape')
+    expectCentered(label, element(scene(), 'shape'))
+  })
+
+  it('does not create text when a captured double-click hits a resize handle', () => {
+    const initial = { ...empty(), elements: [shape()] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    const host = surface.querySelector('[data-element-id="shape"]')!
+    fireEvent.pointerDown(host, pointer(220, 200))
+    fireEvent.pointerUp(surface, pointer(220, 200, { buttons: 0 }))
+    capturedDoubleClick(surface, surface.querySelector('[data-resize="se"]')!, 340, 280)
+    expect(screen.queryByRole('textbox', { name: 'Edit drawing text' })).not.toBeInTheDocument()
+    expect(scene()).toEqual(initial)
+    expect(onCommit).not.toHaveBeenCalled()
+  })
+
+  it('does not create detached text beside a locked shape after pointer capture', () => {
+    const initial = { ...empty(), elements: [shape({ locked: true })] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    capturedDoubleClick(surface, surface.querySelector('[data-element-id="shape"]')!, 99.5, 200)
+    expect(screen.queryByRole('textbox', { name: 'Edit drawing text' })).not.toBeInTheDocument()
+    expect(scene()).toEqual(initial)
+    expect(onCommit).not.toHaveBeenCalled()
+  })
+
   it.each(['Rectangle', 'Ellipse', 'Diamond'])('returns %s drawing to Pointer and binds a centered label through a surface-target double-click', tool => {
     const { surface, scene, onCommit } = renderDrawing()
     expect(screen.getByRole('button', { name: 'Keep tool selected' })).toHaveAttribute('aria-pressed', 'false')
