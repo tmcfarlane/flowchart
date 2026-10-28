@@ -36,15 +36,24 @@ Shift-click or drag a selection box to work with multiple objects. Duplicate,
 copy/paste, group, lock, align and stacking controls act on the selection. Frames
 clip and move their contents. Visual groups and frames remain distinct from
 semantic Architecture containers. The Components panel saves reusable selections
-in this browser. See the [keyboard reference](excalidraw-hotkeys.md) for implemented
-bindings and remaining parity items.
+in this browser. See the [keyboard reference](excalidraw-hotkeys.md) for Draw
+bindings and their verification.
 
-Ctrl/Cmd-drag selects individual members inside visual groups. Select a line or
+Ctrl/Cmd-drag selects individual members inside visual groups. Press J to draw a
+freeform lasso selection. Select a line or
 arrow and press Ctrl/Cmd+Enter to edit its points: Tab focuses a point, arrow keys
 move it, and the contextual controls add or delete an interior point. Enter or
 Escape finishes point editing. Ordinary Enter edits an object's bound label.
 For a multipoint connector, press A or L and click each point; Enter or
 double-click commits the entire path, and Escape discards the preview.
+
+Draw also provides a command palette, drawing search, statistics, element links,
+local view mode, zen mode, connected-shape shortcuts, and horizontal and vertical
+flips. Clipboard text and images become editable drawing elements. A selected
+image can be cropped from its original pixels. The More drawing tools menu
+contains a fading laser, eyedropper, fill, freehand shape recognition, static
+HTTPS embed cards, and editable Mermaid import. Mermaid accepts only the
+[documented flowchart subset](draw-extra-tools.md#mermaid-syntax).
 
 Draw keeps pointer previews separate from document commits. A completed drawing,
 move, resize, rotation, erase or keyboard nudge is one undoable transaction. The
@@ -69,7 +78,12 @@ or relabeling those objects in Draw updates their existing graph IDs; duplicates
 receive independent IDs and parent/connection references. Graph changes from AI
 or MCP are reconciled without removing unrelated annotations. Freeform objects
 remain drawing elements rather than being converted into generic service nodes.
-Selected-object AI editing is separately tracked in issue #14.
+Draw's **Edit selection with AI** asks the existing authenticated chat endpoint
+for a preview of sparse updates to selected existing unlocked elements. Apply
+commits one edit after validating the live scene; Cancel discards it. This scope
+does not add or delete objects. See [selected Draw AI](draw-selection-ai.md) for
+supported shapes, fields, and relationship limits. The original graph selection
+AI flow remains available in Flowchart and Architecture modes.
 
 ## Storage and sharing
 

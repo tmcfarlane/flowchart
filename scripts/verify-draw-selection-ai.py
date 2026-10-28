@@ -1,4 +1,3 @@
-"""Run against the app on port 3035; --live uses its configured Azure route."""
 import argparse
 import json
 from pathlib import Path
