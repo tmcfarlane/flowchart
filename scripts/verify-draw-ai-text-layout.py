@@ -185,11 +185,26 @@ with sync_playwright() as pw:
         page.get_by_role('region', name='Draw canvas').focus()
         page.keyboard.press('Control+a')
         page.get_by_role('button', name='Lock', exact=True).click()
-        assert action.is_disabled()
-        disabled = action.evaluate('(button)=>({opacity:getComputedStyle(button).opacity,cursor:getComputedStyle(button).cursor})')
-        assert disabled == {'opacity': '0.45', 'cursor': 'default'}, disabled
+        page.get_by_role('button', name='Unlock', exact=True).wait_for()
+        page.wait_for_function('(key)=>JSON.parse(localStorage.getItem(key)).architectureScene.elements.some(item=>item.locked)', arg=key)
+        locked_scene = saved(page)
+        selected_ids = set(page.locator('[data-element-id][data-selected="true"]').evaluate_all('(elements)=>elements.map(element=>element.dataset.elementId)'))
+        assert selected_ids
+        assert selected_ids <= {item['id'] for item in locked_scene['elements']}
+        assert all(item['locked'] for item in locked_scene['elements'] if item['id'] in selected_ids)
+        assert page.get_by_role('button', name='Unlock', exact=True).is_enabled()
+        assert page.get_by_text('Unlock to edit this selection.').is_visible()
+        ai_action = 'absent' if action.count() == 0 else 'disabled'
+        if ai_action == 'disabled':
+            assert action.is_disabled()
+        page.get_by_role('region', name='Draw canvas').focus()
+        page.keyboard.press('Enter')
+        assert page.get_by_role('textbox', name='Edit drawing text', exact=True).count() == 0
+        assert page.get_by_role('dialog', name='Edit Draw selection with AI').count() == 0
+        assert saved(page) == locked_scene
+        locked_ui = {'selectedIds': sorted(selected_ids), 'unlockEnabled': True, 'aiAction': ai_action, 'textEditorOpen': False}
         assert not errors, errors
-        reports.append({'case': name, 'preview': preview, 'button': colors, 'savedText': updated, 'exportedSvg': exported, 'png': {'width': raster.width, 'height': raster.height, 'contentBounds': occupied, 'lastLineCrop': crop_box}, 'contrastRatio': contrast, 'lightContrastRatio': light_contrast, 'hoverBackground': hover, 'disabledStyle': disabled})
+        reports.append({'case': name, 'preview': preview, 'button': colors, 'savedText': updated, 'exportedSvg': exported, 'png': {'width': raster.width, 'height': raster.height, 'contentBounds': occupied, 'lastLineCrop': crop_box}, 'contrastRatio': contrast, 'lightContrastRatio': light_contrast, 'hoverBackground': hover, 'lockedSelection': locked_ui})
         context.close()
     (out / ('before.json' if args.expect_bug else 'verification.json')).write_text(json.dumps(reports, indent=2) + '\n')
     print(json.dumps(reports, indent=2))
