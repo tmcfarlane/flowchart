@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { DrawGenerationContextSchema, type DrawProposal } from '../shared/drawGeneration'
 import { captureDrawGenerationContext, drawProposalToScene } from '../utils/drawGeneration'
-import { getWorldPoints, moveElements, rerouteBindings, type DrawElement } from '../utils/drawScene'
+import { getElementBounds, getWorldPoints, moveElements, rerouteBindings, type DrawElement } from '../utils/drawScene'
 import { prepareSceneInsertion } from '../utils/excalidrawImport'
 import { drawingTextSize } from '../utils/drawText'
 
@@ -28,6 +28,75 @@ const horizontalProposal: DrawProposal = {
 }
 
 describe('native Draw generation', () => {
+  it('fits a native frame around final members and their labels regardless of proposal order', () => {
+    const framed: DrawProposal = { ...horizontalProposal, elements: [
+      horizontalProposal.elements[0],
+      { id: 'region', type: 'frame', x: 100, y: 200, width: 80, height: 80, name: 'Morning preparation', children: ['left', 'arrow'] },
+      ...horizontalProposal.elements.slice(1),
+    ] }
+    const drawing = drawProposalToScene(framed)
+    expect(drawing.elements[0]).toMatchObject({ id: 'region', type: 'frame', name: 'Morning preparation' })
+    expect(drawing.elements.filter(item => item.type !== 'frame').map(item => item.id)).toEqual(drawProposalToScene(horizontalProposal).elements.map(item => item.id))
+    const region = element(drawing, 'region')
+    const members = drawing.elements.filter(item => item.frameId === 'region') as DrawElement[]
+    expect(members.map(item => item.id)).toEqual(expect.arrayContaining(['left', 'arrow']))
+    expect(members.some(item => item.type === 'text' && item.containerId === 'left')).toBe(true)
+    expect(members.some(item => item.type === 'text' && item.containerId === 'arrow')).toBe(true)
+    expect(element(drawing, 'right').frameId).toBeNull()
+    for (const member of members) {
+      const bounds = getElementBounds(member)
+      expect(bounds.x - region.x).toBeGreaterThanOrEqual(40)
+      expect(bounds.y - region.y).toBeGreaterThanOrEqual(40)
+      expect(region.x + region.width - bounds.x - bounds.width).toBeGreaterThanOrEqual(40)
+      expect(region.y + region.height - bounds.y - bounds.height).toBeGreaterThanOrEqual(40)
+    }
+    expect(element(drawing, 'arrow').startBinding?.elementId).toBe('left')
+    expect(getWorldPoints(element(drawing, 'arrow'))[0]).toEqual({ x: 320, y: 265 })
+  })
+
+  it('retains empty frame geometry while fitting a long title', () => {
+    const drawing = drawProposalToScene({ outputMode: 'draw', summary: '', elements: [
+      { id: 'blank', type: 'frame', x: 10, y: 20, width: 20, height: 50, name: 'A long mobile screen title', children: [] },
+    ] })
+    const frame = element(drawing, 'blank')
+    expect(frame).toMatchObject({ type: 'frame', x: 10, y: 20, height: 50, name: 'A long mobile screen title' })
+    expect(frame.width).toBeGreaterThanOrEqual(drawingTextSize(String(frame.name), { fontSize: 13, fontFamily: 2 }).width + 16)
+  })
+
+  it('leaves a cross-frame arrow outside both frames unless explicitly listed', () => {
+    const drawing = drawProposalToScene({ outputMode: 'draw', summary: '', elements: [
+      { id: 'arrow', type: 'arrow', points: [{ x: 200, y: 50 }, { x: 400, y: 50 }], sourceId: 'left', targetId: 'right', label: '', strokeColor: '#123456' },
+      { id: 'left-frame', type: 'frame', x: -40, y: -40, width: 280, height: 180, name: 'Input', children: ['left'] },
+      { id: 'right-frame', type: 'frame', x: 360, y: -40, width: 280, height: 180, name: 'Output', children: ['right'] },
+      { id: 'left', type: 'rectangle', x: 0, y: 0, width: 200, height: 100, label: '', strokeColor: '#123456', backgroundColor: 'transparent' },
+      { id: 'right', type: 'rectangle', x: 400, y: 0, width: 200, height: 100, label: '', strokeColor: '#123456', backgroundColor: 'transparent' },
+    ] })
+    expect(element(drawing, 'left').frameId).toBe('left-frame')
+    expect(element(drawing, 'right').frameId).toBe('right-frame')
+    expect(element(drawing, 'arrow').frameId).toBeNull()
+    expect(element(drawing, 'arrow').startBinding?.elementId).toBe('left')
+    expect(element(drawing, 'arrow').endBinding?.elementId).toBe('right')
+  })
+
+  it('accepts derived frame dimensions beyond authored limits and remaps members on repeated insert', () => {
+    const drawing = drawProposalToScene({ outputMode: 'draw', summary: '', elements: [
+      { id: 'far', type: 'text', x: 8000, y: 0, text: 'Far', fontSize: 20, strokeColor: '#123456' },
+      { id: 'near', type: 'text', x: 0, y: 0, text: 'Near', fontSize: 20, strokeColor: '#123456' },
+      { id: 'frame', type: 'frame', x: -40, y: -40, width: 80, height: 80, name: 'Wide section', children: ['near', 'far'] },
+    ] })
+    expect(element(drawing, 'frame').width).toBeGreaterThan(5000)
+    const once = prepareSceneInsertion(drawing, undefined, { x: 0, y: 0 })
+    const twice = prepareSceneInsertion(drawing, once, { x: 100, y: 100 })
+    expect(validateArchitectureScene(twice)).toBe(twice)
+    const frames = twice.elements.filter(item => item.type === 'frame') as DrawElement[]
+    expect(frames).toHaveLength(2)
+    for (const frame of frames) expect(twice.elements.filter(item => item.frameId === frame.id)).toHaveLength(2)
+    const moved = moveElements(twice, [frames[1].id], { x: 30, y: 20 })
+    expect(element(moved, frames[1].id).x).toBeCloseTo(frames[1].x + 30)
+    expect(moved.elements.filter(item => item.frameId === frames[1].id).map(item => item.x)).toEqual(
+      twice.elements.filter(item => item.frameId === frames[1].id).map(item => item.x + 30),
+    )
+  })
   it('materializes editable shapes, independent objects, measured text, and bound arrows', () => {
     const drawing = drawProposalToScene(proposal)
     expect(drawProposalToScene(proposal)).toEqual(drawing)

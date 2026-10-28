@@ -1,6 +1,6 @@
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { DRAW_GENERATION_LIMITS, DrawProposalSchema, type DrawGenerationContext, type DrawProposal } from '../shared/drawGeneration'
-import { createElement, rerouteBindings, type DrawBinding, type DrawElement } from './drawScene'
+import { createElement, getElementBounds, rerouteBindings, type DrawBinding, type DrawElement } from './drawScene'
 import { drawingTextSize } from './drawText'
 
 const shapeTypes = new Set(['rectangle', 'ellipse', 'diamond'])
@@ -44,7 +44,7 @@ function boundLabel(id: string, host: DrawElement, value: string, fontSize: numb
   }
   return createElement('text', { x: host.x, y: host.y }, undefined, {
     id, text, originalText: value, fontSize, fontFamily: 2, ...size,
-    strokeColor, containerId: host.id, textAlign: 'center', verticalAlign: 'middle',
+    strokeColor, containerId: host.id, frameId: host.frameId, textAlign: 'center', verticalAlign: 'middle',
   })
 }
 
@@ -58,6 +58,7 @@ function horizontalBinding(host: DrawElement, side: -1 | 1, y: number): DrawBind
 
 export function drawProposalToScene(proposal: DrawProposal): ArchitectureScene {
   const parsed = DrawProposalSchema.parse(proposal)
+  const frameByChild = new Map(parsed.elements.flatMap(item => item.type === 'frame' ? item.children.map(childId => [childId, item.id] as const) : []))
   const occupied = new Set(parsed.elements.map(element => element.id))
   let labelIndex = 0
   const nextLabelId = () => {
@@ -67,18 +68,26 @@ export function drawProposalToScene(proposal: DrawProposal): ArchitectureScene {
     return id
   }
   const elements: DrawElement[] = []
+  const frames: DrawElement[] = []
   for (const item of parsed.elements) {
+    if (item.type === 'frame') {
+      frames.push(createElement('frame', { x: item.x, y: item.y }, { x: item.x + item.width, y: item.y + item.height }, {
+        id: item.id, name: item.name,
+      }))
+      continue
+    }
     if (item.type === 'text') {
       const size = drawingTextSize(item.text, { fontSize: item.fontSize })
       elements.push(createElement('text', { x: item.x, y: item.y }, undefined, {
         id: item.id, text: item.text, originalText: item.text, fontSize: item.fontSize,
-        fontFamily: 2, strokeColor: item.strokeColor, ...size,
+        fontFamily: 2, strokeColor: item.strokeColor, frameId: frameByChild.get(item.id) ?? null, ...size,
       }))
       continue
     }
     if (!('points' in item)) {
       const shape = createElement(item.type, { x: item.x, y: item.y }, { x: item.x + item.width, y: item.y + item.height }, {
         id: item.id, strokeColor: item.strokeColor, backgroundColor: item.backgroundColor,
+        frameId: frameByChild.get(item.id) ?? null,
       })
       elements.push(shape)
       if (item.label) elements.push(boundLabel(nextLabelId(), shape, item.label, 18, item.strokeColor))
@@ -89,7 +98,7 @@ export function drawProposalToScene(proposal: DrawProposal): ArchitectureScene {
     const width = Math.max(...xs) - x, height = Math.max(...ys) - y
     const path = createElement(item.type, { x, y }, { x: x + width, y: y + height }, {
       id: item.id, points: item.points.map(point => [point.x - x, point.y - y]),
-      strokeColor: item.strokeColor,
+      strokeColor: item.strokeColor, frameId: frameByChild.get(item.id) ?? null,
       ...(item.type === 'arrow' ? {
         startBinding: item.sourceId ? { elementId: item.sourceId, focus: 0, gap: 0 } : null,
         endBinding: item.targetId ? { elementId: item.targetId, focus: 0, gap: 0 } : null,
@@ -109,7 +118,24 @@ export function drawProposalToScene(proposal: DrawProposal): ArchitectureScene {
     path.startBinding = horizontalBinding(source, 1, y)
     path.endBinding = horizontalBinding(target, -1, y)
   }
-  return validateArchitectureScene(rerouteBindings({ version: 1, elements, files: {} }))
+  const routed = rerouteBindings({ version: 1, elements: [...frames, ...elements], files: {} })
+  const finalElements = routed.elements as DrawElement[]
+  for (const frame of finalElements.filter(element => element.type === 'frame')) {
+    const members = finalElements.filter(element => element.frameId === frame.id)
+    let left = frame.x, top = frame.y, right = frame.x + frame.width, bottom = frame.y + frame.height
+    for (const member of members) {
+      const bounds = getElementBounds(member)
+      left = Math.min(left, bounds.x - 40)
+      top = Math.min(top, bounds.y - 40)
+      right = Math.max(right, bounds.x + bounds.width + 40)
+      bottom = Math.max(bottom, bounds.y + bounds.height + 40)
+    }
+    frame.x = left
+    frame.y = top
+    frame.width = Math.max(right - left, drawingTextSize(String(frame.name), { fontSize: 13, fontFamily: 2 }).width + 16)
+    frame.height = bottom - top
+  }
+  return validateArchitectureScene(routed)
 }
 
 export function captureDrawGenerationContext(scene: ArchitectureScene): DrawGenerationContext {

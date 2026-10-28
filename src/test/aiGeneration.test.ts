@@ -5,6 +5,7 @@ import { normalizeGenerationProposal, parseGenerationProposal } from '../shared/
 const shape = { id: 'box', type: 'rectangle', x: 0, y: 0, width: 180, height: 80, label: 'Plan', strokeColor: '#123', backgroundColor: 'transparent' }
 const arrow = { id: 'arrow', type: 'arrow', points: [{ x: 180, y: 40 }, { x: 300, y: 40 }], sourceId: 'box', targetId: null, label: 'Next', strokeColor: '#123456' }
 const drawing = { outputMode: 'draw', summary: 'Plan', elements: [shape, arrow] }
+const frame = { id: 'section', type: 'frame', x: -40, y: -40, width: 240, height: 160, name: 'Plan section', children: ['box', 'arrow'] }
 
 describe('shared generation boundary', () => {
   it('accepts native shapes, standalone text, arrows, lines and freehand paths', () => {
@@ -15,6 +16,41 @@ describe('shared generation boundary', () => {
     ] }
     expect(normalizeGenerationProposal(proposal, 'draw')).toEqual(proposal)
     expect(DRAW_PROPOSAL_RESPONSE_FORMAT.json_schema.schema.additionalProperties).toBe(false)
+  })
+
+  it('accepts frames and keeps every provider variant recursively strict', () => {
+    expect(normalizeGenerationProposal({ ...drawing, elements: [frame, ...drawing.elements] }, 'draw').elements[0]).toEqual(frame)
+    expect(normalizeGenerationProposal({ ...drawing, elements: [{ ...frame, name: '  Plan section  ' }, ...drawing.elements] }, 'draw').elements[0]).toMatchObject({ name: 'Plan section' })
+    const schema = DRAW_PROPOSAL_RESPONSE_FORMAT.json_schema.schema as Record<string, unknown>
+    const visit = (value: unknown) => {
+      if (!value || typeof value !== 'object') return
+      const node = value as Record<string, unknown>
+      if (node.type === 'object') {
+        expect(node.additionalProperties).toBe(false)
+        expect(node.required).toEqual(expect.arrayContaining(Object.keys(node.properties as object)))
+        expect(node.required).toHaveLength(Object.keys(node.properties as object).length)
+      }
+      for (const child of Object.values(node)) visit(child)
+    }
+    visit(schema)
+  })
+
+  it.each([
+    [{ ...frame, children: ['box', 'box'] }],
+    [{ ...frame, children: ['missing'] }],
+    [{ ...frame, children: ['section'] }],
+    [{ ...frame, children: ['other'] }, { ...frame, id: 'other', children: [] }],
+    [{ ...frame, id: 'other', children: ['box'] }, frame],
+    [{ ...frame, name: '   ' }],
+    [{ ...frame, name: 'Bad\nname' }],
+    [{ ...frame, name: 'x'.repeat(101) }],
+    [{ ...frame, children: [], extra: 'forbidden' }],
+  ])('rejects invalid frame membership or names %#', (...frames) => {
+    expect(DrawProposalSchema.safeParse({ ...drawing, elements: [...frames, ...drawing.elements] }).success).toBe(false)
+  })
+
+  it('does not allow arrows to bind to a frame', () => {
+    expect(DrawProposalSchema.safeParse({ ...drawing, elements: [frame, shape, { ...arrow, targetId: 'section' }] }).success).toBe(false)
   })
 
   it.each([
