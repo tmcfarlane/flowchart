@@ -133,7 +133,7 @@ export function compileDrawProposal(plan: DrawProposal): DrawCompilationResult {
         const caption = elements.find(element => element.containerId === item.id && element.type === 'text')
         const occupied = occupiedBounds(elements.filter(element => element.type !== 'text' || !element.containerId || !elements.some(host => host.id === element.containerId && ['arrow', 'line'].includes(host.type)) || completed.has(element.containerId)), path.id)
         const points = routeConnector(path, source, target, caption, occupied, budget)
-        if (!points) return { ok: false, issues: [{ code: caption ? 'caption-blocked' : 'route-blocked', elementIds: [item.id], detail: 'No clear route with outward contour anchors and room for its native midpoint caption. Increase spacing or shorten the caption.' }] }
+        if (!points) return { ok: false, issues: [{ code: caption ? 'caption-blocked' : 'route-blocked', elementIds: [item.id], detail: 'No clear route with outward contour anchors and room for its native midpoint caption. Increase spacing to give the caption a clear shaft.' }] }
         setPath(path, points)
         for (const [key, host, point] of [['startBinding', source, points[0]], ['endBinding', target, points[points.length - 1]]] as const) {
           if (host) path[key] = { elementId: host.id, focus: 0, gap: 0, fixedPoint: [Math.max(0, Math.min(1, (point.x - host.x) / host.width)), Math.max(0, Math.min(1, (point.y - host.y) / host.height))] }

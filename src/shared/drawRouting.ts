@@ -1,10 +1,11 @@
-import { getWorldPoints, type Bounds, type DrawElement, type Point } from '../utils/drawScene.js'
+import { getWorldPoints, positionBoundText, type Bounds, type DrawElement, type Point } from '../utils/drawScene.js'
 
 export interface Obstacle extends Bounds { id: string }
 export interface RouteBudget { remaining: number }
 export class GeometryBudgetError extends Error {}
 export const ROUTE_CLEARANCE = 12
 const EPSILON = 0.00001
+const MARKER_LEAD = 34
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 export const inflate = (box: Bounds, amount: number): Bounds => ({ x: box.x - amount, y: box.y - amount, width: box.width + amount * 2, height: box.height + amount * 2 })
 export const boxesOverlap = (a: Bounds, b: Bounds): boolean => a.x < b.x + b.width - EPSILON && a.x + a.width > b.x + EPSILON && a.y < b.y + b.height - EPSILON && a.y + a.height > b.y + EPSILON
@@ -40,6 +41,11 @@ function outward(shape: DrawElement, port: Point, next: Point): boolean {
 
 export function pathIsClear(points: Point[], obstacles: Obstacle[], source?: DrawElement, target?: DrawElement, budget?: RouteBudget): boolean {
   if (points.length < 2 || points.length > 32) return false
+  for (let i = 1; i < points.length - 1; i++) {
+    const ax = points[i].x - points[i - 1].x, ay = points[i].y - points[i - 1].y
+    const bx = points[i + 1].x - points[i].x, by = points[i + 1].y - points[i].y
+    if (Math.abs(ax * by - ay * bx) < EPSILON && ax * bx + ay * by < 0) return false
+  }
   if (source && (!outward(source, points[0], points[1]) || Math.abs(contourValue(source, points[0]) - 1) > 0.001)) return false
   if (target && (!outward(target, points[points.length - 1], points[points.length - 2]) || Math.abs(contourValue(target, points[points.length - 1]) - 1) > 0.001)) return false
   for (let i = 1; i < points.length; i++) {
@@ -48,6 +54,23 @@ export function pathIsClear(points: Point[], obstacles: Obstacle[], source?: Dra
       if ((i === 1 && obstacle.id === source?.id) || (i === points.length - 1 && obstacle.id === target?.id)) continue
       if (segmentHitsBox(points[i - 1], points[i], inflate(obstacle, ROUTE_CLEARANCE))) return false
     }
+  }
+  return true
+}
+
+export function markerIsClear(points: Point[], path: DrawElement, obstacles: Obstacle[], target?: DrawElement, caption?: DrawElement): boolean {
+  if (path.type !== 'arrow' || path.endArrowhead === null) return true
+  const tip = points[points.length - 1], previous = points[points.length - 2], length = distance(tip, previous)
+  const stroke = path.strokeWidth ?? 2, scale = Math.max(1, (32 + stroke * 5) / 48), size = Math.max(16, stroke * 4) * scale
+  if (length < Math.max(MARKER_LEAD, size + stroke * scale + 16) - EPSILON) return false
+  const ux = (tip.x - previous.x) / length, uy = (tip.y - previous.y) / length
+  const wings = [-1, 1].map(side => ({ x: tip.x - size * ux - side * size / 2 * uy, y: tip.y - size * uy + side * size / 2 * ux }))
+  const left = Math.min(tip.x, ...wings.map(point => point.x)), top = Math.min(tip.y, ...wings.map(point => point.y))
+  const bounds = inflate({ x: left, y: top, width: Math.max(tip.x, ...wings.map(point => point.x)) - left, height: Math.max(tip.y, ...wings.map(point => point.y)) - top }, stroke * scale / 2 + 2)
+  if (obstacles.some(obstacle => obstacle.id !== target?.id && boxesOverlap(bounds, obstacle))) return false
+  if (caption) {
+    const placed = positionBoundText(caption, { ...path, x: 0, y: 0, angle: 0, points: points.map(point => [point.x, point.y]) })
+    if (boxesOverlap(bounds, inflate(placed, 6))) return false
   }
   return true
 }
@@ -74,13 +97,18 @@ export function captionFits(points: Point[], caption: DrawElement | undefined, o
 
 interface Port { point: Point; lead: Point }
 function ports(shape: DrawElement | undefined, endpoint: Point, toward: Point): Port[] {
-  if (!shape) return [{ point: endpoint, lead: endpoint }]
+  if (!shape) return [
+    { point: endpoint, lead: { x: endpoint.x + MARKER_LEAD, y: endpoint.y } },
+    { point: endpoint, lead: { x: endpoint.x - MARKER_LEAD, y: endpoint.y } },
+    { point: endpoint, lead: { x: endpoint.x, y: endpoint.y + MARKER_LEAD } },
+    { point: endpoint, lead: { x: endpoint.x, y: endpoint.y - MARKER_LEAD } },
+  ].sort((a, b) => distance(a.lead, toward) - distance(b.lead, toward))
   const cx = shape.x + shape.width / 2, cy = shape.y + shape.height / 2
   return [
-    { point: { x: shape.x + shape.width, y: cy }, lead: { x: shape.x + shape.width + ROUTE_CLEARANCE + 2, y: cy } },
-    { point: { x: shape.x, y: cy }, lead: { x: shape.x - ROUTE_CLEARANCE - 2, y: cy } },
-    { point: { x: cx, y: shape.y + shape.height }, lead: { x: cx, y: shape.y + shape.height + ROUTE_CLEARANCE + 2 } },
-    { point: { x: cx, y: shape.y }, lead: { x: cx, y: shape.y - ROUTE_CLEARANCE - 2 } },
+    { point: { x: shape.x + shape.width, y: cy }, lead: { x: shape.x + shape.width + MARKER_LEAD, y: cy } },
+    { point: { x: shape.x, y: cy }, lead: { x: shape.x - MARKER_LEAD, y: cy } },
+    { point: { x: cx, y: shape.y + shape.height }, lead: { x: cx, y: shape.y + shape.height + MARKER_LEAD } },
+    { point: { x: cx, y: shape.y }, lead: { x: cx, y: shape.y - MARKER_LEAD } },
   ].sort((a, b) => distance(a.point, toward) - distance(b.point, toward))
 }
 
@@ -198,13 +226,13 @@ export function routeConnector(path: DrawElement, source: DrawElement | undefine
   const original = getWorldPoints(path), authored = original.map(point => ({ ...point }))
   if (source) authored[0] = projectedPort(source, authored[0], authored[1])
   if (target) authored[authored.length - 1] = projectedPort(target, authored[authored.length - 1], authored[authored.length - 2])
-  if (pathIsClear(authored, obstacles, source, target, budget) && captionFits(authored, caption, obstacles, path.type)) return authored
+  if (pathIsClear(authored, obstacles, source, target, budget) && markerIsClear(authored, path, obstacles, target, caption) && captionFits(authored, caption, obstacles, path.type)) return authored
   const starts = ports(source, original[0], original[original.length - 1]), ends = ports(target, original[original.length - 1], original[0])
   for (const start of starts) for (const end of ends) {
     const middle = visibilityRoute(start.lead, end.lead, obstacles, budget)
     if (!middle) continue
     const candidate = simplify([start.point, ...middle, end.point])
-    if (pathIsClear(candidate, obstacles, source, target, budget) && captionFits(candidate, caption, obstacles, path.type)) return candidate
+    if (pathIsClear(candidate, obstacles, source, target, budget) && markerIsClear(candidate, path, obstacles, target, caption) && captionFits(candidate, caption, obstacles, path.type)) return candidate
     if (!caption) continue
     const left = Math.min(start.lead.x, end.lead.x, ...obstacles.map(box => box.x)) - caption.width / 2 - 24
     const right = Math.max(start.lead.x, end.lead.x, ...obstacles.map(box => box.x + box.width)) + caption.width / 2 + 24
@@ -218,7 +246,7 @@ export function routeConnector(path: DrawElement, source: DrawElement | undefine
     ]
     for (const corridor of corridors) {
       const labelled = simplify([start.point, start.lead, ...corridor, end.lead, end.point])
-      if (pathIsClear(labelled, obstacles, source, target, budget) && captionFits(labelled, caption, obstacles, path.type)) return labelled
+      if (pathIsClear(labelled, obstacles, source, target, budget) && markerIsClear(labelled, path, obstacles, target, caption) && captionFits(labelled, caption, obstacles, path.type)) return labelled
     }
   }
   return null

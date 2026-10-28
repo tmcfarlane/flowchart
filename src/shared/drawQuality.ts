@@ -3,7 +3,7 @@ import { drawingFromScene } from './drawDocument.js'
 import type { DrawProposal } from './drawGeneration.js'
 import { DRAW_LINE_HEIGHT, isGeneratedDrawFont, measureDrawText } from './drawFont.js'
 import { getWorldPoints, positionBoundText, rerouteBindings, type Bounds, type DrawElement, type Point } from '../utils/drawScene.js'
-import { boxesOverlap, captionFits, contourValue, inflate, pathIsClear, segmentHitsBox, type Obstacle } from './drawRouting.js'
+import { boxesOverlap, captionFits, contourValue, inflate, markerIsClear, pathIsClear, segmentHitsBox, type Obstacle } from './drawRouting.js'
 
 export interface DrawQualityIssue { code: string; elementIds: string[]; detail: string }
 export const isShape = (element: DrawElement): boolean => ['rectangle', 'ellipse', 'diamond'].includes(element.type)
@@ -106,6 +106,7 @@ export function inspectDrawGeometry(scene: ArchitectureScene, plan: DrawProposal
     const occupied = occupiedBounds(elements, element.id)
     if (!pathIsClear(points, occupied, source, target)) add('route-blocked', [element.id], 'Route the connector outside unrelated objects and frame titles with outward endpoint leads.')
     const caption = elements.find(candidate => candidate.containerId === element.id && candidate.type === 'text')
+    if (!markerIsClear(points, element, occupied, target, caption)) add('marker-blocked', [element.id], 'Reserve a clear terminal shaft of at least 34 units and keep the end marker away from every object except its target.')
     if (!captionFits(points, caption, occupied, element.type)) add('caption-blocked', [element.id, ...(caption ? [caption.id] : [])], 'The native midpoint caption needs a clear straight shaft with room on both sides.')
     if (caption && element.type === 'line') {
       const placed = positionBoundText(caption, element)
