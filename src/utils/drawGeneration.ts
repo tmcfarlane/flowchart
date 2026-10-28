@@ -1,6 +1,6 @@
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { DRAW_GENERATION_LIMITS, DrawProposalSchema, type DrawGenerationContext, type DrawProposal } from '../shared/drawGeneration'
-import { createElement, getElementBounds, rerouteBindings, type DrawBinding, type DrawElement } from './drawScene'
+import { createElement, getElementBounds, getWorldPoints, rerouteBindings, type DrawBinding, type DrawElement } from './drawScene'
 import { drawingTextSize } from './drawText'
 
 const shapeTypes = new Set(['rectangle', 'ellipse', 'diamond'])
@@ -120,6 +120,18 @@ export function drawProposalToScene(proposal: DrawProposal): ArchitectureScene {
   }
   const routed = rerouteBindings({ version: 1, elements: [...frames, ...elements], files: {} })
   const finalElements = routed.elements as DrawElement[]
+  const finalById = new Map(finalElements.map(element => [element.id, element]))
+  for (const path of finalElements) {
+    if (path.type !== 'arrow' || !path.frameId) continue
+    const points = getWorldPoints(path)
+    for (const [key, index] of [['startBinding', 0], ['endBinding', points.length - 1]] as const) {
+      const binding = path[key]
+      if (!binding || binding.fixedPoint) continue
+      const host = finalById.get(binding.elementId)!
+      if (host.frameId !== path.frameId) continue
+      path[key] = { ...binding, fixedPoint: [(points[index].x - host.x) / host.width, (points[index].y - host.y) / host.height] }
+    }
+  }
   for (const frame of finalElements.filter(element => element.type === 'frame')) {
     const members = finalElements.filter(element => element.frameId === frame.id)
     let left = frame.x, top = frame.y, right = frame.x + frame.width, bottom = frame.y + frame.height
