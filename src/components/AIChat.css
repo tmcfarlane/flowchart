@@ -210,6 +210,15 @@
   opacity: 0.7;
 }
 
+.ai-draw-tools-help {
+  margin: -7px 0 16px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.app.dark-mode .ai-draw-tools-help { color: #a9c0b7; }
+
 .ai-bubble-send {
   width: 100%;
   padding: 12px 20px;

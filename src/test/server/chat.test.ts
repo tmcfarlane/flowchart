@@ -263,6 +263,9 @@ describe('native Draw generation', () => {
     expect(body.response_format.json_schema.strict).toBe(true)
     expect(body.messages[0].content).toContain('native editable Draw drawing')
     expect(body.messages[0].content).toContain('standalone text')
+    expect(body.messages[0].content).toContain('frame (Frame) for named sections')
+    expect(body.messages[0].content).toContain('An empty children array creates a blank wireframe')
+    expect(body.messages[0].content).toContain('Do not add every tool just for variety')
     expect(body.messages[0].content).toContain(JSON.stringify(DRAW_CONTEXT))
     expect(body.messages[0].content).not.toContain('Create an architecture diagram')
   })
@@ -276,6 +279,16 @@ describe('native Draw generation', () => {
     expect(prompt).toContain('PREVIOUS DRAW PROPOSAL TO REFINE')
     expect(prompt).toContain(JSON.stringify(DRAW_PROPOSAL))
     expect(prompt).toContain('Return the COMPLETE drawing')
+  })
+
+  it('accepts a native frame with explicit children from the provider', async () => {
+    const proposal = { ...DRAW_PROPOSAL, elements: [
+      { id: 'screen', type: 'frame', x: -30, y: -30, width: 260, height: 170, name: 'Screen', children: ['box', 'title'] },
+      ...DRAW_PROPOSAL.elements,
+    ] }
+    const response = await post(await server(context(ENV, vi.fn(async () => upstream(proposal)))), DRAW_REQUEST)
+    expect(response.status).toBe(200)
+    expect(JSON.parse((await response.json()).message)).toEqual(proposal)
   })
 
   it.each([

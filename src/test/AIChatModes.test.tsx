@@ -56,13 +56,31 @@ describe('AIChat generation modes', () => {
     const view = render(<ControlledChat {...common} variant="welcome" />)
     expect(screen.getByLabelText('Generate for')).toHaveValue('draw')
     expect(screen.getByRole('button', { name: /Generate drawing/i })).toBeInTheDocument()
+    expect(screen.getByLabelText('AI Draw tools')).toHaveTextContent('Rectangle, Ellipse, Diamond, Text, Line, Arrow, Pen, Frame')
+    expect(screen.getByRole('button', { name: /Make two named mobile screen frames/i })).toBeInTheDocument()
     fireEvent.change(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...'), { target: { value: 'Keep this sketch' } })
     view.rerender(<ControlledChat {...common} variant="full" />)
     expect(screen.getByLabelText('Generate for')).toHaveValue('draw')
     expect(screen.getByText('What should we draw?')).toBeInTheDocument()
+    expect(screen.getByLabelText('AI Draw tools')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...')).toHaveValue('Keep this sketch')
     fireEvent.change(screen.getByLabelText('Generate for'), { target: { value: 'architecture' } })
     expect(onModeChange).toHaveBeenCalledWith('architecture')
+  })
+
+  it('shows tool help only for Draw and submits a Draw starter on click', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(drawing))
+    vi.stubGlobal('fetch', fetchMock)
+    const onReady = vi.fn()
+    const view = render(<ControlledChat nodes={[]} edges={[]} isOpen onClose={vi.fn()} variant="welcome"
+      generationMode="flowchart" onGenerationModeChange={vi.fn()} getGenerationContext={() => undefined} onProposalReady={onReady} />)
+    expect(screen.queryByLabelText('AI Draw tools')).not.toBeInTheDocument()
+    view.rerender(<ControlledChat nodes={[]} edges={[]} isOpen onClose={vi.fn()} variant="welcome"
+      generationMode="draw" onGenerationModeChange={vi.fn()} getGenerationContext={() => undefined} onProposalReady={onReady} />)
+    const prompt = 'Make two named mobile screen frames with buttons, labels and navigation arrows'
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(prompt) }))
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(drawing, expect.any(String)))
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).messages).toEqual([{ role: 'user', content: prompt }])
   })
 
   it('sends the selected Draw target with fresh context and delivers native proposal', async () => {
