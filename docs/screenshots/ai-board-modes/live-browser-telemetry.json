@@ -1,0 +1,15 @@
+{
+  "sourceCommit": "3cf4f6ad38751971a019f52a336a8a95e9f6eb13",
+  "event": "ai_request",
+  "requestId": "26d77626-2872-4d35-9983-f3ea24ee179c",
+  "environment": "development",
+  "routing": "direct",
+  "status": 200,
+  "outcome": "success",
+  "attempts": 1,
+  "latencyMs": 5380,
+  "inputTokens": 735,
+  "outputTokens": 300,
+  "usageReported": true,
+  "model": "gpt-chat-latest"
+}
