@@ -48,6 +48,19 @@ describe('toolbar disclosures', () => {
     expect(screen.getByRole('dialog', { name: 'Share flowchart' })).toBeInTheDocument()
   })
 
+  it('returns focus to Share after its visible close and Escape', () => {
+    renderToolbar()
+    const share = screen.getByRole('button', { name: 'Share', exact: true })
+    fireEvent.click(share)
+    fireEvent.click(screen.getByRole('button', { name: 'Close share' }))
+    expect(share).toHaveFocus()
+    expect(screen.queryByRole('dialog', { name: 'Share flowchart' })).not.toBeInTheDocument()
+    fireEvent.click(share)
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(share).toHaveFocus()
+    expect(screen.queryByRole('dialog', { name: 'Share flowchart' })).not.toBeInTheDocument()
+  })
+
   it('keeps the existing clear confirmation before changing the document', () => {
     const { more, onClearAll } = renderToolbar()
     fireEvent.click(more)

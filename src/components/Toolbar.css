@@ -726,6 +726,7 @@
     min-height: 44px;
     flex-shrink: 0;
   }
+  .floating-toolbar .toolbar-button:active { transform: none; }
   .floating-toolbar .mode-option {
     width: auto;
     flex: 1;
@@ -817,6 +818,7 @@
   .toolbar-utilities .export-gif-input { min-height: 44px; font-size: 16px; }
   .app.draw-mode .floating-toolbar { grid-template-rows: repeat(2, var(--chrome-row)); }
   .app.draw-mode .toolbar-actions { grid-row: 2; }
+  .app.draw-mode .toolbar-history { display: none; }
   .draw-loading { top: var(--chrome-bottom); }
 }
 
@@ -829,4 +831,10 @@
   .app.draw-mode .floating-toolbar { grid-template-rows: var(--chrome-row); }
   .app.draw-mode .floating-toolbar .mode-switcher { grid-column: 1 / 3; }
   .app.draw-mode .toolbar-actions { grid-row: 1; }
+}
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .confirm-overlay { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); }
+  .confirm-dialog { max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+  .confirm-dialog button { min-height: 44px; min-width: 44px; }
 }

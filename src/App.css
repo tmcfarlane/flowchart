@@ -132,7 +132,6 @@
 
 @media (max-width: 600px) {
   .selection-toolbar {
-    top: 70px;
     right: 12px;
     width: 48px;
     padding: 5px;
@@ -163,7 +162,6 @@
 
 @media (max-width: 480px) {
   .selection-toolbar {
-    top: 65px;
     right: 8px;
     width: 44px;
     padding: 4px;
@@ -572,33 +570,6 @@
   color: #10b981;
 }
 
-@media (max-width: 480px) {
-  .react-flow__controls {
-    display: flex;
-    flex-direction: row;
-    transform: none;
-  }
-
-  .react-flow__controls button {
-    border-bottom: none;
-    border-right: 1px solid #e0e0e0;
-  }
-
-  .react-flow__controls button:last-child {
-    border-right: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .react-flow-dark .react-flow__controls button {
-    border-right-color: rgba(255, 255, 255, 0.08);
-    border-bottom: none;
-  }
-
-  .react-flow-dark .react-flow__controls button:last-child {
-    border-right: none;
-  }
-}
 
 .react-flow__background {
   background: #f8f9fa;
@@ -1052,14 +1023,20 @@
   .app.draw-mode { --toolbar-block: 108px; }
   .app.draw-local-view { --toolbar-block: 0px; --chrome-top: env(safe-area-inset-top, 0px); }
   .selection-toolbar {
+    width: max-content;
+    min-width: 56px;
+    padding: 5px;
     top: var(--chrome-bottom);
     right: var(--chrome-right);
-    max-height: calc(100dvh - var(--chrome-bottom) - var(--bottom-clearance) - 104px);
+    max-height: calc(100dvh - var(--chrome-bottom) - var(--floating-bottom) - 52px);
     max-width: calc(100vw - var(--chrome-left) - var(--chrome-right));
     overflow-y: auto;
   }
   .app .selection-toolbar-button, .app .edge-style-option, .app .edge-comm-option { min-width: 44px; min-height: 44px; }
-  .app .edge-protocol-select { font-size: 16px; min-height: 44px; max-width: 160px; }
+  .selection-toolbar > * { flex-shrink: 0; }
+  .app .selection-toolbar-button svg { width: 18px; height: 18px; }
+  .app .edge-protocol-controls { width: 168px; }
+  .app .edge-protocol-select { width: 100%; font-size: 16px; min-height: 44px; max-width: none; }
   .app .react-flow__controls {
     display: flex;
     flex-direction: row;
@@ -1068,9 +1045,11 @@
     bottom: var(--bottom-clearance);
     margin: 0;
   }
-  .app .react-flow__controls button { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-bottom: 0; border-right: 1px solid #e0e0e0; }
+  .app .react-flow__controls button { box-sizing: border-box; width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-bottom: 0; border-right: 1px solid #e0e0e0; }
+  .app.dark-mode .react-flow__controls button { border-right-color: rgba(255, 255, 255, 0.08); }
   .app .react-flow__controls button:last-child { border-right: 0; }
   .app .react-flow__minimap { bottom: calc(var(--bottom-clearance) + 104px); right: var(--chrome-right); margin: 0; }
+  .app:has(.draw-canvas:not(.draw-zen) .draw-properties[data-mobile-open="true"], .draw-library-panel) .ai-floating-pill { visibility: hidden; }
   .app .ai-floating-pill { bottom: var(--floating-bottom); min-height: 44px; font-size: 12px; padding: 8px 16px; }
 }
 @media (min-width: 700px) and (max-height: 500px) and (pointer: coarse) {

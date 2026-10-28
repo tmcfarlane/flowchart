@@ -50,3 +50,11 @@
 .diagram-import-notice.error { border-color: #e4b95c; background: #fff3d2; color: #5d3900; }
 .light-mode .diagram-file-drop { color: #085f3b; border-color: #109b6b; background: rgba(225, 250, 237, .94); }
 .light-mode .diagram-file-drop span { color: #326c51; }
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .excalidraw-import-overlay { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); }
+  .excalidraw-import-dialog { max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .excalidraw-import-dialog button, .diagram-import-notice button { min-height: 44px; min-width: 44px; }
+  .diagram-file-drop { top: var(--chrome-bottom); }
+  .diagram-import-notice { left: var(--chrome-left); bottom: var(--bottom-clearance); max-width: calc(100vw - var(--chrome-left) - var(--chrome-right)); }
+}

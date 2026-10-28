@@ -664,3 +664,12 @@
     padding: 16px;
   }
 }
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .explorer-sidebar { right: env(safe-area-inset-right, 0px); max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); max-height: 100dvh; }
+  .explorer-header { flex-shrink: 0; }
+  .explorer-header-content { min-width: 0; flex-wrap: wrap; gap: 6px; }
+  .explorer-content { min-height: 0; }
+  .explorer-sidebar .explorer-input, .explorer-sidebar .explorer-edge-label-input, .explorer-sidebar .explorer-json-input { font-size: 16px; min-height: 44px; min-width: 0; }
+  .explorer-sidebar button { min-height: 44px; min-width: 44px; }
+  .explorer-item { flex-wrap: wrap; }
+}

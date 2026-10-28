@@ -1182,3 +1182,9 @@
     gap: 8px;
   }
 }
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .image-picker-overlay { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); }
+  .image-picker-dialog { max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+  .image-picker-dialog input:not([type="file"]), .image-picker-dialog textarea, .image-picker-dialog select { min-height: 44px; font-size: 16px; }
+  .image-picker-dialog button, .image-picker-dialog a { min-height: 44px; min-width: 44px; }
+}

@@ -622,3 +622,23 @@
   background: transparent;
   cursor: pointer;
 }
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .ai-preview-overlay { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); }
+  .ai-preview-dialog, .ai-preview-dialog.fullscreen { width: 100%; height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .ai-preview-header { padding: 12px; gap: 8px; }
+  .ai-preview-content, .ai-preview-content-row { min-height: 0; }
+  .ai-preview-content-row { flex-direction: column; overflow-y: auto; }
+  .ai-preview-flow { flex: 0 0 240px; min-height: 240px; }
+  .ai-preview-chat-sidebar { display: flex; width: 100%; min-width: 0; border-left: 0; border-top: 1px solid #e5e7eb; }
+  .ai-preview-chat-body { overflow: visible; }
+  .ai-preview-dialog .ai-preview-chat-input { min-height: 80px; font-size: 16px; }
+  .ai-preview-dialog button { min-height: 44px; min-width: 44px; }
+  .ai-preview-actions { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .ai-preview-meta { flex: 1 0 100%; }
+  .ai-preview-button { padding: 10px 8px; font-size: 13px; }
+}
+@media (max-height: 500px) and (pointer: coarse) {
+  .ai-preview-flow { flex-basis: 160px; min-height: 160px; }
+  .ai-preview-summary { max-height: 42px; overflow-y: auto; }
+}

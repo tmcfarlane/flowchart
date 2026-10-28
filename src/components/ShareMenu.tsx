@@ -70,6 +70,7 @@ export interface ShareMenuProps {
 
 function ShareMenu({ isShared, canEdit, viewUrl, editUrl, creating, createError, onCreate }: ShareMenuProps) {
   const [open, setOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const mcpUrl = `${window.location.origin}/api/mcp`
 
@@ -79,7 +80,7 @@ function ShareMenu({ isShared, canEdit, viewUrl, editUrl, creating, createError,
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as globalThis.Node)) setOpen(false)
     }
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
+      if (e.key === 'Escape') { setOpen(false); buttonRef.current?.focus() }
     }
     document.addEventListener('mousedown', onPointerDown)
     window.addEventListener('keydown', onKeyDown)
@@ -92,12 +93,14 @@ function ShareMenu({ isShared, canEdit, viewUrl, editUrl, creating, createError,
   return (
     <div className="share-wrapper" ref={wrapperRef}>
       <button
+        ref={buttonRef}
         className={`toolbar-button share-button ${open ? 'active' : ''} ${isShared ? 'is-shared' : ''}`}
         onClick={() => setOpen((v) => !v)}
         title={isShared ? 'Share links' : 'Share this flowchart'}
         aria-label="Share"
         aria-expanded={open}
         aria-haspopup="dialog"
+        aria-controls="share-flowchart-panel"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6.5 9.5l3-3" />
@@ -108,7 +111,8 @@ function ShareMenu({ isShared, canEdit, viewUrl, editUrl, creating, createError,
       </button>
 
       {open && (
-        <div className="share-panel" role="dialog" aria-label="Share flowchart">
+        <div id="share-flowchart-panel" className="share-panel" role="dialog" aria-label="Share flowchart">
+          <button type="button" className="share-panel-close" aria-label="Close share" onClick={() => { setOpen(false); buttonRef.current?.focus() }}>×</button>
           <h2 className="share-panel-title">Share this flowchart</h2>
           {!isShared ? (
             <>

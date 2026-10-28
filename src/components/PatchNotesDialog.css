@@ -223,3 +223,9 @@
   .patch-notes-body { padding: 0 20px 22px; }
   .patch-notes-footer { padding: 16px 20px; }
 }
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .patch-notes-overlay { padding: calc(8px + env(safe-area-inset-top, 0px)) calc(8px + env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) calc(8px + env(safe-area-inset-left, 0px)); }
+  .patch-notes-dialog { max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .patch-notes-dialog button { min-width: 44px; min-height: 44px; }
+}

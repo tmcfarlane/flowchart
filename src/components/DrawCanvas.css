@@ -136,6 +136,7 @@
   .draw-bottom-controls { left: var(--chrome-left); bottom: var(--bottom-clearance); gap: 2px; padding: 4px; height: var(--navigation-block); }
   .draw-canvas .draw-bottom-controls button { width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; }
   .draw-bottom-controls > span { display: none; }
+  .draw-canvas:has(.draw-properties[data-mobile-open="true"], .draw-library-panel) .draw-help-toggle { visibility: hidden; }
   .draw-help-toggle { right: var(--chrome-right); bottom: var(--floating-bottom); width: 44px; height: 44px; }
   .draw-message { bottom: var(--floating-bottom); max-width: calc(100% - 16px); }
   .draw-help-overlay, .draw-panel-overlay { padding: 8px; }
