@@ -200,7 +200,7 @@ function FillPattern({ id, style, paint, width }: { id: string; style: string; p
 }
 
 function Arrowhead({ kind, stroke, width }: { kind: string; stroke: string; width: number }) {
-  const s = Math.max(8, width * 4)
+  const s = Math.max(16, width * 4)
   if (kind === 'bar') return <path d={`M ${-s * 0.35} ${-s * 0.55} V ${s * 0.55}`} fill="none" stroke={stroke} strokeWidth={width} />
   if (kind === 'dot' || kind === 'dot_outline' || kind === 'circle' || kind === 'circle_outline') return <circle cx={-s * 0.38} cy={0} r={s * 0.38} fill={kind.endsWith('_outline') ? 'none' : stroke} stroke={stroke} strokeWidth={width} />
   if (kind === 'diamond' || kind === 'diamond_outline') return <path d={`M 0 0 L ${-s * 0.6} ${-s * 0.45} L ${-s * 1.2} 0 L ${-s * 0.6} ${s * 0.45} Z`} fill={kind.endsWith('_outline') ? 'none' : stroke} stroke={stroke} strokeWidth={width} />

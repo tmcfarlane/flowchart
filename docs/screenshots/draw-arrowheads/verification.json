@@ -1,0 +1,52 @@
+{
+  "base_commit": "85ec3050aa39248686f31a183420a0b2996d20b1",
+  "browser": "Chromium",
+  "theme_zoom_pairs": 4,
+  "marker_measurements": 68,
+  "reduced_zoom_dark": {
+    "thin": {
+      "before": {
+        "pixels": 10,
+        "width_px": 4,
+        "height_px": 4
+      },
+      "after": {
+        "pixels": 20,
+        "width_px": 7,
+        "height_px": 8
+      }
+    },
+    "regular": {
+      "before": {
+        "pixels": 16,
+        "width_px": 5,
+        "height_px": 6
+      },
+      "after": {
+        "pixels": 26,
+        "width_px": 8,
+        "height_px": 9
+      }
+    },
+    "wide": {
+      "before": {
+        "pixels": 56,
+        "width_px": 12,
+        "height_px": 12
+      },
+      "after": {
+        "pixels": 56,
+        "width_px": 12,
+        "height_px": 12
+      }
+    }
+  },
+  "endpoint_positions_unchanged": true,
+  "saved_scene_unchanged": true,
+  "svg_markers": 17,
+  "png_size": [
+    1148,
+    1944
+  ],
+  "browser_errors": []
+}
