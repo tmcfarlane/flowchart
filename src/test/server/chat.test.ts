@@ -1,5 +1,8 @@
 // @vitest-environment node
 import { createServer, type Server } from 'node:http'
+import { readFileSync } from 'node:fs'
+import { parseGenerationResponse } from '../../shared/aiGeneration'
+import { parseDrawDocument } from '../../shared/drawDocument'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleChat, type ChatContext, type AiEvent } from '../../shared/server/chat'
@@ -256,18 +259,79 @@ describe('native Draw generation', () => {
     const ctx = context(ENV, vi.fn(async () => upstream(DRAW_PROPOSAL)))
     const response = await post(await server(ctx), DRAW_REQUEST)
     expect(response.status).toBe(200)
-    expect(JSON.parse((await response.json()).message)).toEqual(DRAW_PROPOSAL)
+    const result = await response.json()
+    expect(JSON.parse(result.message)).toEqual(DRAW_PROPOSAL)
+    expect(parseDrawDocument(result.drawing)).toMatchObject({ type: 'excalidraw', version: 2, source: 'FlowChart', files: {} })
+    expect(parseGenerationResponse(result, 'draw')).toMatchObject({ outputMode: 'draw', proposal: DRAW_PROPOSAL, drawing: result.drawing })
     const call = ctx.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
     const body = JSON.parse(String(call[1].body))
     expect(body.response_format.json_schema.name).toBe('DrawProposal')
     expect(body.response_format.json_schema.strict).toBe(true)
-    expect(body.messages[0].content).toContain('native editable Draw drawing')
-    expect(body.messages[0].content).toContain('standalone text')
-    expect(body.messages[0].content).toContain('frame (Frame) for named sections')
-    expect(body.messages[0].content).toContain('An empty children array creates a blank wireframe')
-    expect(body.messages[0].content).toContain('Do not add every tool just for variety')
+    expect(body.messages[0].content).toContain(readFileSync('api/draw-generation-skill.md', 'utf8'))
+    expect(body.messages[0].content).toContain('Ordinary process, architecture, routine, or explanation requests do not need decorative squiggles')
     expect(body.messages[0].content).toContain(JSON.stringify(DRAW_CONTEXT))
     expect(body.messages[0].content).not.toContain('Create an architecture diagram')
+  })
+
+  it('keeps legacy source JSON compatible and transports overlap permissions separately', async () => {
+    const plan = { outputMode: 'draw', summary: 'Venn circles', elements: [
+      { id: 'left', type: 'ellipse', x: 0, y: 0, width: 240, height: 180, label: 'A', strokeColor: '#123', backgroundColor: 'transparent' },
+      { id: 'right', type: 'ellipse', x: 150, y: 0, width: 240, height: 180, label: 'B', strokeColor: '#123', backgroundColor: 'transparent' },
+    ], overlaps: [{ firstId: 'left', secondId: 'right', reason: 'venn' }] }
+    const response = await post(await server(context(ENV, vi.fn(async () => upstream(plan)))), DRAW_REQUEST)
+    expect(response.status).toBe(200)
+    const result = await response.json()
+    const { overlaps, ...legacyPlan } = plan
+    expect(JSON.parse(result.message)).toEqual(legacyPlan)
+    expect(result.drawOverlaps).toEqual(overlaps)
+    expect(parseGenerationResponse(result, 'draw')).toMatchObject({ proposal: plan })
+  })
+
+  it('repairs invalid geometry once and returns only the finalized repaired file', async () => {
+    const crowded = { outputMode: 'draw', summary: 'Two cards', elements: [
+      { id: 'left', type: 'rectangle', x: 0, y: 0, width: 200, height: 100, label: 'Plan', strokeColor: '#123', backgroundColor: 'transparent' },
+      { id: 'right', type: 'rectangle', x: 80, y: 0, width: 200, height: 100, label: 'Result', strokeColor: '#123', backgroundColor: 'transparent' },
+    ], overlaps: [] }
+    const repaired = { ...crowded, elements: crowded.elements.map(element => element.id === 'right' ? { ...element, x: 400 } : element) }
+    const fetcher = vi.fn().mockResolvedValueOnce(upstream(crowded)).mockResolvedValueOnce(upstream(repaired))
+    const ctx = context(ENV, fetcher)
+    const result = await post(await server(ctx), DRAW_REQUEST)
+    expect(result.status).toBe(200)
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    const retryMessages = JSON.parse(String(fetcher.mock.calls[1][1].body)).messages
+    expect(retryMessages.at(-1).content).toContain('quality findings')
+    expect(JSON.parse(retryMessages.at(-2).content)).toEqual(crowded)
+    const body = await result.json()
+    expect(body.drawing.elements.find((element: { id: string }) => element.id === 'right').x).toBe(400)
+    expect(body.drawOverlaps).toBeUndefined()
+    expect(ctx.dependencies.report).toHaveBeenCalledWith(expect.objectContaining({ attempts: 2, inputTokens: 200, outputTokens: 100 }))
+  })
+
+  it('rejects expanded overlap permissions during repair and never makes a third provider request', async () => {
+    const crowded = { outputMode: 'draw', summary: 'Two cards', elements: [
+      { id: 'left', type: 'rectangle', x: 0, y: 0, width: 200, height: 100, label: '', strokeColor: '#123', backgroundColor: 'transparent' },
+      { id: 'right', type: 'rectangle', x: 80, y: 0, width: 200, height: 100, label: '', strokeColor: '#123', backgroundColor: 'transparent' },
+    ] }
+    const expanded = { ...crowded, overlaps: [{ firstId: 'left', secondId: 'right', reason: 'overlay' }] }
+    const fetcher = vi.fn().mockResolvedValueOnce(upstream(crowded)).mockResolvedValueOnce(upstream(expanded))
+    const response = await post(await server(context(ENV, fetcher)), DRAW_REQUEST)
+    expect(response.status).toBe(502)
+    expect(await response.json()).toMatchObject({ code: 'invalid_layout' })
+    expect(fetcher).toHaveBeenCalledTimes(2)
+    const fallback = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ error: { param: 'response_format', code: 'unsupported_value' } }), { status: 400 })).mockResolvedValueOnce(upstream(crowded))
+    const exhausted = await post(await server(context(ENV, fallback)), DRAW_REQUEST)
+    expect(exhausted.status).toBe(502)
+    expect(await exhausted.json()).toMatchObject({ code: 'invalid_layout' })
+    expect(fallback).toHaveBeenCalledTimes(2)
+  })
+
+  it('bounds the final file response even when the upstream authoring plan fits', async () => {
+    const minimal = { outputMode: 'draw', summary: '', elements: [{ id: 'card', type: 'rectangle', x: 0, y: 0, width: 200, height: 100, label: 'Card', strokeColor: '#123', backgroundColor: 'transparent' }] }
+    const ctx = context({ ...ENV, AI_MAX_RESPONSE_BYTES: '1024' } as typeof ENV, vi.fn(async () => upstream(minimal)))
+    const response = await post(await server(ctx), DRAW_REQUEST)
+    expect(response.status).toBe(502)
+    expect(await response.json()).toMatchObject({ code: 'response_size' })
+    expect(ctx.dependencies.fetch).toHaveBeenCalledTimes(1)
   })
 
   it('refines the previous bounded drawing with its exact output mode', async () => {
