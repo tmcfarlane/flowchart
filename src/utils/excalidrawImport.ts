@@ -298,11 +298,12 @@ function remapScene(
     const newId = assetIds.get(id)!
     return [newId, { ...file, id: newId }]
   }))
+  const appState = current?.appState ?? imported.appState
   const result: ArchitectureScene = {
     version: 1,
     elements: [...(current?.elements ?? []), ...elements],
     files: { ...current?.files, ...files },
-    appState: current?.appState ?? imported.appState,
+    ...(appState === undefined ? {} : { appState }),
   }
   if (result.elements.length > EXCALIDRAW_IMPORT_LIMITS.maxElements || Object.keys(result.files).length > EXCALIDRAW_IMPORT_LIMITS.maxFiles || new TextEncoder().encode(JSON.stringify(result)).byteLength > EXCALIDRAW_IMPORT_LIMITS.maxBytes) {
     throw new Error('The combined drawing exceeds the 5,000 element or 4 MiB scene limit. Open this file as a new diagram instead.')

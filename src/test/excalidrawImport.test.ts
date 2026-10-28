@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { validateArchitectureScene } from '../shared/architectureScene'
 import { parseExcalidrawScene, prepareSceneInsertion, prepareSceneOpen, getExcalidrawCompatibilityNotes, EXCALIDRAW_IMPORT_LIMITS } from '../utils/excalidrawImport'
 
 const fixture = (name = 'architecture-complete.excalidraw') =>
@@ -330,6 +331,16 @@ describe('opening an Excalidraw scene', () => {
 })
 
 describe('inserting an Excalidraw scene', () => {
+  it('inserts two valid scenes that omit appState', () => {
+    const current = validateArchitectureScene({ version: 1, elements: [{ id: 'existing', type: 'rectangle', x: 0, y: 0, width: 80, height: 60, angle: 0 }], files: {} })
+    const imported = validateArchitectureScene({ version: 1, elements: [{ id: 'added', type: 'text', x: 100, y: 100, width: 80, height: 30, angle: 0, text: 'Hello' }], files: {} })
+    const merged = prepareSceneInsertion(imported, current, { x: 200, y: 200 })
+    expect(merged.elements).toHaveLength(2)
+    expect(merged.elements[0]).toEqual(current.elements[0])
+    expect(merged).not.toHaveProperty('appState')
+    expect(validateArchitectureScene(merged)).toBe(merged)
+  })
+
   it('rejects a combined document that would exceed the asset limit before insertion', () => {
     const original = source()
     const logo = original.files['asset-logo']
