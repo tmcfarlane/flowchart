@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'docs/screenshots/mobile'
 DRAFT = 'flowchart-editor-draft-v3'
 SEEN = 'flowchart-patch-notes-seen-revision'
+LATEST = re.search(r'\brevision:\s*(\d+)', (ROOT / 'src/patchNotes.ts').read_text()).group(1)
 BASE_REVISION = '52a3d51eb56697deb143f9c22989f6065cae436e'
 FIXTURE = {
     'version': 4, 'mode': 'flowchart',
@@ -211,11 +212,11 @@ async def new_page(browser, url, screen, theme='dark', fresh=False, mode='flowch
     await page.route('**/api/**', api)
     fixture = copy.deepcopy(FIXTURE)
     fixture['mode'] = mode
-    seed = {'fixture': None if fresh else fixture, 'fresh': fresh}
+    seed = {'fixture': None if fresh else fixture, 'fresh': fresh, 'seen': LATEST}
     await page.add_init_script('''config => {
         if (!sessionStorage.getItem('mobile-proof-seeded')) {
             if (config.fixture) localStorage.setItem('flowchart-editor-draft-v3', JSON.stringify(config.fixture));
-            if (!config.fresh) localStorage.setItem('flowchart-patch-notes-seen-revision','1');
+            if (!config.fresh) localStorage.setItem('flowchart-patch-notes-seen-revision',config.seen);
             sessionStorage.setItem('mobile-proof-seeded','true');
         }
     }'''.replace('config =>', '(' + 'config =>') + ')(' + json.dumps(seed) + ')')
