@@ -16,7 +16,7 @@ import { sortParentsFirst } from '../utils/nesting'
 import type { EdgeStyle } from '../App'
 import type { AIGenerationProposal } from '../shared/aiGeneration'
 import type { ArchitectureScene } from '../shared/architectureScene'
-import { drawProposalToScene } from '../utils/drawGeneration'
+import { sceneFromDrawing } from '../shared/drawDocument'
 import { getSceneBounds } from '../utils/drawScene'
 import DrawSceneSvg from './DrawSceneSvg'
 import './AIInsertPreviewDialog.css'
@@ -141,7 +141,7 @@ interface ChatBubble {
 }
 
 function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview, onRefine, refinementInput, onRefinementInputChange, onCancelRefine, error, isRefining, darkMode }: AIInsertPreviewDialogProps) {
-  const [isFullscreen, setIsFullscreen] = useState(proposal.outputMode === 'draw' ? proposal.elements.length >= 8 : proposal.nodes.length >= 8)
+  const [isFullscreen, setIsFullscreen] = useState(proposal.outputMode === 'draw' ? proposal.proposal.elements.length >= 8 : proposal.nodes.length >= 8)
   const [refinementError, setRefinementError] = useState<string | null>(null)
   const [showChat, setShowChat] = useState(true)
   const [chatMessages, setChatMessages] = useState<ChatBubble[]>([])
@@ -150,7 +150,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
   const chatBodyRef = useRef<HTMLDivElement>(null)
 
   const targetLabel = { flowchart: 'Flowchart', architecture: 'Architecture', draw: 'Draw' }[proposal.outputMode]
-  const drawScene = useMemo(() => proposal.outputMode === 'draw' ? drawProposalToScene(proposal) : null, [proposal])
+  const drawScene = useMemo(() => proposal.outputMode === 'draw' ? sceneFromDrawing(proposal.drawing) : null, [proposal])
 
   // Convert proposal nodes/edges to React Flow format
   const getEdgeStyleProps = useCallback((style?: EdgeStyle, commStyle?: 'sync' | 'async') => ({
@@ -452,7 +452,7 @@ function AIInsertPreviewDialogContent({ proposal, onInsert, onCancel, onPreview,
 
         <div className="ai-preview-actions">
           <span className="ai-preview-meta">
-            {proposal.outputMode === 'draw' ? `${proposal.elements.length} drawing objects` : `${proposal.nodes.length} nodes · ${proposal.edges.length} edges`}
+            {proposal.outputMode === 'draw' ? `${proposal.proposal.elements.length} drawing objects` : `${proposal.nodes.length} nodes · ${proposal.edges.length} edges`}
           </span>
           <button
             className="ai-preview-button cancel"

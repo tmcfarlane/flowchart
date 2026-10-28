@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Node, Edge } from 'reactflow'
 import './AIChat.css'
 import { type DiagramMode, DIAGRAM_MODES } from '../shared/flowTypes'
-import { parseGenerationProposal, normalizeGenerationProposal, type AIGenerationContext, type AIGenerationProposal } from '../shared/aiGeneration'
+import { parseGenerationResponse, normalizeGenerationProposal, type AIGenerationContext, type AIGenerationProposal } from '../shared/aiGeneration'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
 import { parseFlowJson } from '../utils/exportUtils'
@@ -68,7 +68,7 @@ const MODE_COPY: Record<DiagramMode, {
     button: 'Generate drawing',
     loading: 'Generating drawing...',
     starters: [
-      { emoji: '🖊️', text: 'Sketch a workshop whiteboard with freehand highlights, notes and arrows' },
+      { emoji: '🖊️', text: 'Plan a workshop with clear sections, notes and arrows' },
       { emoji: '💡', text: 'Draw a product launch mind map with round ideas, branches and notes' },
       { emoji: '📱', text: 'Make two named mobile screen frames with buttons, labels and navigation arrows' },
       { emoji: '🗺️', text: 'Draw an event floor plan with section frames, tables and walking routes' },
@@ -197,9 +197,9 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
       if (requestRef.current !== request || targetRef.current !== outputMode || revisionRef.current !== revision || !openRef.current) return
       let proposal: AIGenerationProposal
       try {
-        proposal = parseGenerationProposal(data.message, outputMode, data.finishReason)
+        proposal = parseGenerationResponse(data, outputMode)
         if (proposal.outputMode !== 'draw') {
-          proposal = normalizeGenerationProposal({ ...proposal, nodes: resolveAzureIcons(proposal).nodes }, outputMode)
+          proposal = normalizeGenerationProposal({ ...proposal, nodes: resolveAzureIcons(proposal).nodes }, proposal.outputMode)
         }
       } catch (parseError) {
         if (data.finishReason === 'length') throw parseError

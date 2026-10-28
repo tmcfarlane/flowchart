@@ -1,0 +1,937 @@
+{
+  "message": "{\"outputMode\":\"draw\",\"summary\":\"A left-to-right product launch workshop flow showing exploration activities, a readiness decision, launch execution, and handoff to decision makers with clear spacing and presentation-friendly grouping.\",\"elements\":[{\"id\":\"title\",\"type\":\"text\",\"x\":40,\"y\":-120,\"text\":\"Product Launch Workshop\",\"fontSize\":32,\"strokeColor\":\"#0f172a\"},{\"id\":\"exploration\",\"type\":\"rectangle\",\"x\":40,\"y\":20,\"width\":260,\"height\":140,\"label\":\"Exploration\\n\\nReview customer insights, market signals, product positioning, and launch goals.\",\"strokeColor\":\"#334155\",\"backgroundColor\":\"#dbeafe\"},{\"id\":\"alignment\",\"type\":\"rectangle\",\"x\":460,\"y\":20,\"width\":260,\"height\":140,\"label\":\"Cross-Functional Alignment\\n\\nConfirm messaging, owners, timelines, risks, and launch dependencies.\",\"strokeColor\":\"#334155\",\"backgroundColor\":\"#e0f2fe\"},{\"id\":\"readiness\",\"type\":\"diamond\",\"x\":900,\"y\":0,\"width\":240,\"height\":180,\"label\":\"Launch Ready?\",\"strokeColor\":\"#334155\",\"backgroundColor\":\"#fef3c7\"},{\"id\":\"launch_actions\",\"type\":\"rectangle\",\"x\":1320,\"y\":-120,\"width\":280,\"height\":160,\"label\":\"Final Launch Actions\\n\\nPublish assets, enable support teams, monitor rollout, and coordinate communications.\",\"strokeColor\":\"#334155\",\"backgroundColor\":\"#dcfce7\"},{\"id\":\"handoff\",\"type\":\"rectangle\",\"x\":1780,\"y\":-120,\"width\":280,\"height\":160,\"label\":\"Decision-Maker Handoff\\n\\nShare launch status, open risks, KPIs, and recommended next steps.\",\"strokeColor\":\"#334155\",\"backgroundColor\":\"#ede9fe\"},{\"id\":\"rework\",\"type\":\"rectangle\",\"x\":1320,\"y\":220,\"width\":280,\"height\":140,\"label\":\"Refine Plan\\n\\nAddress blockers, update launch materials, and revisit unresolved risks.\",\"strokeColor\":\"#334155\",\"backgroundColor\":\"#fee2e2\"},{\"id\":\"arrow_explore_align\",\"type\":\"arrow\",\"points\":[{\"x\":300,\"y\":90},{\"x\":460,\"y\":90}],\"sourceId\":\"exploration\",\"targetId\":\"alignment\",\"label\":\"\",\"strokeColor\":\"#334155\"},{\"id\":\"arrow_align_ready\",\"type\":\"arrow\",\"points\":[{\"x\":720,\"y\":90},{\"x\":900,\"y\":90}],\"sourceId\":\"alignment\",\"targetId\":\"readiness\",\"label\":\"\",\"strokeColor\":\"#334155\"},{\"id\":\"arrow_yes_launch\",\"type\":\"arrow\",\"points\":[{\"x\":1140,\"y\":90},{\"x\":1220,\"y\":90},{\"x\":1220,\"y\":-40},{\"x\":1320,\"y\":-40}],\"sourceId\":\"readiness\",\"targetId\":\"launch_actions\",\"label\":\"Yes\",\"strokeColor\":\"#334155\"},{\"id\":\"arrow_launch_handoff\",\"type\":\"arrow\",\"points\":[{\"x\":1600,\"y\":-40},{\"x\":1780,\"y\":-40}],\"sourceId\":\"launch_actions\",\"targetId\":\"handoff\",\"label\":\"\",\"strokeColor\":\"#334155\"},{\"id\":\"arrow_no_rework\",\"type\":\"arrow\",\"points\":[{\"x\":1020,\"y\":180},{\"x\":1020,\"y\":290},{\"x\":1320,\"y\":290}],\"sourceId\":\"readiness\",\"targetId\":\"rework\",\"label\":\"No\",\"strokeColor\":\"#334155\"},{\"id\":\"workshop_frame\",\"type\":\"frame\",\"x\":0,\"y\":-180,\"width\":2140,\"height\":620,\"name\":\"Launch Workshop Flow\",\"children\":[\"title\",\"exploration\",\"alignment\",\"readiness\",\"launch_actions\",\"handoff\",\"rework\",\"arrow_explore_align\",\"arrow_align_ready\",\"arrow_yes_launch\",\"arrow_launch_handoff\",\"arrow_no_rework\"]}]}",
+  "drawing": {
+    "type": "excalidraw",
+    "version": 2,
+    "source": "FlowChart",
+    "elements": [
+      {
+        "id": "title",
+        "type": "text",
+        "x": 40,
+        "y": -120,
+        "width": 401.92,
+        "height": 52,
+        "angle": 0,
+        "strokeColor": "#0f172a",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1278401156,
+        "version": 1,
+        "versionNonce": 1278401156,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Product Launch Workshop",
+        "originalText": "Product Launch Workshop",
+        "fontSize": 32,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "left",
+        "verticalAlign": "top",
+        "containerId": null,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "exploration",
+        "type": "rectangle",
+        "x": 40,
+        "y": 20,
+        "width": 260,
+        "height": 190,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#dbeafe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 709660061,
+        "version": 1,
+        "versionNonce": 709660061,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-0",
+            "type": "text"
+          },
+          {
+            "id": "arrow_explore_align",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-0",
+        "type": "text",
+        "x": 57.92100000000001,
+        "y": 32,
+        "width": 224.158,
+        "height": 166,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 629473172,
+        "version": 1,
+        "versionNonce": 629473172,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Exploration\n\nReview customer insights,\nmarket signals, product\npositioning, and launch\ngoals.",
+        "originalText": "Exploration\n\nReview customer insights, market signals, product positioning, and launch goals.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "exploration",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "alignment",
+        "type": "rectangle",
+        "x": 460,
+        "y": 20,
+        "width": 260,
+        "height": 190,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#e0f2fe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1492038319,
+        "version": 1,
+        "versionNonce": 1492038319,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-1",
+            "type": "text"
+          },
+          {
+            "id": "arrow_explore_align",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow_align_ready",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-1",
+        "type": "text",
+        "x": 477.399,
+        "y": 32,
+        "width": 225.202,
+        "height": 166,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 621084363,
+        "version": 1,
+        "versionNonce": 621084363,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Cross-Functional\nAlignment\n\nConfirm messaging,\nowners, timelines, risks,\nand launch dependencies.",
+        "originalText": "Cross-Functional Alignment\n\nConfirm messaging, owners, timelines, risks, and launch dependencies.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "alignment",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "readiness",
+        "type": "diamond",
+        "x": 900,
+        "y": 0,
+        "width": 307.46000000000004,
+        "height": 180,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#fef3c7",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1499366015,
+        "version": 1,
+        "versionNonce": 1499366015,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-2",
+            "type": "text"
+          },
+          {
+            "id": "arrow_align_ready",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow_yes_launch",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow_no_rework",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-2",
+        "type": "text",
+        "x": 988.865,
+        "y": 74.5,
+        "width": 129.73000000000002,
+        "height": 31,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 612695553,
+        "version": 1,
+        "versionNonce": 612695553,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Launch Ready?",
+        "originalText": "Launch Ready?",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "readiness",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "launch_actions",
+        "type": "rectangle",
+        "x": 1320,
+        "y": -120,
+        "width": 280,
+        "height": 190,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#dcfce7",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 2120939407,
+        "version": 1,
+        "versionNonce": 2120939407,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-3",
+            "type": "text"
+          },
+          {
+            "id": "arrow_yes_launch",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow_launch_handoff",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-3",
+        "type": "text",
+        "x": 1357.299,
+        "y": -108,
+        "width": 205.402,
+        "height": 166,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 604306744,
+        "version": 1,
+        "versionNonce": 604306744,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Final Launch Actions\n\nPublish assets, enable\nsupport teams, monitor\nrollout, and coordinate\ncommunications.",
+        "originalText": "Final Launch Actions\n\nPublish assets, enable support teams, monitor rollout, and coordinate communications.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "launch_actions",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "handoff",
+        "type": "rectangle",
+        "x": 1780,
+        "y": -120,
+        "width": 280,
+        "height": 163,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#ede9fe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 119710914,
+        "version": 1,
+        "versionNonce": 119710914,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-4",
+            "type": "text"
+          },
+          {
+            "id": "arrow_launch_handoff",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-4",
+        "type": "text",
+        "x": 1807.606,
+        "y": -108,
+        "width": 224.788,
+        "height": 139,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 663028410,
+        "version": 1,
+        "versionNonce": 663028410,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Decision-Maker Handoff\n\nShare launch status, open\nrisks, KPIs, and\nrecommended next steps.",
+        "originalText": "Decision-Maker Handoff\n\nShare launch status, open risks, KPIs, and recommended next steps.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "handoff",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "rework",
+        "type": "rectangle",
+        "x": 1320,
+        "y": 220,
+        "width": 280,
+        "height": 163,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#fee2e2",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1847774510,
+        "version": 1,
+        "versionNonce": 1847774510,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-5",
+            "type": "text"
+          },
+          {
+            "id": "arrow_no_rework",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-5",
+        "type": "text",
+        "x": 1338.966,
+        "y": 232,
+        "width": 242.068,
+        "height": 139,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 654639601,
+        "version": 1,
+        "versionNonce": 654639601,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Refine Plan\n\nAddress blockers, update\nlaunch materials, and revisit\nunresolved risks.",
+        "originalText": "Refine Plan\n\nAddress blockers, update launch materials, and revisit unresolved risks.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "rework",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "arrow_explore_align",
+        "type": "arrow",
+        "x": 300,
+        "y": 90,
+        "width": 160,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1470564968,
+        "version": 1,
+        "versionNonce": 1470564968,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "exploration",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.3684210526315789
+          ]
+        },
+        "endBinding": {
+          "elementId": "alignment",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.3684210526315789
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            160,
+            0
+          ]
+        ]
+      },
+      {
+        "id": "arrow_align_ready",
+        "type": "arrow",
+        "x": 720,
+        "y": 90,
+        "width": 180,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1850257710,
+        "version": 1,
+        "versionNonce": 1850257710,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "alignment",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.3684210526315789
+          ]
+        },
+        "endBinding": {
+          "elementId": "readiness",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.5
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            180,
+            0
+          ]
+        ]
+      },
+      {
+        "id": "arrow_yes_launch",
+        "type": "arrow",
+        "x": 1207.46,
+        "y": 90,
+        "width": 112.53999999999996,
+        "height": 115,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1609289070,
+        "version": 1,
+        "versionNonce": 1609289070,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-6",
+            "type": "text"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "readiness",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.5
+          ]
+        },
+        "endBinding": {
+          "elementId": "launch_actions",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.5
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            78.53999999999996,
+            0
+          ],
+          [
+            78.53999999999996,
+            -115
+          ],
+          [
+            112.53999999999996,
+            -115
+          ]
+        ]
+      },
+      {
+        "id": "ai-label-6",
+        "type": "text",
+        "x": 1272.737,
+        "y": 42.26999999999998,
+        "width": 26.526,
+        "height": 25,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 646250791,
+        "version": 1,
+        "versionNonce": 646250791,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Yes",
+        "originalText": "Yes",
+        "fontSize": 14,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "arrow_yes_launch",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "arrow_launch_handoff",
+        "type": "arrow",
+        "x": 1600,
+        "y": -40,
+        "width": 180,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1641383912,
+        "version": 1,
+        "versionNonce": 1641383912,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "launch_actions",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.42105263157894735
+          ]
+        },
+        "endBinding": {
+          "elementId": "handoff",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.49079754601226994
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            180,
+            0
+          ]
+        ]
+      },
+      {
+        "id": "arrow_no_rework",
+        "type": "arrow",
+        "x": 1020,
+        "y": 160.25304104598973,
+        "width": 300,
+        "height": 129.74695895401027,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 1529126434,
+        "version": 1,
+        "versionNonce": 1529126434,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-7",
+            "type": "text"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "readiness",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0.39029467247772065,
+            0.8902946724777208
+          ]
+        },
+        "endBinding": {
+          "elementId": "rework",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.4294478527607362
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            129.74695895401027
+          ],
+          [
+            300,
+            129.74695895401027
+          ]
+        ]
+      },
+      {
+        "id": "ai-label-7",
+        "type": "text",
+        "x": 1093.571520522995,
+        "y": 277.5,
+        "width": 23.11,
+        "height": 25,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "workshop_frame",
+        "roundness": null,
+        "seed": 637861982,
+        "version": 1,
+        "versionNonce": 637861982,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "No",
+        "originalText": "No",
+        "fontSize": 14,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "arrow_no_rework",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "workshop_frame",
+        "type": "frame",
+        "x": 0,
+        "y": -180,
+        "width": 2140,
+        "height": 620,
+        "angle": 0,
+        "strokeColor": "#1e293b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 1432087709,
+        "version": 1,
+        "versionNonce": 1432087709,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "name": "Launch Workshop Flow",
+        "fontFamily": 2,
+        "fontSize": 13,
+        "lineHeight": 1.5,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      }
+    ],
+    "files": {}
+  },
+  "role": "assistant",
+  "finishReason": "stop"
+}

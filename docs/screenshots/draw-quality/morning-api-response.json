@@ -1,0 +1,803 @@
+{
+  "message": "{\"outputMode\":\"draw\",\"summary\":\"A calm morning routine flowchart with simple, practical steps from waking up to starting the day. The layout is easy to scan left-to-right with soft colors and clear spacing.\",\"elements\":[{\"id\":\"title\",\"type\":\"text\",\"x\":40,\"y\":-120,\"text\":\"Calm Morning Routine\",\"fontSize\":32,\"strokeColor\":\"#334155\"},{\"id\":\"wake\",\"type\":\"rectangle\",\"x\":40,\"y\":0,\"width\":200,\"height\":100,\"label\":\"Wake up gently\\nAvoid checking your phone right away\",\"strokeColor\":\"#64748b\",\"backgroundColor\":\"#e0f2fe\"},{\"id\":\"water\",\"type\":\"rectangle\",\"x\":380,\"y\":0,\"width\":220,\"height\":100,\"label\":\"Drink a glass of water\\nOpen curtains or blinds\",\"strokeColor\":\"#64748b\",\"backgroundColor\":\"#dcfce7\"},{\"id\":\"stretch\",\"type\":\"rectangle\",\"x\":740,\"y\":0,\"width\":220,\"height\":100,\"label\":\"Stretch or move lightly\\n2\u20135 minutes\",\"strokeColor\":\"#64748b\",\"backgroundColor\":\"#fef3c7\"},{\"id\":\"quiet\",\"type\":\"rectangle\",\"x\":1100,\"y\":0,\"width\":240,\"height\":100,\"label\":\"Quiet moment\\nBreathing, journaling, or reflection\",\"strokeColor\":\"#64748b\",\"backgroundColor\":\"#ede9fe\"},{\"id\":\"breakfast\",\"type\":\"rectangle\",\"x\":1460,\"y\":0,\"width\":220,\"height\":100,\"label\":\"Simple breakfast\\nEat something nourishing\",\"strokeColor\":\"#64748b\",\"backgroundColor\":\"#fee2e2\"},{\"id\":\"plan\",\"type\":\"rectangle\",\"x\":1820,\"y\":0,\"width\":240,\"height\":100,\"label\":\"Review your day\\nChoose 1\u20133 priorities\",\"strokeColor\":\"#64748b\",\"backgroundColor\":\"#e0f2fe\"},{\"id\":\"arrow1\",\"type\":\"arrow\",\"points\":[{\"x\":240,\"y\":50},{\"x\":380,\"y\":50}],\"sourceId\":\"wake\",\"targetId\":\"water\",\"label\":\"\",\"strokeColor\":\"#475569\"},{\"id\":\"arrow2\",\"type\":\"arrow\",\"points\":[{\"x\":600,\"y\":50},{\"x\":740,\"y\":50}],\"sourceId\":\"water\",\"targetId\":\"stretch\",\"label\":\"\",\"strokeColor\":\"#475569\"},{\"id\":\"arrow3\",\"type\":\"arrow\",\"points\":[{\"x\":960,\"y\":50},{\"x\":1100,\"y\":50}],\"sourceId\":\"stretch\",\"targetId\":\"quiet\",\"label\":\"\",\"strokeColor\":\"#475569\"},{\"id\":\"arrow4\",\"type\":\"arrow\",\"points\":[{\"x\":1340,\"y\":50},{\"x\":1460,\"y\":50}],\"sourceId\":\"quiet\",\"targetId\":\"breakfast\",\"label\":\"\",\"strokeColor\":\"#475569\"},{\"id\":\"arrow5\",\"type\":\"arrow\",\"points\":[{\"x\":1680,\"y\":50},{\"x\":1820,\"y\":50}],\"sourceId\":\"breakfast\",\"targetId\":\"plan\",\"label\":\"\",\"strokeColor\":\"#475569\"}]}",
+  "drawing": {
+    "type": "excalidraw",
+    "version": 2,
+    "source": "FlowChart",
+    "elements": [
+      {
+        "id": "title",
+        "type": "text",
+        "x": 40,
+        "y": -120,
+        "width": 342.752,
+        "height": 52,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 1278401156,
+        "version": 1,
+        "versionNonce": 1278401156,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Calm Morning Routine",
+        "originalText": "Calm Morning Routine",
+        "fontSize": 32,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "left",
+        "verticalAlign": "top",
+        "containerId": null,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "wake",
+        "type": "rectangle",
+        "x": 40,
+        "y": 0,
+        "width": 200,
+        "height": 109,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "#e0f2fe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 1461289478,
+        "version": 1,
+        "versionNonce": 1461289478,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-0",
+            "type": "text"
+          },
+          {
+            "id": "arrow1",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-0",
+        "type": "text",
+        "x": 52.878,
+        "y": 12,
+        "width": 174.244,
+        "height": 85,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 629473172,
+        "version": 1,
+        "versionNonce": 629473172,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Wake up gently\nAvoid checking your\nphone right away",
+        "originalText": "Wake up gently\nAvoid checking your phone right away",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "wake",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "water",
+        "type": "rectangle",
+        "x": 380,
+        "y": 0,
+        "width": 220,
+        "height": 109,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "#dcfce7",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 618876168,
+        "version": 1,
+        "versionNonce": 618876168,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-1",
+            "type": "text"
+          },
+          {
+            "id": "arrow1",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow2",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-1",
+        "type": "text",
+        "x": 396.38,
+        "y": 12,
+        "width": 187.24,
+        "height": 85,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 621084363,
+        "version": 1,
+        "versionNonce": 621084363,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Drink a glass of water\nOpen curtains or\nblinds",
+        "originalText": "Drink a glass of water\nOpen curtains or blinds",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "water",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "stretch",
+        "type": "rectangle",
+        "x": 740,
+        "y": 0,
+        "width": 220,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "#fef3c7",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 1771400981,
+        "version": 1,
+        "versionNonce": 1771400981,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-2",
+            "type": "text"
+          },
+          {
+            "id": "arrow2",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow3",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-2",
+        "type": "text",
+        "x": 752.294,
+        "y": 21,
+        "width": 195.412,
+        "height": 58,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 612695553,
+        "version": 1,
+        "versionNonce": 612695553,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Stretch or move lightly\n2\u20135 minutes",
+        "originalText": "Stretch or move lightly\n2\u20135 minutes",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "stretch",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "quiet",
+        "type": "rectangle",
+        "x": 1100,
+        "y": 0,
+        "width": 240,
+        "height": 109,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "#ede9fe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 1964677387,
+        "version": 1,
+        "versionNonce": 1964677387,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-3",
+            "type": "text"
+          },
+          {
+            "id": "arrow3",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow4",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-3",
+        "type": "text",
+        "x": 1114.014,
+        "y": 12,
+        "width": 211.972,
+        "height": 85,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 604306744,
+        "version": 1,
+        "versionNonce": 604306744,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Quiet moment\nBreathing, journaling, or\nreflection",
+        "originalText": "Quiet moment\nBreathing, journaling, or reflection",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "quiet",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "breakfast",
+        "type": "rectangle",
+        "x": 1460,
+        "y": 0,
+        "width": 220,
+        "height": 109,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "#fee2e2",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 1293515827,
+        "version": 1,
+        "versionNonce": 1293515827,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-4",
+            "type": "text"
+          },
+          {
+            "id": "arrow4",
+            "type": "arrow"
+          },
+          {
+            "id": "arrow5",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-4",
+        "type": "text",
+        "x": 1497.161,
+        "y": 12,
+        "width": 145.678,
+        "height": 85,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 663028410,
+        "version": 1,
+        "versionNonce": 663028410,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Simple breakfast\nEat something\nnourishing",
+        "originalText": "Simple breakfast\nEat something nourishing",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "breakfast",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "plan",
+        "type": "rectangle",
+        "x": 1820,
+        "y": 0,
+        "width": 240,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "#e0f2fe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 1541792649,
+        "version": 1,
+        "versionNonce": 1541792649,
+        "isDeleted": false,
+        "boundElements": [
+          {
+            "id": "ai-label-5",
+            "type": "text"
+          },
+          {
+            "id": "arrow5",
+            "type": "arrow"
+          }
+        ],
+        "updated": 0,
+        "link": null,
+        "locked": false
+      },
+      {
+        "id": "ai-label-5",
+        "type": "text",
+        "x": 1848.981,
+        "y": 21,
+        "width": 182.038,
+        "height": 58,
+        "angle": 0,
+        "strokeColor": "#64748b",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 654639601,
+        "version": 1,
+        "versionNonce": 654639601,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "text": "Review your day\nChoose 1\u20133 priorities",
+        "originalText": "Review your day\nChoose 1\u20133 priorities",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "plan",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "arrow1",
+        "type": "arrow",
+        "x": 240,
+        "y": 50,
+        "width": 140,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#475569",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 62683402,
+        "version": 1,
+        "versionNonce": 62683402,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "wake",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.45871559633027525
+          ]
+        },
+        "endBinding": {
+          "elementId": "water",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.45871559633027525
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            140,
+            0
+          ]
+        ]
+      },
+      {
+        "id": "arrow2",
+        "type": "arrow",
+        "x": 600,
+        "y": 50,
+        "width": 140,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#475569",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 37516974,
+        "version": 1,
+        "versionNonce": 37516974,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "water",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.45871559633027525
+          ]
+        },
+        "endBinding": {
+          "elementId": "stretch",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.5
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            140,
+            0
+          ]
+        ]
+      },
+      {
+        "id": "arrow3",
+        "type": "arrow",
+        "x": 960,
+        "y": 50,
+        "width": 140,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#475569",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 45905783,
+        "version": 1,
+        "versionNonce": 45905783,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "stretch",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.5
+          ]
+        },
+        "endBinding": {
+          "elementId": "quiet",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.45871559633027525
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            140,
+            0
+          ]
+        ]
+      },
+      {
+        "id": "arrow4",
+        "type": "arrow",
+        "x": 1340,
+        "y": 50,
+        "width": 120,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#475569",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 20739355,
+        "version": 1,
+        "versionNonce": 20739355,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "quiet",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.45871559633027525
+          ]
+        },
+        "endBinding": {
+          "elementId": "breakfast",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.45871559633027525
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            120,
+            0
+          ]
+        ]
+      },
+      {
+        "id": "arrow5",
+        "type": "arrow",
+        "x": 1680,
+        "y": 50,
+        "width": 140,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#475569",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "roundness": null,
+        "seed": 29128164,
+        "version": 1,
+        "versionNonce": 29128164,
+        "isDeleted": false,
+        "boundElements": null,
+        "updated": 0,
+        "link": null,
+        "locked": false,
+        "startBinding": {
+          "elementId": "breakfast",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.45871559633027525
+          ]
+        },
+        "endBinding": {
+          "elementId": "plan",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.5
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow",
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            140,
+            0
+          ]
+        ]
+      }
+    ],
+    "files": {}
+  },
+  "role": "assistant",
+  "finishReason": "stop"
+}

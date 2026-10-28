@@ -1,4 +1,4 @@
-import type { ArchitectureScene } from '../shared/architectureScene'
+import type { ArchitectureScene } from '../shared/architectureScene.js'
 
 /** Flowchart's drawing model. Excalidraw-compatible record fields are retained
  * for file interoperability; rendering and editing do not depend on its editor. */

@@ -1,3 +1,4 @@
+import { parseDrawDocument, type ExcalidrawDrawing } from '../shared/drawDocument'
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { toPng, toSvg, toCanvas } from 'html-to-image'
 import GIF from 'gif.js'
@@ -206,4 +207,14 @@ export function parseFlowJson(
     ? 'draw'
     : inferDiagramMode({ mode: obj.mode, nodes: obj.nodes as Array<{ type?: unknown }>, architectureScene })
   return { nodes: obj.nodes as FlowNode[], edges: obj.edges as Edge[], mode, ...(architectureScene ? { architectureScene } : {}) }
+}
+
+export function exportExcalidrawDrawing(drawing: ExcalidrawDrawing): void {
+  const data = JSON.stringify(parseDrawDocument(drawing), null, 2)
+  const url = URL.createObjectURL(new Blob([data], { type: 'application/json' }))
+  const link = document.createElement('a')
+  link.download = 'drawing.excalidraw'
+  link.href = url
+  link.click()
+  URL.revokeObjectURL(url)
 }

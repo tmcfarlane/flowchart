@@ -5,7 +5,7 @@
   "framework": "vite",
   "outputDirectory": "dist",
   "functions": {
-    "api/chat.ts": { "maxDuration": 60 }
+    "api/chat.ts": { "maxDuration": 60, "includeFiles": "api/*-generation-skill.md" }
   },
   "rewrites": [
     { "source": "/f/:path*", "destination": "/index.html" },

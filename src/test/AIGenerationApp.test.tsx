@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import App from '../App'
 import { parseFlowJson, serializeFlow } from '../utils/exportUtils'
+import { compileDrawProposal } from '../shared/drawCompiler'
+import { DrawProposalSchema } from '../shared/drawGeneration'
 import type { DrawProposal } from '../shared/drawGeneration'
 import type { ArchitectureScene } from '../shared/architectureScene'
 
@@ -23,7 +25,12 @@ const retainedScene: ArchitectureScene = {
   files: { asset: { id: 'asset', mimeType: 'image/png', dataURL: 'data:image/png;base64,aGVsbG8=' } },
 }
 const fetchMock = vi.fn()
-const response = (value: unknown) => ({ ok: true, json: async () => ({ message: JSON.stringify(value), finishReason: 'stop' }) })
+const response = (value: unknown) => {
+  const parsed = DrawProposalSchema.safeParse(value)
+  const compiled = parsed.success ? compileDrawProposal(parsed.data) : null
+  if (compiled && !compiled.ok) throw new Error(JSON.stringify(compiled.issues))
+  return { ok: true, json: async () => ({ message: JSON.stringify(value), ...(compiled?.ok ? { drawing: compiled.drawing } : {}), finishReason: 'stop' }) }
+}
 const draft = () => parseFlowJson(localStorage.getItem(draftKey)!)
 
 beforeEach(() => {
@@ -92,7 +99,8 @@ describe('AI proposal document transactions', () => {
     expect(inserted.nodes.map(node => node.id)).toEqual(['old-node'])
     expect(inserted.architectureScene?.files).toEqual(retainedScene.files)
     expect(inserted.architectureScene?.elements.find(element => element.id === 'old-note')).toEqual(retainedScene.elements[0])
-    const additions = inserted.architectureScene!.elements.filter(element => !('customData' in element))
+    const additions = inserted.architectureScene!.elements.filter(element => element.id !== 'old-note' && !(element.customData as { flowchart?: unknown } | undefined)?.flowchart)
+    for (const label of ['Plan', 'Result', 'Workshop title']) expect(additions.find(element => element.originalText === label)).toMatchObject({ customData: { flowchartFont: 'noto-sans-v1' } })
     expect(additions.some(element => element.type === 'line')).toBe(true)
     expect(additions.find(element => element.text === 'Workshop title')?.containerId).toBeNull()
     const arrow = additions.find(element => element.type === 'arrow')!
@@ -107,6 +115,84 @@ describe('AI proposal document transactions', () => {
     render(<App />)
     await screen.findByText('Workshop title')
     expect(screen.getByLabelText('Draw Mode')).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('uses the same backend-routed geometry in preview, presentation and insertion', async () => {
+    const routedPlan: DrawProposal = { outputMode: 'draw', summary: 'Clear route', elements: [
+      { id: 'left', type: 'rectangle', x: 0, y: 0, width: 160, height: 100, label: 'Start', strokeColor: '#123', backgroundColor: 'transparent' },
+      { id: 'right', type: 'rectangle', x: 600, y: 0, width: 160, height: 100, label: 'Finish', strokeColor: '#123', backgroundColor: 'transparent' },
+      { id: 'obstacle', type: 'rectangle', x: 300, y: -20, width: 160, height: 140, label: 'Keep clear', strokeColor: '#123', backgroundColor: 'transparent' },
+      { id: 'route', type: 'arrow', points: [{ x: 160, y: 50 }, { x: 600, y: 50 }], sourceId: 'left', targetId: 'right', label: '', strokeColor: '#123' },
+    ] }
+    const wire = await response(routedPlan).json()
+    const path = wire.drawing!.elements.find(element => element.id === 'route')!
+    const points = path.points as [number, number][]
+    expect(points.length).toBeGreaterThan(2)
+    const svgPath = points.map(([x, y], index) => `${index ? 'L' : 'M'} ${x} ${y}`).join(' ')
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => wire })
+    render(<App />)
+    await generateDrawing()
+    const previewRoute = () => screen.getByRole('img', { name: 'Draw proposal preview' }).querySelector('[data-element-id="route"] path[marker-end]')
+    expect(previewRoute()).toHaveAttribute('d', svgPath)
+    fireEvent.click(screen.getByText('Present'))
+    expect(previewRoute()).toHaveAttribute('d', svgPath)
+    fireEvent.click(screen.getByText('Exit presentation'))
+    fireEvent.click(screen.getByText('Insert into Canvas'))
+    await waitFor(() => expect(draft().mode).toBe('draw'))
+    const insertedPath = draft().architectureScene!.elements.find(element => element.type === 'arrow')!
+    expect(insertedPath).toMatchObject({ points: path.points, width: path.width, height: path.height, angle: path.angle })
+    const sourceId = (insertedPath.startBinding as { elementId: string }).elementId
+    const insertedSource = draft().architectureScene!.elements.find(element => element.id === sourceId)!
+    const source = wire.drawing!.elements.find(element => element.id === 'left')!
+    expect(Number(insertedPath.x) - Number(path.x)).toBeCloseTo(Number(insertedSource.x) - Number(source.x))
+    expect(Number(insertedPath.y) - Number(path.y)).toBeCloseTo(Number(insertedSource.y) - Number(source.y))
+  })
+
+  it('exports the current edited Draw board, preserving native assets and metadata', async () => {
+    localStorage.setItem(draftKey, serializeFlow([], [], 'draw', retainedScene))
+    const originalUrl = URL
+    const createObjectURL = vi.fn((_blob: Blob) => 'blob:drawing-export')
+    const revokeObjectURL = vi.fn()
+    class DownloadURL extends originalUrl {
+      static createObjectURL = createObjectURL
+      static revokeObjectURL = revokeObjectURL
+    }
+    vi.stubGlobal('URL', DownloadURL)
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    render(<App />)
+    await screen.findByTestId('draw-canvas-adapter')
+    fireEvent.click(screen.getByText('Add drawing annotation'))
+    await waitFor(() => expect(draft().architectureScene?.elements.some(element => element.text === 'Drawing annotation')).toBe(true))
+    fireEvent.click(screen.getByLabelText('Export'))
+    fireEvent.click(screen.getByText('Export as Excalidraw'))
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalledTimes(1))
+    const blob = createObjectURL.mock.calls[0][0] as unknown as Blob
+    const json = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = reject
+      reader.readAsText(blob)
+    })
+    const file = JSON.parse(json)
+    expect(file).toMatchObject({ type: 'excalidraw', version: 2, files: retainedScene.files })
+    expect(file.elements).toContainEqual(retainedScene.elements[0])
+    expect(file.elements.find((element: { id: string }) => element.id === 'test-annotation')).toMatchObject({ x: -120, y: 80, angle: 0.2, text: 'Drawing annotation' })
+    expect(click.mock.instances[0]).toHaveAttribute('download', 'drawing.excalidraw')
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:drawing-export')
+  })
+
+  it('rejects an unfinished Draw response without opening a preview or mutating history', async () => {
+    localStorage.setItem(draftKey, serializeFlow([], [], 'flowchart', retainedScene))
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ message: JSON.stringify(proposal), finishReason: 'stop' }) })
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Open AI Assistant'))
+    fireEvent.change(screen.getByLabelText('Generate for'), { target: { value: 'draw' } })
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Plan a workshop' } })
+    fireEvent.click(screen.getByRole('button', { name: /Generate drawing/i }))
+    await screen.findByText('Could not parse AI response. Please try again or rephrase your request.')
+    expect(screen.queryByText('Preview AI Proposal')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Undo')).toBeDisabled()
+    expect(draft().architectureScene).toEqual(retainedScene)
   })
 
   it('refines using captured Draw target and exact previous DTO, retaining the instruction after failure and cancellation', async () => {

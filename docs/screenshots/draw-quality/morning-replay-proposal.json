@@ -1,0 +1,171 @@
+{
+  "outputMode": "draw",
+  "summary": "A calm morning routine flowchart with simple, practical steps from waking up to starting the day. The layout is easy to scan left-to-right with soft colors and clear spacing.",
+  "elements": [
+    {
+      "id": "title",
+      "type": "text",
+      "x": 40,
+      "y": -120,
+      "text": "Calm Morning Routine",
+      "fontSize": 32,
+      "strokeColor": "#334155"
+    },
+    {
+      "id": "wake",
+      "type": "rectangle",
+      "x": 40,
+      "y": 0,
+      "width": 200,
+      "height": 100,
+      "label": "Wake up gently\nAvoid checking your phone right away",
+      "strokeColor": "#64748b",
+      "backgroundColor": "#e0f2fe"
+    },
+    {
+      "id": "water",
+      "type": "rectangle",
+      "x": 380,
+      "y": 0,
+      "width": 220,
+      "height": 100,
+      "label": "Drink a glass of water\nOpen curtains or blinds",
+      "strokeColor": "#64748b",
+      "backgroundColor": "#dcfce7"
+    },
+    {
+      "id": "stretch",
+      "type": "rectangle",
+      "x": 740,
+      "y": 0,
+      "width": 220,
+      "height": 100,
+      "label": "Stretch or move lightly\n2\u20135 minutes",
+      "strokeColor": "#64748b",
+      "backgroundColor": "#fef3c7"
+    },
+    {
+      "id": "quiet",
+      "type": "rectangle",
+      "x": 1100,
+      "y": 0,
+      "width": 240,
+      "height": 100,
+      "label": "Quiet moment\nBreathing, journaling, or reflection",
+      "strokeColor": "#64748b",
+      "backgroundColor": "#ede9fe"
+    },
+    {
+      "id": "breakfast",
+      "type": "rectangle",
+      "x": 1460,
+      "y": 0,
+      "width": 220,
+      "height": 100,
+      "label": "Simple breakfast\nEat something nourishing",
+      "strokeColor": "#64748b",
+      "backgroundColor": "#fee2e2"
+    },
+    {
+      "id": "plan",
+      "type": "rectangle",
+      "x": 1820,
+      "y": 0,
+      "width": 240,
+      "height": 100,
+      "label": "Review your day\nChoose 1\u20133 priorities",
+      "strokeColor": "#64748b",
+      "backgroundColor": "#e0f2fe"
+    },
+    {
+      "id": "arrow1",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 240,
+          "y": 50
+        },
+        {
+          "x": 380,
+          "y": 50
+        }
+      ],
+      "sourceId": "wake",
+      "targetId": "water",
+      "label": "",
+      "strokeColor": "#475569"
+    },
+    {
+      "id": "arrow2",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 600,
+          "y": 50
+        },
+        {
+          "x": 740,
+          "y": 50
+        }
+      ],
+      "sourceId": "water",
+      "targetId": "stretch",
+      "label": "",
+      "strokeColor": "#475569"
+    },
+    {
+      "id": "arrow3",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 960,
+          "y": 50
+        },
+        {
+          "x": 1100,
+          "y": 50
+        }
+      ],
+      "sourceId": "stretch",
+      "targetId": "quiet",
+      "label": "",
+      "strokeColor": "#475569"
+    },
+    {
+      "id": "arrow4",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1340,
+          "y": 50
+        },
+        {
+          "x": 1460,
+          "y": 50
+        }
+      ],
+      "sourceId": "quiet",
+      "targetId": "breakfast",
+      "label": "",
+      "strokeColor": "#475569"
+    },
+    {
+      "id": "arrow5",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1680,
+          "y": 50
+        },
+        {
+          "x": 1820,
+          "y": 50
+        }
+      ],
+      "sourceId": "breakfast",
+      "targetId": "plan",
+      "label": "",
+      "strokeColor": "#475569"
+    }
+  ]
+}
