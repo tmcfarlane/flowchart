@@ -11,6 +11,10 @@ Text fields, contenteditable elements and the AI prompt keep normal typing.
 | --- | --- | --- |
 | Select | V | 1 |
 | Hand | H | — |
+| Lasso | J | — |
+| Laser pointer | K | — |
+| Eyedropper | I | — |
+| Fill | B | — |
 | Rectangle | R | 2 |
 | Diamond | D | 3 |
 | Ellipse | O | 4 |
@@ -63,10 +67,11 @@ Text fields, contenteditable elements and the AI prompt keep normal typing.
 | Font size | Ctrl+Shift+, / Ctrl+Shift+. | Decrease / increase text size |
 | Copy / paste styles | Ctrl+Alt+C / Ctrl+Alt+V | Selection appearance |
 | Pan one page | PageUp / PageDown; Shift for horizontal | Viewport navigation |
-| Keyboard help | ?; Ctrl+/ | Accessible help dialog |
+| Keyboard help | ? | Accessible help dialog |
+| Command palette | Ctrl+/; Ctrl+Shift+P | Searchable Draw commands |
 | Cancel | Escape | Restore unfinished gesture; clear selection/help |
 
-## Verification and remaining parity
+## Verification and scope
 
 Real component tests cover tool aliases, Q, pointer preview/cancel/commit,
 contextual properties, grouping/duplication, text entry, parent history and actual
@@ -78,20 +83,17 @@ Browser verification covers the complete drawing/save/share
 flow and original Architecture behavior. Pure model tests cover bindings,
 rotations, paths, pressure, reference remapping, groups and frames.
 
-This custom editor is not a claim of complete Excalidraw parity. Additional
-upstream bindings and tools remain explicit future work: laser K; eyedropper
-I/Shift+S/Shift+G; free lasso; image cropping controls; fill and draw-to-shape;
-arrow-key flowchart navigation/creation modifiers;
-link/search/command palettes;
-embeds; Mermaid conversion; hosted services and selection-aware AI (#14).
-Existing imported crop/pressure/path fields are retained/rendered where supported;
-unsupported imported content is reported before application by the importer.
+This custom editor does not claim complete Excalidraw parity. The 18 rows that
+were previously marked missing now have Draw implementations in the matrix below.
+See [commands](draw-commands.md), [geometry](draw-geometry.md),
+[clipboard and crop](draw-media.md), [extra tools](draw-extra-tools.md), and
+[selected Draw AI](draw-selection-ai.md) for exact behavior and limits. Mermaid
+import accepts a bounded flowchart subset; AI updates selected existing objects
+only. Native macOS shortcuts have not been executed in this environment.
 
-Issue #15 remains open: the completed drawing foundation and the fixes above do
-not establish every upstream binding. The matrix below also records remaining
-differences such as flip shortcuts, special plain-text paste and app-level view
-bindings. The issue explicitly leaves laser, lasso, crop, fill/draw-to-shape,
-embeds, Mermaid and AI helpers for later prioritization.
+Issue #15 remains open until the stacked changes are reviewed and shipped. This
+matrix describes implemented bindings in this custom editor, not every feature
+or service of the external editor.
 
 ### Focused follow-up verification
 
@@ -114,9 +116,9 @@ there is no native/inherited editor implementation behind these controls.
 
 ## Original keyboard-help baseline: all 77 bindings
 
-This inventory retains the original baseline so remaining differences are visible.
-“Implemented” identifies our handler; individual test evidence is described above.
-Deferred rows are not supplied by a hidden external editor.
+This inventory retains the original baseline for comparison with our custom bindings.
+“Implemented” identifies our handler; individual test evidence is linked above.
+No hidden external editor supplies additional bindings.
 
 | # | Baseline action | Windows / Linux | macOS | Custom Draw status |
 | --- | --- | --- | --- | --- |
@@ -132,19 +134,19 @@ Deferred rows are not supplied by a hidden external editor.
 | 10 | Image | 9 | 9 | Implemented in our Draw handlers |
 | 11 | Eraser | E or 0 | E or 0 | Implemented in our Draw handlers |
 | 12 | Frame | F | F | Implemented in our Draw handlers |
-| 13 | Temporary laser pointer | K | K | Deferred: additional tool or service |
-| 14 | Eyedropper | I, Shift+S or Shift+G | I, Shift+S or Shift+G | Deferred: additional tool or service |
+| 13 | Temporary laser pointer | K | K | Implemented: transient fading trail; no scene/history entry |
+| 14 | Eyedropper | I, Shift+S or Shift+G | I, Shift+S or Shift+G | Implemented: sample stroke with I/Shift+S or fill with Shift+G |
 | 15 | Edit line / arrow points | Ctrl+Enter | Cmd+Enter | Implemented: focused point mode, arrows, add/delete controls, Enter/Esc finish |
 | 16 | Edit selected text / bound label | Enter | Enter | Implemented in our Draw handlers |
 | 17 | New line while editing text | Enter or Shift+Enter | Enter or Shift+Enter | Implemented in our Draw handlers |
 | 18 | Finish text editing | Esc or Ctrl+Enter | Esc or Cmd+Enter | Implemented in our Draw handlers |
 | 19 | Draw a curved arrow | A, click, click, click | A, click, click, click | Implemented: multipoint creation, Enter/double-click commit, Escape cancel |
 | 20 | Draw a curved line | L, click, click, click | L, click, click, click | Implemented: multipoint creation, Enter/double-click commit, Escape cancel |
-| 21 | Start image cropping | Double-click or Enter | Double-click or Enter | Imported crop fields render; crop editing UI deferred |
-| 22 | Finish image cropping | Enter or Esc | Enter or Esc | Crop editing UI deferred |
+| 21 | Start image cropping | Double-click or Enter | Double-click or Enter | Implemented: selected image opens a source-pixel crop dialog |
+| 22 | Finish image cropping | Enter or Esc | Enter or Esc | Implemented: Finish/Enter/Escape commits one edit; Cancel restores the image |
 | 23 | Keep active drawing tool selected | Q | Q | Implemented in our Draw handlers |
 | 24 | Temporarily prevent arrow binding | Hold Ctrl | Hold Cmd | Implemented in our Draw handlers |
-| 25 | Add / edit element hyperlink | Ctrl+K | Cmd+K | Element links retained; editing UI deferred |
+| 25 | Add / edit element hyperlink | Ctrl+K | Cmd+K | Implemented: selected element link dialog validates http, https, or mailto |
 | 26 | Zoom in | Ctrl++ | Cmd++ | Implemented in our Draw handlers |
 | 27 | Zoom out | Ctrl+- | Cmd+- | Implemented in our Draw handlers |
 | 28 | Reset zoom | Ctrl+0 | Cmd+0 | Implemented in our Draw handlers |
@@ -152,28 +154,28 @@ Deferred rows are not supplied by a hidden external editor.
 | 30 | Zoom to selection | Shift+2 | Shift+2 | Implemented in our Draw handlers |
 | 31 | Pan vertically one page | PgUp / PgDn | PgUp / PgDn | Implemented in our Draw handlers |
 | 32 | Pan horizontally one page | Shift+PgUp / Shift+PgDn | Shift+PgUp / Shift+PgDn | Implemented in our Draw handlers |
-| 33 | Toggle zen mode | Alt+Z | Option+Z | Use app presentation; Alt+Z not assigned |
+| 33 | Toggle zen mode | Alt+Z | Option+Z | Implemented: hides Draw editor chrome; repeat to restore |
 | 34 | Toggle object snapping | Alt+S | Option+S | Implemented in our Draw handlers |
 | 35 | Toggle grid | Ctrl+' | Cmd+' | Implemented in our Draw handlers |
-| 36 | Toggle view mode | Alt+R | Option+R | Use app presentation; Alt+R not assigned |
-| 37 | Toggle editor theme | Alt+Shift+D | Option+Shift+D | Use app theme control; shortcut not assigned |
-| 38 | Drawing statistics | Alt+/ | Option+/ | Deferred: additional tool or service |
-| 39 | Search drawing text | Ctrl+F | Cmd+F | Browser find; own drawing search deferred |
-| 40 | Command palette | Ctrl+/ or Ctrl+Shift+P | Cmd+/ or Cmd+Shift+P | Ctrl+/ opens keyboard help; command palette deferred |
-| 41 | Create connected flowchart shapes | Ctrl+Arrow key | Cmd+Arrow key | Deferred: additional tool or service |
-| 42 | Navigate connected flowchart shapes | Alt+Arrow key | Option+Arrow key | Deferred: additional tool or service |
+| 36 | Toggle view mode | Alt+R | Option+R | Implemented: local Draw read-only mode with pan, zoom, and search |
+| 37 | Toggle editor theme | Alt+Shift+D | Option+Shift+D | Implemented: toggles the app theme |
+| 38 | Drawing statistics | Alt+/ | Option+/ | Implemented: live element, file, and scene-byte counts |
+| 39 | Search drawing text | Ctrl+F | Cmd+F | Implemented: finds element text, names, and IDs; selects and centers matches |
+| 40 | Command palette | Ctrl+/ or Ctrl+Shift+P | Cmd+/ or Cmd+Shift+P | Implemented: searchable Draw command palette; ? opens keyboard help |
+| 41 | Create connected flowchart shapes | Ctrl+Arrow key | Cmd+Arrow key | Implemented: connected copy from one selected rectangle, ellipse, or diamond |
+| 42 | Navigate connected flowchart shapes | Alt+Arrow key | Option+Arrow key | Implemented: follows an arrow binding to a directional neighbor |
 | 43 | Temporarily pan canvas | Space+drag or middle/wheel-button drag | Space+drag or middle/wheel-button drag | Implemented in our Draw handlers |
-| 44 | Clear / reset canvas | Ctrl+Delete | Cmd+Delete | Use app Clear All confirmation; Ctrl+Delete is not a clear binding |
+| 44 | Clear / reset canvas | Ctrl+Delete | Cmd+Delete | Implemented: opens app Clear All confirmation; one undoable transaction |
 | 45 | Delete selected elements | Delete | Delete | Implemented in our Draw handlers |
 | 46 | Cut | Ctrl+X | Cmd+X | Implemented in our Draw handlers |
 | 47 | Copy | Ctrl+C | Cmd+C | Implemented in our Draw handlers |
 | 48 | Paste | Ctrl+V | Cmd+V | Implemented in our Draw handlers |
-| 49 | Paste as plain text | Ctrl+Shift+V | Cmd+Shift+V | Own-scene paste supported; plain-text special paste deferred |
+| 49 | Paste as plain text | Ctrl+Shift+V | Cmd+Shift+V | Implemented: inserts literal clipboard text as one drawing text element |
 | 50 | Select all | Ctrl+A | Cmd+A | Implemented in our Draw handlers |
 | 51 | Add / remove selection | Shift+click | Shift+click | Implemented in our Draw handlers |
 | 52 | Deep-select within a group | Ctrl+click | Cmd+click | Implemented in our Draw handlers |
 | 53 | Deep box-select | Ctrl+drag | Cmd+drag | Implemented in our Draw handlers |
-| 54 | Copy selected elements as PNG | Shift+Alt+C | Shift+Option+C | SVG/PNG export available; clipboard PNG shortcut deferred |
+| 54 | Copy selected elements as PNG | Shift+Alt+C | Shift+Option+C | Implemented: selected-scene PNG through browser clipboard permission |
 | 55 | Copy element styles | Ctrl+Alt+C | Cmd+Option+C | Implemented in our Draw handlers |
 | 56 | Paste element styles | Ctrl+Alt+V | Cmd+Option+V | Implemented in our Draw handlers |
 | 57 | Send to back | Ctrl+Shift+[ | Cmd+Option+[ | Implemented in our Draw handlers |
@@ -190,8 +192,8 @@ Deferred rows are not supplied by a hidden external editor.
 | 68 | Redo drawing edit | Ctrl+Shift+Z; Windows also Ctrl+Y | Cmd+Shift+Z | Implemented in our Draw handlers |
 | 69 | Group | Ctrl+G | Cmd+G | Implemented in our Draw handlers |
 | 70 | Ungroup | Ctrl+Shift+G | Cmd+Shift+G | Implemented in our Draw handlers |
-| 71 | Flip horizontally | Shift+H | Shift+H | Imported image flips render; editing shortcut deferred |
-| 72 | Flip vertically | Shift+V | Shift+V | Imported image flips render; editing shortcut deferred |
+| 71 | Flip horizontally | Shift+H | Shift+H | Implemented: reflects selected geometry, paths, images, and bindings |
+| 72 | Flip vertically | Shift+V | Shift+V | Implemented: reflects selected geometry, paths, images, and bindings |
 | 73 | Open stroke-color properties | S | S | Implemented in our Draw handlers |
 | 74 | Open background-color properties | G | G | Implemented in our Draw handlers |
 | 75 | Open font properties | Shift+F | Shift+F | Implemented in our Draw handlers |

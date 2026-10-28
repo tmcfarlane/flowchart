@@ -1,0 +1,71 @@
+{
+  "status": "PASS: captured known pre-change gaps",
+  "source_sha": "85ec3050aa39248686f31a183420a0b2996d20b1",
+  "origin": "http://127.0.0.1:3030/",
+  "browser": "/usr/bin/chromium headless on Linux",
+  "fixture": "Four-element imported app JSON, including image data from native-editor-roundtrip.excalidraw",
+  "checks": [
+    {
+      "gap": "laser_and_eyedropper",
+      "observed": "No tool controls; K and I leave Selection active.",
+      "toolbar_button_text": [
+        "1",
+        "H",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "0",
+        "F",
+        ""
+      ]
+    },
+    {
+      "gap": "drawing_search",
+      "observed": "Ctrl+F opens no in-app drawing search or searchbox."
+    },
+    {
+      "gap": "command_palette",
+      "observed": "Ctrl+Shift+P opens no in-app command palette."
+    },
+    {
+      "gap": "horizontal_flip",
+      "observed": "Shift+H activates Hand and leaves selected shape geometry and scale unchanged."
+    },
+    {
+      "gap": "connected_shape",
+      "observed": "Ctrl+ArrowRight creates no connected shape or connector."
+    },
+    {
+      "gap": "selected_draw_ai",
+      "observed": "Selected Draw shape exposes no Edit with AI action, including with assistant open."
+    },
+    {
+      "gap": "plain_text_paste",
+      "observed": "A real Ctrl+Shift+V paste event with clipboard text creates no Draw text element.",
+      "paste_events": [
+        {
+          "types": [
+            "text/plain"
+          ],
+          "text": "Plain paste baseline marker"
+        }
+      ]
+    },
+    {
+      "gap": "crop_start_finish",
+      "observed": "Enter on selected image opens text editor instead of crop controls; crop metadata is unchanged."
+    }
+  ],
+  "browser_errors": [],
+  "screenshots": [
+    "01-full-draw-ui.png",
+    "02-shape-selected-before-shortcuts.png",
+    "03-selected-draw-ai-absent.png",
+    "04-image-enter-no-crop.png"
+  ]
+}

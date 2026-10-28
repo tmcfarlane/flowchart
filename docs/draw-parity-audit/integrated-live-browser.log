@@ -1,0 +1,1 @@
+{"provider": "configured live Azure via existing local API", "checks": ["preview does not save", "exact selected scope", "relationship context without private metadata", "sparse apply preserves all other fields", "one Undo and Redo", "reload persistence", "no browser runtime errors"], "httpStatus": 200}

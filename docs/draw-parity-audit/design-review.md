@@ -1,0 +1,42 @@
+# Issue 15 Draw design review
+
+The user needs the remaining issue 15 behavior in the custom Draw editor, with original Architecture and Flowchart preserved. Recommend **Candidate A as the implementation base**, grafting Candidate B's **single metadata catalog for newly added commands** and its **separate, bounded Draw AI patch contract**. Do not introduce B's general `DrawContext`/`DrawCommandResult` executor or migrate existing gestures and shortcuts as a prerequisite. This is an independent read-only judgment at `85ec3050aa39248686f31a183420a0b2996d20b1`. Scores are design judgments on a five-point scale, not implementation results.
+
+| Criterion | A | B | Judgment |
+| --- | ---: | ---: | --- |
+| Single document and interaction ownership | 5 | 4 | Both retain App's `commitDocument` and DrawCanvas `emit`. B's proposed command result carries interaction, global, dialog, and effect state across an extra layer, so ownership becomes harder to trace. |
+| Smallest verifiable unit and caller interface | 5 | 3 | A can add one action via a private DrawCanvas branch and one pure scene helper, then test its one commit. B requires a context, result union, resolver, executor, and adapter before the first flip; some branches only pass through to DrawCanvas/App. |
+| Complete parity scope | 4 | 5 | Both cover the 18 baseline rows and requested extras. B supplies the more concrete AI operation allowlist and makes command metadata authoritative. A must adopt those two details. |
+| Async and relationship safety | 4 | 4 | Both recognize stale responses, locks, frames, labels, bindings, and shared persistence. Neither proposal alone resolves all closure and scene replacement cases. The contract below makes rejection rules explicit. |
+
+## Working model
+
+`DrawCanvas.tsx` owns current selection, viewport, tools, pointer/clipboard sessions, local preview, and `emit`. A finished edit passes a complete candidate scene to `emit`, which calls `graphFromElements` in `architectureBridge.ts`, validates `ArchitectureScene` version 1, and calls App's `handleDrawChange`. App's `commitDocument` writes scene, graph, and mode to one history entry; autosave and `useSharedFlow` consume that document. `DrawSceneSvg` renders geometry and assets. `drawScene.ts` owns immutable transforms and relationship rerouting. Freeform shapes have no `customData.flowchart` projection and must remain freeform. Original Architecture and Flowchart stay in App's existing branches.
+
+```text
+shortcut / toolbar / palette / pointer
+  -> DrawCanvas current refs and transient preview
+  -> focused pure scene transform, when needed
+  -> one DrawCanvas.emit on completion
+  -> graphFromElements + scene validation
+  -> App.handleDrawChange -> commitDocument
+  -> history + autosave/shared document
+```
+
+The command catalog should contain IDs, labels, shortcut descriptors, and eligibility for **new discrete commands**. Help and palette derive their new-command rows from it. DrawCanvas still interprets keyboard precedence, owns gesture lifecycles, and invokes App callbacks for theme, existing presentation/view, and confirmed clear. A separate executor returning `scene | interaction | global | dialog | effect` would force the caller to understand each action's mechanics, a shallow module and a second dispatch path. Keep the old tool bindings where they are until a specific collision requires a local change. `Ctrl/Cmd+/` becomes palette; `?` remains help. Match Option combinations by physical code and suppress bindings in editable targets. Reuse App's existing Draw presentation for Alt/Option+R if its behavior matches the required view mode, and close every mutation entrance in `viewMode`; avoid a second persistent view flag. Zen may be local chrome state, but must not change document state.
+
+## Selected Draw AI contract to implement
+
+Add a strict `mode: 'draw-edit'` branch to `/api/chat`, separate from current graph `mode: 'edit'`. The current `chatSchema.ts` explicitly rejects `diagramMode: 'draw'` for graph edit, and App's `openSelectionEdit` returns in Draw. Reuse the existing Azure route, gateway, admission, kill switch, limits, timeout, and error mapping. Request data is a bounded text-only selection context: selected Draw IDs and safe primitive geometry/text/style summaries, plus the minimal relationship dependency summary needed for scope validation. Exclude image bytes, files, raw scene JSON, URLs, arbitrary custom metadata, and generated assets. Keep current graph prompts and schema behavior intact.
+
+The proposed response is `{ summary, operations }` with a strict discriminated union: `update_element(id, changes)`, `remove_element(id)`, and `add_element(element)`. `changes` permits only bounded text/name, finite position/size/angle, opacity, and enumerated primitive appearance fields. An add permits only rectangle, diamond, ellipse, line, or text, without bindings and with a client-assigned fresh ID at apply time. No operation may set file ID, URL, crop, scale, group/frame/container IDs, bindings, `boundElements`, `customData`, or other scene fields. Adds must lie within a bounded area around the captured selection. Limit operation count, text length, coordinates, and response bytes. Allow projected flowchart elements only for label or appearance edits proven to reconcile through `graphFromElements`; reject structural or geometry edits on them in this slice.
+
+Capture selected IDs, safe dependency records, scene fingerprint, document epoch, mode, and a request token before starting. Server parses and validates the untrusted response against its frozen request scope. On receipt, App checks token, mode, epoch, fingerprint, and selection; validates again in the browser; then shows a preview with no document write. On Apply, repeat those checks against the current committed scene, apply the sparse patch immutably, validate the resulting scene and its graph reconciliation, and call the existing Draw `emit` once. Cancel and stale work produce no history entry. Require direct selection for every updated or removed existing element. Reject deletion of a host, frame, or bound arrow if it would alter an unselected child, label, endpoint, or relationship. Reject locked/deleted targets. Do not silently widen scope or let a model replace the whole scene. The API's server validation can check only the submitted context; the client owns the final live-document check.
+
+## Dispatch and risks
+
+Ship the six A slices in order, with the AI contract above fixed before its worker starts. Each slice ends with focused model tests where relationships matter, a rerunnable Chromium interaction script, screenshots, persistence/history checks, and Architecture isolation. DrawCanvas edits should integrate serially. No native macOS result can be claimed from Linux Chromium with Meta/Option emulation.
+
+The main risks are concrete. `setElementProperties` currently edits locked selections, so new paint and link actions need an eligible-element filter. Keyboard Undo/Redo and clipboard handlers currently bypass the `viewMode` guard, so read-only needs one policy applied at every mutation entrance. `Ctrl+Delete` must request App's `clearAll`; emitting an empty Draw scene can leave graph data behind. Crop, laser, lasso, paste intent, and AI tokens must cancel on scene replacement, blur, mode departure, and unmount as appropriate. Crop's baseline says Enter **or Escape finishes**; use an explicit Cancel action or pointer cancellation to restore the before scene. Image and selection PNG export should share one renderer path so clipping, SVG definitions, and assets survive. Embed links need URL validation before storage/opening; Mermaid conversion needs bounded syntax and stale-result checks. The authoritative scene validator preserves unknown fields and checks only some element properties, so new crop/link/embed/AI input must be validated at its own boundary.
+
+The red-flag screen favors this hybrid under **Model the Domain** (typed sessions and strict AI operation union), **Boundary Discipline** (external URL, clipboard, Mermaid, and AI parsing at input boundaries), and **Minimize Reader Load** (one owner and short caller-to-commit path). B's metadata catalog removes a hand-synced list; its broad executor adds a shallow interface and temporal forwarding. A's risk is a larger DrawCanvas. Keep complex geometry and validation behind focused scene-in/scene-out helpers while leaving interaction state with its current owner.

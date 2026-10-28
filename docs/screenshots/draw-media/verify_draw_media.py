@@ -1,6 +1,7 @@
 import json
 import base64
 import io
+import sys
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -8,7 +9,7 @@ from PIL import Image, ImageDraw
 
 
 BASE = Path(__file__).resolve().parent
-ORIGIN = 'http://127.0.0.1:3033/'
+ORIGIN = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:3033/'
 DRAFT = 'flowchart-editor-draft-v3'
 
 

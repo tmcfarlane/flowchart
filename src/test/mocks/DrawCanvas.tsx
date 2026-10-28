@@ -15,6 +15,8 @@ export default function DrawCanvasAdapter(props: Props) {
     if (!props.onReady) return
     props.onReady({
       getScene: () => latest.current.scene ?? emptyScene(),
+      getSelectedIds: () => [],
+      applySelectionEdit: () => false,
       viewportToScenePoint: point => point,
       fitScene: () => {},
       exportImage: async () => {},

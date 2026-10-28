@@ -1,3 +1,4 @@
+import { applyDrawEdit, captureDrawEdit } from '../utils/drawSelectionEdit'
 import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createEvent, fireEvent, render, screen } from '@testing-library/react'
@@ -196,6 +197,23 @@ describe('shape-bound Draw labels', () => {
     finish('Rotated API')
     expect(element(scene(), 'label')).toMatchObject({ fontSize: 24, fontFamily: 3, angle, containerId: 'shape' })
     expectCentered(element(scene(), 'label'), element(scene(), 'shape'))
+  })
+
+  it('uses the same layout for manual and AI edits of rotated multiline labels', () => {
+    const initial: ArchitectureScene = { ...empty(), elements: [
+      shape({ angle: 0.35, boundElements: [{ id: 'label', type: 'text' }] }),
+      boundLabel({ angle: 0.35, lineHeight: 1.8 }),
+    ] }
+    const value = 'Review incoming orders and validate delivery addresses before reserving warehouse inventory.\nSend confirmation.\nDispatch the shipment.'
+    const { surface, scene } = renderDrawing(initial)
+    doubleClick(surface)
+    finish(value)
+    const proposed = applyDrawEdit(initial, captureDrawEdit(initial, ['shape', 'label'], 0), {
+      summary: 'Expand label', operations: [{ op: 'update_element', id: 'label', changes: { text: value } }],
+    }, [], [])
+    expect(element(proposed, 'label')).toEqual(element(scene(), 'label'))
+    expect(element(proposed, 'label').height).toBeGreaterThan(3 * 24 * 1.3)
+    expectCentered(element(proposed, 'label'), element(proposed, 'shape'))
   })
 
   it('retains the explicit Q option while keeping it disabled by default', () => {

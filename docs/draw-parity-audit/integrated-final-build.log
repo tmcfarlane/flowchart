@@ -1,0 +1,106 @@
+
+> flowchart@1.0.0 build
+> node scripts/generate-azure-icon-index.mjs && tsc && tsc -p tsconfig.api.json && vite build
+
+[icons] Azure icon index is up to date (633 icons).
+vite v6.4.1 building for production...
+transforming...
+../flowchart-15/node_modules/zod/v4/core/util.js (400:0): A comment
+
+"// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle."
+
+in "../flowchart-15/node_modules/zod/v4/core/util.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+../flowchart-15/node_modules/zod/v4/core/regexes.js (74:0): A comment
+
+"/** Anchors a pattern source. The interpolation lives here rather than at the call site because
+ * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it
+ * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */"
+
+in "../flowchart-15/node_modules/zod/v4/core/regexes.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+✓ 1087 modules transformed.
+rendering chunks...
+[plugin vite:reporter]
+(!) /workspace/flowchart-draw-parity/src/utils/architectureBridge.ts is dynamically imported by /workspace/flowchart-draw-parity/src/App.tsx but also statically imported by /workspace/flowchart-draw-parity/src/components/DrawCanvas.tsx, /workspace/flowchart-draw-parity/src/utils/drawSelectionEdit.ts, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                                                         3.11 kB │ gzip:   0.93 kB
+dist/assets/03455-icon-service-Code-Optimization-BHDtVqaA.svg                           4.11 kB │ gzip:   1.58 kB
+dist/assets/03383-icon-service-Entra-Internet-Access-B3gEQ3M8.svg                       4.12 kB │ gzip:   1.57 kB
+dist/assets/Microsoft Entra Private Access color icon-C5HPosfn.svg                      4.12 kB │ gzip:   1.78 kB
+dist/assets/03459-icon-service-DNS-Multistack-CS1R56tN.svg                              4.16 kB │ gzip:   1.68 kB
+dist/assets/02625-icon-service-Aquila-DogOmw4K.svg                                      4.16 kB │ gzip:   1.40 kB
+dist/assets/10850-icon-service-Web-Test-udrqX2v5.svg                                    4.17 kB │ gzip:   1.62 kB
+dist/assets/033805167-icon-service-Azure-App-Testing-BMQRWrj2.svg                       4.20 kB │ gzip:   1.93 kB
+dist/assets/03293-icon-service-Azure-Stack-HCI-Sizer-Dnk67kqI.svg                       4.22 kB │ gzip:   1.43 kB
+dist/assets/02846-icon-service-Update-Management-Center-CaC6yN18.svg                    4.23 kB │ gzip:   1.50 kB
+dist/assets/03250-icon-service-Microsoft-Dev-Box-BSO5PWLN.svg                           4.24 kB │ gzip:   1.47 kB
+dist/assets/03633-icon-service-Breeze-Dok_uHzV.svg                                      4.28 kB │ gzip:   1.58 kB
+dist/assets/03565-icon-service-SQL-Database-Fleet-Manager-C_5CdVfv.svg                  4.28 kB │ gzip:   1.13 kB
+dist/assets/01848-icon-service-Arc-PostgreSQL -BnofeI14.svg                             4.32 kB │ gzip:   1.94 kB
+dist/assets/10367-icon-service-Azure-Token-Service-CgM1hni9.svg                         4.32 kB │ gzip:   1.50 kB
+dist/assets/02939-icon-service-Network-Security-Perimeters-BpcS945Q.svg                 4.36 kB │ gzip:   1.70 kB
+dist/assets/01088-icon-service-Arc-Kubernetes-CboQkJQQ.svg                              4.37 kB │ gzip:   1.55 kB
+dist/assets/10847-icon-service-Website-Power-BZks3FSC.svg                               4.38 kB │ gzip:   1.81 kB
+dist/assets/029637767-icon-service-Service-Groups-B82dvOHl.svg                          4.39 kB │ gzip:   1.19 kB
+dist/assets/03394-icon-service-Virtual-Enclaves-Op-RgXs2.svg                            4.40 kB │ gzip:   1.04 kB
+dist/assets/03405-icon-service-Defender-Historian-DNuoxu3x.svg                          4.41 kB │ gzip:   1.80 kB
+dist/assets/02750-icon-service-Azure-SQL-Edge-CDFdetu5.svg                              4.49 kB │ gzip:   1.68 kB
+dist/assets/02515-icon-service-Web-App-_-Database-CyDFvZBb.svg                          4.49 kB │ gzip:   1.61 kB
+dist/assets/030486388-icon-service-Storage-Hubs-C-sZL5aJ.svg                            4.50 kB │ gzip:   1.06 kB
+dist/assets/03335-icon-service-Power-Platform-DRbuRfRj.svg                              4.50 kB │ gzip:   1.29 kB
+dist/assets/03543-icon-service-AKS-Automatic-DCapBwCI.svg                               4.53 kB │ gzip:   1.77 kB
+dist/assets/02634-icon-service-Image-Templates-C1e6D7-H.svg                             4.55 kB │ gzip:   1.40 kB
+dist/assets/10846-icon-service-Web-Jobs-B_khhhNr.svg                                    4.58 kB │ gzip:   1.77 kB
+dist/assets/02827-icon-service-Azure-Database-PostgreSQL-Server-Group-CCtUr2Xj.svg      4.61 kB │ gzip:   2.07 kB
+dist/assets/03420-icon-service-Defender-PLC-D8GaTFtG.svg                                4.62 kB │ gzip:   1.75 kB
+dist/assets/03347-icon-service-Azure-Programmable-Connectivity-D5xHrgys.svg             4.64 kB │ gzip:   1.82 kB
+dist/assets/10803-icon-service-Folder-Website-So8aw94X.svg                              4.64 kB │ gzip:   1.54 kB
+dist/assets/03495-icon-service-Azure-Consumption-Commitment-DFn70Bzh.svg                4.66 kB │ gzip:   2.04 kB
+dist/assets/03643-icon-service-Network-Foundation-Hub-BqflbIC2.svg                      4.68 kB │ gzip:   1.55 kB
+dist/assets/029109619-icon-service-Toolchain-Orchestrator-BxMTHpYz.svg                  4.73 kB │ gzip:   1.95 kB
+dist/assets/03415-icon-service-Defender-Industrial-Packaging-System-DPlo07H7.svg        4.75 kB │ gzip:   1.26 kB
+dist/assets/03333-icon-service-Azure-Operator-Insights-DYO_pMS-.svg                     4.78 kB │ gzip:   2.04 kB
+dist/assets/034855501-icon-service-Monitor-Issues-19kZfMJX.svg                          4.81 kB │ gzip:   1.68 kB
+dist/assets/034412066-icon-service-VNet-Appliance--NMb-NQr.svg                          4.97 kB │ gzip:   1.09 kB
+dist/assets/03361-icon-service-IcM-Troubleshooting-lAD36jXU.svg                         5.03 kB │ gzip:   2.21 kB
+dist/assets/03134-icon-service-Kubernetes-Fleet-Manager-C4bAQKGS.svg                    5.08 kB │ gzip:   1.78 kB
+dist/assets/03413-icon-service-Defender-Distributer-Control-System-BrPK74m2.svg         5.12 kB │ gzip:   2.13 kB
+dist/assets/03368-icon-service-DNS-Security-Policy-yCVJqFBc.svg                         5.13 kB │ gzip:   2.37 kB
+dist/assets/03487-icon-service-Compute-Fleet-6qIsjgrX.svg                               5.16 kB │ gzip:   1.85 kB
+dist/assets/03418-icon-service-Defender-Industrial-Robot-CUsWk8xy.svg                   5.18 kB │ gzip:   1.65 kB
+dist/assets/Microsoft Entra Product Family-D5SAD4Zg.svg                                 5.24 kB │ gzip:   1.13 kB
+dist/assets/03334-icon-service-Azure-Operator-Service-Manager-Dk2wd7Lg.svg              5.29 kB │ gzip:   2.29 kB
+dist/assets/03393-icon-service-Managed-DevOps-Pools-C2BtIfHm.svg                        5.43 kB │ gzip:   1.89 kB
+dist/assets/034251-icon-service-external-id-modified-RE1CnHVX.svg                       5.60 kB │ gzip:   1.89 kB
+dist/assets/03408-icon-service-Defender-Robot-Controller-CqEbMebH.svg                   5.87 kB │ gzip:   2.45 kB
+dist/assets/03417-icon-service-Defender-Industrial-Scale-System-D46lkoBW.svg            5.89 kB │ gzip:   1.58 kB
+dist/assets/03410-icon-service-Defender-Slot-DDVA-OVf.svg                               5.95 kB │ gzip:   2.07 kB
+dist/assets/03422-icon-service-Defender-Programable-Board-s2ccBiJB.svg                  6.47 kB │ gzip:   2.33 kB
+dist/assets/03412-icon-service-Defender-DCS-Controller-CAovOHML.svg                     6.89 kB │ gzip:   2.75 kB
+dist/assets/03419-icon-service-Defender-Meter-BFPb7mb1.svg                              7.12 kB │ gzip:   1.36 kB
+dist/assets/03402-icon-service-Defender-CM-Local-Manager-D7DabTjW.svg                   8.78 kB │ gzip:   3.26 kB
+dist/assets/03337-icon-service-Bonsai-imrJ42jH.svg                                      8.90 kB │ gzip:   2.34 kB
+dist/assets/03403-icon-service-Defender-External-Management-nr4dhsKf.svg                8.98 kB │ gzip:   3.44 kB
+dist/assets/03411-icon-service-Defender-Web-Guiding-System-BUI_bLAy.svg                14.67 kB │ gzip:   3.99 kB
+dist/assets/03404-icon-service-Defender-Freezer-Monitor-C1TiAToL.svg                   14.93 kB │ gzip:   3.49 kB
+dist/mcp.html                                                                          24.57 kB │ gzip:   6.30 kB
+dist/assets/03421-icon-service-Defender-Pneumatic-Device-CIW6wiCh.svg                  46.24 kB │ gzip:   6.87 kB
+dist/assets/AIDrawEditDialog-Df15iFk2.css                                               0.60 kB │ gzip:   0.32 kB
+dist/assets/AISelectionEditDialog-UQmaxgs6.css                                         11.80 kB │ gzip:   2.68 kB
+dist/assets/mcp-DotgNHmQ.css                                                           12.86 kB │ gzip:   3.54 kB
+dist/assets/DrawCanvas-BIlhHaTt.css                                                    17.03 kB │ gzip:   3.70 kB
+dist/assets/main-D9ALLx3I.css                                                         117.51 kB │ gzip:  19.35 kB
+dist/assets/index-0quvf5HP.js                                                           2.19 kB │ gzip:   1.07 kB
+dist/assets/mcp-CJVx6h8j.js                                                             3.14 kB │ gzip:   1.48 kB
+dist/assets/AIDrawEditDialog-D-biXCsD.js                                                5.27 kB │ gzip:   2.02 kB
+dist/assets/AISelectionEditDialog-UR5JTz2W.js                                          10.18 kB │ gzip:   3.46 kB
+dist/assets/DrawSceneSvg-C27HsowE.js                                                   16.59 kB │ gzip:   6.37 kB
+dist/assets/selectionEdit-Ch4Zm2pQ.js                                                  26.07 kB │ gzip:   8.78 kB
+dist/assets/DrawCanvas-CP2W_6TJ.js                                                     95.17 kB │ gzip:  30.08 kB
+dist/assets/main-xNv4aMR2.js                                                        2,341.37 kB │ gzip: 592.62 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.37s
