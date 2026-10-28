@@ -1,0 +1,162 @@
+{
+  "outputMode": "draw",
+  "summary": "Five small habits for gentler mornings.",
+  "elements": [
+    {
+      "id": "title",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "text": "A gentler way to wake up",
+      "fontSize": 32,
+      "strokeColor": "#123456"
+    },
+    {
+      "id": "subtitle",
+      "type": "text",
+      "x": 0,
+      "y": 55,
+      "text": "Make mornings easier with a few small, repeatable habits.",
+      "fontSize": 18,
+      "strokeColor": "#123456"
+    },
+    {
+      "id": "card-0",
+      "type": "rectangle",
+      "x": 0,
+      "y": 150,
+      "width": 180,
+      "height": 210,
+      "label": "1. Prepare tonight\n\nChoose a bedtime and put your alarm across the room.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#e7f1f5"
+    },
+    {
+      "id": "card-1",
+      "type": "rectangle",
+      "x": 200,
+      "y": 150,
+      "width": 180,
+      "height": 210,
+      "label": "2. Keep a steady time\n\nWake at a similar time each day, including weekends.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#e7f4ef"
+    },
+    {
+      "id": "arrow-1",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 180,
+          "y": 255
+        },
+        {
+          "x": 200,
+          "y": 255
+        }
+      ],
+      "sourceId": "card-0",
+      "targetId": "card-1",
+      "label": "",
+      "strokeColor": "#64748b"
+    },
+    {
+      "id": "card-2",
+      "type": "rectangle",
+      "x": 400,
+      "y": 150,
+      "width": 180,
+      "height": 210,
+      "label": "3. Get out of bed\n\nWhen the alarm rings, stand up. Skip the snooze button.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#f7efdf"
+    },
+    {
+      "id": "arrow-2",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 380,
+          "y": 255
+        },
+        {
+          "x": 400,
+          "y": 255
+        }
+      ],
+      "sourceId": "card-1",
+      "targetId": "card-2",
+      "label": "",
+      "strokeColor": "#64748b"
+    },
+    {
+      "id": "card-3",
+      "type": "rectangle",
+      "x": 600,
+      "y": 150,
+      "width": 180,
+      "height": 210,
+      "label": "4. Find bright light\n\nOpen the curtains or step outside. Have a glass of water.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#f2e9f5"
+    },
+    {
+      "id": "arrow-3",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 580,
+          "y": 255
+        },
+        {
+          "x": 600,
+          "y": 255
+        }
+      ],
+      "sourceId": "card-2",
+      "targetId": "card-3",
+      "label": "",
+      "strokeColor": "#64748b"
+    },
+    {
+      "id": "card-4",
+      "type": "rectangle",
+      "x": 800,
+      "y": 150,
+      "width": 180,
+      "height": 210,
+      "label": "5. Move, then begin\n\nStretch or walk for 5 minutes. Start with one easy task.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#eaf0fa"
+    },
+    {
+      "id": "arrow-4",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 780,
+          "y": 255
+        },
+        {
+          "x": 800,
+          "y": 255
+        }
+      ],
+      "sourceId": "card-3",
+      "targetId": "card-4",
+      "label": "",
+      "strokeColor": "#64748b"
+    },
+    {
+      "id": "note",
+      "type": "rectangle",
+      "x": 90,
+      "y": 400,
+      "width": 800,
+      "height": 90,
+      "label": "If mornings feel especially hard, shift bedtime earlier in small steps and make sure you are getting enough sleep.",
+      "strokeColor": "#334155",
+      "backgroundColor": "#f1f5f9"
+    }
+  ]
+}

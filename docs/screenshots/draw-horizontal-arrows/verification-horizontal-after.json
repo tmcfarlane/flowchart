@@ -1,0 +1,37 @@
+{
+  "url": "http://127.0.0.1:3056/",
+  "baseline": false,
+  "live": false,
+  "horizontal": "after",
+  "checks": [
+    "every connected row arrow is a straight horizontal left-to-right segment",
+    "preview leaves document unchanged",
+    "bound labels fit their rectangular hosts",
+    "insert creates editable native Draw records",
+    "one undo, redo, reload, and JSON export preserve the inserted scene",
+    "no browser page errors"
+  ],
+  "http_status": 200,
+  "request_id": null,
+  "broken_labels": [],
+  "fitted_label_count": 5,
+  "arrow_lengths": [
+    100.0,
+    100.0,
+    100.0,
+    100.0
+  ],
+  "connected_shape_gaps": [
+    100.0,
+    100.0,
+    100.0,
+    100.0
+  ],
+  "arrow_vertical_offsets": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "provider": {}
+}

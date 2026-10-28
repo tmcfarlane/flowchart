@@ -1,0 +1,574 @@
+{
+  "version": 4,
+  "mode": "draw",
+  "nodes": [],
+  "edges": [],
+  "architectureScene": {
+    "version": 1,
+    "elements": [
+      {
+        "id": "import-39d4e5a5-a8b1-4938-8b0e-d2a4ea23ea0d",
+        "type": "text",
+        "x": -6,
+        "y": 214,
+        "width": 468.48,
+        "height": 41.6,
+        "angle": 0,
+        "strokeColor": "#333333",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "A gentler way to wake up",
+        "originalText": "A gentler way to wake up",
+        "fontSize": 32,
+        "fontFamily": 2,
+        "textAlign": "left",
+        "verticalAlign": "top",
+        "containerId": null
+      },
+      {
+        "id": "import-2fac20a9-2a42-430d-b730-fe53edfb067b",
+        "type": "rectangle",
+        "x": -46,
+        "y": 334,
+        "width": 240,
+        "height": 207.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "#FDE2E4",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-7d0810d4-2a4e-41dc-9eb0-4daad5bf06d0",
+            "type": "text"
+          },
+          {
+            "id": "import-ab0daca3-2202-4d29-b959-c434a81515fb",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-7d0810d4-2a4e-41dc-9eb0-4daad5bf06d0",
+        "type": "text",
+        "x": -30.310000000000002,
+        "y": 344,
+        "width": 208.62,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Prepare tonight\nSet out clothes,\nwater, and anything\nyou need for the\nmorning. Keep a\nbedtime that gives\nyou enough time to\nsleep.",
+        "originalText": "Prepare tonight\nSet out clothes, water, and anything you need for the morning. Keep a bedtime that gives you enough time to sleep.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-2fac20a9-2a42-430d-b730-fe53edfb067b"
+      },
+      {
+        "id": "import-5701d66e-85c1-477d-9502-fb78a892a093",
+        "type": "rectangle",
+        "x": 294,
+        "y": 334,
+        "width": 240,
+        "height": 207.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "#E2F0CB",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-ea138d1a-9156-48c0-9f78-6f9c35983b16",
+            "type": "text"
+          },
+          {
+            "id": "import-ab0daca3-2202-4d29-b959-c434a81515fb",
+            "type": "arrow"
+          },
+          {
+            "id": "import-9433b948-e538-45f8-bb54-3ef91b360024",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-ea138d1a-9156-48c0-9f78-6f9c35983b16",
+        "type": "text",
+        "x": 309.69,
+        "y": 344,
+        "width": 208.62,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Keep a steady time\nWake up at roughly\nthe same time each\nday, even on\nweekends. A regular\nrhythm helps your\nbody expect the\nmorning.",
+        "originalText": "Keep a steady time\nWake up at roughly the same time each day, even on weekends. A regular rhythm helps your body expect the morning.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-5701d66e-85c1-477d-9502-fb78a892a093"
+      },
+      {
+        "id": "import-73bf59d1-811c-46df-8140-9adec8073db7",
+        "type": "rectangle",
+        "x": 634,
+        "y": 334,
+        "width": 240,
+        "height": 207.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "#DDEBF7",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-988d1a04-60c0-47c8-b936-dba0541bc0f6",
+            "type": "text"
+          },
+          {
+            "id": "import-9433b948-e538-45f8-bb54-3ef91b360024",
+            "type": "arrow"
+          },
+          {
+            "id": "import-68095e0f-e29e-4320-aa78-dcc63bf7c686",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-988d1a04-60c0-47c8-b936-dba0541bc0f6",
+        "type": "text",
+        "x": 649.69,
+        "y": 344,
+        "width": 208.62,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Get out of bed\nPlace your alarm\nwhere you must\nstand up to turn it\noff. Avoid\nscrolling on your\nphone while still\nunder the covers.",
+        "originalText": "Get out of bed\nPlace your alarm where you must stand up to turn it off. Avoid scrolling on your phone while still under the covers.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-73bf59d1-811c-46df-8140-9adec8073db7"
+      },
+      {
+        "id": "import-42ae44fb-eda8-487b-876d-4eb620a9b03c",
+        "type": "rectangle",
+        "x": 974,
+        "y": 334,
+        "width": 240,
+        "height": 207.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "#FFF1C1",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-b7b794c7-d016-459e-a2d8-f436323ca71e",
+            "type": "text"
+          },
+          {
+            "id": "import-68095e0f-e29e-4320-aa78-dcc63bf7c686",
+            "type": "arrow"
+          },
+          {
+            "id": "import-3f528403-7146-4314-b0bc-e3834976cc59",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-b7b794c7-d016-459e-a2d8-f436323ca71e",
+        "type": "text",
+        "x": 989.69,
+        "y": 344,
+        "width": 208.62,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Find bright light\nOpen the curtains\nas soon as you wake\nup to let daylight\nin. Step outside or\nsit near a bright\nwindow for a few\nminutes.",
+        "originalText": "Find bright light\nOpen the curtains as soon as you wake up to let daylight in. Step outside or sit near a bright window for a few minutes.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-42ae44fb-eda8-487b-876d-4eb620a9b03c"
+      },
+      {
+        "id": "import-19e5d019-53de-43e9-afa4-6ce87cdc4133",
+        "type": "rectangle",
+        "x": 1314,
+        "y": 334,
+        "width": 240,
+        "height": 207.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "#E9D8FD",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "import-0249c48f-70b2-4fc0-8697-74a4502797f6",
+            "type": "text"
+          },
+          {
+            "id": "import-3f528403-7146-4314-b0bc-e3834976cc59",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "import-0249c48f-70b2-4fc0-8697-74a4502797f6",
+        "type": "text",
+        "x": 1329.69,
+        "y": 344,
+        "width": 208.62,
+        "height": 187.20000000000002,
+        "angle": 0,
+        "strokeColor": "#6B7280",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Move then begin\nStretch, walk, or\ndo a few gentle\nmovements to wake\nup your body. Start\nwith one simple\ntask before\nchecking messages.",
+        "originalText": "Move then begin\nStretch, walk, or do a few gentle movements to wake up your body. Start with one simple task before checking messages.",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "import-19e5d019-53de-43e9-afa4-6ce87cdc4133"
+      },
+      {
+        "id": "import-ab0daca3-2202-4d29-b959-c434a81515fb",
+        "type": "arrow",
+        "x": 194,
+        "y": 419,
+        "width": 100,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#555555",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            100,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-2fac20a9-2a42-430d-b730-fe53edfb067b",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.4102316602316602
+          ]
+        },
+        "endBinding": {
+          "elementId": "import-5701d66e-85c1-477d-9502-fb78a892a093",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.4102316602316602
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-9433b948-e538-45f8-bb54-3ef91b360024",
+        "type": "arrow",
+        "x": 534,
+        "y": 419,
+        "width": 100,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#555555",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            100,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-5701d66e-85c1-477d-9502-fb78a892a093",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.4102316602316602
+          ]
+        },
+        "endBinding": {
+          "elementId": "import-73bf59d1-811c-46df-8140-9adec8073db7",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.4102316602316602
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-68095e0f-e29e-4320-aa78-dcc63bf7c686",
+        "type": "arrow",
+        "x": 874,
+        "y": 419,
+        "width": 100,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#555555",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            100,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-73bf59d1-811c-46df-8140-9adec8073db7",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.4102316602316602
+          ]
+        },
+        "endBinding": {
+          "elementId": "import-42ae44fb-eda8-487b-876d-4eb620a9b03c",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.4102316602316602
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-3f528403-7146-4314-b0bc-e3834976cc59",
+        "type": "arrow",
+        "x": 1214,
+        "y": 419,
+        "width": 100,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#555555",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            100,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "import-42ae44fb-eda8-487b-876d-4eb620a9b03c",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            1,
+            0.4102316602316602
+          ]
+        },
+        "endBinding": {
+          "elementId": "import-19e5d019-53de-43e9-afa4-6ce87cdc4133",
+          "focus": 0,
+          "gap": 0,
+          "fixedPoint": [
+            0,
+            0.4102316602316602
+          ]
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "import-06c5559f-f509-4fb2-b6f6-8aaa0ec8bdb5",
+        "type": "text",
+        "x": 304,
+        "y": 584,
+        "width": 1342,
+        "height": 26,
+        "angle": 0,
+        "strokeColor": "#444444",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Helpful note: Small changes practiced consistently are usually easier to keep than a dramatic overnight reset.",
+        "originalText": "Helpful note: Small changes practiced consistently are usually easier to keep than a dramatic overnight reset.",
+        "fontSize": 20,
+        "fontFamily": 2,
+        "textAlign": "left",
+        "verticalAlign": "top",
+        "containerId": null
+      }
+    ],
+    "files": {}
+  }
+}

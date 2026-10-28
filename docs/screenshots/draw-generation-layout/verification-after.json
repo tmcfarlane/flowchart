@@ -1,0 +1,28 @@
+{
+  "url": "http://127.0.0.1:3055/",
+  "baseline": false,
+  "live": false,
+  "checks": [
+    "preview leaves document unchanged",
+    "bound labels fit their rectangular hosts",
+    "insert creates editable native Draw records",
+    "fixture keeps complete words and explicit blank paragraphs",
+    "one undo, redo, reload, and JSON export preserve the inserted scene",
+    "no browser page errors"
+  ],
+  "broken_labels": [],
+  "fitted_label_count": 6,
+  "arrow_lengths": [
+    20.0,
+    20.0,
+    20.0,
+    20.0
+  ],
+  "connected_shape_gaps": [
+    20.0,
+    20.0,
+    20.0,
+    20.0
+  ],
+  "provider": {}
+}

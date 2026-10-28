@@ -1,0 +1,151 @@
+{
+  "outputMode": "draw",
+  "summary": "A left-to-right habit flow titled 'A gentler way to wake up' with five pastel habit cards connected by arrows and a supportive note below the sequence.",
+  "elements": [
+    {
+      "id": "title_text",
+      "type": "text",
+      "x": 120,
+      "y": 60,
+      "text": "A gentler way to wake up",
+      "fontSize": 32,
+      "strokeColor": "#333333"
+    },
+    {
+      "id": "card_prepare",
+      "type": "rectangle",
+      "x": 80,
+      "y": 180,
+      "width": 240,
+      "height": 170,
+      "label": "Prepare tonight\nSet out clothes, water, and anything you need for the morning. Keep a bedtime that gives you enough time to sleep.",
+      "strokeColor": "#6B7280",
+      "backgroundColor": "#FDE2E4"
+    },
+    {
+      "id": "card_steady",
+      "type": "rectangle",
+      "x": 420,
+      "y": 180,
+      "width": 240,
+      "height": 170,
+      "label": "Keep a steady time\nWake up at roughly the same time each day, even on weekends. A regular rhythm helps your body expect the morning.",
+      "strokeColor": "#6B7280",
+      "backgroundColor": "#E2F0CB"
+    },
+    {
+      "id": "card_bed",
+      "type": "rectangle",
+      "x": 760,
+      "y": 180,
+      "width": 240,
+      "height": 170,
+      "label": "Get out of bed\nPlace your alarm where you must stand up to turn it off. Avoid scrolling on your phone while still under the covers.",
+      "strokeColor": "#6B7280",
+      "backgroundColor": "#DDEBF7"
+    },
+    {
+      "id": "card_light",
+      "type": "rectangle",
+      "x": 1100,
+      "y": 180,
+      "width": 240,
+      "height": 170,
+      "label": "Find bright light\nOpen the curtains as soon as you wake up to let daylight in. Step outside or sit near a bright window for a few minutes.",
+      "strokeColor": "#6B7280",
+      "backgroundColor": "#FFF1C1"
+    },
+    {
+      "id": "card_move",
+      "type": "rectangle",
+      "x": 1440,
+      "y": 180,
+      "width": 240,
+      "height": 170,
+      "label": "Move then begin\nStretch, walk, or do a few gentle movements to wake up your body. Start with one simple task before checking messages.",
+      "strokeColor": "#6B7280",
+      "backgroundColor": "#E9D8FD"
+    },
+    {
+      "id": "arrow_prepare_steady",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 320,
+          "y": 265
+        },
+        {
+          "x": 420,
+          "y": 265
+        }
+      ],
+      "sourceId": "card_prepare",
+      "targetId": "card_steady",
+      "label": "",
+      "strokeColor": "#555555"
+    },
+    {
+      "id": "arrow_steady_bed",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 660,
+          "y": 265
+        },
+        {
+          "x": 760,
+          "y": 265
+        }
+      ],
+      "sourceId": "card_steady",
+      "targetId": "card_bed",
+      "label": "",
+      "strokeColor": "#555555"
+    },
+    {
+      "id": "arrow_bed_light",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1000,
+          "y": 265
+        },
+        {
+          "x": 1100,
+          "y": 265
+        }
+      ],
+      "sourceId": "card_bed",
+      "targetId": "card_light",
+      "label": "",
+      "strokeColor": "#555555"
+    },
+    {
+      "id": "arrow_light_move",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1340,
+          "y": 265
+        },
+        {
+          "x": 1440,
+          "y": 265
+        }
+      ],
+      "sourceId": "card_light",
+      "targetId": "card_move",
+      "label": "",
+      "strokeColor": "#555555"
+    },
+    {
+      "id": "note_text",
+      "type": "text",
+      "x": 430,
+      "y": 430,
+      "text": "Helpful note: Small changes practiced consistently are usually easier to keep than a dramatic overnight reset.",
+      "fontSize": 20,
+      "strokeColor": "#444444"
+    }
+  ]
+}

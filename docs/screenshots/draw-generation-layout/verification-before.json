@@ -1,0 +1,48 @@
+{
+  "url": "http://127.0.0.1:3053/",
+  "baseline": true,
+  "live": false,
+  "checks": [
+    "preview leaves document unchanged",
+    "bound labels fit their rectangular hosts",
+    "insert creates editable native Draw records",
+    "one undo, redo, reload, and JSON export preserve the inserted scene",
+    "no browser page errors"
+  ],
+  "broken_labels": [
+    {
+      "source": "1. Prepare tonight\n\nChoose a bedtime and put your alarm across the room.",
+      "display": "1. Prepare ton\night\n\nChoose a bedti\nme and put you\nr alarm across\nthe room."
+    },
+    {
+      "source": "2. Keep a steady time\n\nWake at a similar time each day, including weekends.",
+      "display": "2. Keep a stea\ndy time\n\nWake at a simi\nlar time each\nday, including\nweekends."
+    },
+    {
+      "source": "3. Get out of bed\n\nWhen the alarm rings, stand up. Skip the snooze button.",
+      "display": "3. Get out of\nbed\n\nWhen the alarm\nrings, stand u\np. Skip the sn\nooze button."
+    },
+    {
+      "source": "4. Find bright light\n\nOpen the curtains or step outside. Have a glass of water.",
+      "display": "4. Find bright\nlight\n\nOpen the curta\nins or step ou\ntside. Have a\nglass of water\n."
+    },
+    {
+      "source": "5. Move, then begin\n\nStretch or walk for 5 minutes. Start with one easy task.",
+      "display": "5. Move, then\nbegin\n\nStretch or wal\nk for 5 minute\ns. Start with\none easy task."
+    }
+  ],
+  "fitted_label_count": 6,
+  "arrow_lengths": [
+    20.0,
+    20.0,
+    20.0,
+    20.0
+  ],
+  "connected_shape_gaps": [
+    20.0,
+    20.0,
+    20.0,
+    20.0
+  ],
+  "provider": {}
+}
