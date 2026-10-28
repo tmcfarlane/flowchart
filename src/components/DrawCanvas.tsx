@@ -6,7 +6,7 @@ import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/
 import { drawingFontFamily, drawingTextSize } from '../utils/drawText'
 import { cropImageElement, validImageCrop, type ImageCrop } from '../utils/drawMedia'
 import { mermaidToScene, recognizeStroke, safeEmbedUrl, type PaintTarget } from '../utils/drawExtraTools'
-import { createElement, deleteElements, duplicateSelection, expandSelection, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
+import { createElement, deleteElements, duplicateSelection, editableSelection, expandSelection, lockedElementIds, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
 import { createConnectedShape, directions, flipSelection, lassoSelection, navigateConnection, type Direction } from '../utils/drawGeometry'
 import { applyDrawEdit, drawEditIsCurrent, type DrawEditSnapshot } from '../utils/drawSelectionEdit'
 import type { DrawEditProposal } from '../shared/drawSelectionEdit'
@@ -390,15 +390,17 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     else setDefaults(current => ({ ...current, ...properties }))
   }
   const groupSelection = (ungroup = false) => {
-    const id = newDrawId('group')
+    const id = newDrawId('group'), editable = new Set(editableSelection(draftRef.current, selectedRef.current))
+    if (!editable.size) return
     emit({ ...draftRef.current, elements: draftRef.current.elements.map(raw => {
       const element = raw as DrawElement
-      if (!selectedRef.current.has(element.id)) return element
+      if (!editable.has(element.id)) return element
       return { ...element, groupIds: ungroup ? (element.groupIds ?? []).slice(0, -1) : [...(element.groupIds ?? []), id] }
     }) })
   }
   const reorder = (direction: 'front' | 'back' | 'forward' | 'backward') => {
-    const elements = [...draftRef.current.elements], selected = selectedRef.current
+    const elements = [...draftRef.current.elements], selected = new Set(editableSelection(draftRef.current, selectedRef.current))
+    if (!selected.size) return
     if (direction === 'front' || direction === 'back') {
       const chosen = elements.filter(e => selected.has(String(e.id))), rest = elements.filter(e => !selected.has(String(e.id)))
       emit({ ...draftRef.current, elements: direction === 'front' ? [...rest, ...chosen] : [...chosen, ...rest] }); return
@@ -411,7 +413,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     emit({ ...draftRef.current, elements })
   }
   const align = (side: 'left' | 'right' | 'top' | 'bottom' | 'centerX' | 'centerY') => {
-    const chosen = live(draftRef.current).filter(e => selectedRef.current.has(e.id) && !(e.containerId && selectedRef.current.has(e.containerId)))
+    const editable = new Set(editableSelection(draftRef.current, selectedRef.current))
+    const chosen = live(draftRef.current).filter(e => editable.has(e.id) && !(e.containerId && editable.has(e.containerId)))
     if (chosen.length < 2) return
     const bounds = getSceneBounds(chosen)
     let next = draftRef.current
@@ -423,7 +426,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     }
     emit(next)
   }
-  const duplicate = () => { const next = duplicateSelection(draftRef.current, selectedRef.current, undefined, true); select(next.selectedIds); emit(next.scene) }
+  const duplicate = () => { const ids = editableSelection(draftRef.current, selectedRef.current); if (!ids.length) return; const next = duplicateSelection(draftRef.current, ids, undefined, true, true); select(next.selectedIds); emit(next.scene) }
   const copySelection = () => {
     const ids = new Set(expandSelection(draftRef.current, selectedRef.current, true))
     if (!ids.size) return null
@@ -553,7 +556,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const beginText = (id?: string, point?: Point) => {
     const before = copy(committed.current)
     let next = draftRef.current, element = live(next).find(e => e.id === id)
-    if (element?.locked || (element?.containerId && live(next).find(host => host.id === element?.containerId)?.locked)) return
+    if (element && lockedElementIds(next).has(element.id)) return
     if (element && !['text', 'frame'].includes(element.type)) {
       const host = element
       element = live(next).find(e => e.type === 'text' && e.containerId === host.id)
@@ -568,7 +571,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       element = createElement('text', point ?? { x: 120, y: 120 }, undefined, { ...defaults, text: '', originalText: '' })
       next = { ...next, elements: [...next.elements, element] }
     }
-    if (element.locked) return
+    if (lockedElementIds(next).has(element.id)) return
     if (element.containerId) next = rerouteBindings(next, [element.id])
     preview(next); select([element.id]); setTextEdit({ id: element.id, value: element.type === 'frame' ? String(element.name ?? '') : element.text ?? '', before })
   }
@@ -593,13 +596,13 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     else if (id === 'theme') latest.current.onToggleTheme?.()
     else if (id === 'clear') latest.current.onRequestClear?.()
     else if (id === 'link') {
-      const element = live(draftRef.current).find(item => selectedRef.current.has(item.id) && (readOnly || !item.locked))
+      const element = live(draftRef.current).find(item => selectedRef.current.has(item.id) && (readOnly || !lockedElementIds(draftRef.current).has(item.id)))
       if (element) setPanel({ kind: 'link', elementId: element.id, value: typeof element.link === 'string' ? element.link : '' })
     }
   }
   const saveLink = (elementId: string, value: string) => {
     const element = live(draftRef.current).find(item => item.id === elementId)
-    if (!element || element.locked || readOnlyRef.current) return
+    if (!element || lockedElementIds(draftRef.current).has(element.id) || readOnlyRef.current) return
     const link = value.trim() ? validLink(value) : null
     if (value.trim() && !link) { setMessage('Use an http, https, or mailto link.'); return }
     if (emit(patchElement(draftRef.current, elementId, { link }))) { setMessage(null); setPanel({ kind: 'closed' }) }
@@ -622,7 +625,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     previousExtraDialog.current = extraDialog
   }, [extraDialog])
   const beginCrop = async (id: string) => {
-    const element = live(committed.current).find(item => item.id === id && item.type === 'image' && !item.locked)
+    const element = live(committed.current).find(item => item.id === id && item.type === 'image' && !lockedElementIds(committed.current).has(item.id))
     if (!element || readOnlyRef.current) return
     const file = element.fileId ? committed.current.files[element.fileId] : null
     if (!file || typeof file.dataURL !== 'string') return
@@ -764,7 +767,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (mod && key === 'v') return
     if (mod && key === 'd') { event.preventDefault(); duplicate(); return }
     if (mod && key === 'g') { event.preventDefault(); groupSelection(event.shiftKey); return }
-    if (mod && event.shiftKey && key === 'l') { event.preventDefault(); const locked = live(draftRef.current).filter(e => selectedRef.current.has(e.id)).every(e => e.locked); applyProperties({ locked: !locked }); return }
+    if (mod && event.shiftKey && key === 'l') { event.preventDefault(); const lockedIds = lockedElementIds(draftRef.current), locked = live(draftRef.current).filter(e => selectedRef.current.has(e.id)).every(e => lockedIds.has(e.id)); applyProperties({ locked: !locked }); return }
     if (mod && (['[', ']'].includes(key) || ['BracketLeft', 'BracketRight'].includes(event.code))) { event.preventDefault(); const forward = event.code === 'BracketRight' || key === ']', extreme = event.shiftKey || (event.metaKey && event.altKey); reorder(forward ? extreme ? 'front' : 'forward' : extreme ? 'back' : 'backward'); return }
     if (mod && event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); align(event.key === 'ArrowLeft' ? 'left' : event.key === 'ArrowRight' ? 'right' : event.key === 'ArrowUp' ? 'top' : 'bottom'); return }
     if (!event.shiftKey && Object.prototype.hasOwnProperty.call(directions, event.key) && (mod || event.altKey)) {
@@ -787,7 +790,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (pointEditRef.current && (event.key === 'Delete' || event.key === 'Backspace')) { event.preventDefault(); deletePathPoint(); return }
     if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); emit(deleteElements(draftRef.current, selectedRef.current, true)); select([]); return }
     if (!mod && !event.altKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) {
-      event.preventDefault(); if (!selectedRef.current.size) return
+      event.preventDefault(); if (!editableSelection(draftRef.current, selectedRef.current).length) return
       if (!nudgeBefore.current) nudgeBefore.current = copy(committed.current)
       const step = event.shiftKey ? 5 : 1
       if (pointEditRef.current) {
@@ -801,7 +804,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       preview(moveElements(draftRef.current, selectedRef.current, { x: event.key === 'ArrowLeft' ? -step : event.key === 'ArrowRight' ? step : 0, y: event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0 }, true)); return
     }
     if (mod && event.key === 'Enter') {
-      const selected = live(draftRef.current).filter(item => selectedRef.current.has(item.id)), paths = selected.filter(item => ['line', 'arrow'].includes(item.type) && !item.locked)
+      const selected = live(draftRef.current).filter(item => selectedRef.current.has(item.id)), paths = selected.filter(item => ['line', 'arrow'].includes(item.type) && !lockedElementIds(draftRef.current).has(item.id))
       if (paths.length === 1 && selected.every(item => item.id === paths[0].id || (item.type === 'text' && item.containerId === paths[0].id))) {
         event.preventDefault(); setPointEdit({ id: paths[0].id, index: 0 }); requestAnimationFrame(() => surface.current?.querySelector<SVGElement>('[aria-label="Edit path point 1"]')?.focus()); return
       }
@@ -936,13 +939,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       const id = target.closest('[data-element-id]')?.getAttribute('data-element-id')
       const clicked = live(before).find(element => element.id === id)
       const hit = clicked?.containerId && !event.ctrlKey && !event.metaKey ? live(before).find(element => element.id === clicked.containerId) ?? clicked : clicked
-      if (hit && (!hit.locked || event.ctrlKey || event.metaKey)) {
+      if (hit) {
         const expanded = expandSelection(before, [hit.id], event.ctrlKey || event.metaKey)
         const chosen = event.shiftKey ? new Set([...selectedRef.current, ...expanded]) : selectedRef.current.has(hit.id) ? new Set(selectedRef.current) : new Set(expanded)
         if (event.shiftKey && selectedRef.current.has(hit.id)) for (const item of expanded) chosen.delete(item)
         let next = before, ids = [...chosen]
-        if (event.altKey) { const duplicated = duplicateSelection(before, ids, { x: 0, y: 0 }, true); next = duplicated.scene; ids = duplicated.selectedIds; preview(next) }
-        select(ids); gesture.current = { ...base, ids, base: next }
+        if (lockedElementIds(before).has(hit.id)) { select(ids); return }
+        if (event.altKey) { const duplicated = duplicateSelection(before, editableSelection(before, ids), { x: 0, y: 0 }, true, true); next = duplicated.scene; ids = duplicated.selectedIds; preview(next) }
+        select(ids); gesture.current = { ...base, ids: editableSelection(next, ids), base: next }
       } else { if (!event.shiftKey) select([]); gesture.current = { ...base, kind: 'marquee', ids: event.shiftKey ? [...selectedRef.current] : [], deep: event.ctrlKey || event.metaKey }; setMarquee({ ...point, width: 0, height: 0 }) }
     }
     surface.current?.setPointerCapture?.(event.pointerId)
@@ -1073,7 +1077,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         } else setMessage('Kept the freehand stroke.')
       }
       if (element.type === 'arrow' && !event.ctrlKey && !event.metaKey) next = rerouteBindings(patchElement(next, element.id, { endBinding: bindingFor(worldPoint({ x: event.clientX, y: event.clientY }), element.id) }), [element.id])
-      if (element.type === 'frame') next = { ...next, elements: next.elements.map(raw => { const item = raw as DrawElement; return item.id !== element.id && item.type !== 'frame' && inside({ x: item.x, y: item.y }, element) && inside({ x: item.x + item.width, y: item.y + item.height }, element) ? { ...item, frameId: element.id } : item }) }
+      if (element.type === 'frame') { const locked = lockedElementIds(next); next = { ...next, elements: next.elements.map(raw => { const item = raw as DrawElement; return item.id !== element.id && !locked.has(item.id) && item.type !== 'frame' && inside({ x: item.x, y: item.y }, element) && inside({ x: item.x + item.width, y: item.y + item.height }, element) ? { ...item, frameId: element.id } : item }) } }
       if (!keepTool) setTool('selection')
     }
     if (active.kind === 'point' && active.elementId && !event.ctrlKey && !event.metaKey) {
@@ -1118,12 +1122,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const paletteCommands = panel.kind === 'palette' ? drawCommands.filter(command =>
     (!readOnly || !command.mutates || command.id === 'link') && `${command.label} ${command.shortcut}`.toLowerCase().includes(panel.query.toLowerCase())) : []
   const canvasBackground = darkMode && ['#ffffff', '#fff', 'white'].includes(storedBackground.toLowerCase()) ? '#0f1211' : storedBackground
-  const chosen = live(draft).filter(element => selectedIds.has(element.id)), first = chosen[0]
-  const selectedPaths = chosen.filter(element => ['line', 'arrow'].includes(element.type))
-  const editablePath = selectedPaths.length === 1 && chosen.every(element => element.id === selectedPaths[0].id || element.containerId === selectedPaths[0].id) ? selectedPaths[0] : undefined
+  const chosen = live(draft).filter(element => selectedIds.has(element.id)), lockedIds = lockedElementIds(draft)
+  const editable = chosen.filter(element => !lockedIds.has(element.id)), hasLocked = editable.length !== chosen.length
+  const lockedOnly = chosen.length > 0 && !editable.length, first = editable[0] ?? chosen[0]
+  const selectedPaths = editable.filter(element => ['line', 'arrow'].includes(element.type))
+  const editablePath = !hasLocked && selectedPaths.length === 1 && chosen.every(element => element.id === selectedPaths[0].id || element.containerId === selectedPaths[0].id) ? selectedPaths[0] : undefined
   const activePathPointCount = pointEdit && editablePath?.id === pointEdit.id ? getWorldPoints(editablePath).length : 0
   const property = <K extends keyof DrawElement>(key: K, fallback: DrawElement[K]) => {
-    const primary = ['fontSize', 'fontFamily', 'textAlign'].includes(String(key)) ? chosen.find(element => element.type === 'text') ?? first : first
+    const primary = ['fontSize', 'fontFamily', 'textAlign'].includes(String(key)) ? editable.find(element => element.type === 'text') ?? first : first
     return primary?.[key] ?? defaults[key] ?? fallback
   }
   const selectionBounds = chosen.length ? getSceneBounds(chosen) : null
@@ -1180,7 +1186,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         <g data-draw-content="true"><DrawSceneSvg elements={draft.elements} files={draft.files} darkMode={darkMode} backgroundColor={canvasBackground} selectedIds={selectedIds} editingTextId={textEdit?.id} /></g>
         {!readOnly && selectionBounds && <g className="draw-selection" fill="none" stroke="#17b895" strokeWidth={1.5 / viewport.zoom}>
           <rect x={selectionBounds.x - 3 / viewport.zoom} y={selectionBounds.y - 3 / viewport.zoom} width={selectionBounds.width + 6 / viewport.zoom} height={selectionBounds.height + 6 / viewport.zoom} strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`} pointerEvents="none" />
-          {!pointEdit && !creatingConnector && <><line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} />
+          {!hasLocked && !pointEdit && !creatingConnector && <><line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} />
             <circle data-rotate="true" aria-label="Rotate selection" cx={selectionBounds.x + selectionBounds.width / 2} cy={selectionBounds.y - 30 / viewport.zoom} r={5 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />
             {(['nw', 'ne', 'sw', 'se'] as const).map(corner => <rect key={corner} data-resize={corner} aria-label={`Resize ${corner}`} x={(corner.includes('w') ? selectionBounds.x : selectionBounds.x + selectionBounds.width) - 4 / viewport.zoom} y={(corner.includes('n') ? selectionBounds.y : selectionBounds.y + selectionBounds.height) - 4 / viewport.zoom} width={8 / viewport.zoom} height={8 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />)}</>}
           {!creatingConnector && editablePath && getWorldPoints(editablePath).map((point, index) => <circle key={index} data-point-index={index} data-element-handle={editablePath.id} aria-label={`Edit path point ${index + 1}`} role={pointEdit ? 'button' : undefined} tabIndex={pointEdit ? 0 : undefined} aria-pressed={pointEdit ? pointEdit.index === index : undefined} onFocus={() => { if (pointEdit) { const next = { id: editablePath.id, index }; pointEditRef.current = next; setPointEdit(next) } }} onClick={() => { if (pointEdit) focusPathPoint(editablePath.id, index) }} cx={point.x} cy={point.y} r={(pointEdit?.index === index ? 7 : 5) / viewport.zoom} fill={pointEdit?.index === index ? '#17b895' : '#d7fff1'} />)}
@@ -1222,19 +1228,22 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <div className="draw-crop-actions"><button type="button" onClick={cancelCrop}>Cancel crop</button><button type="button" onClick={finishCrop}>Finish crop</button></div>
     </section></div>}
     {!readOnly && <aside className="draw-properties" aria-label="Drawing properties">
-      <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
-      {first && ['embeddable', 'iframe'].includes(first.type) && <div className="draw-embed-actions"><button type="button" onClick={() => { try { safeEmbedUrl(String(first.link ?? '')); setLiveEmbed(first.id) } catch (error) { setMessage(error instanceof Error ? error.message : 'Invalid embed URL.') } }}>Load live content</button><span>Live content loads only when you choose it.</span></div>}
-      {pointEdit && editablePath?.id === pointEdit.id && <fieldset className="draw-point-editor"><legend>Connector points</legend><p role="status">Editing connector points</p><p>Arrows move the active point. Enter or Escape finishes.</p><div className="draw-action-grid"><button type="button" onClick={addPathPoint}>Add path point</button><button type="button" disabled={pointEdit.index <= 0 || pointEdit.index >= activePathPointCount - 1} onClick={deletePathPoint}>Delete path point</button><button type="button" onClick={finishPointEditing}>Finish point editing</button></div></fieldset>}
-      <div className="draw-property-pair"><label>Stroke<input aria-label="Stroke color" type="color" value={String(property('strokeColor', '#0f766e')).startsWith('#') ? String(property('strokeColor', '#0f766e')) : '#0f766e'} onChange={event => applyProperties({ strokeColor: event.target.value })} /></label><label>Fill<input aria-label="Background color" type="color" value={String(property('backgroundColor', 'transparent')).startsWith('#') ? String(property('backgroundColor', 'transparent')) : '#ffffff'} onChange={event => applyProperties({ backgroundColor: event.target.value })} /></label></div>
-      <label className="draw-check"><input type="checkbox" checked={property('backgroundColor', 'transparent') === 'transparent'} onChange={event => applyProperties({ backgroundColor: event.target.checked ? 'transparent' : '#b2f2dc' })} />No fill</label>
-      <label>Fill style<select aria-label="Fill style" value={String(property('fillStyle', 'solid'))} onChange={event => applyProperties({ fillStyle: event.target.value })}><option value="solid">Solid</option><option value="hachure">Hatch</option><option value="cross-hatch">Crosshatch</option></select></label>
-      <div className="draw-property-pair"><label>Width<input aria-label="Stroke width" type="number" min="1" max="20" value={Number(property('strokeWidth', 2))} onChange={event => applyProperties({ strokeWidth: Math.max(1, Number(event.target.value)) })} /></label><label>Style<select aria-label="Stroke style" value={String(property('strokeStyle', 'solid'))} onChange={event => applyProperties({ strokeStyle: event.target.value })}><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label></div>
-      <label>Sketch<select aria-label="Roughness" value={Number(property('roughness', 0))} onChange={event => applyProperties({ roughness: Number(event.target.value) })}><option value="0">Clean</option><option value="1">Sketch</option><option value="2">Loose</option></select></label>
-      <label>Corners<select aria-label="Corners" value={property('roundness', null) ? 'rounded' : 'sharp'} onChange={event => applyProperties({ roundness: event.target.value === 'rounded' ? { type: 3 } : null })}><option value="rounded">Rounded</option><option value="sharp">Sharp</option></select></label>
-      <label>Opacity <span>{Number(property('opacity', 100))}%</span><input aria-label="Opacity" type="range" min="0" max="100" value={Number(property('opacity', 100))} onChange={event => applyProperties({ opacity: Number(event.target.value) })} /></label>
-      {(tool === 'text' || showTextProperties || chosen.some(e => e.type === 'text')) && <fieldset><legend>Text</legend><div className="draw-property-pair"><label>Size<input aria-label="Font size" type="number" min="8" max="144" value={Number(property('fontSize', 20))} onChange={event => applyProperties({ fontSize: Math.max(8, Number(event.target.value)) })} /></label><label>Font<select aria-label="Font family" value={Number(property('fontFamily', 2))} onChange={event => applyProperties({ fontFamily: Number(event.target.value) })}><option value="2">Sans</option><option value="1">Hand</option><option value="3">Mono</option>{![1, 2, 3].includes(Number(property('fontFamily', 2))) && <option value={Number(property('fontFamily', 2))}>Imported font {Number(property('fontFamily', 2))} (local fallback)</option>}</select></label></div><label>Alignment<select aria-label="Text alignment" value={String(property('textAlign', 'left'))} onChange={event => applyProperties({ textAlign: event.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label></fieldset>}
-      {(['line', 'arrow'].includes(tool) || chosen.some(e => ['line', 'arrow'].includes(e.type))) && <fieldset><legend>Connection</legend>{(['startArrowhead', 'endArrowhead'] as const).map(key => <label key={key}>{key === 'startArrowhead' ? 'Start' : 'End'}<select aria-label={key === 'startArrowhead' ? 'Start arrowhead' : 'End arrowhead'} value={String(property(key, key === 'endArrowhead' ? 'arrow' : null) ?? 'none')} onChange={event => applyProperties({ [key]: event.target.value === 'none' ? null : event.target.value })}>{['none', 'arrow', 'triangle', 'dot', 'bar', 'diamond'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>)}<label>Routing<select aria-label="Arrow routing" value={first?.elbowed ? 'elbow' : first?.roundness ? 'curved' : 'sharp'} onChange={event => applyProperties({ elbowed: event.target.value === 'elbow', roundness: event.target.value === 'curved' ? { type: 2 } : null })}><option value="sharp">Sharp</option><option value="curved">Curved</option><option value="elbow">Elbow</option></select></label></fieldset>}
-      {chosen.length > 0 && !creatingConnector && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: !chosen.every(e => e.locked) })}>{chosen.every(e => e.locked) ? 'Unlock' : 'Lock'}</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}{props.onEditSelection && <button className="draw-ai-action" onClick={props.onEditSelection} disabled={chosen.some(element => element.locked)}>Edit selection with AI</button>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
+      <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{lockedOnly ? 'Locked selection' : hasLocked ? 'Editing unlocked objects' : chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
+      {hasLocked && !creatingConnector && <div className="draw-locked-selection"><p>{chosen.some(element => !element.locked && lockedIds.has(element.id)) ? 'Unlock also unlocks the containing frame or shape.' : lockedOnly ? 'Unlock to edit this selection.' : 'Locked objects stay unchanged.'}</p><button type="button" onClick={() => applyProperties({ locked: false })}>Unlock</button></div>}
+      {!lockedOnly && <>
+        {first && ['embeddable', 'iframe'].includes(first.type) && <div className="draw-embed-actions"><button type="button" onClick={() => { try { safeEmbedUrl(String(first.link ?? '')); setLiveEmbed(first.id) } catch (error) { setMessage(error instanceof Error ? error.message : 'Invalid embed URL.') } }}>Load live content</button><span>Live content loads only when you choose it.</span></div>}
+        {pointEdit && editablePath?.id === pointEdit.id && <fieldset className="draw-point-editor"><legend>Connector points</legend><p role="status">Editing connector points</p><p>Arrows move the active point. Enter or Escape finishes.</p><div className="draw-action-grid"><button type="button" onClick={addPathPoint}>Add path point</button><button type="button" disabled={pointEdit.index <= 0 || pointEdit.index >= activePathPointCount - 1} onClick={deletePathPoint}>Delete path point</button><button type="button" onClick={finishPointEditing}>Finish point editing</button></div></fieldset>}
+        <div className="draw-property-pair"><label>Stroke<input aria-label="Stroke color" type="color" value={String(property('strokeColor', '#0f766e')).startsWith('#') ? String(property('strokeColor', '#0f766e')) : '#0f766e'} onChange={event => applyProperties({ strokeColor: event.target.value })} /></label><label>Fill<input aria-label="Background color" type="color" value={String(property('backgroundColor', 'transparent')).startsWith('#') ? String(property('backgroundColor', 'transparent')) : '#ffffff'} onChange={event => applyProperties({ backgroundColor: event.target.value })} /></label></div>
+        <label className="draw-check"><input type="checkbox" checked={property('backgroundColor', 'transparent') === 'transparent'} onChange={event => applyProperties({ backgroundColor: event.target.checked ? 'transparent' : '#b2f2dc' })} />No fill</label>
+        <label>Fill style<select aria-label="Fill style" value={String(property('fillStyle', 'solid'))} onChange={event => applyProperties({ fillStyle: event.target.value })}><option value="solid">Solid</option><option value="hachure">Hatch</option><option value="cross-hatch">Crosshatch</option></select></label>
+        <div className="draw-property-pair"><label>Width<input aria-label="Stroke width" type="number" min="1" max="20" value={Number(property('strokeWidth', 2))} onChange={event => applyProperties({ strokeWidth: Math.max(1, Number(event.target.value)) })} /></label><label>Style<select aria-label="Stroke style" value={String(property('strokeStyle', 'solid'))} onChange={event => applyProperties({ strokeStyle: event.target.value })}><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></label></div>
+        <label>Sketch<select aria-label="Roughness" value={Number(property('roughness', 0))} onChange={event => applyProperties({ roughness: Number(event.target.value) })}><option value="0">Clean</option><option value="1">Sketch</option><option value="2">Loose</option></select></label>
+        <label>Corners<select aria-label="Corners" value={property('roundness', null) ? 'rounded' : 'sharp'} onChange={event => applyProperties({ roundness: event.target.value === 'rounded' ? { type: 3 } : null })}><option value="rounded">Rounded</option><option value="sharp">Sharp</option></select></label>
+        <label>Opacity <span>{Number(property('opacity', 100))}%</span><input aria-label="Opacity" type="range" min="0" max="100" value={Number(property('opacity', 100))} onChange={event => applyProperties({ opacity: Number(event.target.value) })} /></label>
+        {(tool === 'text' || showTextProperties || chosen.some(e => e.type === 'text')) && <fieldset><legend>Text</legend><div className="draw-property-pair"><label>Size<input aria-label="Font size" type="number" min="8" max="144" value={Number(property('fontSize', 20))} onChange={event => applyProperties({ fontSize: Math.max(8, Number(event.target.value)) })} /></label><label>Font<select aria-label="Font family" value={Number(property('fontFamily', 2))} onChange={event => applyProperties({ fontFamily: Number(event.target.value) })}><option value="2">Sans</option><option value="1">Hand</option><option value="3">Mono</option>{![1, 2, 3].includes(Number(property('fontFamily', 2))) && <option value={Number(property('fontFamily', 2))}>Imported font {Number(property('fontFamily', 2))} (local fallback)</option>}</select></label></div><label>Alignment<select aria-label="Text alignment" value={String(property('textAlign', 'left'))} onChange={event => applyProperties({ textAlign: event.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label></fieldset>}
+        {(['line', 'arrow'].includes(tool) || chosen.some(e => ['line', 'arrow'].includes(e.type))) && <fieldset><legend>Connection</legend>{(['startArrowhead', 'endArrowhead'] as const).map(key => <label key={key}>{key === 'startArrowhead' ? 'Start' : 'End'}<select aria-label={key === 'startArrowhead' ? 'Start arrowhead' : 'End arrowhead'} value={String(property(key, key === 'endArrowhead' ? 'arrow' : null) ?? 'none')} onChange={event => applyProperties({ [key]: event.target.value === 'none' ? null : event.target.value })}>{['none', 'arrow', 'triangle', 'dot', 'bar', 'diamond'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>)}<label>Routing<select aria-label="Arrow routing" value={first?.elbowed ? 'elbow' : first?.roundness ? 'curved' : 'sharp'} onChange={event => applyProperties({ elbowed: event.target.value === 'elbow', roundness: event.target.value === 'curved' ? { type: 2 } : null })}><option value="sharp">Sharp</option><option value="curved">Curved</option><option value="elbow">Elbow</option></select></label></fieldset>}
+        {chosen.length > 0 && !creatingConnector && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: true })}>Lock</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}{props.onEditSelection && <button className="draw-ai-action" onClick={props.onEditSelection} disabled={hasLocked}>Edit selection with AI</button>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
+      </>}
     </aside>}
     {!zen && <div className="draw-bottom-controls"><button aria-label="Zoom out" onClick={() => setViewport(view => ({ ...view, zoom: Math.max(0.1, view.zoom / 1.2) }))}>−</button><span>{Math.round(viewport.zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setViewport(view => ({ ...view, zoom: Math.min(5, view.zoom * 1.2) }))}>+</button><button aria-label="Fit drawing" title="Fit all (Shift+1)" onClick={fitScene}>Fit</button>{!readOnly && <><span className="draw-divider" /><button aria-label="Undo drawing" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>↶</button><button aria-label="Redo drawing" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>↷</button><button aria-label="Snap to grid" aria-pressed={grid} onClick={() => setGrid(value => !value)}>Grid</button><button aria-label="Snap to objects" aria-pressed={snap} onClick={() => setSnap(value => !value)}>Snap</button></>}</div>}
     {!readOnly && !zen && !creatingConnector && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}

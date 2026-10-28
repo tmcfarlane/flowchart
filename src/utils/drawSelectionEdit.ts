@@ -1,7 +1,7 @@
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { DrawEditContextSchema, validateDrawEdit, type DrawEditContext } from '../shared/drawSelectionEdit'
 import { bridgeData, graphFromElements } from './architectureBridge'
-import { positionBoundText, type DrawElement } from './drawScene'
+import { lockedElementIds, positionBoundText, type DrawElement } from './drawScene'
 import { drawingTextSize } from './drawText'
 import type { Edge, Node } from 'reactflow'
 
@@ -15,10 +15,10 @@ const references = (element: DrawElement) => [element.containerId, element.frame
 
 export function captureDrawEdit(scene: ArchitectureScene, ids: readonly string[], epoch: number): DrawEditSnapshot {
   const selected = new Set(ids), elements = scene.elements as DrawElement[], byId = new Map(elements.map(element => [element.id, element]))
-  const dependencies = new Set<string>()
+  const dependencies = new Set<string>(), locked = lockedElementIds(scene)
   const targets = [...selected].sort().map(id => {
     const element = byId.get(id)
-    if (!element || element.isDeleted || element.locked) throw new Error('Select existing unlocked Draw shapes or text to edit with AI.')
+    if (!element || element.isDeleted || locked.has(element.id)) throw new Error('Select existing unlocked Draw shapes or text to edit with AI.')
     const related = new Set(references(element))
     for (const other of elements) {
       if (other.id !== id && (references(other).includes(id) || other.groupIds?.some(group => element.groupIds?.includes(group)))) related.add(other.id)

@@ -38,6 +38,15 @@ describe('bounded Draw AI edits', () => {
     const many = Array.from({ length: 51 }, (_, index) => shape(`s${index}`))
     expect(() => captureDrawEdit({ ...scene(), elements: many }, many.map(element => element.id), 0)).toThrow()
   })
+  it('rejects AI edits to a deep-selected label or child protected by its locked owner', () => {
+    const host = { ...shape(), locked: true }
+    const label = createElement('text', { x: 20, y: 40 }, undefined, { id: 'label', containerId: host.id, text: 'Original' })
+    const frame = { ...shape('frame'), type: 'frame', locked: true }
+    const child = { ...shape('child'), frameId: frame.id }
+    const before = { ...scene(), elements: [host, label, frame, child] }
+    expect(() => captureDrawEdit(before, ['label'], 0)).toThrow(/unlocked/)
+    expect(() => captureDrawEdit(before, ['child'], 0)).toThrow(/unlocked/)
+  })
   it('captures relationships without asset or private metadata and rejects geometry touching dependencies', () => {
     const host = shape(), label = createElement('text', { x: 20, y: 40 }, undefined, { id: 'label', containerId: host.id, text: 'Original' })
     host.boundElements = [{ id: label.id, type: 'text' }]
