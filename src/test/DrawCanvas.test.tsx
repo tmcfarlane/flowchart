@@ -51,6 +51,38 @@ function drawRectangle(surface: HTMLElement) {
 }
 
 describe('custom Draw canvas', () => {
+  it('selects a locked object with an ordinary click and unlocks it without recording failed edits', () => {
+    const { surface, scene, onCommit } = renderDrawing({ ...empty(), elements: [rectangle('box', 100)] })
+    const hit = () => surface.querySelector('[data-element-id="box"]')!
+    fireEvent.pointerDown(hit(), pointer(160, 150))
+    fireEvent.pointerUp(surface, pointer(160, 150))
+    fireEvent.click(screen.getByRole('button', { name: 'Lock', exact: true }))
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    fireEvent.keyDown(surface, { key: 'Escape' })
+    fireEvent.pointerDown(hit(), pointer(160, 150))
+    fireEvent.pointerMove(surface, pointer(210, 180))
+    fireEvent.pointerUp(surface, pointer(210, 180))
+    expect(hit()).toHaveAttribute('data-selected', 'true')
+    expect(screen.getByRole('button', { name: 'Unlock', exact: true })).toBeEnabled()
+    expect(surface.querySelector('[data-resize], [data-rotate], [data-point-index]')).toBeNull()
+    expect(screen.queryByLabelText('Stroke color')).not.toBeInTheDocument()
+    fireEvent.keyDown(surface, { key: 'ArrowRight' })
+    fireEvent.keyUp(surface, { key: 'ArrowRight' })
+    fireEvent.keyDown(surface, { key: 'g', ctrlKey: true })
+    fireEvent.keyDown(surface, { key: ']', code: 'BracketRight', ctrlKey: true })
+    fireEvent.doubleClick(hit(), pointer(160, 150))
+    expect(screen.queryByLabelText('Edit drawing text')).not.toBeInTheDocument()
+    expect(scene().elements[0]).toMatchObject({ x: 100, y: 100, locked: true, groupIds: [] })
+    expect(onCommit).toHaveBeenCalledTimes(1)
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock', exact: true }))
+    expect(onCommit).toHaveBeenCalledTimes(2)
+    fireEvent.pointerDown(hit(), pointer(160, 150))
+    fireEvent.pointerMove(surface, pointer(210, 180))
+    fireEvent.pointerUp(surface, pointer(210, 180))
+    expect(scene().elements[0]).toMatchObject({ x: 150, y: 130, locked: false })
+    expect(onCommit).toHaveBeenCalledTimes(3)
+  })
+
   it('keeps laser marks transient and fills only an unlocked closed shape', () => {
     const initial = { ...empty(), elements: [rectangle('open', 100), { ...rectangle('locked', 320), locked: true }] }
     const { surface, scene, onCommit } = renderDrawing(initial)
