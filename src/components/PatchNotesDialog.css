@@ -1,0 +1,210 @@
+.patch-notes-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(8, 18, 15, 0.62);
+  backdrop-filter: blur(5px);
+}
+
+.patch-notes-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(540px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow: hidden;
+  border: 1px solid #d4e1dc;
+  border-radius: 20px;
+  background: #fff;
+  color: #172d25;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.patch-notes-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 28px 20px;
+}
+
+.patch-notes-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #33785e;
+}
+
+.patch-notes-header h2 {
+  margin: 7px 0 0;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+}
+
+.patch-notes-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d4e1dc;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.patch-notes-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 28px 24px;
+}
+
+.patch-notes-release + .patch-notes-release {
+  margin-top: 28px;
+  border-top: 1px solid #d4e1dc;
+  padding-top: 24px;
+}
+
+.patch-notes-release-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: #52675e;
+}
+
+.patch-notes-latest {
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #e0f5eb;
+  color: #246347;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.patch-notes-release h3 {
+  margin: 18px 0 14px;
+  font-size: 21px;
+  letter-spacing: -0.02em;
+}
+
+.patch-notes-release ul {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: #435b50;
+}
+
+.patch-notes-release li + li {
+  margin-top: 10px;
+}
+
+.patch-notes-release li::marker {
+  color: #32815e;
+}
+
+.patch-notes-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 16px;
+  border-top: 1px solid #d4e1dc;
+  padding: 18px 28px;
+}
+
+.patch-notes-footer span {
+  max-width: 230px;
+  color: #52675e;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.patch-notes-done {
+  flex-shrink: 0;
+  border: 1px solid #176943;
+  border-radius: 10px;
+  padding: 10px 20px;
+  background: #176943;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.patch-notes-close:hover {
+  background: #e9f4ee;
+}
+
+.patch-notes-done:hover {
+  background: #105333;
+}
+
+.patch-notes-dialog button:focus-visible {
+  outline: 2px solid #147a4e;
+  outline-offset: 4px;
+}
+
+.app.dark-mode .patch-notes-dialog {
+  border-color: #355047;
+  background: #14251f;
+  color: #eef8f2;
+}
+
+.app.dark-mode .patch-notes-eyebrow,
+.app.dark-mode .patch-notes-release li::marker {
+  color: #7de6b8;
+}
+
+.app.dark-mode .patch-notes-release-meta,
+.app.dark-mode .patch-notes-footer span {
+  color: #a8bfb3;
+}
+
+.app.dark-mode .patch-notes-release ul {
+  color: #cadbd1;
+}
+
+.app.dark-mode .patch-notes-latest {
+  background: #244b38;
+  color: #a2f3c9;
+}
+
+.app.dark-mode .patch-notes-close,
+.app.dark-mode .patch-notes-footer,
+.app.dark-mode .patch-notes-release + .patch-notes-release {
+  border-color: #355047;
+}
+
+.app.dark-mode .patch-notes-close:hover {
+  background: #254335;
+}
+
+.app.dark-mode .patch-notes-done {
+  border-color: #87e8b9;
+  background: #87e8b9;
+  color: #102b1e;
+}
+
+.app.dark-mode .patch-notes-done:hover {
+  background: #a1f4ca;
+}
+
+.app.dark-mode .patch-notes-dialog button:focus-visible {
+  outline-color: #87e8b9;
+}
+
+@media (max-width: 480px) {
+  .patch-notes-overlay { padding: 12px; }
+  .patch-notes-dialog { max-height: calc(100dvh - 24px); border-radius: 16px; }
+  .patch-notes-header { padding: 22px 20px 18px; }
+  .patch-notes-body { padding: 0 20px 22px; }
+  .patch-notes-footer { padding: 16px 20px; }
+}
