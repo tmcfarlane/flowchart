@@ -32,6 +32,7 @@ interface ToolbarProps {
   onImportJson: (nodes: FlowNode[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
   architectureScene?: ArchitectureScene
   onExportDraw?: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
+  onExportExcalidraw?: () => void | Promise<void>
   onImportFile?: (file: File) => void
   share?: ShareMenuProps
 }
@@ -61,6 +62,7 @@ function Toolbar({
   onImportJson,
   architectureScene,
   onExportDraw,
+  onExportExcalidraw,
   onImportFile,
   share,
 }: ToolbarProps) {
@@ -146,6 +148,16 @@ function Toolbar({
     } finally {
       setGifProgress(null)
       setIsEncoding(false)
+    }
+  }
+
+  const handleExportExcalidraw = async () => {
+    setExportError(null)
+    try {
+      await onExportExcalidraw?.()
+      setIsExportOpen(false)
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'Could not export drawing.')
     }
   }
 
@@ -556,6 +568,11 @@ function Toolbar({
                       <button className="export-option" onClick={handleExportJson}>
                         Export as JSON
                       </button>
+                      {diagramMode === 'draw' && onExportExcalidraw && (
+                        <button className="export-option" onClick={handleExportExcalidraw}>
+                          Export as Excalidraw
+                        </button>
+                      )}
                       <button className="export-option" onClick={handleExportPng}>
                         Export as PNG
                       </button>

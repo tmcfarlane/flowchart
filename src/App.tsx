@@ -33,8 +33,9 @@ import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
 import AIInsertPreviewDialog, { NativeProposalPreview } from './components/AIInsertPreviewDialog'
-import { FlowGenerationContextSchema, normalizeGenerationProposal, parseGenerationProposal, type AIGenerationContext, type AIGenerationProposal } from './shared/aiGeneration'
-import { captureDrawGenerationContext, drawProposalToScene } from './utils/drawGeneration'
+import { FlowGenerationContextSchema, normalizeGenerationProposal, parseGenerationResponse, type AIGenerationContext, type AIGenerationProposal } from './shared/aiGeneration'
+import { captureDrawGenerationContext } from './utils/drawGeneration'
+import { sceneFromDrawing, drawingFromScene } from './shared/drawDocument'
 import { mergeGraphElements } from './utils/architectureBridge'
 import ExcalidrawImportDialog from './components/ExcalidrawImportDialog'
 import { resolveAzureIcons } from './utils/azureIconRegistry'
@@ -50,7 +51,7 @@ import { applyDrawEdit, captureDrawEdit, drawEditIsCurrent, type DrawEditSnapsho
 import { validateDrawEdit } from './shared/drawSelectionEdit'
 import type { DrawEditResult } from './components/AIDrawEditDialog'
 import type { DrawCanvasApi } from './components/DrawCanvas'
-import { parseFlowJson, serializeFlow } from './utils/exportUtils'
+import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
@@ -1375,7 +1376,7 @@ function FlowChartEditor() {
         const point = drawApi.current
           ? drawApi.current.viewportToScenePoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
           : { x: 400, y: 300 }
-        const scene = prepareSceneInsertion(drawProposalToScene(aiProposal), baseScene, point)
+        const scene = prepareSceneInsertion(sceneFromDrawing(aiProposal.drawing), baseScene, point)
         validateAIInsertion(nodes, edges, scene, 'draw')
         cancelRefinement()
         commitDocument({ nodes, edges, architectureScene: scene, diagramMode: 'draw' })
@@ -1516,7 +1517,7 @@ function FlowChartEditor() {
           mode: 'refine',
           diagramMode: aiProposal.outputMode,
           ...(aiProposal.outputMode === 'draw'
-            ? { drawProposal: aiProposal }
+            ? { drawProposal: aiProposal.proposal }
             : { flowContext: { nodes: aiProposal.nodes, edges: aiProposal.edges } }),
         }),
       })
@@ -1525,7 +1526,7 @@ function FlowChartEditor() {
         throw new Error(errorData.error || `API request failed with status ${response.status}`)
       }
       const data = await response.json()
-      const parsed = parseGenerationProposal(data.message, aiProposal.outputMode, data.finishReason)
+      const parsed = parseGenerationResponse(data, aiProposal.outputMode)
       const refinedProposal = parsed.outputMode === 'draw' ? parsed : normalizeGenerationProposal({ ...resolveAzureIcons(parsed), outputMode: parsed.outputMode }, parsed.outputMode)
       if (controller.signal.aborted || refineRequest.current.id !== request.id || documentEpoch.current !== epoch) return undefined
       setAIProposal(refinedProposal)
@@ -1547,7 +1548,7 @@ function FlowChartEditor() {
     if (!aiProposal) return
 
     if (aiProposal.outputMode === 'draw') {
-      setProposalPreview({ outputMode: 'draw', scene: drawProposalToScene(aiProposal) })
+      setProposalPreview({ outputMode: 'draw', scene: sceneFromDrawing(aiProposal.drawing) })
       return
     }
     const strokeColor = darkMode ? '#78fcd6' : '#555'
@@ -1875,6 +1876,12 @@ function FlowChartEditor() {
         onExportDraw={async (format, duration) => {
           if (!drawApi.current) throw new Error('Drawing editor is still loading.')
           await drawApi.current.exportImage(format, duration)
+        }}
+        onExportExcalidraw={() => {
+          if (!drawApi.current) throw new Error('Drawing editor is still loading.')
+          const current = drawApi.current.getScene()
+          const elements = mergeGraphElements(current.elements as unknown as Parameters<typeof mergeGraphElements>[0], nodes, edges, darkMode)
+          exportExcalidrawDrawing(drawingFromScene({ ...current, elements: JSON.parse(JSON.stringify(elements)) }))
         }}
         onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
           commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })

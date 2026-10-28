@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { useState, type ComponentProps } from 'react'
 import AIChat from '../components/AIChat'
 import type { DiagramMode } from '../shared/flowTypes'
+import { compileDrawProposal } from '../shared/drawCompiler'
+import { DrawProposalSchema } from '../shared/drawGeneration'
 import type { AIGenerationProposal } from '../shared/aiGeneration'
 
 const drawing = {
@@ -15,7 +17,10 @@ const flowchart = {
 }
 
 function jsonResponse(proposal: object) {
-  return { ok: true, json: async () => ({ message: JSON.stringify(proposal), finishReason: 'stop' }) } as Response
+  const parsed = DrawProposalSchema.safeParse(proposal)
+  const compiled = parsed.success ? compileDrawProposal(parsed.data) : null
+  if (compiled && !compiled.ok) throw new Error(JSON.stringify(compiled.issues))
+  return { ok: true, json: async () => ({ message: JSON.stringify(proposal), ...(compiled?.ok ? { drawing: compiled.drawing } : {}), finishReason: 'stop' }) } as Response
 }
 
 function deferredResponse() {
@@ -79,7 +84,7 @@ describe('AIChat generation modes', () => {
       generationMode="draw" onGenerationModeChange={vi.fn()} getGenerationContext={() => undefined} onProposalReady={onReady} />)
     const prompt = 'Make two named mobile screen frames with buttons, labels and navigation arrows'
     fireEvent.click(screen.getByRole('button', { name: new RegExp(prompt) }))
-    await waitFor(() => expect(onReady).toHaveBeenCalledWith(drawing, expect.any(String)))
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(expect.objectContaining({ outputMode: 'draw', proposal: drawing, drawing: expect.objectContaining({ type: 'excalidraw', version: 2 }) }), expect.any(String)))
     expect(JSON.parse(fetchMock.mock.calls[0][1].body).messages).toEqual([{ role: 'user', content: prompt }])
   })
 
@@ -94,7 +99,7 @@ describe('AIChat generation modes', () => {
     fireEvent.click(screen.getByRole('button', { name: /Generate drawing/i }))
     expect(screen.getByLabelText('Generate for')).toBeDisabled()
     expect(screen.getByText('Generating drawing...')).toBeInTheDocument()
-    await waitFor(() => expect(onReady).toHaveBeenCalledWith(drawing, expect.any(String)))
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(expect.objectContaining({ outputMode: 'draw', proposal: drawing, drawing: expect.objectContaining({ type: 'excalidraw', version: 2 }) }), expect.any(String)))
     expect(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...')).toHaveValue('')
     const request = JSON.parse(fetchMock.mock.calls[0][1].body)
     expect(request).toMatchObject({ mode: 'generate', diagramMode: 'draw', drawContext: { omittedElementCount: 0 }, messages: [{ role: 'user', content: 'Sketch a workshop' }] })
@@ -118,7 +123,7 @@ describe('AIChat generation modes', () => {
     />)
     fireEvent.change(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...'), { target: { value: 'Sketch a floor plan' } })
     fireEvent.click(screen.getByRole('button', { name: /Generate drawing/i }))
-    await waitFor(() => expect(onReady).toHaveBeenCalledWith(drawing, expect.any(String)))
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(expect.objectContaining({ outputMode: 'draw', proposal: drawing, drawing: expect.objectContaining({ type: 'excalidraw', version: 2 }) }), expect.any(String)))
     const requestBody = fetchMock.mock.calls[0][1].body as string
     const request = JSON.parse(requestBody)
     expect(request.diagramMode).toBe('draw')
@@ -160,7 +165,7 @@ describe('AIChat generation modes', () => {
     expect(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...')).toHaveValue('Plan launch')
     expect(onReady).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: /Generate drawing/i }))
-    await waitFor(() => expect(onReady).toHaveBeenCalledWith(drawing, expect.any(String)))
+    await waitFor(() => expect(onReady).toHaveBeenCalledWith(expect.objectContaining({ outputMode: 'draw', proposal: drawing, drawing: expect.objectContaining({ type: 'excalidraw', version: 2 }) }), expect.any(String)))
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).messages).toEqual([{ role: 'user', content: 'Plan launch' }])
   })
 
