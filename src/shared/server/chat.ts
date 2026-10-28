@@ -9,6 +9,7 @@ import { ChatRequestSchema, ProposalSchema, PROPOSAL_RESPONSE_FORMAT, type ChatR
 import { BODY_TOO_LARGE_FLAG, clientIp, sendJson, type ApiRequest } from './http.js'
 import { edgeFromInput, nodeFromInput } from '../flowSchema.js'
 import type { ChartEdge, ChartNode } from '../flowTypes.js'
+import { validateDrawEdit } from '../drawSelectionEdit.js'
 import { validateSelectionEdit } from '../selectionEdit.js'
 import { getAzureIcon } from '../icons.js'
 
@@ -53,6 +54,13 @@ class ChatFailure extends Error {
 const unavailable = () => new ChatFailure(503, 'unavailable', 'AI is temporarily unavailable. Please try again later.')
 
 function buildMessages(request: ChatRequest, skill: string) {
+  if (request.mode === 'draw-edit') {
+    return [{ role: 'system', content: `Edit only the selected existing Draw elements. Return ONLY JSON: {"summary":"Short explanation","operations":[{"op":"update_element","id":"selected ID","changes":{"strokeColor":"#2563eb"}}]}.
+Use sparse changes and omit unchanged fields. Allowed appearance fields: strokeColor/backgroundColor (#RGB, #RRGGBB or transparent), strokeWidth (0..20), strokeStyle (solid|dashed|dotted), fillStyle (solid|hachure|cross-hatch), roughness (0..3), opacity (0..100).
+Only when geometryAllowed is true, you may change x/y (-1000000..1000000), width/height (1..5000), angle (radians, -2pi..2pi). Only when textAllowed is true, you may change text (up to 2000 characters). Shape labels are separate text targets; update those IDs, never put text on a shape.
+Do not add or remove elements, change types or IDs, supply files, links, metadata, groups, bindings, containers or relationships. Dependencies are READ ONLY. Do not change geometry on bound, grouped or graph-projected shapes. Preserve all untouched properties. Maximum 50 operations, at most one per target. If the instruction cannot fit this scope, explain why in summary and return an empty operations array.
+FROZEN DRAW CONTEXT: ${JSON.stringify(request.drawContext)}` }, ...request.messages]
+  }
   if (request.mode === 'edit') {
     // Sparse JSON edits use json_object: making every optional patch property
     // required and filling it with null would REMOVE unchanged metadata.
@@ -195,7 +203,7 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
     const doFetch = context.dependencies?.fetch ?? fetch
     const route = config.route
     const endpoint = providerEndpoint(route)
-    let responseFormat: unknown = request.mode === 'edit' ? { type: 'json_object' } : PROPOSAL_RESPONSE_FORMAT
+    let responseFormat: unknown = (request.mode === 'edit' || request.mode === 'draw-edit') ? { type: 'json_object' } : PROPOSAL_RESPONSE_FORMAT
     for (let attempt = 0; attempt < 2; attempt++) {
       if (!aiEnabled(context.env)) throw new ChatFailure(503, 'disabled', 'AI is currently disabled. You can still edit the canvas.')
       const body = JSON.stringify({ messages, max_completion_tokens: config.maxOutputTokens, ...(config.reasoningEffort ? { reasoning_effort: config.reasoningEffort } : {}), response_format: responseFormat })
@@ -226,7 +234,7 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
         const data = await bounded(readBoundedResponse(response, config.maxResponseBytes))
         finished = true
         if (!response.ok) {
-          if (request.mode !== 'edit' && attempt === 0 && formatUnsupported(response.status, data)) {
+          if (request.mode !== 'edit' && request.mode !== 'draw-edit' && attempt === 0 && formatUnsupported(response.status, data)) {
             responseFormat = { type: 'json_object' }
             continue
           }
@@ -248,7 +256,10 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
         let proposal: unknown
         try { proposal = JSON.parse(choice.message?.content || '') as unknown } catch { throw new ChatFailure(502, 'invalid_diagram', 'AI returned an invalid diagram. Please try again.') }
         let message: string
-        if (request.mode === 'edit' && request.selection && request.flowContext) {
+        if (request.mode === 'draw-edit') {
+          try { message = JSON.stringify(validateDrawEdit(request.drawContext, proposal)) }
+          catch (error) { throw new ChatFailure(502, 'invalid_edit', error instanceof Error ? error.message : 'AI returned invalid Draw changes.') }
+        } else if (request.mode === 'edit' && request.selection && request.flowContext) {
           const validated = validateSelectionEdit(request.flowContext.nodes.map(node => nodeFromInput(node) as ChartNode), request.flowContext.edges.map(edge => edgeFromInput(edge) as ChartEdge), request.selection, proposal)
           if (!validated.ok) throw new ChatFailure(502, 'invalid_edit', validated.error)
           for (const operation of validated.proposal.operations) {

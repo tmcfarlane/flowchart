@@ -176,6 +176,23 @@ function preserveElbows(before: Point[], after: Point[], angle: number): Point[]
   return next.map(point => rotatePoint(point, origin, angle))
 }
 
+export function positionBoundText(element: DrawElement, container: DrawElement): DrawElement {
+  let center = getElementCenter(container)
+  if (container.type === 'arrow') {
+    const points = getWorldPoints(container)
+    const lengths = points.slice(1).map((point, index) => Math.hypot(point.x - points[index].x, point.y - points[index].y))
+    let remaining = lengths.reduce((total, length) => total + length, 0) / 2
+    for (let i = 0; i < lengths.length; i++) {
+      if (remaining <= lengths[i] || i === lengths.length - 1) {
+        const ratio = lengths[i] ? remaining / lengths[i] : 0
+        center = { x: points[i].x + (points[i + 1].x - points[i].x) * ratio, y: points[i].y + (points[i + 1].y - points[i].y) * ratio }; break
+      }
+      remaining -= lengths[i]
+    }
+  }
+  return { ...element, x: center.x - element.width / 2, y: center.y - element.height / 2, ...(container.type === 'arrow' ? {} : { angle: container.angle }) }
+}
+
 /** Update bindings after transforms and rebuild reciprocal references. */
 export function rerouteBindings(scene: ArchitectureScene, changedIds?: Iterable<string>): ArchitectureScene {
   const changed = changedIds ? new Set(changedIds) : null
@@ -203,20 +220,7 @@ export function rerouteBindings(scene: ArchitectureScene, changedIds?: Iterable<
     const container = byId.get(element.containerId)
     if (!container) return { ...element, containerId: null }
     if (changed && !changed.has(container.id) && !changed.has(element.id) && !(container.startBinding && changed.has(container.startBinding.elementId)) && !(container.endBinding && changed.has(container.endBinding.elementId))) return element
-    let center = getElementCenter(container)
-    if (container.type === 'arrow') {
-      const points = getWorldPoints(container)
-      const lengths = points.slice(1).map((point, index) => Math.hypot(point.x - points[index].x, point.y - points[index].y))
-      let remaining = lengths.reduce((total, length) => total + length, 0) / 2
-      for (let i = 0; i < lengths.length; i++) {
-        if (remaining <= lengths[i] || i === lengths.length - 1) {
-          const ratio = lengths[i] ? remaining / lengths[i] : 0
-          center = { x: points[i].x + (points[i + 1].x - points[i].x) * ratio, y: points[i].y + (points[i + 1].y - points[i].y) * ratio }; break
-        }
-        remaining -= lengths[i]
-      }
-    }
-    return { ...element, x: center.x - element.width / 2, y: center.y - element.height / 2, ...(container.type === 'arrow' ? {} : { angle: container.angle }) }
+    return positionBoundText(element, container)
   })
   const bound = new Map<string, Array<{ id: string; type: string }>>()
   const addBound = (id: string, entry: { id: string; type: string }) => {

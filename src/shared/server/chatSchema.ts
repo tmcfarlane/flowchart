@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { NODE_TYPES, EDGE_STYLES, HANDLE_POSITIONS, CONTAINER_KINDS, EDGE_PROTOCOLS, COMM_STYLES } from '../flowTypes.js'
 import type { ChartEdge, ChartNode } from '../flowTypes.js'
 import { edgeFromInput, nodeFromInput } from '../flowSchema.js'
+import { DrawEditContextSchema } from '../drawSelectionEdit.js'
 import { SelectionEditScopeSchema, selectionScopeError } from '../selectionEdit.js'
 
 const id = z.string().min(1).max(100).regex(/^[^\u0000-\u001f\u007f]+$/)
@@ -35,7 +36,7 @@ const edgeSchema = z.strictObject(edgeShape).partial({ id: true, style: true, so
 const contentShape = { nodes: z.array(nodeSchema).max(200), edges: z.array(edgeSchema).max(400) }
 const contextShape = { nodes: z.array(nodeSchema.extend({ icon: z.string().max(120).nullish() })).max(200), edges: z.array(edgeSchema.extend({ id: contextEdgeId.optional() })).max(400) }
 
-export const ChatRequestSchema = z.strictObject({
+const GraphChatRequestSchema = z.strictObject({
   messages: z.array(z.strictObject({ role: z.enum(['user', 'assistant']), content: z.string().trim().min(1).max(12000) })).min(1).max(20),
   flowContext: z.strictObject(contextShape).optional(),
   mode: z.enum(['generate', 'refine', 'edit']).default('generate'),
@@ -54,6 +55,11 @@ export const ChatRequestSchema = z.strictObject({
   } else if (value.selection) ctx.addIssue({ code: 'custom', message: 'An edit selection cannot be used with generation or refinement.' })
   if (value.messages[value.messages.length - 1]?.role !== 'user') ctx.addIssue({ code: 'custom', message: 'A user message is required' })
 })
+export const ChatRequestSchema = z.union([GraphChatRequestSchema, z.strictObject({
+  mode: z.literal('draw-edit'), diagramMode: z.literal('draw'),
+  messages: z.array(z.strictObject({ role: z.literal('user'), content: z.string().trim().min(1).max(12000) })).length(1),
+  drawContext: DrawEditContextSchema,
+})])
 export type ChatRequest = z.infer<typeof ChatRequestSchema>
 
 export const ProposalSchema = z.strictObject({ summary: z.string().max(2000), ...contentShape }).superRefine((value, ctx) => {

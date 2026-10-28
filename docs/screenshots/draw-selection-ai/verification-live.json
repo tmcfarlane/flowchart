@@ -1,0 +1,43 @@
+{
+  "provider": "configured live Azure via existing local API",
+  "httpStatus": 200,
+  "proposal": {
+    "summary": "Updated the selected rectangle fill and stroke colors, and shortened the selected text label.",
+    "operations": [
+      {
+        "op": "update_element",
+        "id": "orders",
+        "changes": {
+          "strokeColor": "#2563eb",
+          "backgroundColor": "#dbeafe"
+        }
+      },
+      {
+        "op": "update_element",
+        "id": "orders-label",
+        "changes": {
+          "text": "Orders API"
+        }
+      }
+    ]
+  },
+  "checks": [
+    "preview does not save",
+    "exact selected scope",
+    "relationship context without private metadata",
+    "sparse apply preserves all other fields",
+    "one Undo and Redo",
+    "reload persistence",
+    "no browser runtime errors"
+  ],
+  "providerEvidence": {
+    "requestId": "2a58bab8-ee4e-4be4-bd37-884dc714534d",
+    "source": "local API ai_request event",
+    "routing": "direct",
+    "model": "gpt-chat-latest",
+    "attempts": 1,
+    "inputTokens": 561,
+    "outputTokens": 71,
+    "usageReported": true
+  }
+}

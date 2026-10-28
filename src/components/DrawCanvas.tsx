@@ -3,11 +3,13 @@ import type { Node, Edge } from 'reactflow'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import { SUPPORTED_ARCHITECTURE_IMAGE_MIME_TYPES, validateArchitectureScene } from '../shared/architectureScene'
 import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/architectureBridge'
-import { drawingFontFamily } from '../utils/drawText'
+import { drawingFontFamily, drawingTextSize } from '../utils/drawText'
 import { cropImageElement, validImageCrop, type ImageCrop } from '../utils/drawMedia'
 import { mermaidToScene, recognizeStroke, safeEmbedUrl, type PaintTarget } from '../utils/drawExtraTools'
 import { createElement, deleteElements, duplicateSelection, expandSelection, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
 import { createConnectedShape, directions, flipSelection, lassoSelection, navigateConnection, type Direction } from '../utils/drawGeometry'
+import { applyDrawEdit, drawEditIsCurrent, type DrawEditSnapshot } from '../utils/drawSelectionEdit'
+import type { DrawEditProposal } from '../shared/drawSelectionEdit'
 import DrawSceneSvg from './DrawSceneSvg'
 import DrawToolIcon from './DrawToolIcon'
 import DrawLibrary from './DrawLibrary'
@@ -18,6 +20,8 @@ export interface DrawCanvasApi {
   viewportToScenePoint: (point: Point) => Point
   fitScene: () => void
   getScene: () => ArchitectureScene
+  getSelectedIds: () => string[]
+  applySelectionEdit: (snapshot: DrawEditSnapshot, proposal: DrawEditProposal) => boolean
   replaceScene: (scene: ArchitectureScene, fit?: boolean) => void
   exportImage: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
 }
@@ -29,6 +33,7 @@ export interface DrawCanvasProps {
   darkMode: boolean
   onChange: (scene: ArchitectureScene, nodes: Node[], edges: Edge[]) => void
   onReady?: (api: DrawCanvasApi | null) => void
+  onEditSelection?: () => void
   viewMode?: boolean
   onUndo?: () => void
   onRedo?: () => void
@@ -365,7 +370,12 @@ export default function DrawCanvas(props: DrawCanvasProps) {
 
   useEffect(() => {
     if (!onReady) return
-    onReady({ viewportToScenePoint: worldPoint, fitScene, getScene: () => copy(committed.current), replaceScene: (next, fit = false) => { sceneEpoch.current++; cancelConnector(); cancelLaser(); setPointEdit(null); setCropEdit(null); emit(validateArchitectureScene(next)); if (fit) requestAnimationFrame(fitScene) }, exportImage })
+    onReady({ viewportToScenePoint: worldPoint, fitScene, getScene: () => copy(committed.current), getSelectedIds: () => [...selectedRef.current],
+      applySelectionEdit: (snapshot, proposal) => {
+        if (readOnlyRef.current || cropEdit || textEdit || extraDialog || gesture.current || pendingConnector.current || nudgeBefore.current || JSON.stringify(draftRef.current) !== JSON.stringify(committed.current)
+          || !drawEditIsCurrent(snapshot, committed.current, [...selectedRef.current], snapshot.epoch)) return false
+        return emit(applyDrawEdit(committed.current, snapshot, proposal, latest.current.nodes, latest.current.edges))
+      }, replaceScene: (next, fit = false) => { sceneEpoch.current++; cancelConnector(); cancelLaser(); setPointEdit(null); setCropEdit(null); emit(validateArchitectureScene(next)); if (fit) requestAnimationFrame(fitScene) }, exportImage })
     return () => onReady(null)
   }, [onReady, worldPoint, fitScene, emit, exportImage, cancelConnector, cancelLaser])
 
@@ -535,8 +545,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     else if (!value) emit(deleteElements(draftRef.current, [textEdit.id], true))
     else if (element?.type === 'frame') emit(patchElement(draftRef.current, element.id, { name: value }))
     else {
-      const fontSize = element?.fontSize ?? 20, lines = value.split('\n')
-      const next = patchElement(draftRef.current, textEdit.id, { text: value, originalText: value, width: Math.max(24, Math.max(...lines.map(line => line.length)) * fontSize * 0.61), height: Math.max(fontSize * 1.3, lines.length * fontSize * 1.3) })
+      const next = patchElement(draftRef.current, textEdit.id, { text: value, originalText: value, ...drawingTextSize(value, element ?? {}) })
       emit(element?.containerId ? rerouteBindings(next, [element.id]) : next)
     }
     setTextEdit(null); wrapper.current?.focus()
@@ -1225,7 +1234,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <label>Opacity <span>{Number(property('opacity', 100))}%</span><input aria-label="Opacity" type="range" min="0" max="100" value={Number(property('opacity', 100))} onChange={event => applyProperties({ opacity: Number(event.target.value) })} /></label>
       {(tool === 'text' || showTextProperties || chosen.some(e => e.type === 'text')) && <fieldset><legend>Text</legend><div className="draw-property-pair"><label>Size<input aria-label="Font size" type="number" min="8" max="144" value={Number(property('fontSize', 20))} onChange={event => applyProperties({ fontSize: Math.max(8, Number(event.target.value)) })} /></label><label>Font<select aria-label="Font family" value={Number(property('fontFamily', 2))} onChange={event => applyProperties({ fontFamily: Number(event.target.value) })}><option value="2">Sans</option><option value="1">Hand</option><option value="3">Mono</option>{![1, 2, 3].includes(Number(property('fontFamily', 2))) && <option value={Number(property('fontFamily', 2))}>Imported font {Number(property('fontFamily', 2))} (local fallback)</option>}</select></label></div><label>Alignment<select aria-label="Text alignment" value={String(property('textAlign', 'left'))} onChange={event => applyProperties({ textAlign: event.target.value })}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label></fieldset>}
       {(['line', 'arrow'].includes(tool) || chosen.some(e => ['line', 'arrow'].includes(e.type))) && <fieldset><legend>Connection</legend>{(['startArrowhead', 'endArrowhead'] as const).map(key => <label key={key}>{key === 'startArrowhead' ? 'Start' : 'End'}<select aria-label={key === 'startArrowhead' ? 'Start arrowhead' : 'End arrowhead'} value={String(property(key, key === 'endArrowhead' ? 'arrow' : null) ?? 'none')} onChange={event => applyProperties({ [key]: event.target.value === 'none' ? null : event.target.value })}>{['none', 'arrow', 'triangle', 'dot', 'bar', 'diamond'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>)}<label>Routing<select aria-label="Arrow routing" value={first?.elbowed ? 'elbow' : first?.roundness ? 'curved' : 'sharp'} onChange={event => applyProperties({ elbowed: event.target.value === 'elbow', roundness: event.target.value === 'curved' ? { type: 2 } : null })}><option value="sharp">Sharp</option><option value="curved">Curved</option><option value="elbow">Elbow</option></select></label></fieldset>}
-      {chosen.length > 0 && !creatingConnector && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: !chosen.every(e => e.locked) })}>{chosen.every(e => e.locked) ? 'Unlock' : 'Lock'}</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
+      {chosen.length > 0 && !creatingConnector && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: !chosen.every(e => e.locked) })}>{chosen.every(e => e.locked) ? 'Unlock' : 'Lock'}</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}{props.onEditSelection && <button className="draw-ai-action" onClick={props.onEditSelection} disabled={chosen.some(element => element.locked)}>Edit selection with AI</button>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
     </aside>}
     {!zen && <div className="draw-bottom-controls"><button aria-label="Zoom out" onClick={() => setViewport(view => ({ ...view, zoom: Math.max(0.1, view.zoom / 1.2) }))}>−</button><span>{Math.round(viewport.zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setViewport(view => ({ ...view, zoom: Math.min(5, view.zoom * 1.2) }))}>+</button><button aria-label="Fit drawing" title="Fit all (Shift+1)" onClick={fitScene}>Fit</button>{!readOnly && <><span className="draw-divider" /><button aria-label="Undo drawing" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>↶</button><button aria-label="Redo drawing" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>↷</button><button aria-label="Snap to grid" aria-pressed={grid} onClick={() => setGrid(value => !value)}>Grid</button><button aria-label="Snap to objects" aria-pressed={snap} onClick={() => setSnap(value => !value)}>Snap</button></>}</div>}
     {!readOnly && !zen && !creatingConnector && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}

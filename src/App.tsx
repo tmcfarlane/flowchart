@@ -43,6 +43,9 @@ import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
 import { parseSharedLocation } from './utils/shareApi'
 import { inferDiagramMode, nextNumericNodeId, type Chart, type DiagramMode } from './shared/flowTypes'
 import { validateArchitectureScene, serializedByteLength, MAX_ARCHITECTURE_DOCUMENT_BYTES, type ArchitectureScene } from './shared/architectureScene'
+import { applyDrawEdit, captureDrawEdit, drawEditIsCurrent, type DrawEditSnapshot } from './utils/drawSelectionEdit'
+import { validateDrawEdit } from './shared/drawSelectionEdit'
+import type { DrawEditResult } from './components/AIDrawEditDialog'
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
@@ -51,6 +54,7 @@ import type { SelectionEditProposal, SelectionEditScope } from './shared/selecti
 import type { SelectionEditPreview } from './components/AISelectionEditDialog'
 import { authoredGraphSignature, captureSelectionEditSnapshot, mergeSelectionEditResult, selectionEditChart, selectionEditContext, selectionEditPreview, selectionEditSnapshotIsCurrent, type SelectionEditSnapshot } from './utils/selectionEdit'
 
+const AIDrawEditDialog = lazy(() => import('./components/AIDrawEditDialog'))
 const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
 const AISelectionEditDialog = lazy(() => import('./components/AISelectionEditDialog'))
 const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
@@ -126,6 +130,12 @@ interface HistoryState {
   edges: Edge[]
   architectureScene?: ArchitectureScene
   diagramMode?: DiagramMode
+}
+
+interface DrawEditSession {
+  snapshot: DrawEditSnapshot
+  before: ArchitectureScene
+  result: DrawEditResult
 }
 
 interface SelectionEditSession {
@@ -311,6 +321,9 @@ function FlowChartEditor() {
   const [pendingSelectionEdit, setPendingSelectionEdit] = useState<PendingSelectionEdit | null>(null)
   const selectionEditRequest = useRef<{ id: number; controller?: AbortController }>({ id: 0 })
   const documentEpoch = useRef(0)
+  const [drawEdit, setDrawEdit] = useState<DrawEditSession | null>(null)
+  const [drawEditOpenError, setDrawEditOpenError] = useState<string | null>(null)
+  const drawEditRequest = useRef<{ id: number; controller?: AbortController }>({ id: 0 })
   const revision = useRef({ signature: '', value: 0 })
   const authoredSignature = authoredGraphSignature(nodes, edges)
   if (authoredSignature !== revision.current.signature) revision.current = { signature: authoredSignature, value: revision.current.value + 1 }
@@ -871,6 +884,58 @@ function FlowChartEditor() {
 
   const editTarget = useRef({ nodes, edges, diagramMode, architectureScene, commitDocument, getEdgeStyleProps })
   editTarget.current = { nodes, edges, diagramMode, architectureScene, commitDocument, getEdgeStyleProps }
+
+  const drawEditTarget = useRef({ nodes, edges, diagramMode, previewMode })
+  drawEditTarget.current = { nodes, edges, diagramMode, previewMode }
+  const closeDrawEdit = useCallback(() => {
+    drawEditRequest.current.controller?.abort()
+    drawEditRequest.current = { id: drawEditRequest.current.id + 1 }
+    setDrawEdit(null)
+  }, [])
+  const openDrawEdit = useCallback(() => {
+    const api = drawApi.current
+    if (!api || drawEditTarget.current.diagramMode !== 'draw' || drawEditTarget.current.previewMode || drawLocalViewRef.current) return
+    try {
+      setDrawEditOpenError(null)
+      const before = api.getScene(), snapshot = captureDrawEdit(before, api.getSelectedIds(), documentEpoch.current)
+      closeDrawEdit()
+      setDrawEdit({ snapshot, before, result: { status: 'prompt' } })
+    } catch (error) { setDrawEditOpenError(error instanceof Error ? error.message : 'This selection cannot be edited with AI.') }
+  }, [closeDrawEdit])
+  const drawEditCurrent = useCallback((snapshot: DrawEditSnapshot) => {
+    const api = drawApi.current, target = drawEditTarget.current
+    return !!api && target.diagramMode === 'draw' && !target.previewMode && !drawLocalViewRef.current && drawEditIsCurrent(snapshot, api.getScene(), api.getSelectedIds(), documentEpoch.current)
+  }, [])
+  const generateDrawEdit = useCallback(async (instruction: string) => {
+    if (!drawEdit || drawEditRequest.current.controller || !drawEditCurrent(drawEdit.snapshot)) return
+    const controller = new AbortController(), requestId = drawEditRequest.current.id + 1, session = drawEdit
+    drawEditRequest.current = { id: requestId, controller }
+    setDrawEdit({ ...session, result: { status: 'loading' } })
+    try {
+      const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: controller.signal,
+        body: JSON.stringify({ mode: 'draw-edit', diagramMode: 'draw', messages: [{ role: 'user', content: instruction }], drawContext: session.snapshot.context }) })
+      const data = await response.json()
+      if (drawEditRequest.current.id !== requestId || controller.signal.aborted) return
+      if (!drawEditCurrent(session.snapshot)) throw new Error('The drawing changed while AI was working. Start a new AI edit.')
+      if (!response.ok) throw new Error(data.error || 'AI could not prepare changes. Try again.')
+      if (data.finishReason === 'length') throw new Error('The AI response was cut off. Try a smaller edit.')
+      const proposal = validateDrawEdit(session.snapshot.context, JSON.parse(data.message))
+      const target = drawEditTarget.current
+      const scene = applyDrawEdit(session.before, session.snapshot, proposal, target.nodes, target.edges)
+      setDrawEdit({ ...session, result: { status: 'preview', proposal, scene, instruction } })
+    } catch (error) {
+      if (drawEditRequest.current.id === requestId && !controller.signal.aborted) setDrawEdit({ ...session, result: { status: 'error', error: error instanceof Error ? error.message : 'AI returned invalid changes.' } })
+    } finally { if (drawEditRequest.current.id === requestId) drawEditRequest.current = { id: requestId } }
+  }, [drawEdit, drawEditCurrent])
+  const applyDrawSelectionEdit = useCallback(() => {
+    if (!drawEdit || drawEdit.result.status !== 'preview') return
+    try {
+      if (!drawEditCurrent(drawEdit.snapshot) || !drawApi.current?.applySelectionEdit(drawEdit.snapshot, drawEdit.result.proposal)) throw new Error('The drawing changed. Start a new AI edit before applying.')
+      closeDrawEdit()
+    } catch (error) { setDrawEdit({ ...drawEdit, result: { status: 'error', error: error instanceof Error ? error.message : 'Unable to apply Draw changes.' } }) }
+  }, [drawEdit, drawEditCurrent, closeDrawEdit])
+  useEffect(() => { if (diagramMode !== 'draw' || previewMode || drawLocalView) closeDrawEdit() }, [diagramMode, previewMode, drawLocalView, closeDrawEdit])
+  useEffect(() => () => { drawEditRequest.current.controller?.abort(); drawEditRequest.current.id++ }, [])
 
   const closeSelectionEdit = useCallback(() => {
     selectionEditRequest.current.controller?.abort()
@@ -1818,7 +1883,7 @@ function FlowChartEditor() {
       >
         {isFileDragOver && <div className="diagram-file-drop" role="status"><strong>Drop your drawing here</strong><span>Excalidraw scenes and Flowchart JSON files</span></div>}
         {diagramMode === 'draw' ? <Suspense fallback={<div className="draw-loading">Loading drawing tools…</div>}>
-          <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} onReady={handleDrawReady} onUndo={undo} onRedo={redo} canUndo={historyIndex > 0} canRedo={historyIndex < history.length - 1} onToggleTheme={toggleDarkMode} onRequestClear={() => setDrawClearRequest(value => value + 1)} onViewChange={viewing => { drawLocalViewRef.current = viewing; setDrawLocalView(viewing) }} />
+          <DrawCanvas scene={architectureScene} nodes={nodes} edges={edges} darkMode={darkMode} onChange={handleDrawChange} onReady={handleDrawReady} onEditSelection={openDrawEdit} onUndo={undo} onRedo={redo} canUndo={historyIndex > 0} canRedo={historyIndex < history.length - 1} onToggleTheme={toggleDarkMode} onRequestClear={() => setDrawClearRequest(value => value + 1)} onViewChange={viewing => { drawLocalViewRef.current = viewing; setDrawLocalView(viewing); if (viewing) closeDrawEdit() }} />
         </Suspense> : <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -2072,6 +2137,10 @@ function FlowChartEditor() {
         />
       )}
       {/* Welcome AI prompt on fresh empty canvas */}
+      {drawEditOpenError && <div className="diagram-import-notice error" role="alert"><span>{drawEditOpenError}</span><button onClick={() => setDrawEditOpenError(null)} aria-label="Dismiss Draw AI error">Dismiss</button></div>}
+      {drawEdit && <Suspense fallback={<div className="draw-loading" role="status">Opening Draw AI editor…</div>}>
+        <AIDrawEditDialog before={drawEdit.before} selectedIds={drawEdit.snapshot.selectedIds} result={drawEdit.result} stale={!drawEditCurrent(drawEdit.snapshot)} darkMode={darkMode} onGenerate={generateDrawEdit} onApply={applyDrawSelectionEdit} onCancel={closeDrawEdit} />
+      </Suspense>}
       {selectionEdit && <Suspense fallback={<div className="draw-loading" role="status">Opening selected-node editor…</div>}>
         <AISelectionEditDialog
           selectedNodes={selectionEdit.selectedNodes}

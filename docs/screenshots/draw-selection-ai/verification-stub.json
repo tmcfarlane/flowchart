@@ -1,0 +1,35 @@
+{
+  "provider": "explicit browser response stub",
+  "httpStatus": 200,
+  "proposal": {
+    "summary": "Use blue for the selected API and shorten its label.",
+    "operations": [
+      {
+        "op": "update_element",
+        "id": "orders",
+        "changes": {
+          "backgroundColor": "#dbeafe",
+          "strokeColor": "#2563eb"
+        }
+      },
+      {
+        "op": "update_element",
+        "id": "orders-label",
+        "changes": {
+          "text": "Orders API"
+        }
+      }
+    ]
+  },
+  "checks": [
+    "preview does not save",
+    "exact selected scope",
+    "relationship context without private metadata",
+    "sparse apply preserves all other fields",
+    "one Undo and Redo",
+    "reload persistence",
+    "no browser runtime errors",
+    "cancel does not save",
+    "browser rejects bound geometry proposal"
+  ]
+}

@@ -1,0 +1,56 @@
+[
+  {
+    "case": "standalone",
+    "preview": {
+      "bounds": {
+        "left": 350.00000000000006,
+        "right": 471.1095046997071,
+        "top": 287.8321108818054,
+        "bottom": 690.3550295829773
+      },
+      "view": {
+        "x": 310,
+        "y": 252.5,
+        "width": 180,
+        "height": 120
+      },
+      "lines": 16,
+      "fontSize": "20",
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fits": false
+    },
+    "button": {
+      "color": "rgb(231, 236, 235)",
+      "background": "rgb(239, 239, 239)",
+      "panel": "rgb(25, 35, 31)",
+      "height": 22
+    }
+  },
+  {
+    "case": "bound",
+    "preview": {
+      "bounds": {
+        "left": 181.47704268370498,
+        "right": 726.2956091226732,
+        "top": -207.62260601960895,
+        "bottom": 796.3293366199107
+      },
+      "view": {
+        "x": 243.3767547607422,
+        "y": 143.1123809814453,
+        "width": 413.2464904785156,
+        "height": 323.7752380371094
+      },
+      "lines": 20,
+      "fontSize": "28",
+      "fontFamily": "ui-monospace, \"SFMono-Regular\", Consolas, monospace",
+      "fits": false
+    },
+    "button": {
+      "color": "rgb(231, 236, 235)",
+      "background": "rgb(239, 239, 239)",
+      "panel": "rgb(25, 35, 31)",
+      "height": 22
+    }
+  }
+]
