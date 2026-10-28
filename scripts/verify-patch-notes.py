@@ -48,6 +48,13 @@ def notes(page):
     return page.get_by_role('dialog', name="What's new", exact=True)
 
 
+async def reveal_utility(page, name):
+    control = page.get_by_role('button', name=name, exact=True)
+    if not await control.is_visible():
+        await page.get_by_role('button', name='More actions', exact=True).click()
+    return control
+
+
 async def document(page):
     return await page.evaluate('(key) => JSON.parse(localStorage.getItem(key))', DRAFT)
 
@@ -111,7 +118,7 @@ async def new_page(browser, url, seen=None, fixture=FIXTURE, compact=False, bloc
     })(''' + json.dumps(config) + ')')
     if url:
         await page.goto(url, wait_until='networkidle')
-        await page.get_by_role('button', name="What's new", exact=True).wait_for()
+        await page.get_by_role('button', name='Draw Mode', exact=True).wait_for()
     return context, page, errors, ai_requests
 
 
@@ -321,8 +328,8 @@ async def compact_layout(browser, url, checks):
         await dialog.get_by_role('button', name='Got it', exact=True).click()
         await expect(notes(page)).to_have_count(0)
         if theme == 'dark':
-            await page.get_by_role('button', name='Toggle Dark Mode', exact=True).click()
-            entry = page.get_by_role('button', name="What's new", exact=True)
+            await (await reveal_utility(page, 'Toggle Dark Mode')).click()
+            entry = await reveal_utility(page, "What's new")
             await entry.scroll_into_view_if_needed()
             await screenshot(page, '07-compact-manual-entry-light.png')
             await entry.click()
