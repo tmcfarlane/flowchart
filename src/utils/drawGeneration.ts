@@ -23,13 +23,14 @@ function wrapText(text: string, fontSize: number, maxWidth: number): string {
 }
 
 function boundLabel(id: string, host: DrawElement, value: string, fontSize: number, strokeColor: string): DrawElement {
+  const insetScale = host.type === 'diamond' ? 2 : host.type === 'ellipse' ? Math.SQRT2 : 1
   const maxWidth = host.type === 'rectangle' || host.type === 'ellipse' || host.type === 'diamond'
-    ? Math.max(156, host.width - 24) : 320
+    ? Math.max(156, Math.min(host.width - 24, DRAW_GENERATION_LIMITS.maxSize / insetScale - 24)) : 320
   const text = wrapText(value, fontSize, maxWidth)
   const size = drawingTextSize(text, { fontSize })
   if (shapeTypes.has(host.type)) {
-    host.width = Math.max(host.width, size.width + 24)
-    host.height = Math.max(host.height, size.height + 20)
+    host.width = Math.max(host.width, insetScale * (size.width + 24))
+    host.height = Math.max(host.height, insetScale * (size.height + 20))
   }
   return createElement('text', { x: host.x, y: host.y }, undefined, {
     id, text, originalText: value, fontSize, fontFamily: 2, ...size,

@@ -57,16 +57,19 @@ describe('native Draw generation', () => {
     expect(validateArchitectureScene(moved)).toBe(moved)
   })
 
-  it('expands a labeled shape to keep wrapped text inside its bounds', () => {
+  it.each(['diamond', 'ellipse'] as const)('fits wrapped text inside a %s outline', type => {
     const drawing = drawProposalToScene({ outputMode: 'draw', summary: '', elements: [
-      { id: 'box', type: 'diamond', x: 0, y: 0, width: 20, height: 20, label: 'A very long description that needs several lines of space', strokeColor: '#123456', backgroundColor: 'transparent' },
+      { id: 'box', type, x: 0, y: 0, width: 20, height: 20, label: 'A very long description that needs several lines of space', strokeColor: '#123456', backgroundColor: 'transparent' },
     ] })
     const box = element(drawing, 'box')
     const label = drawing.elements.find(item => item.type === 'text') as DrawElement
     expect(label.text).toContain('\n')
-    expect(box.width).toBeGreaterThanOrEqual(label.width + 24)
-    expect(box.height).toBeGreaterThanOrEqual(label.height + 20)
-    expect(label.x).toBeGreaterThan(box.x)
+    const halfWidth = box.width / 2, halfHeight = box.height / 2
+    const centerX = box.x + halfWidth, centerY = box.y + halfHeight
+    for (const x of [label.x, label.x + label.width]) for (const y of [label.y, label.y + label.height]) {
+      const dx = Math.abs(x - centerX) / halfWidth, dy = Math.abs(y - centerY) / halfHeight
+      expect(type === 'diamond' ? dx + dy : dx * dx + dy * dy).toBeLessThan(1)
+    }
   })
 
   it('rejects an invalid reference even if a caller bypasses its TypeScript type', () => {
