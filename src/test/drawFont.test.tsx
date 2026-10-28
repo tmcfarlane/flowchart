@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import DrawSceneSvg from '../components/DrawSceneSvg'
-import { DRAW_FONT_BASELINE, DRAW_FONT_FAMILY, DRAW_FONT_INSET, DRAW_FONT_MARKER, DRAW_LINE_HEIGHT, isGeneratedDrawFont, measureDrawText } from '../shared/drawFont'
+import { DRAW_FONT_BASELINE, DRAW_FONT_FAMILY, DRAW_FONT_INSET, DRAW_FONT_MARKER, DRAW_LINE_HEIGHT, drawTextAnchorOffset, isGeneratedDrawFont, measureDrawText } from '../shared/drawFont'
 import { DRAW_FONT_METRICS } from '../shared/drawFontMetrics'
 import { drawingFontFamily, drawingTextSize } from '../utils/drawText'
 
@@ -34,6 +34,14 @@ describe('canonical generated Draw font', () => {
     expect(drawingFontFamily(2, customData)).toContain(DRAW_FONT_FAMILY)
     expect(drawingFontFamily(1, customData)).toContain('Segoe Print')
     expect(drawingFontFamily(2)).toContain('Inter')
+  })
+
+  it('accounts for negative glyph bearings in each SVG alignment', () => {
+    expect(drawTextAnchorOffset('jjj', 48, 'left')).toBeCloseTo(55 / 1000 * 48)
+    expect(drawTextAnchorOffset('jjj', 48, 'center')).toBeCloseTo(55 / 1000 * 48 / 2)
+    expect(drawTextAnchorOffset('jjj', 48, 'right')).toBe(0)
+    const view = render(<svg><DrawSceneSvg elements={[{ id: 'overhang', type: 'text', x: 0, y: 0, angle: 0, ...measureDrawText('jjj', 48), text: 'jjj', fontSize: 48, fontFamily: 2, autoResize: true, customData }]} files={{}} /></svg>)
+    expect(Number(view.container.querySelector('tspan')?.getAttribute('x'))).toBeCloseTo(DRAW_FONT_INSET + 55 / 1000 * 48)
   })
 
   it('embeds the font and fixes generated text baseline, inset and line spacing in SVG', () => {

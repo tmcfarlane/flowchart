@@ -2,7 +2,7 @@ import { memo, useId } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { getAzureIconUrl } from '../utils/azureIconIds'
 import { drawingFontFamily as fontFamily } from '../utils/drawText'
-import { DRAW_FONT_BASELINE, DRAW_FONT_INSET, DRAW_LINE_HEIGHT, isGeneratedDrawFont } from '../shared/drawFont'
+import { DRAW_FONT_BASELINE, DRAW_FONT_INSET, DRAW_LINE_HEIGHT, drawTextAnchorOffset, isGeneratedDrawFont } from '../shared/drawFont'
 import { DRAW_FONT_FACE_CSS } from '../utils/drawFontFace'
 
 export interface DrawSceneSvgProps {
@@ -280,7 +280,7 @@ function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textCo
   if (type === 'frame') return <>
     {patterned && <FillPattern id={pattern} style={fillStyle} paint={background} width={strokeWidth} />}
     <rect width={width} height={height} rx={4} fill={fill} stroke={darkMode ? '#5d786f' : '#8ba49b'} strokeWidth={1} strokeDasharray="6 4" />
-    <text x={isGeneratedDrawFont(element.customData) ? DRAW_FONT_INSET : 0} y={-9} fontSize={13} fontFamily={fontFamily(2, element.customData)} style={isGeneratedDrawFont(element.customData) ? { fontKerning: 'none', fontVariantLigatures: 'none' } : undefined} fill={darkMode ? '#a9c0b7' : '#526b61'}>{string(element.name, 'Frame')}</text>
+    <text x={isGeneratedDrawFont(element.customData) ? DRAW_FONT_INSET + drawTextAnchorOffset(string(element.name, 'Frame'), 13, 'left') : 0} y={-9} fontSize={13} fontFamily={fontFamily(2, element.customData)} style={isGeneratedDrawFont(element.customData) ? { fontKerning: 'none', fontVariantLigatures: 'none' } : undefined} fill={darkMode ? '#a9c0b7' : '#526b61'}>{string(element.name, 'Frame')}</text>
     <rect width={width} height={height} fill="transparent" stroke="transparent" strokeWidth={10} pointerEvents="stroke" />
   </>
   if (type === 'line' || type === 'arrow') {
@@ -322,7 +322,7 @@ function ElementGraphic({ element, files, prefix, darkMode, textBackdrop, textCo
       {textBackdrop && <rect data-draw-label-backdrop="true" x={-5} y={top - 3} width={Math.max(1, width) + 10} height={totalHeight + 6} rx={4} fill={textBackdrop} pointerEvents="none" />}
       <rect width={Math.max(1, width)} height={Math.max(height, totalHeight)} fill="transparent" pointerEvents="all" />
       <text data-draw-generated-font={generated ? 'true' : undefined} x={x} y={top + size * (generated ? DRAW_FONT_BASELINE : 0.84)} fill={textColor ?? stroke} fontFamily={fontFamily(element.fontFamily, element.customData)} fontSize={size} textAnchor={alignment === 'center' ? 'middle' : alignment === 'right' ? 'end' : 'start'} style={{ whiteSpace: 'pre', userSelect: 'none', ...(generated ? { fontKerning: 'none', fontVariantLigatures: 'none' } : {}) }}>
-        {lines.map((line, index) => <tspan key={index} x={x} dy={index ? lineHeight : 0}>{line || '\u00a0'}</tspan>)}
+        {lines.map((line, index) => <tspan key={index} x={x + (generated ? drawTextAnchorOffset(line, size, alignment) : 0)} dy={index ? lineHeight : 0}>{line || '\u00a0'}</tspan>)}
       </text>
     </>
   }
