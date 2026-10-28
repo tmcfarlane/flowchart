@@ -8,6 +8,7 @@ import { createElement, deleteElements, duplicateSelection, expandSelection, get
 import DrawSceneSvg from './DrawSceneSvg'
 import DrawToolIcon from './DrawToolIcon'
 import DrawLibrary from './DrawLibrary'
+import { drawCommands, type DrawCommandId } from './drawCommands'
 import './DrawCanvas.css'
 
 export interface DrawCanvasApi {
@@ -30,6 +31,9 @@ export interface DrawCanvasProps {
   onRedo?: () => void
   canUndo?: boolean
   canRedo?: boolean
+  onToggleTheme?: () => void
+  onRequestClear?: () => void
+  onViewChange?: (viewing: boolean) => void
 }
 
 type Tool = 'selection' | 'hand' | 'rectangle' | 'diamond' | 'ellipse' | 'arrow' | 'line' | 'freedraw' | 'text' | 'image' | 'eraser' | 'frame'
@@ -52,6 +56,12 @@ interface Gesture {
 interface TextEdit { id: string; value: string; before: ArchitectureScene }
 interface PendingConnector { id: string; before: ArchitectureScene; fixed: Point[]; hover: Point; preventBinding: boolean }
 interface PointEdit { id: string; index: number }
+type DrawPanel =
+  | { kind: 'closed' }
+  | { kind: 'search'; query: string; activeId: string | null }
+  | { kind: 'palette'; query: string }
+  | { kind: 'statistics' }
+  | { kind: 'link'; elementId: string; value: string }
 interface ClipboardInput { target: EventTarget | null; clipboardData: DataTransfer | null; preventDefault: () => void }
 const tools: Array<{ tool: Tool; name: string; shortcut: string; glyph: string }> = [
   { tool: 'selection', name: 'Selection', shortcut: 'V / 1', glyph: '↖' },
@@ -71,6 +81,12 @@ const empty = (): ArchitectureScene => ({ version: 1, elements: [], files: {}, a
 const copy = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 const live = (scene: ArchitectureScene) => (scene.elements as DrawElement[]).filter(element => !element.isDeleted)
 const editableTarget = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('input,textarea,select,[contenteditable="true"]')
+const validLink = (value: string): string | null => {
+  try {
+    const url = new URL(value.trim())
+    return ['https:', 'http:', 'mailto:'].includes(url.protocol) ? url.href : null
+  } catch { return null }
+}
 const intersection = (a: Bounds, b: Bounds) => a.x <= b.x + b.width && a.x + a.width >= b.x && a.y <= b.y + b.height && a.y + a.height >= b.y
 const inside = (point: Point, box: Bounds, padding = 0) => point.x >= box.x - padding && point.x <= box.x + box.width + padding && point.y >= box.y - padding && point.y <= box.y + box.height + padding
 const patchElement = (scene: ArchitectureScene, id: string, patch: Partial<DrawElement>): ArchitectureScene => ({ ...scene, elements: scene.elements.map(element => element.id === id ? { ...element, ...patch } : element) })
@@ -128,6 +144,11 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const textRef = useRef<HTMLTextAreaElement>(null)
   const [defaults, setDefaults] = useState<Partial<DrawElement>>({ strokeColor: '#0f766e', backgroundColor: 'transparent', strokeWidth: 2, strokeStyle: 'solid', fillStyle: 'solid', roughness: 0, opacity: 100, fontSize: 20, fontFamily: 2, textAlign: 'left', roundness: { type: 3 }, endArrowhead: 'arrow' })
   const [help, setHelp] = useState(false)
+  const [panel, setPanel] = useState<DrawPanel>({ kind: 'closed' })
+  const [localView, setLocalView] = useState(false)
+  const [zen, setZen] = useState(false)
+  const readOnly = viewMode || localView
+  const readOnlyRef = useRef(readOnly); readOnlyRef.current = readOnly
   const [showTextProperties, setShowTextProperties] = useState(false)
   const styleClipboard = useRef<Partial<DrawElement> | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -169,6 +190,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }, [])
 
   const emit = useCallback((next: ArchitectureScene, record = true) => {
+    if (readOnlyRef.current) return false
     const current = latest.current
     let graph: ReturnType<typeof graphFromElements>, complete: ArchitectureScene
     try {
@@ -193,12 +215,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }, [preview])
 
   const undo = useCallback(() => {
+    if (readOnlyRef.current) return
     if (pendingConnector.current) { cancelConnector(); return }
     setPointEdit(null)
     if (latest.current.onUndo) { latest.current.onUndo(); return }
     if (historyIndex.current > 0) { historyIndex.current--; emit(copy(history.current[historyIndex.current]), false); setHistoryVersion(value => value + 1) }
   }, [emit, cancelConnector])
   const redo = useCallback(() => {
+    if (readOnlyRef.current) return
     cancelConnector(); setPointEdit(null)
     if (latest.current.onRedo) { latest.current.onRedo(); return }
     if (historyIndex.current + 1 < history.current.length) { historyIndex.current++; emit(copy(history.current[historyIndex.current]), false); setHistoryVersion(value => value + 1) }
@@ -213,7 +237,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }, [scene, nodes, edges, darkMode, preview])
   useEffect(() => { const frame = requestAnimationFrame(fitScene); return () => cancelAnimationFrame(frame) }, [fitScene])
   useEffect(() => { if (!viewMode) wrapper.current?.focus({ preventScroll: true }) }, [viewMode])
-  useEffect(() => { if (viewMode) { cancelConnector(); setPointEdit(null); gesture.current = null; setIsPanning(false) } }, [viewMode, cancelConnector])
+  useEffect(() => { if (readOnly) { cancelConnector(); setPointEdit(null); gesture.current = null; nudgeBefore.current = null; setTextEdit(null); setIsPanning(false); preview(copy(committed.current)) } }, [readOnly, cancelConnector, preview])
   useEffect(() => { if (textEdit) { textRef.current?.focus(); textRef.current?.select() } }, [textEdit?.id])
 
   const exportImage = useCallback(async (format: 'png' | 'svg' | 'gif', duration = 2) => {
@@ -342,6 +366,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     return clipboard.current
   }
   const insertComponent = (component: ArchitectureScene, offset = 0) => {
+    if (readOnlyRef.current) return false
     try {
       const valid = validateArchitectureScene(component), bounds = getSceneBounds(valid.elements), rect = surface.current?.getBoundingClientRect()
       const center = worldPoint({ x: (rect?.left ?? 0) + (rect?.width ?? 800) / 2, y: (rect?.top ?? 0) + (rect?.height ?? 600) / 2 })
@@ -354,9 +379,12 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       select(result.selectedIds); setTool('selection'); return true
     } catch (error) { setMessage(error instanceof Error ? error.message : 'This drawing could not be inserted.'); return false }
   }
-  const pasteSelection = () => { if (clipboard.current?.elements.length) { pasteOffset.current += 24; insertComponent(clipboard.current, pasteOffset.current) } }
+  const modalOpen = () => panel.kind !== 'closed' || help || !!document.querySelector('[role="dialog"]')
+  const pasteSelection = () => { if (!readOnlyRef.current && !modalOpen() && clipboard.current?.elements.length) { pasteOffset.current += 24; insertComponent(clipboard.current, pasteOffset.current) } }
   const writeClipboard = (event: ClipboardInput, cut = false) => {
     if (editableTarget(event.target) || editableTarget(document.activeElement)) return
+    if (modalOpen()) { if (cut) event.preventDefault(); return }
+    if (cut && readOnlyRef.current) { event.preventDefault(); return }
     if (pendingConnector.current) { cancelConnector(); select([]); return }
     const selected = copySelection()
     if (!selected?.elements.length || !event.clipboardData) return
@@ -367,7 +395,10 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (cut) { emit(deleteElements(draftRef.current, selectedRef.current, true)); select([]) }
   }
   const readClipboard = (event: ClipboardInput) => {
-    if (editableTarget(event.target) || editableTarget(document.activeElement) || !event.clipboardData) return
+    if (editableTarget(event.target) || editableTarget(document.activeElement)) return
+    if (modalOpen()) { event.preventDefault(); return }
+    if (!event.clipboardData) return
+    if (readOnlyRef.current) { event.preventDefault(); return }
     cancelConnector(); setPointEdit(null)
     pasteEvents.current++
     const text = event.clipboardData.getData('application/x-flowchart-drawing') || event.clipboardData.getData('text/plain')
@@ -428,7 +459,52 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     preview(next); select([element.id]); setTextEdit({ id: element.id, value: element.type === 'frame' ? String(element.name ?? '') : element.text ?? '', before })
   }
 
+  const searchResults = (query: string) => query.trim() ? live(draftRef.current).filter(element =>
+    [element.text, element.name, element.id].some(value => typeof value === 'string' && value.toLowerCase().includes(query.trim().toLowerCase()))) : []
+  const reveal = (id: string) => {
+    const element = live(draftRef.current).find(item => item.id === id), rect = surface.current?.getBoundingClientRect()
+    if (!element || !rect) return
+    const center = getElementCenter(element)
+    setViewport(view => ({ ...view, x: rect.width / 2 - center.x * view.zoom, y: rect.height / 2 - center.y * view.zoom }))
+    select([id])
+  }
+  const runCommand = (id: DrawCommandId) => {
+    if (readOnly && id !== 'link' && drawCommands.find(command => command.id === id)?.mutates) return
+    if (id !== 'palette' && id !== 'search' && id !== 'statistics' && id !== 'link') setPanel({ kind: 'closed' })
+    if (id === 'palette') setPanel({ kind: 'palette', query: '' })
+    else if (id === 'search') setPanel({ kind: 'search', query: '', activeId: null })
+    else if (id === 'statistics') setPanel({ kind: 'statistics' })
+    else if (id === 'zen') setZen(value => !value)
+    else if (id === 'view') { const next = !localView; readOnlyRef.current = viewMode || next; setLocalView(next); latest.current.onViewChange?.(next) }
+    else if (id === 'theme') latest.current.onToggleTheme?.()
+    else if (id === 'clear') latest.current.onRequestClear?.()
+    else if (id === 'link') {
+      const element = live(draftRef.current).find(item => selectedRef.current.has(item.id) && (readOnly || !item.locked))
+      if (element) setPanel({ kind: 'link', elementId: element.id, value: typeof element.link === 'string' ? element.link : '' })
+    }
+  }
+  const saveLink = (elementId: string, value: string) => {
+    const element = live(draftRef.current).find(item => item.id === elementId)
+    if (!element || element.locked || readOnlyRef.current) return
+    const link = value.trim() ? validLink(value) : null
+    if (value.trim() && !link) { setMessage('Use an http, https, or mailto link.'); return }
+    if (emit(patchElement(draftRef.current, elementId, { link }))) { setMessage(null); setPanel({ kind: 'closed' }) }
+  }
+  const previousPanelKind = useRef(panel.kind)
+  useEffect(() => {
+    if (panel.kind === 'closed' && previousPanelKind.current !== 'closed' && !document.querySelector('[aria-modal="true"]')) wrapper.current?.focus()
+    else if (panel.kind !== 'closed') wrapper.current?.querySelector<HTMLElement>('.draw-command-input, .draw-panel-close')?.focus()
+    previousPanelKind.current = panel.kind
+  }, [panel.kind])
+  const wasHelpOpen = useRef(help)
+  useEffect(() => {
+    if (help) wrapper.current?.querySelector<HTMLButtonElement>('.draw-help-close')?.focus()
+    else if (wasHelpOpen.current && !document.querySelector('[aria-modal="true"]')) wrapper.current?.focus()
+    wasHelpOpen.current = help
+  }, [help])
+
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (modalOpen()) return
     if (editableTarget(event.target)) return
     // Native buttons must keep their Enter/Space activation while focused.
     if (event.target instanceof HTMLElement && event.target.closest('button') && (event.key === 'Enter' || event.code === 'Space')) return
@@ -443,8 +519,16 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) }
       setPointEdit(null); wrapper.current?.focus(); return
     }
-    if (event.key === 'Escape') { if (gesture.current) preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null); setHelp(false); select([]); setTool('selection'); return }
-    if (key === '?' || (mod && key === '/')) { event.preventDefault(); setHelp(value => !value); return }
+    if (event.key === 'Escape') { if (gesture.current) preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null); setHelp(false); setPanel({ kind: 'closed' }); select([]); setTool('selection'); return }
+    if (mod && (event.code === 'Slash' || (event.shiftKey && event.code === 'KeyP'))) { event.preventDefault(); runCommand('palette'); return }
+    if (event.altKey && !mod && event.code === 'Slash') { event.preventDefault(); runCommand('statistics'); return }
+    if (event.altKey && !mod && event.code === 'KeyZ') { event.preventDefault(); runCommand('zen'); return }
+    if (event.altKey && !mod && event.code === 'KeyR') { event.preventDefault(); runCommand('view'); return }
+    if (event.altKey && event.shiftKey && !mod && event.code === 'KeyD') { event.preventDefault(); runCommand('theme'); return }
+    if (mod && event.code === 'KeyF') { event.preventDefault(); runCommand('search'); return }
+    if (mod && event.code === 'KeyK') { event.preventDefault(); runCommand('link'); return }
+    if (mod && (event.code === 'Delete' || (event.metaKey && event.code === 'Backspace'))) { event.preventDefault(); runCommand('clear'); return }
+    if (key === '?') { event.preventDefault(); setHelp(value => !value); return }
     if (event.code === 'Space') { event.preventDefault(); heldSpace.current = true; return }
     if (mod && key === 'z') { event.preventDefault(); if (event.shiftKey) redo(); else undo(); return }
     if (mod && key === 'y') { event.preventDefault(); redo(); return }
@@ -452,7 +536,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       event.preventDefault(); const rect = surface.current?.getBoundingClientRect(), direction = event.key === 'PageDown' ? -1 : 1
       setViewport(view => ({ ...view, x: view.x + (event.shiftKey ? (rect?.width ?? 800) * direction : 0), y: view.y + (event.shiftKey ? 0 : (rect?.height ?? 600) * direction) })); return
     }
-    if (viewMode) return
+    if (mod && ['+', '=', '-', '0'].includes(key)) { event.preventDefault(); setViewport(view => ({ ...view, zoom: key === '0' ? 1 : Math.max(0.1, Math.min(5, view.zoom * (key === '-' ? 0.8 : 1.25))) })); return }
+    if (event.shiftKey && event.code === 'Digit1') { event.preventDefault(); fitScene(); return }
+    if (readOnly) return
     // A pending multi-click path is one transaction. Other editing commands
     // discard that preview before operating on the committed document.
     if (pendingConnector.current && !['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)
@@ -593,7 +679,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const base: Gesture = { kind: 'move', start: point, screen: { x: event.clientX, y: event.clientY }, before, base: before, ids: [...selectedRef.current], viewport: { ...viewportRef.current } }
     const target = event.target as Element
     if (pointEditRef.current && !target.hasAttribute('data-point-index') && tool !== 'hand' && !heldSpace.current && event.button === 0) setPointEdit(null)
-    if (tool === 'hand' || heldSpace.current || event.button === 1 || event.button === 2 || viewMode) { gesture.current = { ...base, kind: 'pan', panButton: event.button }; setIsPanning(true) }
+    if (tool === 'hand' || heldSpace.current || event.button === 1 || event.button === 2 || readOnly) { gesture.current = { ...base, kind: 'pan', panButton: event.button }; setIsPanning(true) }
     else if (pendingConnector.current) { gesture.current = { ...base, before: pendingConnector.current.before, kind: 'connector-click' } }
     else if (target.getAttribute('data-resize')) gesture.current = { ...base, kind: 'resize', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))), corner: target.getAttribute('data-resize')! }
     else if (target.getAttribute('data-rotate')) gesture.current = { ...base, kind: 'rotate', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))) }
@@ -746,12 +832,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }, [worldPoint])
 
   const uploadImage = async (file?: File) => {
-    if (!file) return
+    if (!file || readOnlyRef.current) return
+    const source = committed.current
     if (!file.type.startsWith('image/')) { setMessage('Choose an image file.'); return }
     if (file.size > 3 * 1024 * 1024) { setMessage('Choose an image smaller than 3 MB so the complete diagram can be saved.'); return }
     const dataURL = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file) })
     const image = new Image(); image.src = dataURL
     try { await image.decode(); if (!image.naturalWidth || !image.naturalHeight) throw new Error('Empty image') } catch { setMessage('This image could not be decoded. Choose a valid image file.'); return }
+    if (readOnlyRef.current || committed.current !== source) return
     const rect = surface.current?.getBoundingClientRect(), center = worldPoint({ x: (rect?.left ?? 0) + (rect?.width ?? 800) / 2, y: (rect?.top ?? 0) + (rect?.height ?? 600) / 2 })
     const width = Math.min(360, image.naturalWidth || 240), height = width * (image.naturalHeight || 180) / (image.naturalWidth || 240), id = newDrawId('image')
     const element = createElement('image', { x: center.x - width / 2, y: center.y - height / 2 }, { x: center.x + width / 2, y: center.y + height / 2 }, { fileId: id, status: 'saved', scale: [1, 1] })
@@ -759,6 +847,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }
 
   const storedBackground = draft.appState?.viewBackgroundColor ?? '#ffffff'
+  const matches = panel.kind === 'search' ? searchResults(panel.query) : []
+  const paletteCommands = panel.kind === 'palette' ? drawCommands.filter(command =>
+    (!readOnly || !command.mutates || command.id === 'link') && `${command.label} ${command.shortcut}`.toLowerCase().includes(panel.query.toLowerCase())) : []
   const canvasBackground = darkMode && ['#ffffff', '#fff', 'white'].includes(storedBackground.toLowerCase()) ? '#0f1211' : storedBackground
   const chosen = live(draft).filter(element => selectedIds.has(element.id)), first = chosen[0]
   const selectedPaths = chosen.filter(element => ['line', 'arrow'].includes(element.type))
@@ -790,14 +881,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const canRedo = props.onRedo ? props.canRedo : historyIndex.current + 1 < history.current.length
   void historyVersion
 
-  return <section ref={wrapper} className={`draw-canvas ${darkMode ? 'draw-dark' : 'draw-light'} ${viewMode ? 'draw-presentation' : ''}`} aria-label="Draw canvas" tabIndex={0} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onCopy={event => clipboardEvents.current.copy(event)} onCut={event => clipboardEvents.current.cut(event)} onPaste={event => clipboardEvents.current.paste(event)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as globalThis.Node | null)) { heldSpace.current = false; if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) } } }}>
-    {!viewMode && <div className="draw-tools" role="toolbar" aria-label="Drawing tools">
+  return <section ref={wrapper} className={`draw-canvas ${darkMode ? 'draw-dark' : 'draw-light'} ${viewMode ? 'draw-presentation' : ''} ${zen ? 'draw-zen' : ''}`} aria-label="Draw canvas" tabIndex={0} onKeyDown={onKeyDown} onKeyUp={onKeyUp} onCopy={event => clipboardEvents.current.copy(event)} onCut={event => clipboardEvents.current.cut(event)} onPaste={event => clipboardEvents.current.paste(event)} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as globalThis.Node | null)) { heldSpace.current = false; if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) } } }}>
+    {!readOnly && !zen && <div className="draw-tools" role="toolbar" aria-label="Drawing tools">
       {tools.map(item => <button key={item.tool} type="button" aria-label={`${item.name} tool`} aria-pressed={tool === item.tool} className={tool === item.tool ? 'active' : ''} title={`${item.name} (${item.shortcut})`} onClick={() => setActiveTool(item.tool)}><DrawToolIcon tool={item.tool} /><small>{item.shortcut.split(' / ').slice(-1)[0]}</small></button>)}
       <span className="draw-divider" />
       <button type="button" aria-label="Keep tool selected" aria-pressed={keepTool} title="Keep tool selected (Q)" onClick={() => setKeepTool(value => !value)}><DrawToolIcon tool={keepTool ? 'lock' : 'unlock'} /></button>
     </div>}
     <svg ref={surface} className={`draw-surface tool-${tool} ${isPanning ? 'is-panning' : ''}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (pendingConnector.current && gesture.current?.kind !== 'pan') cancelConnector(); else if (gesture.current && gesture.current.kind !== 'pan') preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null) }} onLostPointerCapture={() => { if (gesture.current?.kind === 'pan') { gesture.current = null; setIsPanning(false) } }} onContextMenu={event => event.preventDefault()} onDoubleClick={event => {
-      if (viewMode || event.button !== 0) return
+      if (readOnly || event.button !== 0) return
       if (pendingConnector.current) { pendingConnector.current.preventBinding = event.ctrlKey || event.metaKey; finishConnector(); return }
       if (pointEditRef.current) { finishPointEditing(); return }
       const target = event.target as Element
@@ -810,7 +901,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <rect width="100%" height="100%" fill={grid ? 'url(#draw-grid)' : canvasBackground} data-draw-background="true" />
       <g transform={`translate(${viewport.x} ${viewport.y}) scale(${viewport.zoom})`} data-draw-viewport="true" data-drawing-layer="true">
         <g data-draw-content="true"><DrawSceneSvg elements={draft.elements} files={draft.files} darkMode={darkMode} backgroundColor={canvasBackground} selectedIds={selectedIds} editingTextId={textEdit?.id} /></g>
-        {!viewMode && selectionBounds && <g className="draw-selection" fill="none" stroke="#17b895" strokeWidth={1.5 / viewport.zoom}>
+        {!readOnly && selectionBounds && <g className="draw-selection" fill="none" stroke="#17b895" strokeWidth={1.5 / viewport.zoom}>
           <rect x={selectionBounds.x - 3 / viewport.zoom} y={selectionBounds.y - 3 / viewport.zoom} width={selectionBounds.width + 6 / viewport.zoom} height={selectionBounds.height + 6 / viewport.zoom} strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`} pointerEvents="none" />
           {!pointEdit && !creatingConnector && <><line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} />
             <circle data-rotate="true" aria-label="Rotate selection" cx={selectionBounds.x + selectionBounds.width / 2} cy={selectionBounds.y - 30 / viewport.zoom} r={5 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />
@@ -823,7 +914,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       </g>
     </svg>
     {textEdit && editElement && <textarea ref={textRef} className={`draw-text-editor ${boundText ? 'is-bound' : ''}`} aria-label="Edit drawing text" wrap={boundText ? 'off' : undefined} style={{ ...textPosition, width: editorWidth, minHeight: boundText ? undefined : Math.max(46, editElement.height * viewport.zoom + 20), fontSize: editorFontSize }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
-    {!viewMode && <aside className="draw-properties" aria-label="Drawing properties">
+    {!readOnly && !zen && <aside className="draw-properties" aria-label="Drawing properties">
       <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
       {pointEdit && editablePath?.id === pointEdit.id && <fieldset className="draw-point-editor"><legend>Connector points</legend><p role="status">Editing connector points</p><p>Arrows move the active point. Enter or Escape finishes.</p><div className="draw-action-grid"><button type="button" onClick={addPathPoint}>Add path point</button><button type="button" disabled={pointEdit.index <= 0 || pointEdit.index >= activePathPointCount - 1} onClick={deletePathPoint}>Delete path point</button><button type="button" onClick={finishPointEditing}>Finish point editing</button></div></fieldset>}
       <div className="draw-property-pair"><label>Stroke<input aria-label="Stroke color" type="color" value={String(property('strokeColor', '#0f766e')).startsWith('#') ? String(property('strokeColor', '#0f766e')) : '#0f766e'} onChange={event => applyProperties({ strokeColor: event.target.value })} /></label><label>Fill<input aria-label="Background color" type="color" value={String(property('backgroundColor', 'transparent')).startsWith('#') ? String(property('backgroundColor', 'transparent')) : '#ffffff'} onChange={event => applyProperties({ backgroundColor: event.target.value })} /></label></div>
@@ -837,11 +928,28 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       {(['line', 'arrow'].includes(tool) || chosen.some(e => ['line', 'arrow'].includes(e.type))) && <fieldset><legend>Connection</legend>{(['startArrowhead', 'endArrowhead'] as const).map(key => <label key={key}>{key === 'startArrowhead' ? 'Start' : 'End'}<select aria-label={key === 'startArrowhead' ? 'Start arrowhead' : 'End arrowhead'} value={String(property(key, key === 'endArrowhead' ? 'arrow' : null) ?? 'none')} onChange={event => applyProperties({ [key]: event.target.value === 'none' ? null : event.target.value })}>{['none', 'arrow', 'triangle', 'dot', 'bar', 'diamond'].map(value => <option key={value} value={value}>{value}</option>)}</select></label>)}<label>Routing<select aria-label="Arrow routing" value={first?.elbowed ? 'elbow' : first?.roundness ? 'curved' : 'sharp'} onChange={event => applyProperties({ elbowed: event.target.value === 'elbow', roundness: event.target.value === 'curved' ? { type: 2 } : null })}><option value="sharp">Sharp</option><option value="curved">Curved</option><option value="elbow">Elbow</option></select></label></fieldset>}
       {chosen.length > 0 && !creatingConnector && <><label>Rotation<input aria-label="Rotation" type="number" value={Math.round(Number(first?.angle ?? 0) * 180 / Math.PI)} onChange={event => applyProperties({ angle: Number(event.target.value) * Math.PI / 180 })} /></label><div className="draw-action-grid"><button onClick={duplicate} title="Duplicate (Ctrl/Cmd+D)">Duplicate</button><button onClick={() => applyProperties({ locked: !chosen.every(e => e.locked) })}>{chosen.every(e => e.locked) ? 'Unlock' : 'Lock'}</button><button onClick={() => groupSelection()}>Group</button><button onClick={() => groupSelection(true)}>Ungroup</button><button onClick={() => reorder('back')}>To back</button><button onClick={() => reorder('front')}>To front</button></div>{chosen.length > 1 && <div className="draw-action-grid">{(['left', 'centerX', 'right', 'top', 'centerY', 'bottom'] as const).map(side => <button key={side} aria-label={`Align ${side}`} onClick={() => align(side)}>{side.replace('centerX', 'Center ↔').replace('centerY', 'Center ↕')}</button>)}</div>}<button className="draw-delete" onClick={() => { emit(deleteElements(draftRef.current, selectedIds, true)); select([]) }}>Delete selection</button></>}
     </aside>}
-    <div className="draw-bottom-controls"><button aria-label="Zoom out" onClick={() => setViewport(view => ({ ...view, zoom: Math.max(0.1, view.zoom / 1.2) }))}>−</button><span>{Math.round(viewport.zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setViewport(view => ({ ...view, zoom: Math.min(5, view.zoom * 1.2) }))}>+</button><button aria-label="Fit drawing" title="Fit all (Shift+1)" onClick={fitScene}>Fit</button>{!viewMode && <><span className="draw-divider" /><button aria-label="Undo drawing" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>↶</button><button aria-label="Redo drawing" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>↷</button><button aria-label="Snap to grid" aria-pressed={grid} onClick={() => setGrid(value => !value)}>Grid</button><button aria-label="Snap to objects" aria-pressed={snap} onClick={() => setSnap(value => !value)}>Snap</button></>}</div>
-    {!viewMode && !creatingConnector && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}
-    {!viewMode && <button className="draw-help-toggle" aria-label="Keyboard shortcuts" onClick={() => setHelp(value => !value)}>?</button>}
+    {!zen && <div className="draw-bottom-controls"><button aria-label="Zoom out" onClick={() => setViewport(view => ({ ...view, zoom: Math.max(0.1, view.zoom / 1.2) }))}>−</button><span>{Math.round(viewport.zoom * 100)}%</span><button aria-label="Zoom in" onClick={() => setViewport(view => ({ ...view, zoom: Math.min(5, view.zoom * 1.2) }))}>+</button><button aria-label="Fit drawing" title="Fit all (Shift+1)" onClick={fitScene}>Fit</button>{!readOnly && <><span className="draw-divider" /><button aria-label="Undo drawing" title="Undo (Ctrl/Cmd+Z)" disabled={!canUndo} onClick={undo}>↶</button><button aria-label="Redo drawing" title="Redo (Ctrl/Cmd+Shift+Z)" disabled={!canRedo} onClick={redo}>↷</button><button aria-label="Snap to grid" aria-pressed={grid} onClick={() => setGrid(value => !value)}>Grid</button><button aria-label="Snap to objects" aria-pressed={snap} onClick={() => setSnap(value => !value)}>Snap</button></>}</div>}
+    {!readOnly && !zen && !creatingConnector && <DrawLibrary scene={draft} selectedIds={selectedIds} onInsert={component => insertComponent(component)} />}
+    {!zen && <button className="draw-help-toggle" aria-label="Keyboard shortcuts" onClick={() => setHelp(value => !value)}>?</button>}
+    {localView && <span className="draw-view-badge">View mode · Alt/Option R to edit</span>}
     {message && <div className="draw-message" role="alert">{message}<button aria-label="Dismiss drawing message" onClick={() => setMessage(null)}>×</button></div>}
-    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Edit connector points', '⌘/Ctrl Enter'], ['Finish connector', 'Enter · double-click'], ['Draw from center', 'Alt drag'], ['Deep marquee', '⌘/Ctrl drag'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Right drag · Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}</div></div></section></div>}
+    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); setHelp(false) } if (event.key === 'Tab') { event.preventDefault(); event.currentTarget.querySelector<HTMLButtonElement>('.draw-help-close')?.focus() } }}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Edit connector points', '⌘/Ctrl Enter'], ['Finish connector', 'Enter · double-click'], ['Draw from center', 'Alt drag'], ['Deep marquee', '⌘/Ctrl drag'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Right drag · Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}{drawCommands.map(command => <p key={command.id}><span>{command.label}</span><kbd>{command.shortcut}</kbd></p>)}</div></div></section></div>}
+    {panel.kind !== 'closed' && <div className="draw-panel-overlay" onMouseDown={event => { if (event.target === event.currentTarget) setPanel({ kind: 'closed' }) }}><section className="draw-command-panel" role="dialog" aria-modal="true" aria-label={panel.kind === 'palette' ? 'Drawing commands' : panel.kind === 'search' ? 'Find in drawing' : panel.kind === 'statistics' ? 'Drawing statistics' : 'Edit link'} onKeyDown={event => {
+      event.stopPropagation()
+      if (event.key === 'Escape') { event.preventDefault(); setPanel({ kind: 'closed' }) }
+      if (event.key === 'Tab') {
+        const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), a[href]'))
+        const first = controls[0], last = controls[controls.length - 1]
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      }
+    }}>
+      <button className="draw-panel-close" aria-label="Close panel" onClick={() => setPanel({ kind: 'closed' })}>×</button>
+      {panel.kind === 'palette' && <><h2>Drawing commands</h2><input className="draw-command-input" aria-label="Search commands" value={panel.query} onChange={event => setPanel({ kind: 'palette', query: event.target.value })} onKeyDown={event => { if (event.key === 'Enter' && paletteCommands[0]) { event.preventDefault(); runCommand(paletteCommands[0].id) } }} />{paletteCommands.map(command => <button key={command.id} className="draw-command-row" onClick={() => runCommand(command.id)}><span>{command.label}</span><kbd>{command.shortcut}</kbd></button>)}</>}
+      {panel.kind === 'search' && <><h2>Find in drawing</h2><input className="draw-command-input" aria-label="Search drawing" value={panel.query} onChange={event => { const query = event.target.value, first = searchResults(query)[0]; setPanel({ kind: 'search', query, activeId: first?.id ?? null }); if (first) reveal(first.id) }} onKeyDown={event => { if (event.key === 'Enter') { event.preventDefault(); const index = matches.findIndex(item => item.id === panel.activeId), next = matches[(index + (event.shiftKey ? matches.length - 1 : 1)) % matches.length]; if (next) { reveal(next.id); setPanel({ ...panel, activeId: next.id }) } } }} /><p role="status">{matches.length} results</p><div className="draw-search-results">{matches.map(element => <button key={element.id} aria-current={panel.activeId === element.id ? 'true' : undefined} onClick={() => { reveal(element.id); setPanel({ ...panel, activeId: element.id }) }}>{String(element.text || element.name || element.id)}</button>)}</div></>}
+      {panel.kind === 'statistics' && <><h2>Drawing statistics</h2><p>{live(draft).length} elements</p><p>{Object.keys(draft.files).length} files</p><p>{new Blob([JSON.stringify(draft)]).size.toLocaleString()} bytes</p></>}
+      {panel.kind === 'link' && <><h2>{readOnly ? 'Element link' : 'Edit link'}</h2><input className="draw-command-input" aria-label="Element link" type="url" readOnly={readOnly} value={panel.value} onChange={event => { setMessage(null); setPanel({ ...panel, value: event.target.value }) }} onKeyDown={event => { if (event.key === 'Enter' && !readOnly) { event.preventDefault(); saveLink(panel.elementId, panel.value) } }} /><div className="draw-panel-actions">{!readOnly && <><button onClick={() => saveLink(panel.elementId, panel.value)}>Save link</button><button onClick={() => saveLink(panel.elementId, '')}>Remove link</button></>}{validLink(panel.value) && <a href={validLink(panel.value)!} target="_blank" rel="noopener noreferrer">Open link</a>}</div></>}
+    </section></div>}
     <input ref={fileInput} className="draw-image-input" aria-label="Choose drawing image" type="file" accept="image/*" onChange={event => { void uploadImage(event.target.files?.[0]).catch(error => setMessage(error instanceof Error ? error.message : 'The image could not be read.')); event.target.value = '' }} />
   </section>
 }
