@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import copy
 import json
+import re
 from datetime import datetime, timezone
 from importlib.metadata import version
 from pathlib import Path
@@ -14,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / 'docs/screenshots/patch-notes'
 DRAFT = 'flowchart-editor-draft-v3'
 SEEN = 'flowchart-patch-notes-seen-revision'
-LATEST = '1'
+LATEST = re.search(r'\brevision:\s*(\d+)', (ROOT / 'src/patchNotes.ts').read_text()).group(1)
 FIXTURE = {
     'version': 4,
     'mode': 'flowchart',
@@ -46,6 +47,13 @@ FIXTURE = {
 
 def notes(page):
     return page.get_by_role('dialog', name="What's new", exact=True)
+
+
+async def reveal_utility(page, name):
+    control = page.get_by_role('button', name=name, exact=True)
+    if not await control.is_visible():
+        await page.get_by_role('button', name='More actions', exact=True).click()
+    return control
 
 
 async def document(page):
@@ -111,7 +119,7 @@ async def new_page(browser, url, seen=None, fixture=FIXTURE, compact=False, bloc
     })(''' + json.dumps(config) + ')')
     if url:
         await page.goto(url, wait_until='networkidle')
-        await page.get_by_role('button', name="What's new", exact=True).wait_for()
+        await page.get_by_role('button', name='Draw Mode', exact=True).wait_for()
     return context, page, errors, ai_requests
 
 
@@ -142,17 +150,18 @@ async def fresh_visit(browser, url, checks):
 
 
 async def visitor_records(browser, url, checks):
-    for seen, opens in [('0', True), ('1', False), ('2', False), ('broken', True), ('-1', True), ('1.5', True), ('9007199254740992', True), ('', True)]:
+    future = str(int(LATEST) + 1)
+    for seen, opens in [(str(int(LATEST) - 1), True), (LATEST, False), (future, False), ('broken', True), ('-1', True), ('1.5', True), ('9007199254740992', True), ('', True)]:
         context, page, errors, requests = await new_page(browser, url, seen=seen)
         if opens:
             await expect(notes(page)).to_be_visible()
         else:
             await expect(notes(page)).to_have_count(0)
         assert await marker(page) == seen, f'Reading or opening changed the stored record {seen!r}'
-        if seen == '2':
+        if seen == future:
             await page.get_by_role('button', name="What's new", exact=True).click()
             await notes(page).get_by_role('button', name='Got it', exact=True).click()
-            assert await marker(page) == '2', 'Manual acknowledgment downgraded a future revision'
+            assert await marker(page) == future, 'Manual acknowledgment downgraded a future revision'
         await clean(context, page, errors, requests)
     checks.append('Older and malformed records open; equal and future records stay closed; reading and opening never acknowledge a release')
 
@@ -321,8 +330,8 @@ async def compact_layout(browser, url, checks):
         await dialog.get_by_role('button', name='Got it', exact=True).click()
         await expect(notes(page)).to_have_count(0)
         if theme == 'dark':
-            await page.get_by_role('button', name='Toggle Dark Mode', exact=True).click()
-            entry = page.get_by_role('button', name="What's new", exact=True)
+            await (await reveal_utility(page, 'Toggle Dark Mode')).click()
+            entry = await reveal_utility(page, "What's new")
             await entry.scroll_into_view_if_needed()
             await screenshot(page, '07-compact-manual-entry-light.png')
             await entry.click()

@@ -83,6 +83,9 @@ function Toolbar({
   }, [clearRequest])
   const [isImagePickerOpen, setIsImagePickerOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
+  const [actionsOpen, setActionsOpen] = useState(false)
+  const actionsRef = useRef<HTMLDivElement>(null)
+  const actionsButtonRef = useRef<HTMLButtonElement>(null)
   const [gifDuration, setGifDuration] = useState(2)
   const [gifProgress, setGifProgress] = useState<{ frame: number; total: number } | null>(null)
   const [isEncoding, setIsEncoding] = useState(false)
@@ -218,6 +221,28 @@ function Toolbar({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isExportOpen])
 
+  useEffect(() => {
+    if (!actionsOpen) return
+    const closeOutside = (event: PointerEvent) => {
+      if (!actionsRef.current?.contains(event.target as Node)) {
+        setActionsOpen(false)
+        setIsExportOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setActionsOpen(false)
+      setIsExportOpen(false)
+      actionsButtonRef.current?.focus()
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside)
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [actionsOpen])
+
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -234,7 +259,7 @@ function Toolbar({
   return (
     <>
       <div className="floating-toolbar">
-        <div className="toolbar-row">
+        <div className="toolbar-row toolbar-primary">
           <div className="toolbar-group mode-switcher" role="group" aria-label="Diagram mode">
             <button
               className={`toolbar-button mode-option ${diagramMode === 'flowchart' ? 'active' : ''}`}
@@ -451,8 +476,8 @@ function Toolbar({
           </div>
         </div>
 
-        <div className="toolbar-row">
-          <div className="toolbar-group">
+        <div className="toolbar-row toolbar-actions" ref={actionsRef}>
+          <div className="toolbar-group toolbar-history">
             <button
               className="toolbar-button"
               onClick={onUndo}
@@ -477,9 +502,38 @@ function Toolbar({
                 <path d="M12 8l-4-4v2.5c-4 0-6 2-6 5.5 1-2 3-3 6-3V11l4-3z" />
               </svg>
             </button>
+          </div>
+          <div className="toolbar-explorer">
             <button
-              className="toolbar-button clear"
-              onClick={handleClearClick}
+              className={`toolbar-button ${sidebarMode === 'explorer' ? 'active' : ''}`}
+              onClick={onToggleExplorer}
+              title="Explorer Panel"
+              aria-label="Toggle Explorer"
+            >
+              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
+              </svg>
+            </button>
+          </div>
+          {share && <div className="toolbar-share" onClickCapture={() => { setActionsOpen(false); setIsExportOpen(false) }}><ShareMenu {...share} /></div>}
+          <button
+            ref={actionsButtonRef}
+            className={`toolbar-button toolbar-more ${actionsOpen ? 'active' : ''}`}
+            onClick={() => { setActionsOpen(value => !value); setIsExportOpen(false) }}
+            aria-label="More actions"
+            aria-expanded={actionsOpen}
+            aria-controls="toolbar-utilities"
+          >
+            <span aria-hidden="true">•••</span><span>More</span>
+          </button>
+          <div className="toolbar-separator utility-divider" />
+          <div className="toolbar-separator share-divider" />
+          <div className="toolbar-separator news-divider" />
+          <div id="toolbar-utilities" className="toolbar-utilities" data-open={actionsOpen} aria-label="More actions">
+            <button className="toolbar-utilities-close" onClick={() => { setActionsOpen(false); setIsExportOpen(false); actionsButtonRef.current?.focus() }}>Close actions</button>
+            <button
+              className="toolbar-button clear utility-clear"
+              onClick={() => { setActionsOpen(false); handleClearClick() }}
               title="Clear All"
               aria-label="Clear All"
             >
@@ -487,13 +541,8 @@ function Toolbar({
                 <path d="M2 3h12v1H2V3zm1 2h10l-.5 9H3.5L3 5zm3 2v5h1V7H6zm3 0v5h1V7H9z" />
               </svg>
             </button>
-          </div>
-
-          <div className="toolbar-separator" />
-
-          <div className="toolbar-group">
             <button
-              className={`toolbar-button dark-mode-toggle ${darkMode ? 'is-dark' : 'is-light'}`}
+              className={`toolbar-button utility-theme dark-mode-toggle ${darkMode ? 'is-dark' : 'is-light'}`}
               onClick={onToggleDarkMode}
               title={darkMode ? "Light Mode" : "Dark Mode"}
               aria-label="Toggle Dark Mode"
@@ -525,22 +574,14 @@ function Toolbar({
                 </svg>
               )}
             </button>
-            <button
-              className={`toolbar-button ${sidebarMode === 'explorer' ? 'active' : ''}`}
-              onClick={onToggleExplorer}
-              title="Explorer Panel"
-              aria-label="Toggle Explorer"
-            >
-              <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
-              </svg>
-            </button>
             <div className="export-wrapper" ref={exportRef}>
               <button
                 className={`toolbar-button export ${isExportOpen ? 'active' : ''}`}
                 onClick={() => setIsExportOpen(!isExportOpen)}
                 title="Export"
                 aria-label="Export"
+                aria-expanded={isExportOpen}
+                aria-controls="toolbar-export"
               >
                 <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M8 10V2" />
@@ -549,7 +590,7 @@ function Toolbar({
                 </svg>
               </button>
               {isExportOpen && (
-                <div className="export-dropdown">
+                <div id="toolbar-export" className="export-dropdown">
                   {gifProgress || isEncoding ? (
                     <div className="export-progress">
                       {isEncoding ? (
@@ -618,7 +659,7 @@ function Toolbar({
             </div>
             <button
               className="toolbar-button preview"
-              onClick={onTogglePreview}
+              onClick={() => { setActionsOpen(false); onTogglePreview() }}
               title="Preview Mode"
               aria-label="Enter Preview Mode"
             >
@@ -626,24 +667,12 @@ function Toolbar({
                 <path d="M3 4l8 4-8 4V4z" />
               </svg>
             </button>
-          </div>
-
-          {share && (
-            <>
-              <div className="toolbar-separator" />
-              <ShareMenu {...share} />
-            </>
-          )}
-
-          <div className="toolbar-separator" />
-
           {onOpenPatchNotes && (
-            <button className="toolbar-news-button" onClick={onOpenPatchNotes} title="What's new" aria-label="What's new">
+            <button className="toolbar-news-button" onClick={() => { setActionsOpen(false); onOpenPatchNotes() }} title="What's new" aria-label="What's new">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z" /></svg>
               <span>What's new</span>
             </button>
           )}
-
           <a
             href="https://github.com/tmcfarlane/flowchart"
             target="_blank"
@@ -657,6 +686,7 @@ function Toolbar({
             </svg>
             <span style={{ whiteSpace: 'nowrap' }}>Open-Source</span>
           </a>
+          </div>
         </div>
       </div>
 

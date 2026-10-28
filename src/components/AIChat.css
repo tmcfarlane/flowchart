@@ -776,3 +776,10 @@
 .ai-selection-action:disabled { opacity: 0.5; cursor: default; }
 .ai-selection-action span + span { font-size: 11px; }
 .app.dark-mode .ai-selection-action { color: #78fcd6; }
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .ai-bubble-prompt, .ai-welcome-prompt { max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .ai-bubble-prompt .ai-generation-mode select, .ai-welcome-prompt .ai-generation-mode select, .ai-bubble-prompt .ai-bubble-input, .ai-welcome-prompt .ai-bubble-input { font-size: 16px; min-height: 44px; }
+  .ai-bubble-prompt button, .ai-welcome-prompt button, .ai-bubble-prompt a, .ai-welcome-prompt a { min-height: 44px; min-width: 44px; }
+  .ai-bubble-prompt a, .ai-welcome-prompt a { display: inline-flex; align-items: center; }
+}

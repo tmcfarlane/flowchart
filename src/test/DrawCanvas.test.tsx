@@ -51,6 +51,63 @@ function drawRectangle(surface: HTMLElement) {
 }
 
 describe('custom Draw canvas', () => {
+  it('fits within the current layout reserve without changing the drawing or its history', () => {
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 390, 720))
+    const initial = { ...empty(), elements: [{ ...rectangle('box', 100), width: 500 }] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    surface.style.setProperty('--draw-fit-inline-reserve', '40')
+    fireEvent.click(screen.getByRole('button', { name: 'Fit drawing' }))
+    expect(surface.querySelector('[data-draw-viewport]')).toHaveAttribute('transform', 'translate(-50 273) scale(0.7)')
+    surface.style.setProperty('--draw-fit-inline-reserve', '140')
+    fireEvent.click(screen.getByRole('button', { name: 'Fit drawing' }))
+    expect(surface.querySelector('[data-draw-viewport]')).toHaveAttribute('transform', 'translate(20 303) scale(0.5)')
+    expect(scene()).toEqual(initial)
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Undo drawing' })).toBeDisabled()
+  })
+
+  it('switches inspectors without losing selection, edits, or history', () => {
+    const { surface, scene, onCommit } = renderDrawing({ ...empty(), elements: [rectangle('box', 100)] })
+    fireEvent.pointerDown(surface.querySelector('[data-element-id="box"]')!, pointer(160, 150))
+    fireEvent.pointerUp(surface, pointer(160, 150))
+    const properties = screen.getByRole('button', { name: 'Selection', exact: true })
+    fireEvent.click(properties)
+    fireEvent.change(screen.getByLabelText('Stroke width'), { target: { value: '7' } })
+    expect(onCommit).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('button', { name: 'Components', exact: true }))
+    expect(properties).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('dialog', { name: 'Your components' })).toBeInTheDocument()
+    fireEvent.pointerDown(properties)
+    fireEvent.click(properties)
+    expect(properties).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.queryByRole('dialog', { name: 'Your components' })).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Stroke width')).toHaveValue(7)
+    fireEvent.keyDown(screen.getByLabelText('Stroke width'), { key: 'Escape' })
+    expect(properties).toHaveAttribute('aria-expanded', 'false')
+    expect(properties).toHaveFocus()
+    expect(surface.querySelector('[data-element-id="box"]')).toHaveAttribute('data-selected', 'true')
+    expect(scene().elements[0].strokeWidth).toBe(7)
+    expect(onCommit).toHaveBeenCalledOnce()
+    fireEvent.click(screen.getByRole('button', { name: 'Undo drawing' }))
+    expect(scene().elements[0].strokeWidth).toBeUndefined()
+  })
+
+  it('closes the drawing tools popup without changing the selected object', () => {
+    const { surface, onCommit } = renderDrawing({ ...empty(), elements: [rectangle('box', 100)] })
+    fireEvent.pointerDown(surface.querySelector('[data-element-id="box"]')!, pointer(160, 150))
+    fireEvent.pointerUp(surface, pointer(160, 150))
+    const more = screen.getByRole('button', { name: 'More drawing tools' })
+    fireEvent.click(more)
+    fireEvent.keyDown(screen.getByRole('menuitem', { name: /Fill/ }), { key: 'Escape' })
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(more).toHaveFocus()
+    expect(surface.querySelector('[data-element-id="box"]')).toHaveAttribute('data-selected', 'true')
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.click(more)
+    fireEvent.pointerDown(screen.getByLabelText('Outside canvas prompt'))
+    expect(screen.queryByRole('menu', { name: 'More drawing tools' })).not.toBeInTheDocument()
+  })
+
   it('selects a locked object with an ordinary click and unlocks it without recording failed edits', () => {
     const { surface, scene, onCommit } = renderDrawing({ ...empty(), elements: [rectangle('box', 100)] })
     const hit = () => surface.querySelector('[data-element-id="box"]')!

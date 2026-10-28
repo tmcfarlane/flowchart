@@ -8,5 +8,20 @@
 .draw-library-items { display: flex; flex-direction: column; gap: 9px; padding: 12px; overflow-y: auto; min-height: 90px; }.draw-library-item { position: relative; border: 1px solid var(--draw-border, #dbe8e2); border-radius: 10px; overflow: hidden; flex-shrink: 0; }.draw-library-insert { display: flex; flex-direction: column; width: 100%; border: 0; padding: 0 0 11px; background: transparent; text-align: left; }.draw-library-insert svg { display: block; width: 100%; height: 78px; background: #f6faf8; border-bottom: 1px solid var(--draw-border, #dbe8e2); padding: 8px; box-sizing: border-box; pointer-events: none; }.draw-library-item-name { padding: 9px 32px 0 11px; font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }.draw-library-item-count { padding: 4px 11px 0; font-size: 10px; color: var(--draw-muted, #6b7f77); }.draw-library-insert:hover .draw-library-item-name { color: var(--draw-accent, #087f67); }.draw-library-delete { position: absolute; top: 85px; right: 7px; border: 0; background: transparent; font-size: 18px !important; line-height: 1; padding: 4px; color: var(--draw-muted, #6b7f77) !important; }.draw-library-delete:hover { color: #ce6464 !important; }
 .draw-library-empty { padding: 15px 5px; text-align: center; font-size: 11px; color: var(--draw-muted, #6b7f77); line-height: 1.5; }.draw-library-empty strong { color: var(--draw-text, #263f36); }.draw-library-empty p { margin: 7px 0 0; }
 .draw-library-error,.draw-library-notice { margin: 10px 16px 0; font-size: 11px; line-height: 1.45; }.draw-library-error { color: #ce6464; }.draw-library-notice { color: var(--draw-accent, #087f67); }.draw-library-reset { margin: 8px 16px; border: 1px solid var(--draw-border, #dbe8e2); border-radius: 6px; background: transparent; padding: 7px; font-size: 11px !important; }
-@media(max-width:1100px) { .draw-library { top: 65px; right: 12px; }.draw-library-panel { max-height: calc(100vh - 230px); } }
-@media(max-width:600px) { .draw-library { top: 54px; right: 8px; }.draw-library-toggle { min-height: 31px; font-size: 10px !important; padding: 7px 9px; }.draw-library-panel { width: min(270px, calc(100vw - 25px)); top: 42px; } }
+@media (min-width: 901px) and (max-width: 1100px) { .draw-library { top: 65px; right: 12px; } .draw-library-panel { max-height: calc(100vh - 230px); } }
+.draw-library-heading { flex-shrink: 0; }
+.draw-library-body { overflow-y: auto; min-height: 0; }
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .draw-library { top: calc(var(--navigation-block) + 8px); right: var(--chrome-right); }
+  .draw-canvas .draw-library-toggle { min-height: 44px; min-width: 44px; padding: 0 12px; font-size: 12px !important; }
+  .draw-library-panel {
+    top: 52px;
+    width: min(350px, calc(100vw - var(--chrome-left) - var(--chrome-right)));
+    max-height: calc(100dvh - var(--chrome-bottom) - var(--navigation-block) - 60px - var(--navigation-block) - var(--bottom-clearance) - 8px);
+  }
+  .draw-library-heading { padding: 8px 8px 8px 16px; align-items: center; }
+  .draw-canvas .draw-library button { min-height: 44px; min-width: 44px; }
+  .draw-canvas .draw-library-save input { min-height: 44px; font-size: 16px; }
+  .draw-library-body { overscroll-behavior: contain; }
+  .draw-library-items { overflow: visible; }
+}

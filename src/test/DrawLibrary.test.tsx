@@ -1,8 +1,14 @@
+import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import { createElement } from '../utils/drawScene'
-import DrawLibrary, { buildDrawingComponent } from '../components/DrawLibrary'
+import DrawLibrary, { buildDrawingComponent, type DrawLibraryProps } from '../components/DrawLibrary'
+
+function Library(props: Omit<DrawLibraryProps, 'open' | 'onOpenChange'>) {
+  const [open, setOpen] = useState(false)
+  return <DrawLibrary {...props} open={open} onOpenChange={setOpen} />
+}
 
 const shape = (id: string, x: number) => createElement('rectangle', { x, y: 0 }, { x: x + 120, y: 60 }, { id })
 const makeScene = (): ArchitectureScene => ({
@@ -57,13 +63,13 @@ describe('drawing component library', () => {
 
   it('saves, reloads, inserts, and deletes a named component', () => {
     const onInsert = vi.fn()
-    const view = render(<DrawLibrary scene={makeScene()} selectedIds={new Set(['api', 'cache'])} onInsert={onInsert} />)
+    const view = render(<Library scene={makeScene()} selectedIds={new Set(['api', 'cache'])} onInsert={onInsert} />)
     fireEvent.click(screen.getByRole('button', { name: 'Components' }))
     fireEvent.change(screen.getByLabelText('Component name'), { target: { value: 'API with cache' } })
     fireEvent.click(screen.getByRole('button', { name: /Save selection/ }))
     expect(screen.getByRole('button', { name: 'Insert API with cache' })).toBeInTheDocument()
     view.unmount()
-    render(<DrawLibrary scene={makeScene()} selectedIds={new Set()} onInsert={onInsert} />)
+    render(<Library scene={makeScene()} selectedIds={new Set()} onInsert={onInsert} />)
     fireEvent.click(screen.getByRole('button', { name: 'Components' }))
     fireEvent.click(screen.getByRole('button', { name: 'Insert API with cache' }))
     expect(onInsert).toHaveBeenCalledOnce()
@@ -74,7 +80,7 @@ describe('drawing component library', () => {
   })
 
   it('preserves the saved library and reports a quota failure', () => {
-    render(<DrawLibrary scene={makeScene()} selectedIds={new Set(['api'])} onInsert={() => {}} />)
+    render(<Library scene={makeScene()} selectedIds={new Set(['api'])} onInsert={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Components' }))
     fireEvent.change(screen.getByLabelText('Component name'), { target: { value: 'API' } })
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('Quota exceeded', 'QuotaExceededError') })
@@ -85,7 +91,7 @@ describe('drawing component library', () => {
 
   it('does not claim insertion succeeded when the canvas refuses it', () => {
     const onInsert = vi.fn(() => false)
-    render(<DrawLibrary scene={makeScene()} selectedIds={new Set(['api'])} onInsert={onInsert} />)
+    render(<Library scene={makeScene()} selectedIds={new Set(['api'])} onInsert={onInsert} />)
     fireEvent.click(screen.getByRole('button', { name: 'Components' }))
     fireEvent.change(screen.getByLabelText('Component name'), { target: { value: 'API' } })
     fireEvent.click(screen.getByRole('button', { name: /Save selection/ }))
@@ -94,9 +100,21 @@ describe('drawing component library', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
+  it('opens without starting text entry and preserves an unsaved component name', () => {
+    render(<Library scene={makeScene()} selectedIds={new Set(['api'])} onInsert={() => {}} />)
+    const toggle = screen.getByRole('button', { name: 'Components' })
+    toggle.focus()
+    fireEvent.click(toggle)
+    expect(screen.getByLabelText('Component name')).not.toHaveFocus()
+    fireEvent.change(screen.getByLabelText('Component name'), { target: { value: 'Unsaved API' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Close components' }))
+    fireEvent.click(toggle)
+    expect(screen.getByLabelText('Component name')).toHaveValue('Unsaved API')
+  })
+
   it('isolates library keyboard input from canvas shortcuts and restores focus on Escape', () => {
     const onKeyDown = vi.fn()
-    render(<div onKeyDown={onKeyDown}><DrawLibrary scene={makeScene()} selectedIds={new Set(['api'])} onInsert={() => {}} /></div>)
+    render(<div onKeyDown={onKeyDown}><Library scene={makeScene()} selectedIds={new Set(['api'])} onInsert={() => {}} /></div>)
     fireEvent.click(screen.getByRole('button', { name: 'Components' }))
     fireEvent.keyDown(screen.getByLabelText('Component name'), { key: 'z', ctrlKey: true })
     expect(onKeyDown).not.toHaveBeenCalled()

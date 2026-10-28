@@ -1,0 +1,227 @@
+{
+  "sourceRevision": "52a3d51eb56697deb143f9c22989f6065cae436e",
+  "url": "http://127.0.0.1:3097/",
+  "observations": {
+    "flowchartMode": {
+      "x": -113.34375,
+      "y": 16,
+      "width": 97.671875,
+      "height": 44,
+      "font": 13.3333,
+      "hit": false,
+      "hitName": null,
+      "visible": true
+    },
+    "undo": {
+      "x": -39,
+      "y": 66,
+      "width": 44,
+      "height": 44,
+      "font": 13.3333,
+      "hit": false,
+      "hitName": null,
+      "visible": true
+    },
+    "moreItem": {
+      "x": 95,
+      "y": 181,
+      "width": 44,
+      "height": 44,
+      "font": 19,
+      "hit": false,
+      "hitName": "SPAN",
+      "visible": true
+    },
+    "moreTapActivatedTool": false,
+    "share": {
+      "x": -14,
+      "y": 114,
+      "width": 366,
+      "height": 164,
+      "font": 16,
+      "hit": true,
+      "hitName": "P",
+      "visible": true
+    }
+  },
+  "desktopSelection": {
+    "dark": {
+      "sourceRevision": "52a3d51eb56697deb143f9c22989f6065cae436e",
+      "viewport": "1440x960",
+      "theme": "dark",
+      "toolbar": {
+        "x": 1372,
+        "y": 80,
+        "width": 52,
+        "height": 154,
+        "font": 16,
+        "hit": true,
+        "hitName": "DIV",
+        "hitPoints": [
+          {
+            "x": 1398,
+            "y": 157,
+            "hit": true,
+            "hitName": "\u2726 Edit with AI1 node"
+          },
+          {
+            "x": 1384,
+            "y": 157,
+            "hit": true,
+            "hitName": "\u2726 Edit with AI1 node"
+          },
+          {
+            "x": 1412,
+            "y": 157,
+            "hit": true,
+            "hitName": "\u2726 Edit with AI1 node"
+          },
+          {
+            "x": 1398,
+            "y": 92,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1398,
+            "y": 222,
+            "hit": true,
+            "hitName": "Paste copied items"
+          }
+        ],
+        "visible": true
+      },
+      "edit": {
+        "x": 1335.25,
+        "y": 87,
+        "width": 125.515625,
+        "height": 32,
+        "font": 16,
+        "hit": true,
+        "hitName": "Edit with AI",
+        "hitPoints": [
+          {
+            "x": 1398.0078125,
+            "y": 103,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1347.25,
+            "y": 103,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1448.765625,
+            "y": 103,
+            "hit": false,
+            "hitName": null
+          },
+          {
+            "x": 1398.0078125,
+            "y": 99,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1398.0078125,
+            "y": 107,
+            "hit": true,
+            "hitName": "Edit with AI"
+          }
+        ],
+        "visible": true
+      }
+    },
+    "light": {
+      "sourceRevision": "52a3d51eb56697deb143f9c22989f6065cae436e",
+      "viewport": "1440x960",
+      "theme": "light",
+      "toolbar": {
+        "x": 1372,
+        "y": 80,
+        "width": 52,
+        "height": 154,
+        "font": 16,
+        "hit": true,
+        "hitName": "DIV",
+        "hitPoints": [
+          {
+            "x": 1398,
+            "y": 157,
+            "hit": true,
+            "hitName": "\u2726 Edit with AI1 node"
+          },
+          {
+            "x": 1384,
+            "y": 157,
+            "hit": true,
+            "hitName": "\u2726 Edit with AI1 node"
+          },
+          {
+            "x": 1412,
+            "y": 157,
+            "hit": true,
+            "hitName": "\u2726 Edit with AI1 node"
+          },
+          {
+            "x": 1398,
+            "y": 92,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1398,
+            "y": 222,
+            "hit": true,
+            "hitName": "Paste copied items"
+          }
+        ],
+        "visible": true
+      },
+      "edit": {
+        "x": 1336.25,
+        "y": 87,
+        "width": 123.515625,
+        "height": 32,
+        "font": 16,
+        "hit": true,
+        "hitName": "Edit with AI",
+        "hitPoints": [
+          {
+            "x": 1398.0078125,
+            "y": 103,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1348.25,
+            "y": 103,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1447.765625,
+            "y": 103,
+            "hit": false,
+            "hitName": null
+          },
+          {
+            "x": 1398.0078125,
+            "y": 99,
+            "hit": true,
+            "hitName": "Edit with AI"
+          },
+          {
+            "x": 1398.0078125,
+            "y": 107,
+            "hit": true,
+            "hitName": "Edit with AI"
+          }
+        ],
+        "visible": true
+      }
+    }
+  }
+}
