@@ -198,8 +198,54 @@ async def main_flow(browser, url, checks):
     assert exported['mode'] == 'draw'
     assert exported['nodes'] == after['nodes'] and exported['edges'] == after['edges']
     assert exported['architectureScene'] == after['architectureScene']
+    label = next(item for item in generated if item['type'] == 'text' and item.get('text') == 'Workshop idea' and item.get('containerId'))
+    host_id = label['containerId']
+    arrow = next(item for item in generated if item['type'] == 'arrow' and item.get('startBinding', {}).get('elementId') == host_id)
+    await page.get_by_label('Draw canvas', exact=True).focus()
+    await page.keyboard.press('Alt+z')
+    await page.locator('.draw-zen').wait_for()
+    label_box = await page.locator(f'[data-element-id="{label["id"]}"]').bounding_box()
+    assert label_box
+    await page.mouse.dblclick(label_box['x'] + label_box['width'] / 2, label_box['y'] + label_box['height'] / 2, delay=90)
+    editor = page.get_by_role('textbox', name='Edit drawing text', exact=True)
+    await editor.wait_for(state='visible')
+    await editor.fill('Workshop plan edited')
+    await editor.press('Control+Enter')
+    await page.wait_for_function('(arg) => JSON.parse(localStorage.getItem(arg.key)).architectureScene.elements.some(item => item.id === arg.id && item.text === arg.text)', arg={'key': DRAFT, 'id': label['id'], 'text': 'Workshop plan edited'})
+    edited = await document(page)
+    edited_label = next(item for item in edited['architectureScene']['elements'] if item['id'] == label['id'])
+    assert edited_label['containerId'] == host_id
+    arrow_before = next(item for item in edited['architectureScene']['elements'] if item['id'] == arrow['id'])
+    host_before = next(item for item in edited['architectureScene']['elements'] if item['id'] == host_id)
+    host_box = await page.locator(f'[data-element-id="{host_id}"]').bounding_box()
+    assert host_box
+    start_x = host_box['x'] + host_box['width'] * 0.85
+    start_y = host_box['y'] + host_box['height'] * 0.2
+    await page.mouse.move(start_x, start_y)
+    await page.mouse.down()
+    await page.mouse.move(start_x + 70, start_y + 40, steps=8)
+    await page.mouse.up()
+    await page.wait_for_function('(arg) => JSON.parse(localStorage.getItem(arg.key)).architectureScene.elements.some(item => item.id === arg.id && (item.x !== arg.x || item.y !== arg.y))', arg={'key': DRAFT, 'id': host_id, 'x': host_before['x'], 'y': host_before['y']})
+    moved = await document(page)
+    arrow_after = next(item for item in moved['architectureScene']['elements'] if item['id'] == arrow['id'])
+    assert arrow_after['startBinding']['elementId'] == host_id
+    assert arrow_after['endBinding']['elementId'] == arrow_before['endBinding']['elementId']
+    assert (arrow_after['x'], arrow_after['y'], arrow_after['points']) != (arrow_before['x'], arrow_before['y'], arrow_before['points'])
+    assert moved['edges'] == before['edges'] and len(moved['nodes']) == len(before['nodes'])
+    for original_node, current_node in zip(before['nodes'], moved['nodes']):
+        assert {key: value for key, value in current_node.items() if key != 'data'} == {key: value for key, value in original_node.items() if key != 'data'}
+        assert all(current_node['data'][key] == value for key, value in original_node['data'].items())
+    moved_by_id = {item['id']: item for item in moved['architectureScene']['elements']}
+    for identifier, original in old_by_id.items():
+        retained = moved_by_id[identifier]
+        assert all(retained[key] == value for key, value in original.items())
+        assert set(retained) - set(original) <= {'boundElements'}
+        if 'boundElements' not in original:
+            assert retained.get('boundElements') is None
+    assert moved['architectureScene']['files'] == before['architectureScene']['files']
+    await screenshot(page, '11-edited-bound-drawing.png')
     assert not errors, errors
-    checks.extend(['explicit Draw target leaves Flowchart unchanged before Insert', 'native SVG preview and refine preserve captured Draw output', 'native presentation preserves the unsent refinement prompt on exit', 'request context omits private drawing and image bytes', 'native text, free line, shape labels, and bound arrow are editable scene records', 'existing graph, native records, and asset bytes survive exactly', 'one Undo and Redo, reload, and exported JSON preserve the document'])
+    checks.extend(['explicit Draw target leaves Flowchart unchanged before Insert', 'native SVG preview and refine preserve captured Draw output', 'native presentation preserves the unsent refinement prompt on exit', 'request context omits private drawing and image bytes', 'native text, free line, shape labels, and bound arrow are editable scene records', 'existing graph, native records, and asset bytes survive exactly', 'one Undo and Redo, reload, and exported JSON preserve the document', 'editing a generated bound label and dragging its host reroutes the bound arrow while preserving old content'])
     await context.close()
 
 
@@ -366,6 +412,8 @@ async def run():
     else:
         names = [name for name in names if not name.startswith('00-') and '-live-' not in name]
     report = {'provider': 'old app baseline' if args.baseline else 'configured local API' if args.live else 'browser route stub', 'checks': checks, 'screenshots': names}
+    if not args.baseline and not args.live:
+        report['retainedContentAfterNativeEdit'] = 'The existing Draw bridge adds graph snapshot mirror fields and null boundElements during any Draw edit. The verifier checks every original graph and native field and the exact asset bytes after editing.'
     report_name = 'verification-baseline.json' if args.baseline else 'verification-live.json' if args.live else 'verification-stub.json'
     (OUTPUT / report_name).write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report))

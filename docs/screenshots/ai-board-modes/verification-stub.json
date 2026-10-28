@@ -11,6 +11,7 @@
     "native text, free line, shape labels, and bound arrow are editable scene records",
     "existing graph, native records, and asset bytes survive exactly",
     "one Undo and Redo, reload, and exported JSON preserve the document",
+    "editing a generated bound label and dragging its host reroutes the bound arrow while preserving old content",
     "native Draw preview renders in the light theme",
     "closing a pending request discards its late reply and retains the typed prompt",
     "closing a pending welcome request retains its text in the full prompt and discards its late reply"
@@ -30,6 +31,8 @@
     "07-native-draw-inserted-light.png",
     "08-cross-target-draw-light.png",
     "09-native-draw-preview-light.png",
-    "10-cancelled-welcome-prompt-retained.png"
-  ]
+    "10-cancelled-welcome-prompt-retained.png",
+    "11-edited-bound-drawing.png"
+  ],
+  "retainedContentAfterNativeEdit": "The existing Draw bridge adds graph snapshot mirror fields and null boundElements during any Draw edit. The verifier checks every original graph and native field and the exact asset bytes after editing."
 }
