@@ -2,7 +2,7 @@ import type { ArchitectureScene } from './architectureScene.js'
 import { drawingFromScene } from './drawDocument.js'
 import type { DrawProposal } from './drawGeneration.js'
 import { DRAW_LINE_HEIGHT, isGeneratedDrawFont, measureDrawText } from './drawFont.js'
-import { getWorldPoints, positionBoundText, rerouteBindings, type DrawElement } from '../utils/drawScene.js'
+import { getWorldPoints, positionBoundText, rerouteBindings, type Bounds, type DrawElement, type Point } from '../utils/drawScene.js'
 import { boxesOverlap, captionFits, contourValue, inflate, pathIsClear, segmentHitsBox, type Obstacle } from './drawRouting.js'
 
 export interface DrawQualityIssue { code: string; elementIds: string[]; detail: string }
@@ -19,8 +19,33 @@ export function occupiedBounds(elements: DrawElement[], omitCaptionFor?: string)
   })
 }
 
+type Cubic = [Point, Point, Point, Point]
+
+function cubicHitsBox(curve: Cubic, box: Bounds, budget: { remaining: number }, depth = 0): boolean {
+  if (--budget.remaining < 0) return true
+  const left = Math.min(...curve.map(point => point.x)), right = Math.max(...curve.map(point => point.x))
+  const top = Math.min(...curve.map(point => point.y)), bottom = Math.max(...curve.map(point => point.y))
+  if (right < box.x || left > box.x + box.width || bottom < box.y || top > box.y + box.height) return false
+  if (depth === 16 || (right - left <= 0.25 && bottom - top <= 0.25)) return true
+  const midpoint = (a: Point, b: Point): Point => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 })
+  const [start, first, second, end] = curve
+  const a = midpoint(start, first), b = midpoint(first, second), c = midpoint(second, end)
+  const d = midpoint(a, b), e = midpoint(b, c), middle = midpoint(d, e)
+  return cubicHitsBox([start, a, d, middle], box, budget, depth + 1) || cubicHitsBox([middle, e, c, end], box, budget, depth + 1)
+}
+
+function freehandHitsBox(points: Point[], box: Bounds, budget: { remaining: number }): boolean {
+  if (points.length === 2) return segmentHitsBox(points[0], points[1], box)
+  return points.slice(1).some((end, index) => {
+    const start = points[index], previous = points[Math.max(0, index - 1)], next = points[Math.min(points.length - 1, index + 2)]
+    const first = { x: start.x + (end.x - previous.x) / 6, y: start.y + (end.y - previous.y) / 6 }
+    const second = { x: end.x - (next.x - start.x) / 6, y: end.y - (next.y - start.y) / 6 }
+    return cubicHitsBox([start, first, second, end], box, budget)
+  })
+}
+
 export function inspectDrawGeometry(scene: ArchitectureScene, plan: DrawProposal): DrawQualityIssue[] {
-  const issues: DrawQualityIssue[] = []
+  const issues: DrawQualityIssue[] = [], freehandBudget = { remaining: 100_000 }
   const add = (code: string, elementIds: string[], detail: string) => { if (issues.length < 20) issues.push({ code, elementIds, detail }) }
   try { drawingFromScene(scene) } catch (error) {
     add('native-document', [], error instanceof Error ? error.message : 'Invalid native document.')
@@ -64,7 +89,12 @@ export function inspectDrawGeometry(scene: ArchitectureScene, plan: DrawProposal
     if (element.type === 'freedraw') {
       const protectedText = [...elements.filter(candidate => candidate.type === 'text'), ...obstacles.filter(obstacle => byId.get(obstacle.id)?.type === 'frame')]
       for (const text of protectedText) {
-        if (points.slice(1).some((point, index) => segmentHitsBox(points[index], point, inflate(text, 2)))) add('text-overlap', [element.id, text.id], 'Move the annotation stroke away from text and frame titles.')
+        const intersects = freehandHitsBox(points, inflate(text, 2 + (element.strokeWidth ?? 2) / 2), freehandBudget)
+        if (freehandBudget.remaining < 0) {
+          add('geometry-budget', [element.id], 'Freehand curves exceeded the 100000 subdivision check limit.')
+          return issues
+        }
+        if (intersects) add('text-overlap', [element.id, text.id], 'Move the smoothed annotation stroke away from text and frame titles.')
       }
       continue
     }
