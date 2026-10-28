@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import type { Node, Edge } from 'reactflow'
 import type { ArchitectureScene } from '../shared/architectureScene'
-import { validateArchitectureScene } from '../shared/architectureScene'
+import { SUPPORTED_ARCHITECTURE_IMAGE_MIME_TYPES, validateArchitectureScene } from '../shared/architectureScene'
 import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/architectureBridge'
 import { drawingFontFamily } from '../utils/drawText'
+import { cropImageElement, validImageCrop, type ImageCrop } from '../utils/drawMedia'
 import { createElement, deleteElements, duplicateSelection, expandSelection, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
 import { createConnectedShape, directions, flipSelection, lassoSelection, navigateConnection, type Direction } from '../utils/drawGeometry'
 import DrawSceneSvg from './DrawSceneSvg'
@@ -66,6 +67,9 @@ type DrawPanel =
   | { kind: 'palette'; query: string }
   | { kind: 'statistics' }
   | { kind: 'link'; elementId: string; value: string }
+interface CropEdit { id: string; before: ArchitectureScene; crop: ImageCrop }
+interface CropDrag { point: Point; crop: ImageCrop; handle: 'move' | 'nw' | 'ne' | 'sw' | 'se' }
+interface AsyncScene { scene: ArchitectureScene; generation: number; epoch: number; signature: string }
 interface ClipboardInput { target: EventTarget | null; clipboardData: DataTransfer | null; preventDefault: () => void }
 const tools: Array<{ tool: Tool; name: string; shortcut: string; glyph: string }> = [
   { tool: 'selection', name: 'Selection', shortcut: 'V / 1', glyph: '↖' },
@@ -146,8 +150,12 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const [snapGuides, setSnapGuides] = useState<{ x?: number; y?: number }>({})
   const [textEdit, setTextEdit] = useState<TextEdit | null>(null)
   const [pointEdit, setPointEdit] = useState<PointEdit | null>(null)
+  const [cropEdit, setCropEdit] = useState<CropEdit | null>(null)
+  const cropDrag = useRef<CropDrag | null>(null)
   const [creatingConnector, setCreatingConnector] = useState(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const cropDialogRef = useRef<HTMLElement>(null)
+  const cropReturnFocus = useRef<HTMLElement | null>(null)
   const [defaults, setDefaults] = useState<Partial<DrawElement>>({ strokeColor: '#0f766e', backgroundColor: 'transparent', strokeWidth: 2, strokeStyle: 'solid', fillStyle: 'solid', roughness: 0, opacity: 100, fontSize: 20, fontFamily: 2, textAlign: 'left', roundness: { type: 3 }, endArrowhead: 'arrow' })
   const [help, setHelp] = useState(false)
   const [panel, setPanel] = useState<DrawPanel>({ kind: 'closed' })
@@ -166,7 +174,6 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const historyIndex = useRef(0)
   const clipboard = useRef<ArchitectureScene | null>(null)
   const pasteOffset = useRef(0)
-  const pasteEvents = useRef(0)
   const clipboardEvents = useRef<Record<'copy' | 'cut' | 'paste', (event: ClipboardInput) => void>>({ copy: () => {}, cut: () => {}, paste: () => {} })
   const gesture = useRef<Gesture | null>(null)
   const pendingConnector = useRef<PendingConnector | null>(null)
@@ -176,8 +183,21 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const surface = useRef<SVGSVGElement>(null)
   const wrapper = useRef<HTMLElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  const sceneEpoch = useRef(0)
+  const interactionGeneration = useRef(0)
+  const mounted = useRef(true)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
 
-  const preview = useCallback((next: ArchitectureScene) => { draftRef.current = next; setDraft(next) }, [])
+  const modalOpen = () => panel.kind !== 'closed' || help || !!cropEdit || !!textEdit || !!document.querySelector('[role="dialog"]')
+  const preview = useCallback((next: ArchitectureScene) => { interactionGeneration.current++; draftRef.current = next; setDraft(next) }, [])
+  const captureAsyncScene = (): AsyncScene | null => {
+    const signature = JSON.stringify(committed.current)
+    if (readOnlyRef.current || modalOpen() || pendingConnector.current || gesture.current || JSON.stringify(draftRef.current) !== signature) return null
+    return { scene: copy(committed.current), generation: interactionGeneration.current, epoch: sceneEpoch.current, signature }
+  }
+  const asyncSceneIsCurrent = (source: AsyncScene) => mounted.current && !readOnlyRef.current && !modalOpen()
+    && interactionGeneration.current === source.generation && sceneEpoch.current === source.epoch
+    && JSON.stringify(committed.current) === source.signature && JSON.stringify(draftRef.current) === source.signature
   const cancelConnector = useCallback(() => {
     if (pendingConnector.current) preview(pendingConnector.current.before)
     pendingConnector.current = null; setCreatingConnector(false)
@@ -238,27 +258,34 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const serialized = scene ? JSON.stringify(scene) : '', signature = graphSignature(nodes, edges)
     if (serialized === lastEmitted.current && signature === lastGraph.current) return
     const next = { ...(scene ?? empty()), elements: mergeGraphElements((scene?.elements ?? []) as DrawElement[], nodes, edges, darkMode) }
+    sceneEpoch.current++
     committed.current = copy(next); lastEmitted.current = serialized; lastGraph.current = signature
-    gesture.current = null; setLasso(null); pendingConnector.current = null; setCreatingConnector(false); setPointEdit(null); nudgeBefore.current = null; setIsPanning(false); preview(next)
+    gesture.current = null; setLasso(null); setCropEdit(null); pendingConnector.current = null; setCreatingConnector(false); setPointEdit(null); nudgeBefore.current = null; setIsPanning(false); preview(next)
   }, [scene, nodes, edges, darkMode, preview])
   useEffect(() => { const frame = requestAnimationFrame(fitScene); return () => cancelAnimationFrame(frame) }, [fitScene])
   useEffect(() => { if (!viewMode) wrapper.current?.focus({ preventScroll: true }) }, [viewMode])
-  useEffect(() => { if (readOnly) { cancelConnector(); setPointEdit(null); gesture.current = null; setLasso(null); nudgeBefore.current = null; setTextEdit(null); setIsPanning(false); preview(copy(committed.current)) } }, [readOnly, cancelConnector, preview])
+  useEffect(() => { if (readOnly) { sceneEpoch.current++; cancelConnector(); setPointEdit(null); gesture.current = null; setLasso(null); setCropEdit(null); nudgeBefore.current = null; setTextEdit(null); setIsPanning(false); preview(copy(committed.current)) } }, [readOnly, cancelConnector, preview])
   useEffect(() => { if (textEdit) { textRef.current?.focus(); textRef.current?.select() } }, [textEdit?.id])
+  useEffect(() => { if (cropEdit) cropDialogRef.current?.querySelector('input')?.focus() }, [cropEdit?.id])
 
-  const exportImage = useCallback(async (format: 'png' | 'svg' | 'gif', duration = 2) => {
+  const exportImage = useCallback(async (format: 'png' | 'svg' | 'gif', duration = 2, selectedOnly = false) => {
     const content = surface.current?.querySelector('[data-draw-content]')
-    if (!content || !live(draftRef.current).length) throw new Error('Draw something before exporting.')
-    const bounds = getSceneBounds(draftRef.current.elements), padding = 32
+    const source = copy(draftRef.current)
+    const ids = selectedOnly ? new Set(expandSelection(source, selectedRef.current, true)) : null
+    const elements = live(source).filter(element => !ids || ids.has(element.id))
+    if (!content || !elements.length) throw new Error(selectedOnly ? 'Select a drawing object before copying PNG.' : 'Draw something before exporting.')
+    const snapshot = content.cloneNode(true) as Element
+    if (ids) for (const item of snapshot.querySelectorAll('[data-element-id]')) if (!ids.has(item.getAttribute('data-element-id') ?? '')) item.remove()
+    const bounds = getSceneBounds(elements), padding = 32
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
     svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
     svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
     svg.setAttribute('viewBox', `${bounds.x - padding} ${bounds.y - padding} ${Math.max(1, bounds.width) + padding * 2} ${Math.max(1, bounds.height) + padding * 2}`)
     svg.setAttribute('width', String(Math.max(1, bounds.width) + padding * 2)); svg.setAttribute('height', String(Math.max(1, bounds.height) + padding * 2))
     const background = document.createElementNS(svg.namespaceURI, 'rect')
-    background.setAttribute('x', String(bounds.x - padding)); background.setAttribute('y', String(bounds.y - padding)); background.setAttribute('width', svg.getAttribute('width')!); background.setAttribute('height', svg.getAttribute('height')!); const stored = draftRef.current.appState?.viewBackgroundColor ?? '#ffffff'
+    background.setAttribute('x', String(bounds.x - padding)); background.setAttribute('y', String(bounds.y - padding)); background.setAttribute('width', svg.getAttribute('width')!); background.setAttribute('height', svg.getAttribute('height')!); const stored = source.appState?.viewBackgroundColor ?? '#ffffff'
     background.setAttribute('fill', darkMode && ['#fff', '#ffffff', 'white'].includes(stored.toLowerCase()) ? '#0f1211' : stored)
-    svg.append(background, content.cloneNode(true))
+    svg.append(background, snapshot)
     // Only the on-canvas editor hides its original label; exports keep it.
     for (const label of svg.querySelectorAll('[data-editing-text]')) {
       label.removeAttribute('visibility'); label.removeAttribute('data-editing-text')
@@ -288,7 +315,11 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       canvas.getContext('2d')!.drawImage(image, 0, 0, canvas.width, canvas.height)
       if (format === 'png') {
         const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('PNG export failed.')), 'image/png'))
-        download(blob, 'drawing.png')
+        if (selectedOnly) {
+          if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('PNG clipboard access is unavailable in this browser.')
+          try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]) }
+          catch { throw new Error('Could not copy PNG. Allow clipboard access and try again.') }
+        } else download(blob, 'drawing.png')
       } else {
         const { default: GIF } = await import('gif.js')
         await new Promise<void>((resolve, reject) => {
@@ -301,7 +332,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
 
   useEffect(() => {
     if (!onReady) return
-    onReady({ viewportToScenePoint: worldPoint, fitScene, getScene: () => copy(committed.current), replaceScene: (next, fit = false) => { cancelConnector(); setPointEdit(null); emit(validateArchitectureScene(next)); if (fit) requestAnimationFrame(fitScene) }, exportImage })
+    onReady({ viewportToScenePoint: worldPoint, fitScene, getScene: () => copy(committed.current), replaceScene: (next, fit = false) => { sceneEpoch.current++; cancelConnector(); setPointEdit(null); setCropEdit(null); emit(validateArchitectureScene(next)); if (fit) requestAnimationFrame(fitScene) }, exportImage })
     return () => onReady(null)
   }, [onReady, worldPoint, fitScene, emit, exportImage, cancelConnector])
 
@@ -380,13 +411,26 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       const originalIds = new Set(valid.elements.map(element => element.id)), added = result.scene.elements.filter(element => !originalIds.has(element.id))
       const fileIds = new Set(added.flatMap(raw => { const element = raw as DrawElement; return element.fileId ? [element.fileId] : [] }))
       const files = Object.fromEntries(Object.entries(result.scene.files).filter(([id]) => fileIds.has(id)))
-      const next = validateArchitectureScene({ ...draftRef.current, elements: [...draftRef.current.elements, ...added], files: { ...draftRef.current.files, ...files } })
+      const source = committed.current
+      const next = validateArchitectureScene({ ...source, elements: [...source.elements, ...added], files: { ...source.files, ...files } })
       if (!emit(next)) return false
       select(result.selectedIds); setTool('selection'); return true
     } catch (error) { setMessage(error instanceof Error ? error.message : 'This drawing could not be inserted.'); return false }
   }
-  const modalOpen = () => panel.kind !== 'closed' || help || !!document.querySelector('[role="dialog"]')
   const pasteSelection = () => { if (!readOnlyRef.current && !modalOpen() && clipboard.current?.elements.length) { pasteOffset.current += 24; insertComponent(clipboard.current, pasteOffset.current) } }
+  const pasteText = (text: string) => {
+    if (!text || readOnlyRef.current || modalOpen()) return
+    if (text.length > 100_000) { setMessage('Paste a shorter text selection.'); return }
+    const rect = surface.current?.getBoundingClientRect()
+    const point = worldPoint({ x: (rect?.left ?? 0) + (rect?.width ?? 800) / 2, y: (rect?.top ?? 0) + (rect?.height ?? 600) / 2 })
+    const lines = text.split(/\r\n|\n|\r/)
+    const fontSize = defaults.fontSize ?? 20
+    const width = Math.max(24, lines.reduce((longest, line) => Math.max(longest, line.length), 0) * fontSize * 0.61)
+    const height = Math.max(fontSize * 1.3, lines.length * fontSize * 1.3)
+    const element = createElement('text', { x: point.x - width / 2, y: point.y - height / 2 }, undefined, { ...defaults, text, originalText: text, width, height })
+    const source = committed.current
+    if (emit({ ...source, elements: [...source.elements, element] })) { select([element.id]); setTool('selection') }
+  }
   const writeClipboard = (event: ClipboardInput, cut = false) => {
     if (editableTarget(event.target) || editableTarget(document.activeElement)) return
     if (modalOpen()) { if (cut) event.preventDefault(); return }
@@ -395,26 +439,34 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const selected = copySelection()
     if (!selected?.elements.length || !event.clipboardData) return
     const serialized = JSON.stringify({ type: 'flowchart-drawing', scene: selected })
-    event.clipboardData.setData('application/x-flowchart-drawing', serialized)
-    event.clipboardData.setData('text/plain', serialized)
+    try {
+      event.clipboardData.setData('application/x-flowchart-drawing', serialized)
+      event.clipboardData.setData('text/plain', serialized)
+    } catch { setMessage('Could not copy the drawing. Allow clipboard access and try again.'); return }
     event.preventDefault()
     if (cut) { emit(deleteElements(draftRef.current, selectedRef.current, true)); select([]) }
   }
   const readClipboard = (event: ClipboardInput) => {
     if (editableTarget(event.target) || editableTarget(document.activeElement)) return
     if (modalOpen()) { event.preventDefault(); return }
+    if (cropEdit || textEdit) { event.preventDefault(); return }
     if (!event.clipboardData) return
     if (readOnlyRef.current) { event.preventDefault(); return }
     cancelConnector(); setPointEdit(null)
-    pasteEvents.current++
-    const text = event.clipboardData.getData('application/x-flowchart-drawing') || event.clipboardData.getData('text/plain')
-    if (!text || text.length > 4 * 1024 * 1024) return
-    try {
-      const parsed = JSON.parse(text) as { type?: string; scene?: unknown }
-      if (parsed.type !== 'flowchart-drawing') return
-      const valid = validateArchitectureScene(parsed.scene)
-      event.preventDefault(); clipboard.current = valid; pasteOffset.current = 0; pasteSelection()
-    } catch { /* Other clipboard formats retain their browser behavior. */ }
+    const own = event.clipboardData.getData('application/x-flowchart-drawing')
+    if (own) {
+      event.preventDefault()
+      try {
+        const parsed = JSON.parse(own) as { type?: string; scene?: unknown }
+        if (parsed.type !== 'flowchart-drawing') throw new Error('The drawing clipboard data is invalid.')
+        clipboard.current = validateArchitectureScene(parsed.scene); pasteOffset.current = 0; pasteSelection()
+      } catch (error) { setMessage(error instanceof Error ? error.message : 'The drawing clipboard data is invalid.') }
+      return
+    }
+    const image = Array.from(event.clipboardData.files).find(file => file.type.startsWith('image/'))
+    if (image) { event.preventDefault(); void uploadImage(image).catch(() => { if (mounted.current) setMessage('This clipboard image could not be read.') }); return }
+    const text = event.clipboardData.getData('text/plain')
+    if (text) { event.preventDefault(); pasteText(text) }
   }
   clipboardEvents.current = { copy: event => writeClipboard(event), cut: event => writeClipboard(event, true), paste: readClipboard }
   useEffect(() => {
@@ -508,8 +560,72 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     else if (wasHelpOpen.current && !document.querySelector('[aria-modal="true"]')) wrapper.current?.focus()
     wasHelpOpen.current = help
   }, [help])
+  const beginCrop = async (id: string) => {
+    const element = live(committed.current).find(item => item.id === id && item.type === 'image' && !item.locked)
+    if (!element || readOnlyRef.current) return
+    const file = element.fileId ? committed.current.files[element.fileId] : null
+    if (!file || typeof file.dataURL !== 'string') return
+    const source = captureAsyncScene()
+    if (!source) return
+    const image = new Image(); image.src = file.dataURL
+    try { await image.decode() } catch { setMessage('This image could not be decoded for cropping.'); return }
+    if (!asyncSceneIsCurrent(source) || !selectedRef.current.has(id)) return
+    const crop: ImageCrop = validImageCrop(element.crop) ? element.crop : { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight, naturalWidth: image.naturalWidth, naturalHeight: image.naturalHeight }
+    if (!validImageCrop(crop)) { setMessage('This image has invalid crop dimensions.'); return }
+    cropReturnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    interactionGeneration.current++
+    setCropEdit({ id, before: source.scene, crop })
+  }
+  const updateCropRect = (next: ImageCrop) => {
+    if (!cropEdit) return
+    if (!validImageCrop(next)) return
+    const element = live(draftRef.current).find(item => item.id === cropEdit.id)
+    if (!element) return
+    try {
+      preview(rerouteBindings(patchElement(draftRef.current, element.id, cropImageElement(element, cropEdit.crop, next)), [element.id]))
+      setCropEdit({ ...cropEdit, crop: next })
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Crop could not be changed.') }
+  }
+  const updateCrop = (field: 'x' | 'y' | 'width' | 'height', value: number) => {
+    if (cropEdit && Number.isFinite(value)) updateCropRect({ ...cropEdit.crop, [field]: value })
+  }
+  const cropPoint = (event: PointerEvent<SVGSVGElement>): Point => {
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(event.currentTarget.getScreenCTM()!.inverse())
+    return { x: point.x, y: point.y }
+  }
+  const moveCrop = (event: PointerEvent<SVGSVGElement>) => {
+    if (!cropDrag.current) return
+    const start = cropDrag.current, point = cropPoint(event), dx = point.x - start.point.x, dy = point.y - start.point.y
+    const crop = start.crop, right = crop.x + crop.width, bottom = crop.y + crop.height
+    const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value))
+    if (start.handle === 'move') {
+      updateCropRect({ ...crop, x: clamp(crop.x + dx, 0, crop.naturalWidth - crop.width), y: clamp(crop.y + dy, 0, crop.naturalHeight - crop.height) })
+      return
+    }
+    const left = start.handle.includes('w') ? clamp(crop.x + dx, 0, right - 1) : crop.x
+    const top = start.handle.includes('n') ? clamp(crop.y + dy, 0, bottom - 1) : crop.y
+    const nextRight = start.handle.includes('e') ? clamp(right + dx, left + 1, crop.naturalWidth) : right
+    const nextBottom = start.handle.includes('s') ? clamp(bottom + dy, top + 1, crop.naturalHeight) : bottom
+    updateCropRect({ ...crop, x: left, y: top, width: nextRight - left, height: nextBottom - top })
+  }
+  const finishCrop = () => {
+    if (!cropEdit) return
+    cropDrag.current = null
+    setCropEdit(null)
+    emit(draftRef.current)
+    if (cropReturnFocus.current?.isConnected) cropReturnFocus.current.focus()
+    else wrapper.current?.focus()
+  }
+  const cancelCrop = () => {
+    if (!cropEdit) return
+    cropDrag.current = null
+    preview(cropEdit.before); setCropEdit(null)
+    if (cropReturnFocus.current?.isConnected) cropReturnFocus.current.focus()
+    else wrapper.current?.focus()
+  }
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (cropEdit) { if (!cropDialogRef.current?.contains(event.target as globalThis.Node)) event.preventDefault(); return }
     if (modalOpen()) return
     if (editableTarget(event.target)) return
     // Native buttons must keep their Enter/Space activation while focused.
@@ -547,6 +663,22 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (mod && ['+', '=', '-', '0'].includes(key)) { event.preventDefault(); setViewport(view => ({ ...view, zoom: key === '0' ? 1 : Math.max(0.1, Math.min(5, view.zoom * (key === '-' ? 0.8 : 1.25))) })); return }
     if (event.shiftKey && event.code === 'Digit1') { event.preventDefault(); fitScene(); return }
     if (readOnly) return
+    if (mod && event.shiftKey && key === 'v') {
+      event.preventDefault()
+      if (pendingConnector.current) { cancelConnector(); select([]) }
+      if (!navigator.clipboard?.readText) { setMessage('Plain-text clipboard access is unavailable in this browser.'); return }
+      const source = captureAsyncScene()
+      if (!source) return
+      void navigator.clipboard.readText().then(text => {
+        if (asyncSceneIsCurrent(source) && !modalOpen()) pasteText(text)
+      }).catch(() => { if (mounted.current) setMessage('Could not paste plain text. Allow clipboard access and try again.') })
+      return
+    }
+    if (event.shiftKey && event.altKey && !mod && (key === 'c' || event.code === 'KeyC')) {
+      event.preventDefault()
+      void exportImage('png', 2, true).catch(error => setMessage(error instanceof Error ? error.message : 'Could not copy PNG.'))
+      return
+    }
     // A pending multi-click path is one transaction. Other editing commands
     // discard that preview before operating on the committed document.
     if (pendingConnector.current && !['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)
@@ -567,7 +699,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (mod && key === 'a') { event.preventDefault(); select(live(draftRef.current).filter(e => !e.locked).map(e => e.id)); return }
     if (mod && key === 'c') { copySelection(); return }
     if (mod && key === 'x') { copySelection(); return }
-    if (mod && key === 'v') { const count = pasteEvents.current; if (clipboard.current) window.setTimeout(() => { if (pasteEvents.current === count) pasteSelection() }, 50); return }
+    if (mod && key === 'v') return
     if (mod && key === 'd') { event.preventDefault(); duplicate(); return }
     if (mod && key === 'g') { event.preventDefault(); groupSelection(event.shiftKey); return }
     if (mod && event.shiftKey && key === 'l') { event.preventDefault(); const locked = live(draftRef.current).filter(e => selectedRef.current.has(e.id)).every(e => e.locked); applyProperties({ locked: !locked }); return }
@@ -616,7 +748,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       const selected = live(draftRef.current).filter(item => selectedRef.current.has(item.id))
       const primary = selected.filter(item => !item.containerId || !selectedRef.current.has(item.containerId))
       if (primary.length === 1 && selected.every(item => item.id === primary[0].id || (item.type === 'text' && item.containerId === primary[0].id))) {
-        event.preventDefault(); beginText(primary[0].id); return
+        event.preventDefault(); if (primary[0].type === 'image') void beginCrop(primary[0].id); else beginText(primary[0].id); return
       }
     }
     if (mod || event.altKey) return
@@ -852,17 +984,18 @@ export default function DrawCanvas(props: DrawCanvasProps) {
 
   const uploadImage = async (file?: File) => {
     if (!file || readOnlyRef.current) return
-    const source = committed.current
-    if (!file.type.startsWith('image/')) { setMessage('Choose an image file.'); return }
+    if (!(SUPPORTED_ARCHITECTURE_IMAGE_MIME_TYPES as readonly string[]).includes(file.type)) { setMessage('Choose an image file.'); return }
     if (file.size > 3 * 1024 * 1024) { setMessage('Choose an image smaller than 3 MB so the complete diagram can be saved.'); return }
+    const source = captureAsyncScene()
+    if (!source) return
     const dataURL = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file) })
     const image = new Image(); image.src = dataURL
     try { await image.decode(); if (!image.naturalWidth || !image.naturalHeight) throw new Error('Empty image') } catch { setMessage('This image could not be decoded. Choose a valid image file.'); return }
-    if (readOnlyRef.current || committed.current !== source) return
+    if (!asyncSceneIsCurrent(source)) return
     const rect = surface.current?.getBoundingClientRect(), center = worldPoint({ x: (rect?.left ?? 0) + (rect?.width ?? 800) / 2, y: (rect?.top ?? 0) + (rect?.height ?? 600) / 2 })
     const width = Math.min(360, image.naturalWidth || 240), height = width * (image.naturalHeight || 180) / (image.naturalWidth || 240), id = newDrawId('image')
     const element = createElement('image', { x: center.x - width / 2, y: center.y - height / 2 }, { x: center.x + width / 2, y: center.y + height / 2 }, { fileId: id, status: 'saved', scale: [1, 1] })
-    try { const next = validateArchitectureScene({ ...draftRef.current, elements: [...draftRef.current.elements, element], files: { ...draftRef.current.files, [id]: { id, mimeType: file.type, dataURL, created: Date.now() } } }); emit(next); select([element.id]); setTool('selection') } catch (error) { setMessage(error instanceof Error ? error.message : 'The image could not be added.') }
+    try { const next = validateArchitectureScene({ ...source.scene, elements: [...source.scene.elements, element], files: { ...source.scene.files, [id]: { id, mimeType: file.type, dataURL, created: Date.now() } } }); emit(next); select([element.id]); setTool('selection') } catch (error) { setMessage(error instanceof Error ? error.message : 'The image could not be added.') }
   }
 
   const storedBackground = draft.appState?.viewBackgroundColor ?? '#ffffff'
@@ -880,6 +1013,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }
   const selectionBounds = chosen.length ? getSceneBounds(chosen) : null
   const editElement = textEdit ? live(draft).find(e => e.id === textEdit.id) : undefined
+  const cropElement = cropEdit ? live(draft).find(e => e.id === cropEdit.id) : undefined
+  const cropSource = cropElement?.fileId ? draft.files[cropElement.fileId]?.dataURL : undefined
   const editHost = editElement?.containerId ? live(draft).find(element => element.id === editElement.containerId) : undefined
   const boundText = editElement?.type === 'text' && !!editHost
   const editorFontSize = (editElement?.fontSize ?? 20) * viewport.zoom
@@ -914,7 +1049,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (tool !== 'selection' || target.closest('[data-resize], [data-rotate], [data-point-index]')) return
       const point = worldPoint({ x: event.clientX, y: event.clientY })
       const id = target.closest('[data-element-id]')?.getAttribute('data-element-id') ?? shapeAt(point)?.id
-      beginText(id, point)
+      const element = live(draftRef.current).find(item => item.id === id)
+      if (element?.type === 'image') void beginCrop(element.id)
+      else beginText(id, point)
     }}>
       {grid && <defs><pattern id="draw-grid" patternUnits="userSpaceOnUse" x={viewport.x} y={viewport.y} width={20 * viewport.zoom} height={20 * viewport.zoom}><circle cx="1" cy="1" r="0.8" fill={darkMode ? '#465e55' : '#b6c9c1'} /></pattern></defs>}
       <rect width="100%" height="100%" fill={grid ? 'url(#draw-grid)' : canvasBackground} data-draw-background="true" />
@@ -934,7 +1071,34 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       </g>
     </svg>
     {textEdit && editElement && <textarea ref={textRef} className={`draw-text-editor ${boundText ? 'is-bound' : ''}`} aria-label="Edit drawing text" wrap={boundText ? 'off' : undefined} style={{ ...textPosition, width: editorWidth, minHeight: boundText ? undefined : Math.max(46, editElement.height * viewport.zoom + 20), fontSize: editorFontSize }} value={textEdit.value} onChange={event => setTextEdit({ ...textEdit, value: event.target.value })} onKeyDown={event => { if (event.key === 'Escape' || (event.key === 'Enter' && (event.ctrlKey || event.metaKey))) { event.preventDefault(); finishText() } }} onBlur={() => finishText()} />}
-    {!readOnly && !zen && <aside className="draw-properties" aria-label="Drawing properties">
+    {cropEdit && <div className="draw-crop-overlay"><section ref={cropDialogRef} className="draw-crop-dialog" role="dialog" aria-modal="true" aria-label="Crop image" onKeyDown={event => {
+      event.stopPropagation()
+      if (event.key === 'Tab') {
+        const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('input,button'))
+        const first = controls[0], last = controls[controls.length - 1]
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+      } else if (event.key === 'Escape' || (event.key === 'Enter' && !(event.target instanceof HTMLButtonElement))) {
+        event.preventDefault(); finishCrop()
+      }
+    }}>
+      <h2>Crop image</h2><p>Adjust the visible source pixels. Rotation and flips are preserved.</p>
+      {typeof cropSource === 'string' && <svg className="draw-crop-preview" role="img" aria-label="Image crop preview" viewBox={`0 0 ${cropEdit.crop.naturalWidth} ${cropEdit.crop.naturalHeight}`} style={{ aspectRatio: `${cropEdit.crop.naturalWidth} / ${cropEdit.crop.naturalHeight}` }} onPointerDown={event => {
+        const handle = (event.target as Element).getAttribute('data-crop-handle') as CropDrag['handle'] | null
+        if (!handle) return
+        cropDrag.current = { point: cropPoint(event), crop: cropEdit.crop, handle }
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }} onPointerMove={moveCrop} onPointerUp={event => { cropDrag.current = null; if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId) }} onPointerCancel={() => { cropDrag.current = null }}>
+        <image href={cropSource} width={cropEdit.crop.naturalWidth} height={cropEdit.crop.naturalHeight} preserveAspectRatio="none" />
+        <path fill="#07140cb0" fillRule="evenodd" d={`M0 0H${cropEdit.crop.naturalWidth}V${cropEdit.crop.naturalHeight}H0Z M${cropEdit.crop.x} ${cropEdit.crop.y}V${cropEdit.crop.y + cropEdit.crop.height}H${cropEdit.crop.x + cropEdit.crop.width}V${cropEdit.crop.y}Z`} pointerEvents="none" />
+        <rect data-crop-handle="move" x={cropEdit.crop.x} y={cropEdit.crop.y} width={cropEdit.crop.width} height={cropEdit.crop.height} fill="transparent" stroke="#16b995" strokeWidth={Math.max(1, cropEdit.crop.naturalWidth / 180)} />
+        {(['nw', 'ne', 'sw', 'se'] as const).map(handle => <circle key={handle} data-crop-handle={handle} cx={cropEdit.crop.x + (handle.includes('e') ? cropEdit.crop.width : 0)} cy={cropEdit.crop.y + (handle.includes('s') ? cropEdit.crop.height : 0)} r={Math.max(3, cropEdit.crop.naturalWidth / 75)} fill="#ffffff" stroke="#087f67" strokeWidth={Math.max(1, cropEdit.crop.naturalWidth / 220)} />)}
+      </svg>}
+      <div className="draw-crop-fields">{(['x', 'y', 'width', 'height'] as const).map(field => <label key={field}>{field === 'x' ? 'Left' : field === 'y' ? 'Top' : field === 'width' ? 'Width' : 'Height'}<input aria-label={`Crop ${field}`} type="number" step="any" min={field === 'width' || field === 'height' ? 1 : 0} max={field === 'x' || field === 'width' ? cropEdit.crop.naturalWidth : cropEdit.crop.naturalHeight} value={Math.round(cropEdit.crop[field] * 100) / 100} onChange={event => updateCrop(field, Number(event.target.value))} /></label>)}</div>
+      <p>{cropEdit.crop.naturalWidth} × {cropEdit.crop.naturalHeight} source pixels</p>
+      <div className="draw-crop-actions"><button type="button" onClick={cancelCrop}>Cancel crop</button><button type="button" onClick={finishCrop}>Finish crop</button></div>
+    </section></div>}
+    {!readOnly && <aside className="draw-properties" aria-label="Drawing properties">
       <div className="draw-properties-heading"><strong>{chosen.length ? `${chosen.length} selected` : 'Appearance'}</strong><span>{chosen.length ? 'Edit selection' : 'For new drawings'}</span></div>
       {pointEdit && editablePath?.id === pointEdit.id && <fieldset className="draw-point-editor"><legend>Connector points</legend><p role="status">Editing connector points</p><p>Arrows move the active point. Enter or Escape finishes.</p><div className="draw-action-grid"><button type="button" onClick={addPathPoint}>Add path point</button><button type="button" disabled={pointEdit.index <= 0 || pointEdit.index >= activePathPointCount - 1} onClick={deletePathPoint}>Delete path point</button><button type="button" onClick={finishPointEditing}>Finish point editing</button></div></fieldset>}
       <div className="draw-property-pair"><label>Stroke<input aria-label="Stroke color" type="color" value={String(property('strokeColor', '#0f766e')).startsWith('#') ? String(property('strokeColor', '#0f766e')) : '#0f766e'} onChange={event => applyProperties({ strokeColor: event.target.value })} /></label><label>Fill<input aria-label="Background color" type="color" value={String(property('backgroundColor', 'transparent')).startsWith('#') ? String(property('backgroundColor', 'transparent')) : '#ffffff'} onChange={event => applyProperties({ backgroundColor: event.target.value })} /></label></div>

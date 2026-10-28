@@ -90,6 +90,13 @@ export function validateArchitectureScene(value: unknown): ArchitectureScene {
     if (element.type === 'image' && !element.isDeleted && (typeof element.fileId !== 'string' || !Object.prototype.hasOwnProperty.call(value.files, element.fileId))) {
       throw new Error(`Image element ${element.id} refers to a missing image asset.`)
     }
+    if (element.type === 'image' && element.crop != null) {
+      const crop = element.crop
+      if (!object(crop) || !['x', 'y', 'width', 'height', 'naturalWidth', 'naturalHeight'].every(key => typeof crop[key] === 'number' && Number.isFinite(crop[key]))) throw new Error(`Image element ${element.id} has an invalid crop.`)
+      const x = crop.x as number, y = crop.y as number, width = crop.width as number, height = crop.height as number
+      const naturalWidth = crop.naturalWidth as number, naturalHeight = crop.naturalHeight as number
+      if (x < 0 || y < 0 || width <= 0 || height <= 0 || naturalWidth <= 0 || naturalHeight <= 0 || x + width > naturalWidth + 0.0001 || y + height > naturalHeight + 0.0001) throw new Error(`Image element ${element.id} has a crop outside its image bounds.`)
+    }
   }
   for (const element of value.elements as Array<Record<string, unknown>>) {
     const references: unknown[] = [element.containerId, element.frameId]
