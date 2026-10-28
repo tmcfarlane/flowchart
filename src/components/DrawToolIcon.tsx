@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 export default function DrawToolIcon({ tool }: { tool: string }) {
   const paths: Record<string, ReactNode> = {
     selection: <path d="m5 3 14 10-7 1-3 7-4-18Z" />,
+    lasso: <path d="M8 18c-4-1-6-4-5-8S9 4 14 4s8 3 7 7-6 7-11 7c-4 0-5-4-2-5s5 2 3 5l-3 4" />,
     hand: <><path d="M8 12V5a2 2 0 0 1 4 0v6-7a2 2 0 0 1 4 0v7-4a2 2 0 0 1 4 0v8c0 4-2 6-6 6h-2c-3 0-5-2-6-4l-3-5a2 2 0 0 1 3-2l2 2Z" /><path d="M12 11v3m4-3v3" /></>,
     rectangle: <rect x="4" y="5" width="16" height="14" rx="2" />,
     diamond: <path d="m12 3 9 9-9 9-9-9 9-9Z" />,

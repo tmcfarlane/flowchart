@@ -5,6 +5,7 @@ import { validateArchitectureScene } from '../shared/architectureScene'
 import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/architectureBridge'
 import { drawingFontFamily } from '../utils/drawText'
 import { createElement, deleteElements, duplicateSelection, expandSelection, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, moveElements, newDrawId, rerouteBindings, resizeElement, rotateElements, rotatePoint, setElementProperties, type Bounds, type DrawElement, type Point } from '../utils/drawScene'
+import { createConnectedShape, directions, flipSelection, lassoSelection, navigateConnection, type Direction } from '../utils/drawGeometry'
 import DrawSceneSvg from './DrawSceneSvg'
 import DrawToolIcon from './DrawToolIcon'
 import DrawLibrary from './DrawLibrary'
@@ -36,10 +37,9 @@ export interface DrawCanvasProps {
   onViewChange?: (viewing: boolean) => void
 }
 
-type Tool = 'selection' | 'hand' | 'rectangle' | 'diamond' | 'ellipse' | 'arrow' | 'line' | 'freedraw' | 'text' | 'image' | 'eraser' | 'frame'
+type Tool = 'lasso' | 'selection' | 'hand' | 'rectangle' | 'diamond' | 'ellipse' | 'arrow' | 'line' | 'freedraw' | 'text' | 'image' | 'eraser' | 'frame'
 interface Viewport { x: number; y: number; zoom: number }
-interface Gesture {
-  kind: 'create' | 'move' | 'pan' | 'marquee' | 'resize' | 'rotate' | 'point' | 'erase' | 'connector-click'
+interface GestureBase {
   start: Point
   screen: Point
   before: ArchitectureScene
@@ -53,6 +53,10 @@ interface Gesture {
   panButton?: number
   deep?: boolean
 }
+type Gesture = GestureBase & (
+  | { kind: 'lasso'; polygon: Point[]; additive: boolean }
+  | { kind: 'create' | 'move' | 'pan' | 'marquee' | 'resize' | 'rotate' | 'point' | 'erase' | 'connector-click' }
+)
 interface TextEdit { id: string; value: string; before: ArchitectureScene }
 interface PendingConnector { id: string; before: ArchitectureScene; fixed: Point[]; hover: Point; preventBinding: boolean }
 interface PointEdit { id: string; index: number }
@@ -65,6 +69,7 @@ type DrawPanel =
 interface ClipboardInput { target: EventTarget | null; clipboardData: DataTransfer | null; preventDefault: () => void }
 const tools: Array<{ tool: Tool; name: string; shortcut: string; glyph: string }> = [
   { tool: 'selection', name: 'Selection', shortcut: 'V / 1', glyph: '↖' },
+  { tool: 'lasso', name: 'Lasso', shortcut: 'J', glyph: '◌' },
   { tool: 'hand', name: 'Hand', shortcut: 'H', glyph: '✋' },
   { tool: 'rectangle', name: 'Rectangle', shortcut: 'R / 2', glyph: '▭' },
   { tool: 'diamond', name: 'Diamond', shortcut: 'D / 3', glyph: '◇' },
@@ -135,6 +140,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const [keepTool, setKeepTool] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const selectedRef = useRef(selectedIds); selectedRef.current = selectedIds
+  const [lasso, setLasso] = useState<Point[] | null>(null)
   const [marquee, setMarquee] = useState<Bounds | null>(null)
   const [isPanning, setIsPanning] = useState(false)
   const [snapGuides, setSnapGuides] = useState<{ x?: number; y?: number }>({})
@@ -233,11 +239,11 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (serialized === lastEmitted.current && signature === lastGraph.current) return
     const next = { ...(scene ?? empty()), elements: mergeGraphElements((scene?.elements ?? []) as DrawElement[], nodes, edges, darkMode) }
     committed.current = copy(next); lastEmitted.current = serialized; lastGraph.current = signature
-    gesture.current = null; pendingConnector.current = null; setCreatingConnector(false); setPointEdit(null); nudgeBefore.current = null; setIsPanning(false); preview(next)
+    gesture.current = null; setLasso(null); pendingConnector.current = null; setCreatingConnector(false); setPointEdit(null); nudgeBefore.current = null; setIsPanning(false); preview(next)
   }, [scene, nodes, edges, darkMode, preview])
   useEffect(() => { const frame = requestAnimationFrame(fitScene); return () => cancelAnimationFrame(frame) }, [fitScene])
   useEffect(() => { if (!viewMode) wrapper.current?.focus({ preventScroll: true }) }, [viewMode])
-  useEffect(() => { if (readOnly) { cancelConnector(); setPointEdit(null); gesture.current = null; nudgeBefore.current = null; setTextEdit(null); setIsPanning(false); preview(copy(committed.current)) } }, [readOnly, cancelConnector, preview])
+  useEffect(() => { if (readOnly) { cancelConnector(); setPointEdit(null); gesture.current = null; setLasso(null); nudgeBefore.current = null; setTextEdit(null); setIsPanning(false); preview(copy(committed.current)) } }, [readOnly, cancelConnector, preview])
   useEffect(() => { if (textEdit) { textRef.current?.focus(); textRef.current?.select() } }, [textEdit?.id])
 
   const exportImage = useCallback(async (format: 'png' | 'svg' | 'gif', duration = 2) => {
@@ -300,7 +306,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   }, [onReady, worldPoint, fitScene, emit, exportImage, cancelConnector])
 
   const select = (ids: Iterable<string>) => { const selected = new Set(ids); selectedRef.current = selected; setSelectedIds(selected); pointEditRef.current = null; setPointEdit(null) }
-  const setActiveTool = (next: Tool) => { cancelConnector(); setPointEdit(null); setTool(next); if (next === 'image') fileInput.current?.click(); wrapper.current?.focus() }
+  const setActiveTool = (next: Tool) => { if (gesture.current?.kind === 'lasso') { select(gesture.current.ids); gesture.current = null; setLasso(null) } cancelConnector(); setPointEdit(null); setTool(next); if (next === 'image') fileInput.current?.click(); wrapper.current?.focus() }
   const applyProperties = (properties: Partial<DrawElement>) => {
     if (selectedRef.current.size) {
       const next = setElementProperties(draftRef.current, selectedRef.current, properties)
@@ -519,7 +525,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (nudgeBefore.current) { nudgeBefore.current = null; emit(draftRef.current) }
       setPointEdit(null); wrapper.current?.focus(); return
     }
+    if (event.key === 'Escape' && gesture.current?.kind === 'lasso') { event.preventDefault(); select(gesture.current.ids); gesture.current = null; setLasso(null); return }
     if (event.key === 'Escape') { if (gesture.current) preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null); setHelp(false); setPanel({ kind: 'closed' }); select([]); setTool('selection'); return }
+    if (gesture.current?.kind === 'lasso') return
     if (mod && (event.code === 'Slash' || (event.shiftKey && event.code === 'KeyP'))) { event.preventDefault(); runCommand('palette'); return }
     if (event.altKey && !mod && event.code === 'Slash') { event.preventDefault(); runCommand('statistics'); return }
     if (event.altKey && !mod && event.code === 'KeyZ') { event.preventDefault(); runCommand('zen'); return }
@@ -565,6 +573,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (mod && event.shiftKey && key === 'l') { event.preventDefault(); const locked = live(draftRef.current).filter(e => selectedRef.current.has(e.id)).every(e => e.locked); applyProperties({ locked: !locked }); return }
     if (mod && (['[', ']'].includes(key) || ['BracketLeft', 'BracketRight'].includes(event.code))) { event.preventDefault(); const forward = event.code === 'BracketRight' || key === ']', extreme = event.shiftKey || (event.metaKey && event.altKey); reorder(forward ? extreme ? 'front' : 'forward' : extreme ? 'back' : 'backward'); return }
     if (mod && event.shiftKey && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) { event.preventDefault(); align(event.key === 'ArrowLeft' ? 'left' : event.key === 'ArrowRight' ? 'right' : event.key === 'ArrowUp' ? 'top' : 'bottom'); return }
+    if (!event.shiftKey && Object.prototype.hasOwnProperty.call(directions, event.key) && (mod || event.altKey)) {
+      event.preventDefault()
+      const direction = event.key as Direction
+      if (event.altKey && !mod) { const ids = navigateConnection(draftRef.current, selectedRef.current, direction); if (ids) select(ids) }
+      else if (mod && !event.altKey && !event.repeat) { const result = createConnectedShape(draftRef.current, selectedRef.current, direction); if (result && emit(result.scene)) select(result.selectedIds) }
+      return
+    }
+    if (event.shiftKey && !mod && !event.altKey && (key === 'h' || key === 'v')) { event.preventDefault(); if (!event.repeat) emit(flipSelection(draftRef.current, selectedRef.current, key === 'h' ? 'horizontal' : 'vertical')); return }
     if (mod && ['+', '=', '-', '0'].includes(key)) { event.preventDefault(); setViewport(view => ({ ...view, zoom: key === '0' ? 1 : Math.max(0.1, Math.min(5, view.zoom * (key === '-' ? 0.8 : 1.25))) })); return }
     if (event.shiftKey && (event.code === 'Digit1' || key === '1')) { event.preventDefault(); fitScene(); return }
     if (event.shiftKey && (event.code === 'Digit2' || key === '2')) {
@@ -604,7 +620,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       }
     }
     if (mod || event.altKey) return
-    const aliases: Record<string, Tool> = { v: 'selection', '1': 'selection', h: 'hand', r: 'rectangle', '2': 'rectangle', d: 'diamond', '3': 'diamond', o: 'ellipse', '4': 'ellipse', a: 'arrow', '5': 'arrow', l: 'line', '6': 'line', p: 'freedraw', '7': 'freedraw', t: 'text', '8': 'text', '9': 'image', e: 'eraser', '0': 'eraser', f: 'frame' }
+    const aliases: Record<string, Tool> = { j: 'lasso', v: 'selection', '1': 'selection', h: 'hand', r: 'rectangle', '2': 'rectangle', d: 'diamond', '3': 'diamond', o: 'ellipse', '4': 'ellipse', a: 'arrow', '5': 'arrow', l: 'line', '6': 'line', p: 'freedraw', '7': 'freedraw', t: 'text', '8': 'text', '9': 'image', e: 'eraser', '0': 'eraser', f: 'frame' }
     if (aliases[key]) { event.preventDefault(); setActiveTool(aliases[key]) }
     else if (key === 'q') { event.preventDefault(); setKeepTool(value => !value) }
     else if (key === 's' || key === 'g') { event.preventDefault(); wrapper.current?.querySelector<HTMLElement>(key === 's' ? '[aria-label="Stroke color"]' : '[aria-label="Background color"]')?.focus() }
@@ -680,6 +696,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     const target = event.target as Element
     if (pointEditRef.current && !target.hasAttribute('data-point-index') && tool !== 'hand' && !heldSpace.current && event.button === 0) setPointEdit(null)
     if (tool === 'hand' || heldSpace.current || event.button === 1 || event.button === 2 || readOnly) { gesture.current = { ...base, kind: 'pan', panButton: event.button }; setIsPanning(true) }
+    else if (tool === 'lasso') { gesture.current = { ...base, kind: 'lasso', polygon: [point], additive: event.shiftKey, deep: event.ctrlKey || event.metaKey }; setLasso([point]); if (!event.shiftKey) select([]) }
     else if (pendingConnector.current) { gesture.current = { ...base, before: pendingConnector.current.before, kind: 'connector-click' } }
     else if (target.getAttribute('data-resize')) gesture.current = { ...base, kind: 'resize', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))), corner: target.getAttribute('data-resize')! }
     else if (target.getAttribute('data-rotate')) gesture.current = { ...base, kind: 'rotate', bounds: getSceneBounds(live(before).filter(e => selectedRef.current.has(e.id))) }
@@ -722,6 +739,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (active.panButton === 2 && !(event.buttons & 2)) { gesture.current = null; setIsPanning(false); surface.current?.releasePointerCapture?.(event.pointerId); return }
       setViewport({ ...active.viewport, x: active.viewport.x + event.clientX - active.screen.x, y: active.viewport.y + event.clientY - active.screen.y }); return
     }
+    if (active.kind === 'lasso') { active.polygon = [...(active.polygon), point]; setLasso(active.polygon); return }
     if (active.kind === 'marquee') { setMarquee({ x: Math.min(active.start.x, point.x), y: Math.min(active.start.y, point.y), width: Math.abs(point.x - active.start.x), height: Math.abs(point.y - active.start.y) }); return }
     if (active.kind === 'move') {
       const delta = { x: point.x - active.start.x, y: point.y - active.start.y }
@@ -787,6 +805,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   const onPointerUp = (event: PointerEvent<SVGSVGElement>) => {
     const active = gesture.current; if (!active) return
     gesture.current = null; setIsPanning(false); setSnapGuides({}); surface.current?.releasePointerCapture?.(event.pointerId)
+    if (active.kind === 'lasso') { const polygon = [...(active.polygon), worldPoint({ x: event.clientX, y: event.clientY })]; select([...(active.additive ? active.ids : []), ...lassoSelection(active.before, polygon, active.deep)]); setLasso(null); return }
     if (active.kind === 'marquee') { if (marquee) select(expandSelection(draftRef.current, [...active.ids, ...live(draftRef.current).filter(e => !e.locked && intersection(getElementBounds(e), marquee)).map(e => e.id)], active.deep)); setMarquee(null); return }
     if (active.kind === 'pan') return
     if (active.kind === 'connector-click') {
@@ -887,7 +906,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       <span className="draw-divider" />
       <button type="button" aria-label="Keep tool selected" aria-pressed={keepTool} title="Keep tool selected (Q)" onClick={() => setKeepTool(value => !value)}><DrawToolIcon tool={keepTool ? 'lock' : 'unlock'} /></button>
     </div>}
-    <svg ref={surface} className={`draw-surface tool-${tool} ${isPanning ? 'is-panning' : ''}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (pendingConnector.current && gesture.current?.kind !== 'pan') cancelConnector(); else if (gesture.current && gesture.current.kind !== 'pan') preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null) }} onLostPointerCapture={() => { if (gesture.current?.kind === 'pan') { gesture.current = null; setIsPanning(false) } }} onContextMenu={event => event.preventDefault()} onDoubleClick={event => {
+    <svg ref={surface} className={`draw-surface tool-${tool} ${isPanning ? 'is-panning' : ''}`} data-testid="draw-surface" role="application" aria-label="Drawing surface" width="100%" height="100%" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={() => { if (gesture.current?.kind === 'lasso') select(gesture.current.ids); setLasso(null); if (pendingConnector.current && gesture.current?.kind !== 'pan') cancelConnector(); else if (gesture.current && gesture.current.kind !== 'pan') preview(gesture.current.before); gesture.current = null; setIsPanning(false); setMarquee(null) }} onLostPointerCapture={() => { if (gesture.current?.kind === 'lasso') { select(gesture.current.ids); gesture.current = null; setLasso(null) } if (gesture.current?.kind === 'pan') { gesture.current = null; setIsPanning(false) } }} onContextMenu={event => event.preventDefault()} onDoubleClick={event => {
       if (readOnly || event.button !== 0) return
       if (pendingConnector.current) { pendingConnector.current.preventBinding = event.ctrlKey || event.metaKey; finishConnector(); return }
       if (pointEditRef.current) { finishPointEditing(); return }
@@ -910,6 +929,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         </g>}
         {snapGuides.x !== undefined && <line x1={snapGuides.x} x2={snapGuides.x} y1={-100000} y2={100000} stroke="#14b895" strokeWidth={1 / viewport.zoom} strokeDasharray="4 4" pointerEvents="none" />}
         {snapGuides.y !== undefined && <line y1={snapGuides.y} y2={snapGuides.y} x1={-100000} x2={100000} stroke="#14b895" strokeWidth={1 / viewport.zoom} strokeDasharray="4 4" pointerEvents="none" />}
+        {lasso && <polygon data-testid="draw-lasso" points={lasso.map(point => `${point.x},${point.y}`).join(' ')} fill="#17b89520" stroke="#17b895" strokeWidth={1 / viewport.zoom} strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`} pointerEvents="none" />}
         {marquee && <rect {...marquee} fill="#17b89520" stroke="#17b895" strokeWidth={1 / viewport.zoom} pointerEvents="none" />}
       </g>
     </svg>
@@ -933,7 +953,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     {!zen && <button className="draw-help-toggle" aria-label="Keyboard shortcuts" onClick={() => setHelp(value => !value)}>?</button>}
     {localView && <span className="draw-view-badge">View mode · Alt/Option R to edit</span>}
     {message && <div className="draw-message" role="alert">{message}<button aria-label="Dismiss drawing message" onClick={() => setMessage(null)}>×</button></div>}
-    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); setHelp(false) } if (event.key === 'Tab') { event.preventDefault(); event.currentTarget.querySelector<HTMLButtonElement>('.draw-help-close')?.focus() } }}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Edit connector points', '⌘/Ctrl Enter'], ['Finish connector', 'Enter · double-click'], ['Draw from center', 'Alt drag'], ['Deep marquee', '⌘/Ctrl drag'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Right drag · Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}{drawCommands.map(command => <p key={command.id}><span>{command.label}</span><kbd>{command.shortcut}</kbd></p>)}</div></div></section></div>}
+    {help && <div className="draw-help-overlay" onClick={() => setHelp(false)}><section className="draw-help-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-help-title" onClick={event => event.stopPropagation()} onKeyDown={event => { event.stopPropagation(); if (event.key === 'Escape') { event.preventDefault(); setHelp(false) } if (event.key === 'Tab') { event.preventDefault(); event.currentTarget.querySelector<HTMLButtonElement>('.draw-help-close')?.focus() } }}><button className="draw-help-close" aria-label="Close keyboard shortcuts" onClick={() => setHelp(false)}>×</button><h2 id="draw-help-title">Drawing shortcuts</h2><p>Draw with the keyboard, then refine each object.</p><div className="draw-help-columns"><div><h3>Tools</h3>{tools.map(item => <p key={item.tool}><span>{item.name}</span><kbd>{item.shortcut}</kbd></p>)}<p><span>Keep tool selected</span><kbd>Q</kbd></p></div><div><h3>Edit</h3>{[['Undo / Redo', '⌘/Ctrl Z / ⇧ Z'], ['Duplicate', '⌘/Ctrl D · Alt drag'], ['Group / Ungroup', '⌘/Ctrl G / ⇧ G'], ['Lock / Unlock', '⌘/Ctrl ⇧ L'], ['Copy · Cut · Paste', '⌘/Ctrl C · X · V'], ['Label selection', 'Enter · double-click'], ['Edit connector points', '⌘/Ctrl Enter'], ['Finish connector', 'Enter · double-click'], ['Draw from center', 'Alt drag'], ['Deep marquee', '⌘/Ctrl drag'], ['Finish text', '⌘/Ctrl Enter · Esc'], ['Text newline', 'Enter · ⇧ Enter'], ['Move', 'Arrows · ⇧ Arrows'], ['Align', '⌘/Ctrl ⇧ Arrows'], ['Connected shape', '⌘/Ctrl Arrows'], ['Follow connection', 'Alt/Option Arrows'], ['Flip horizontal / vertical', '⇧ H / ⇧ V'], ['Layer order', '⌘/Ctrl [ / ]'], ['Front / Back', '⌘/Ctrl ⇧ [ / ]'], ['Pan', 'Right drag · Space drag · H'], ['Zoom', '⌘/Ctrl wheel · + / −'], ['Fit all / Selection', '⇧ 1 / ⇧ 2'], ['Proportional shape / Resize', 'Shift drag']].map(([label, keys]) => <p key={label}><span>{label}</span><kbd>{keys}</kbd></p>)}{drawCommands.map(command => <p key={command.id}><span>{command.label}</span><kbd>{command.shortcut}</kbd></p>)}</div></div></section></div>}
     {panel.kind !== 'closed' && <div className="draw-panel-overlay" onMouseDown={event => { if (event.target === event.currentTarget) setPanel({ kind: 'closed' }) }}><section className="draw-command-panel" role="dialog" aria-modal="true" aria-label={panel.kind === 'palette' ? 'Drawing commands' : panel.kind === 'search' ? 'Find in drawing' : panel.kind === 'statistics' ? 'Drawing statistics' : 'Edit link'} onKeyDown={event => {
       event.stopPropagation()
       if (event.key === 'Escape') { event.preventDefault(); setPanel({ kind: 'closed' }) }
