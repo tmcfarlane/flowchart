@@ -27,7 +27,66 @@ const horizontalProposal: DrawProposal = {
   ],
 }
 
+const framedDiagonalProposal: DrawProposal = {
+  outputMode: 'draw', summary: '', elements: [
+    { id: 'arrow', type: 'arrow', points: [{ x: 555, y: 260 }, { x: 440, y: 360 }], sourceId: 'market', targetId: 'channels', label: 'plan', strokeColor: '#2E7D32' },
+    { id: 'market', type: 'ellipse', x: 470, y: 170, width: 170, height: 90, label: 'Market timing', strokeColor: '#123456', backgroundColor: 'transparent' },
+    { id: 'channels', type: 'ellipse', x: 320, y: 360, width: 200, height: 90, label: 'Launch channels', strokeColor: '#123456', backgroundColor: 'transparent' },
+    { id: 'region', type: 'frame', x: 80, y: 80, width: 760, height: 520, name: 'Explore', children: ['market', 'channels', 'arrow'] },
+  ],
+}
+
 describe('native Draw generation', () => {
+  it.each(['rectangle', 'ellipse', 'diamond'] as const)('moves a framed diagonal %s connector and caption exactly once', type => {
+    const drawing = drawProposalToScene({ ...framedDiagonalProposal, elements: framedDiagonalProposal.elements.map(item => item.type === 'ellipse' ? { ...item, type } : item) })
+    const points = getWorldPoints(element(drawing, 'arrow'))
+    const rerouted = rerouteBindings(rerouteBindings(drawing))
+    getWorldPoints(element(rerouted, 'arrow')).forEach((point, index) => {
+      expect(point.x).toBeCloseTo(points[index].x, 8)
+      expect(point.y).toBeCloseTo(points[index].y, 8)
+    })
+    for (const [index, id] of ['market', 'channels'].entries()) {
+      const host = element(drawing, id), point = points[index]
+      const dx = Math.abs((point.x - host.x - host.width / 2) / (host.width / 2))
+      const dy = Math.abs((point.y - host.y - host.height / 2) / (host.height / 2))
+      expect(type === 'ellipse' ? dx * dx + dy * dy : type === 'diamond' ? dx + dy : Math.max(dx, dy)).toBeCloseTo(1)
+    }
+
+    const inserted = prepareSceneInsertion(drawing, undefined, { x: 600, y: 400 })
+    const frame = inserted.elements.find(item => item.type === 'frame') as DrawElement
+    const moved = moveElements(inserted, [frame.id], { x: 40, y: 20 })
+    for (const member of inserted.elements.filter(item => item.frameId === frame.id) as DrawElement[]) {
+      expect(element(moved, member.id).x).toBeCloseTo(member.x + 40, 8)
+      expect(element(moved, member.id).y).toBeCloseTo(member.y + 20, 8)
+      if (member.type === 'arrow') getWorldPoints(element(moved, member.id)).forEach((point, index) => {
+        const before = getWorldPoints(member)[index]
+        expect(point.x).toBeCloseTo(before.x + 40, 8)
+        expect(point.y).toBeCloseTo(before.y + 20, 8)
+      })
+    }
+  })
+
+  it('preserves framed bends while leaving an outside endpoint on its own shape', () => {
+    const drawing = drawProposalToScene({ ...framedDiagonalProposal, elements: framedDiagonalProposal.elements.map(item =>
+      item.type === 'frame' ? { ...item, children: ['market', 'arrow'] }
+        : item.type === 'arrow' ? { ...item, points: [{ x: 555, y: 260 }, { x: 650, y: 320 }, { x: 440, y: 360 }] } : item,
+    ) })
+    const arrow = element(drawing, 'arrow'), before = getWorldPoints(arrow)
+    expect(before[1]).toEqual({ x: 650, y: 320 })
+    expect(arrow.startBinding?.fixedPoint).toBeDefined()
+    expect(arrow.endBinding?.fixedPoint).toBeUndefined()
+    const moved = moveElements(drawing, ['region'], { x: 40, y: 20 })
+    const after = getWorldPoints(element(moved, 'arrow'))
+    expect(after[0].x).toBeCloseTo(before[0].x + 40, 8)
+    expect(after[0].y).toBeCloseTo(before[0].y + 20, 8)
+    expect(after[1]).toEqual({ x: 690, y: 340 })
+    expect(element(moved, 'channels')).toEqual(element(drawing, 'channels'))
+    const host = element(moved, 'channels'), endpoint = after.at(-1)!
+    const dx = (endpoint.x - host.x - host.width / 2) / (host.width / 2)
+    const dy = (endpoint.y - host.y - host.height / 2) / (host.height / 2)
+    expect(dx * dx + dy * dy).toBeCloseTo(1)
+  })
+
   it('fits a native frame around final members and their labels regardless of proposal order', () => {
     const framed: DrawProposal = { ...horizontalProposal, elements: [
       horizontalProposal.elements[0],
