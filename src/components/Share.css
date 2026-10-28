@@ -745,3 +745,22 @@
     animation-duration: 2s;
   }
 }
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .toolbar-share, .share-wrapper { position: static; }
+  .floating-toolbar .share-panel {
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    width: auto;
+    max-width: none;
+    max-height: calc(100dvh - var(--chrome-bottom) - var(--bottom-clearance));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .app .share-field-input, .app .share-badge-title-input { font-size: 16px; min-height: 44px; }
+  .app .share-copy-button, .app .share-primary-button, .app .share-secondary-button, .app .share-badge-copy, .app .share-badge-title { min-height: 44px; min-width: 44px; }
+  .share-panel-footer a { display: inline-flex; align-items: center; min-height: 44px; }
+  .share-badge { top: var(--chrome-bottom); left: var(--chrome-left); max-width: calc(100vw - var(--chrome-left) - var(--chrome-right)); }
+  .share-notice { top: calc(var(--chrome-bottom) + 64px); left: var(--chrome-left); max-height: calc(100dvh - var(--chrome-bottom) - 80px); overflow-y: auto; }
+}

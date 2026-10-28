@@ -1,4 +1,11 @@
 .app {
+  --chrome-top: 16px;
+  --chrome-left: calc(8px + env(safe-area-inset-left, 0px));
+  --chrome-right: calc(8px + env(safe-area-inset-right, 0px));
+  --chrome-row: 44px;
+  --toolbar-block: 52px;
+  --chrome-bottom: calc(var(--chrome-top) + var(--toolbar-block) + 8px);
+  --bottom-clearance: calc(8px + env(safe-area-inset-bottom, 0px));
   width: 100%;
   height: 100%;
   display: flex;
@@ -567,8 +574,7 @@
   .react-flow__controls {
     display: flex;
     flex-direction: row;
-    transform: scale(0.55);
-    transform-origin: bottom left;
+    transform: none;
   }
 
   .react-flow__controls button {
@@ -1038,3 +1044,35 @@
   white-space: nowrap;
 }
 .app.dark-mode .selection-toolbar-button.selection-ai-action { color: #78fcd6; }
+
+@media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
+  .app { --chrome-top: calc(8px + env(safe-area-inset-top, 0px)); --toolbar-block: 156px; }
+  .app.draw-mode { --toolbar-block: 108px; }
+  .app.draw-local-view { --toolbar-block: 0px; --chrome-top: env(safe-area-inset-top, 0px); }
+  .selection-toolbar {
+    top: var(--chrome-bottom);
+    right: var(--chrome-right);
+    max-height: calc(100dvh - var(--chrome-bottom) - var(--bottom-clearance) - 104px);
+    max-width: calc(100vw - var(--chrome-left) - var(--chrome-right));
+    overflow-y: auto;
+  }
+  .app .selection-toolbar-button, .app .edge-style-option, .app .edge-comm-option { min-width: 44px; min-height: 44px; }
+  .app .edge-protocol-select { font-size: 16px; min-height: 44px; max-width: 160px; }
+  .app .react-flow__controls {
+    display: flex;
+    flex-direction: row;
+    transform: none;
+    left: var(--chrome-left);
+    bottom: var(--bottom-clearance);
+    margin: 0;
+  }
+  .app .react-flow__controls button { width: 44px; height: 44px; min-width: 44px; min-height: 44px; border-bottom: 0; border-right: 1px solid #e0e0e0; }
+  .app .react-flow__controls button:last-child { border-right: 0; }
+  .app .react-flow__minimap { bottom: calc(var(--bottom-clearance) + 104px); right: var(--chrome-right); margin: 0; }
+  .app .ai-floating-pill { bottom: calc(var(--bottom-clearance) + 52px); min-height: 44px; font-size: 12px; padding: 8px 16px; }
+}
+@media (min-width: 700px) and (max-height: 500px) and (pointer: coarse) {
+  .app { --toolbar-block: 108px; }
+  .app.draw-mode { --toolbar-block: 60px; }
+  .app .react-flow__minimap { display: none; }
+}
