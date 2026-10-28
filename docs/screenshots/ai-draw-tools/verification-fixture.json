@@ -1,0 +1,32 @@
+{
+  "url": "http://127.0.0.1:3057/",
+  "live": false,
+  "source_proposal": null,
+  "checks": [
+    "390 by 667 welcome and full prompts keep headers, tool help, dismissal, input, and submit reachable without horizontal overflow",
+    "eight supported tools appear in welcome and full Draw prompts, and stay hidden for Flowchart",
+    "preview leaves document unchanged and renders native frame titles",
+    "all requested native tool types and frame membership survive insertion",
+    "fitted labels remain whole and inside their frames",
+    "one undo and redo retain the whole generated scene",
+    "generated line accepts a native property edit and undo",
+    "dragging a generated frame moves its members once, preserves the other frame, and undoes atomically",
+    "reload retains native tools, geometry, and frame links",
+    "JSON export retains the exact scene; SVG includes every native type, frame title, and clipping definitions",
+    "no browser page errors"
+  ],
+  "http_status": 200,
+  "request_id": null,
+  "native_type_counts": {
+    "frame": 2,
+    "text": 8,
+    "ellipse": 1,
+    "line": 1,
+    "freedraw": 1,
+    "rectangle": 2,
+    "diamond": 1,
+    "arrow": 2
+  },
+  "frame_count": 2,
+  "frame_member_count": 13
+}

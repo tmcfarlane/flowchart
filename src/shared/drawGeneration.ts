@@ -24,15 +24,32 @@ const path = z.strictObject({
   points: z.array(point).min(2).max(DRAW_GENERATION_LIMITS.points),
   sourceId: id.nullable(), targetId: id.nullable(), label: text, strokeColor: color,
 })
+const frame = z.strictObject({
+  id, type: z.literal('frame'), x: coordinate, y: coordinate,
+  width: size, height: size,
+  name: z.string().trim().min(1).max(100).refine(value => !/[\r\n]/.test(value)),
+  children: z.array(id).max(DRAW_GENERATION_LIMITS.elements - 1),
+})
 const proposal = z.strictObject({
   outputMode: z.literal('draw'), summary: z.string().max(DRAW_GENERATION_LIMITS.summary),
-  elements: z.array(z.union([shape, standaloneText, path])).min(1).max(DRAW_GENERATION_LIMITS.elements),
+  elements: z.array(z.union([shape, standaloneText, path, frame])).min(1).max(DRAW_GENERATION_LIMITS.elements),
 })
 
 export const DrawProposalSchema = proposal.superRefine((value, ctx) => {
   const elements = new Map(value.elements.map(element => [element.id, element]))
   if (elements.size !== value.elements.length) ctx.addIssue({ code: 'custom', message: 'Duplicate drawing element IDs.' })
+  const owners = new Set<string>()
   for (const element of value.elements) {
+    if (element.type === 'frame') {
+      for (const childId of element.children) {
+        const child = elements.get(childId)
+        if (!child || child.type === 'frame' || childId === element.id || owners.has(childId)) {
+          ctx.addIssue({ code: 'custom', message: 'Frame children must be unique, existing non-frame elements with one owner.' })
+        }
+        owners.add(childId)
+      }
+      continue
+    }
     if (!('points' in element)) continue
     if (element.points.every(point => point.x === element.points[0].x && point.y === element.points[0].y)) {
       ctx.addIssue({ code: 'custom', message: 'Drawing paths must have nonzero length.' })
@@ -52,6 +69,17 @@ export const DrawProposalSchema = proposal.superRefine((value, ctx) => {
   }
 })
 export type DrawProposal = z.infer<typeof DrawProposalSchema>
+
+export const DRAW_TOOL_CAPABILITIES = {
+  rectangle: { name: 'Rectangle', purpose: 'cards, panels and box-shaped objects' },
+  ellipse: { name: 'Ellipse', purpose: 'round concepts and steps' },
+  diamond: { name: 'Diamond', purpose: 'decisions and branches' },
+  text: { name: 'Text', purpose: 'headings, notes and annotations without a shape' },
+  line: { name: 'Line', purpose: 'dividers, boundaries and simple strokes' },
+  arrow: { name: 'Arrow', purpose: 'directional connections between ideas or objects' },
+  freedraw: { name: 'Pen', purpose: 'hand-drawn marks, loops and loose sketches' },
+  frame: { name: 'Frame', purpose: 'named sections and wireframe screens containing chosen objects' },
+} satisfies Record<DrawProposal['elements'][number]['type'], { name: string; purpose: string }>
 
 export const DrawGenerationContextSchema = z.strictObject({
   elements: z.array(z.strictObject({

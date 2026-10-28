@@ -29,7 +29,9 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 500px;
-  overflow: hidden;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
   animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -209,6 +211,15 @@
   cursor: default;
   opacity: 0.7;
 }
+
+.ai-draw-tools-help {
+  margin: -7px 0 16px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.app.dark-mode .ai-draw-tools-help { color: #a9c0b7; }
 
 .ai-bubble-send {
   width: 100%;
@@ -414,13 +425,15 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 95;
+  z-index: 110;
   width: 90%;
   max-width: 500px;
   background: white;
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
   animation: scaleInCenter 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

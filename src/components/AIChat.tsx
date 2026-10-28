@@ -7,6 +7,7 @@ import { resolveAzureIcons } from '../utils/azureIconRegistry'
 import { createThread, getMessages, addMessage as addThreadMessage } from '../utils/conversationStore'
 import { parseFlowJson } from '../utils/exportUtils'
 import type { ArchitectureScene } from '../shared/architectureScene'
+import { DRAW_TOOL_CAPABILITIES } from '../shared/drawGeneration'
 
 const FLOW_STARTER_PROMPTS = [
   { emoji: '\u{1F96A}', text: 'Make a PB&J sandwich' },
@@ -67,10 +68,10 @@ const MODE_COPY: Record<DiagramMode, {
     button: 'Generate drawing',
     loading: 'Generating drawing...',
     starters: [
-      { emoji: '🖊️', text: 'Sketch a workshop whiteboard' },
-      { emoji: '💡', text: 'Draw a mind map for a product launch' },
-      { emoji: '📱', text: 'Make a labeled mobile app wireframe' },
-      { emoji: '🗺️', text: 'Draw a simple event floor plan' },
+      { emoji: '🖊️', text: 'Sketch a workshop whiteboard with freehand highlights, notes and arrows' },
+      { emoji: '💡', text: 'Draw a product launch mind map with round ideas, branches and notes' },
+      { emoji: '📱', text: 'Make two named mobile screen frames with buttons, labels and navigation arrows' },
+      { emoji: '🗺️', text: 'Draw an event floor plan with section frames, tables and walking routes' },
     ],
   },
 }
@@ -122,6 +123,9 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
   revisionRef.current = generationRevision
   const copy = MODE_COPY[generationMode]
   const starterPrompts = generationMode === 'flowchart' ? flowStarterPrompts : copy.starters
+  const drawToolsHelp = generationMode === 'draw' && (
+    <p className="ai-draw-tools-help" aria-label="AI Draw tools">AI can draw: {Object.values(DRAW_TOOL_CAPABILITIES).map(tool => tool.name).join(', ')}.</p>
+  )
 
   const cancelRequest = useCallback(() => {
     requestRef.current?.controller.abort()
@@ -345,6 +349,7 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
           {!isLoading && <p className="ai-welcome-heading">{copy.heading}</p>}
 
           {modeSelector}
+          {drawToolsHelp}
           {isLoading ? (
             <div className="loading-indicator">
               <div className="loading-message">{copy.loading}</div>
@@ -459,6 +464,7 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
           </button>}
 
           {modeSelector}
+          {drawToolsHelp}
           {isLoading ? (
             <div className="loading-indicator">
               <div className="loading-message">{copy.loading}</div>
