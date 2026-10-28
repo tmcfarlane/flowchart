@@ -94,6 +94,8 @@ interface AIChatProps {
   diagramMode?: DiagramMode
   generationMode: DiagramMode
   onGenerationModeChange: (mode: DiagramMode) => void
+  generationPrompt: string
+  onGenerationPromptChange: (value: string) => void
   getGenerationContext: () => AIGenerationContext | undefined
   generationRevision?: number
   onImportJson?: (nodes: Node[], edges: Edge[], mode?: DiagramMode, architectureScene?: ArchitectureScene) => void
@@ -102,8 +104,7 @@ interface AIChatProps {
   onEditSelection?: () => void
 }
 
-function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, generationMode, onGenerationModeChange, getGenerationContext, generationRevision = 0, selectedCount = 0, onEditSelection }: AIChatProps) {
-  const [inputValue, setInputValue] = useState('')
+function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss, onImportJson, onImportFile, generationMode, onGenerationModeChange, generationPrompt: inputValue, onGenerationPromptChange: setInputValue, getGenerationContext, generationRevision = 0, selectedCount = 0, onEditSelection }: AIChatProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const welcomeFileInputRef = useRef<HTMLInputElement>(null)
@@ -219,7 +220,7 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
         setIsLoading(false)
       }
     }
-  }, [inputValue, isOpen, onProposalReady, onClose, generationMode, generationRevision, getGenerationContext])
+  }, [inputValue, isOpen, onProposalReady, onClose, generationMode, generationRevision, getGenerationContext, setInputValue])
 
   const handleClose = useCallback(() => {
     cancelRequest()

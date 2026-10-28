@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { useState } from 'react'
+import { useState, type ComponentProps } from 'react'
 import AIChat from '../components/AIChat'
 import type { DiagramMode } from '../shared/flowTypes'
 import type { AIGenerationProposal } from '../shared/aiGeneration'
@@ -24,6 +24,11 @@ function deferredResponse() {
   return { promise, resolve }
 }
 
+function ControlledChat(props: Omit<ComponentProps<typeof AIChat>, 'generationPrompt' | 'onGenerationPromptChange'>) {
+  const [prompt, setPrompt] = useState('')
+  return <AIChat key={props.variant} {...props} generationPrompt={prompt} onGenerationPromptChange={setPrompt} />
+}
+
 function ChatHarness({ onReady, revision = 0, onClose = vi.fn(), getContext = () => undefined }: {
   onReady: (proposal: AIGenerationProposal) => void
   revision?: number
@@ -31,8 +36,10 @@ function ChatHarness({ onReady, revision = 0, onClose = vi.fn(), getContext = ()
   getContext?: () => { drawContext: { elements: []; omittedElementCount: number } } | undefined
 }) {
   const [mode, setMode] = useState<DiagramMode>('flowchart')
+  const [prompt, setPrompt] = useState('')
   return <AIChat nodes={[]} edges={[]} isOpen onClose={onClose} variant="full"
-    generationMode={mode} onGenerationModeChange={setMode} getGenerationContext={getContext}
+    generationMode={mode} onGenerationModeChange={setMode}
+    generationPrompt={prompt} onGenerationPromptChange={setPrompt} getGenerationContext={getContext}
     generationRevision={revision} onProposalReady={onReady} />
 }
 
@@ -46,13 +53,14 @@ describe('AIChat generation modes', () => {
       generationMode: 'draw' as DiagramMode, onGenerationModeChange: onModeChange,
       getGenerationContext: () => undefined, onProposalReady: vi.fn(),
     }
-    const view = render(<AIChat {...common} variant="welcome" />)
+    const view = render(<ControlledChat {...common} variant="welcome" />)
     expect(screen.getByLabelText('Generate for')).toHaveValue('draw')
     expect(screen.getByRole('button', { name: /Generate drawing/i })).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...')).toBeInTheDocument()
-    view.rerender(<AIChat {...common} variant="full" />)
+    fireEvent.change(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...'), { target: { value: 'Keep this sketch' } })
+    view.rerender(<ControlledChat {...common} variant="full" />)
     expect(screen.getByLabelText('Generate for')).toHaveValue('draw')
     expect(screen.getByText('What should we draw?')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...')).toHaveValue('Keep this sketch')
     fireEvent.change(screen.getByLabelText('Generate for'), { target: { value: 'architecture' } })
     expect(onModeChange).toHaveBeenCalledWith('architecture')
   })
@@ -69,6 +77,7 @@ describe('AIChat generation modes', () => {
     expect(screen.getByLabelText('Generate for')).toBeDisabled()
     expect(screen.getByText('Generating drawing...')).toBeInTheDocument()
     await waitFor(() => expect(onReady).toHaveBeenCalledWith(drawing, expect.any(String)))
+    expect(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...')).toHaveValue('')
     const request = JSON.parse(fetchMock.mock.calls[0][1].body)
     expect(request).toMatchObject({ mode: 'generate', diagramMode: 'draw', drawContext: { omittedElementCount: 0 }, messages: [{ role: 'user', content: 'Sketch a workshop' }] })
     expect(request.flowContext).toBeUndefined()
@@ -80,7 +89,7 @@ describe('AIChat generation modes', () => {
     vi.stubGlobal('fetch', fetchMock)
     const onReady = vi.fn()
     const getContext = vi.fn(() => undefined)
-    render(<AIChat
+    render(<ControlledChat
       nodes={[
         { id: 'embedded', type: 'image', position: { x: 0, y: 0 }, data: { label: 'Embedded', imageUrl: 'data:image/png;base64,SECRET' } },
         { id: 'external', type: 'image', position: { x: 10, y: 10 }, data: { label: 'External', imageUrl: 'https://example.test/image.png' } },
@@ -106,7 +115,7 @@ describe('AIChat generation modes', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(flowchart))
     vi.stubGlobal('fetch', fetchMock)
     const onReady = vi.fn()
-    render(<AIChat nodes={[]} edges={[]} isOpen onClose={vi.fn()} diagramMode="draw"
+    render(<ControlledChat nodes={[]} edges={[]} isOpen onClose={vi.fn()} diagramMode="draw"
       generationMode="flowchart" onGenerationModeChange={vi.fn()}
       getGenerationContext={() => ({ drawContext: { elements: [], omittedElementCount: 0 } })}
       onProposalReady={onReady} />)
