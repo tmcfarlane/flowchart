@@ -1,0 +1,182 @@
+{
+  "outputMode": "draw",
+  "summary": "Explore an idea, make a decision, and run a small test.",
+  "elements": [
+    {
+      "id": "title",
+      "type": "text",
+      "x": 60,
+      "y": 20,
+      "text": "From an idea to a small experiment",
+      "fontSize": 30,
+      "strokeColor": "#123456"
+    },
+    {
+      "id": "topic",
+      "type": "ellipse",
+      "x": 110,
+      "y": 200,
+      "width": 220,
+      "height": 100,
+      "label": "Understand the need",
+      "strokeColor": "#0f766e",
+      "backgroundColor": "#d8f3e8"
+    },
+    {
+      "id": "note",
+      "type": "text",
+      "x": 90,
+      "y": 350,
+      "text": "Talk to a few people.\nCapture their strongest need.",
+      "fontSize": 18,
+      "strokeColor": "#123456"
+    },
+    {
+      "id": "divider",
+      "type": "line",
+      "points": [
+        {
+          "x": 80,
+          "y": 320
+        },
+        {
+          "x": 450,
+          "y": 320
+        }
+      ],
+      "sourceId": null,
+      "targetId": null,
+      "label": "",
+      "strokeColor": "#64748b"
+    },
+    {
+      "id": "underline",
+      "type": "freedraw",
+      "points": [
+        {
+          "x": 95,
+          "y": 408
+        },
+        {
+          "x": 145,
+          "y": 413
+        },
+        {
+          "x": 200,
+          "y": 405
+        },
+        {
+          "x": 250,
+          "y": 411
+        },
+        {
+          "x": 310,
+          "y": 406
+        }
+      ],
+      "sourceId": null,
+      "targetId": null,
+      "label": "",
+      "strokeColor": "#d97706"
+    },
+    {
+      "id": "problem",
+      "type": "rectangle",
+      "x": 90,
+      "y": 450,
+      "width": 300,
+      "height": 40,
+      "label": "Write one clear problem statement that is specific enough to test with a small group of people.",
+      "strokeColor": "#2563eb",
+      "backgroundColor": "#e0ecff"
+    },
+    {
+      "id": "decision",
+      "type": "diamond",
+      "x": 760,
+      "y": 230,
+      "width": 160,
+      "height": 120,
+      "label": "Ready to test?",
+      "strokeColor": "#8b5b17",
+      "backgroundColor": "#fff1c1"
+    },
+    {
+      "id": "test",
+      "type": "rectangle",
+      "x": 1240,
+      "y": 245,
+      "width": 210,
+      "height": 90,
+      "label": "Try one small test",
+      "strokeColor": "#7c3aed",
+      "backgroundColor": "#eee3ff"
+    },
+    {
+      "id": "cross",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 330,
+          "y": 260
+        },
+        {
+          "x": 760,
+          "y": 260
+        }
+      ],
+      "sourceId": "topic",
+      "targetId": "decision",
+      "label": "Explore before deciding",
+      "strokeColor": "#64748b"
+    },
+    {
+      "id": "handoff",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 920,
+          "y": 290
+        },
+        {
+          "x": 1240,
+          "y": 290
+        }
+      ],
+      "sourceId": "decision",
+      "targetId": "test",
+      "label": "Test",
+      "strokeColor": "#64748b"
+    },
+    {
+      "id": "explore",
+      "type": "frame",
+      "x": 40,
+      "y": 130,
+      "width": 420,
+      "height": 440,
+      "name": "Explore the idea",
+      "children": [
+        "topic",
+        "note",
+        "divider",
+        "underline",
+        "problem"
+      ]
+    },
+    {
+      "id": "act",
+      "type": "frame",
+      "x": 700,
+      "y": 130,
+      "width": 800,
+      "height": 440,
+      "name": "Decide and act",
+      "children": [
+        "decision",
+        "test",
+        "handoff"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,241 @@
+{
+  "outputMode": "draw",
+  "summary": "Product-launch workshop whiteboard with two spacious titled frames: Explore and Decide. Includes brainstorming circles, standalone notes, a divider line, a readiness decision diamond, arrows including a cross-frame arrow routed outside frames, a pen-stroke emphasis mark, and one action card.",
+  "elements": [
+    {
+      "id": "frame_explore",
+      "type": "frame",
+      "x": 80,
+      "y": 80,
+      "width": 760,
+      "height": 560,
+      "name": "Explore",
+      "children": [
+        "topic_users",
+        "topic_messaging",
+        "topic_channels",
+        "note_risks",
+        "divider_explore",
+        "arrow_users_msg",
+        "arrow_msg_channels",
+        "pen_emphasis"
+      ]
+    },
+    {
+      "id": "frame_decide",
+      "type": "frame",
+      "x": 1120,
+      "y": 80,
+      "width": 720,
+      "height": 560,
+      "name": "Decide",
+      "children": [
+        "decision_ready",
+        "action_launch",
+        "note_gate",
+        "arrow_ready_launch"
+      ]
+    },
+    {
+      "id": "topic_users",
+      "type": "ellipse",
+      "x": 170,
+      "y": 170,
+      "width": 180,
+      "height": 100,
+      "label": "Target users",
+      "strokeColor": "#1F4B99",
+      "backgroundColor": "#EAF2FF"
+    },
+    {
+      "id": "topic_messaging",
+      "type": "ellipse",
+      "x": 470,
+      "y": 170,
+      "width": 200,
+      "height": 100,
+      "label": "Core messaging",
+      "strokeColor": "#1F4B99",
+      "backgroundColor": "#EAF2FF"
+    },
+    {
+      "id": "topic_channels",
+      "type": "ellipse",
+      "x": 320,
+      "y": 380,
+      "width": 210,
+      "height": 100,
+      "label": "Launch channels",
+      "strokeColor": "#1F4B99",
+      "backgroundColor": "#EAF2FF"
+    },
+    {
+      "id": "note_risks",
+      "type": "text",
+      "x": 170,
+      "y": 520,
+      "text": "Need clarity on pricing and onboarding timing.",
+      "fontSize": 18,
+      "strokeColor": "#444444"
+    },
+    {
+      "id": "divider_explore",
+      "type": "line",
+      "points": [
+        {
+          "x": 150,
+          "y": 320
+        },
+        {
+          "x": 760,
+          "y": 320
+        }
+      ],
+      "sourceId": null,
+      "targetId": null,
+      "label": "",
+      "strokeColor": "#888888"
+    },
+    {
+      "id": "arrow_users_msg",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 350,
+          "y": 220
+        },
+        {
+          "x": 470,
+          "y": 220
+        }
+      ],
+      "sourceId": "topic_users",
+      "targetId": "topic_messaging",
+      "label": "insights",
+      "strokeColor": "#2E7D32"
+    },
+    {
+      "id": "arrow_msg_channels",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 570,
+          "y": 270
+        },
+        {
+          "x": 450,
+          "y": 380
+        }
+      ],
+      "sourceId": "topic_messaging",
+      "targetId": "topic_channels",
+      "label": "",
+      "strokeColor": "#2E7D32"
+    },
+    {
+      "id": "pen_emphasis",
+      "type": "freedraw",
+      "points": [
+        {
+          "x": 300,
+          "y": 500
+        },
+        {
+          "x": 340,
+          "y": 490
+        },
+        {
+          "x": 380,
+          "y": 500
+        },
+        {
+          "x": 420,
+          "y": 488
+        },
+        {
+          "x": 460,
+          "y": 500
+        }
+      ],
+      "sourceId": null,
+      "targetId": null,
+      "label": "",
+      "strokeColor": "#D9480F"
+    },
+    {
+      "id": "decision_ready",
+      "type": "diamond",
+      "x": 1330,
+      "y": 190,
+      "width": 220,
+      "height": 140,
+      "label": "Ready to launch?",
+      "strokeColor": "#8A3FFC",
+      "backgroundColor": "#F3E8FF"
+    },
+    {
+      "id": "action_launch",
+      "type": "rectangle",
+      "x": 1310,
+      "y": 430,
+      "width": 260,
+      "height": 90,
+      "label": "Finalize launch checklist",
+      "strokeColor": "#B05A00",
+      "backgroundColor": "#FFF4D6"
+    },
+    {
+      "id": "note_gate",
+      "type": "text",
+      "x": 1290,
+      "y": 560,
+      "text": "Decision gate after beta feedback review.",
+      "fontSize": 18,
+      "strokeColor": "#444444"
+    },
+    {
+      "id": "arrow_ready_launch",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1440,
+          "y": 330
+        },
+        {
+          "x": 1440,
+          "y": 430
+        }
+      ],
+      "sourceId": "decision_ready",
+      "targetId": "action_launch",
+      "label": "yes",
+      "strokeColor": "#8A3FFC"
+    },
+    {
+      "id": "crossframe_flow",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 530,
+          "y": 430
+        },
+        {
+          "x": 530,
+          "y": 700
+        },
+        {
+          "x": 1280,
+          "y": 700
+        },
+        {
+          "x": 1280,
+          "y": 260
+        }
+      ],
+      "sourceId": "topic_channels",
+      "targetId": "decision_ready",
+      "label": "handoff",
+      "strokeColor": "#C2255C"
+    }
+  ]
+}

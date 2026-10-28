@@ -1,0 +1,241 @@
+{
+  "outputMode": "draw",
+  "summary": "Product-launch workshop whiteboard with two spacious titled frames: Explore and Decide. Includes brainstorming circles, a divider line, standalone notes, arrows, a readiness decision diamond, a pen-stroke emphasis mark, and a single action card. Cross-frame flow arrow is routed outside the frames with generous spacing.",
+  "elements": [
+    {
+      "id": "frame_explore",
+      "type": "frame",
+      "x": 80,
+      "y": 80,
+      "width": 760,
+      "height": 520,
+      "name": "Explore",
+      "children": [
+        "topic_users",
+        "topic_market",
+        "topic_channels",
+        "note_explore",
+        "divider_line",
+        "arrow_users_market",
+        "arrow_market_channels",
+        "pen_emphasis"
+      ]
+    },
+    {
+      "id": "frame_decide",
+      "type": "frame",
+      "x": 1120,
+      "y": 80,
+      "width": 760,
+      "height": 520,
+      "name": "Decide",
+      "children": [
+        "decision_ready",
+        "action_card",
+        "note_decide",
+        "arrow_ready_action"
+      ]
+    },
+    {
+      "id": "topic_users",
+      "type": "ellipse",
+      "x": 170,
+      "y": 170,
+      "width": 170,
+      "height": 90,
+      "label": "Customer needs",
+      "strokeColor": "#1F3A5F",
+      "backgroundColor": "#DCEBFF"
+    },
+    {
+      "id": "topic_market",
+      "type": "ellipse",
+      "x": 470,
+      "y": 170,
+      "width": 170,
+      "height": 90,
+      "label": "Market timing",
+      "strokeColor": "#1F3A5F",
+      "backgroundColor": "#DCEBFF"
+    },
+    {
+      "id": "topic_channels",
+      "type": "ellipse",
+      "x": 320,
+      "y": 360,
+      "width": 200,
+      "height": 90,
+      "label": "Launch channels",
+      "strokeColor": "#1F3A5F",
+      "backgroundColor": "#DCEBFF"
+    },
+    {
+      "id": "note_explore",
+      "type": "text",
+      "x": 170,
+      "y": 500,
+      "text": "Capture open questions and assumptions before committing to launch scope.",
+      "fontSize": 18,
+      "strokeColor": "#444444"
+    },
+    {
+      "id": "divider_line",
+      "type": "line",
+      "points": [
+        {
+          "x": 410,
+          "y": 140
+        },
+        {
+          "x": 410,
+          "y": 540
+        }
+      ],
+      "sourceId": null,
+      "targetId": null,
+      "label": "",
+      "strokeColor": "#888888"
+    },
+    {
+      "id": "arrow_users_market",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 340,
+          "y": 215
+        },
+        {
+          "x": 470,
+          "y": 215
+        }
+      ],
+      "sourceId": "topic_users",
+      "targetId": "topic_market",
+      "label": "signals",
+      "strokeColor": "#2E7D32"
+    },
+    {
+      "id": "arrow_market_channels",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 555,
+          "y": 260
+        },
+        {
+          "x": 440,
+          "y": 360
+        }
+      ],
+      "sourceId": "topic_market",
+      "targetId": "topic_channels",
+      "label": "plan",
+      "strokeColor": "#2E7D32"
+    },
+    {
+      "id": "pen_emphasis",
+      "type": "freedraw",
+      "points": [
+        {
+          "x": 300,
+          "y": 455
+        },
+        {
+          "x": 340,
+          "y": 470
+        },
+        {
+          "x": 380,
+          "y": 458
+        },
+        {
+          "x": 420,
+          "y": 474
+        },
+        {
+          "x": 460,
+          "y": 462
+        }
+      ],
+      "sourceId": null,
+      "targetId": null,
+      "label": "",
+      "strokeColor": "#D9480F"
+    },
+    {
+      "id": "decision_ready",
+      "type": "diamond",
+      "x": 1320,
+      "y": 190,
+      "width": 220,
+      "height": 140,
+      "label": "Ready to launch?",
+      "strokeColor": "#7A1FA2",
+      "backgroundColor": "#F3E8FF"
+    },
+    {
+      "id": "action_card",
+      "type": "rectangle",
+      "x": 1300,
+      "y": 420,
+      "width": 260,
+      "height": 100,
+      "label": "Finalize launch checklist",
+      "strokeColor": "#8B5E00",
+      "backgroundColor": "#FFF3BF"
+    },
+    {
+      "id": "note_decide",
+      "type": "text",
+      "x": 1260,
+      "y": 540,
+      "text": "Decision criteria: confidence, support coverage, and timing alignment.",
+      "fontSize": 18,
+      "strokeColor": "#444444"
+    },
+    {
+      "id": "arrow_ready_action",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1430,
+          "y": 330
+        },
+        {
+          "x": 1430,
+          "y": 420
+        }
+      ],
+      "sourceId": "decision_ready",
+      "targetId": "action_card",
+      "label": "yes",
+      "strokeColor": "#7A1FA2"
+    },
+    {
+      "id": "cross_frame_arrow",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 845,
+          "y": 340
+        },
+        {
+          "x": 980,
+          "y": 340
+        },
+        {
+          "x": 980,
+          "y": 180
+        },
+        {
+          "x": 1315,
+          "y": 180
+        }
+      ],
+      "sourceId": null,
+      "targetId": "decision_ready",
+      "label": "synthesize findings",
+      "strokeColor": "#5555AA"
+    }
+  ]
+}

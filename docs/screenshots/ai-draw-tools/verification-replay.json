@@ -1,0 +1,31 @@
+{
+  "url": "http://127.0.0.1:3057/",
+  "live": false,
+  "source_proposal": "docs/screenshots/ai-draw-tools/captured-diagonal-proposal.json",
+  "checks": [
+    "eight supported tools appear in welcome and full Draw prompts, and stay hidden for Flowchart",
+    "preview leaves document unchanged and renders native frame titles",
+    "all requested native tool types and frame membership survive insertion",
+    "fitted labels remain whole and inside their frames",
+    "one undo and redo retain the whole generated scene",
+    "generated line accepts a native property edit and undo",
+    "dragging a generated frame moves its members once, preserves the other frame, and undoes atomically",
+    "reload retains native tools, geometry, and frame links",
+    "JSON export retains the exact scene; SVG includes every native type, frame title, and clipping definitions",
+    "no browser page errors"
+  ],
+  "http_status": 200,
+  "request_id": null,
+  "native_type_counts": {
+    "frame": 2,
+    "ellipse": 3,
+    "text": 11,
+    "line": 1,
+    "arrow": 4,
+    "freedraw": 1,
+    "diamond": 1,
+    "rectangle": 1
+  },
+  "frame_count": 2,
+  "frame_member_count": 20
+}
