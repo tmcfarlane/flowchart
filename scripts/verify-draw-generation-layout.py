@@ -13,6 +13,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('url', nargs='?', default='http://127.0.0.1:3055/')
 parser.add_argument('--baseline', action='store_true')
 parser.add_argument('--live', action='store_true')
+parser.add_argument('--proposal', type=Path)
+parser.add_argument('--horizontal', choices=['before', 'after'])
 parser.add_argument('--output', type=Path, default=ROOT / 'docs/screenshots/draw-generation-layout')
 args = parser.parse_args()
 
@@ -34,6 +36,8 @@ for index, label in enumerate(labels):
         elements.append({'id': f'arrow-{index}', 'type': 'arrow', 'points': [{'x': index * 200 - 20, 'y': 255}, {'x': index * 200, 'y': 255}], 'sourceId': f'card-{index - 1}', 'targetId': f'card-{index}', 'label': '', 'strokeColor': '#64748b'})
 elements.append({'id': 'note', 'type': 'rectangle', 'x': 90, 'y': 400, 'width': 800, 'height': 90, 'label': 'If mornings feel especially hard, shift bedtime earlier in small steps and make sure you are getting enough sleep.', 'strokeColor': '#334155', 'backgroundColor': '#f1f5f9'})
 fixture_proposal = {'outputMode': 'draw', 'summary': 'Five small habits for gentler mornings.', 'elements': elements}
+if args.proposal:
+    fixture_proposal = json.loads(args.proposal.read_text())
 empty = {'version': 4, 'mode': 'draw', 'nodes': [], 'edges': [], 'architectureScene': {'version': 1, 'elements': [], 'files': {}}}
 
 
@@ -80,7 +84,7 @@ def scene_checks(scene, baseline):
 
 async def run():
     args.output.mkdir(parents=True, exist_ok=True)
-    report = {'url': args.url, 'baseline': args.baseline, 'live': args.live, 'checks': []}
+    report = {'url': args.url, 'baseline': args.baseline, 'live': args.live, 'horizontal': args.horizontal, 'checks': []}
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(executable_path='/usr/bin/chromium', headless=True, args=['--no-sandbox'])
         try:
@@ -117,20 +121,31 @@ async def run():
             preview = page.get_by_role('dialog', name='Preview AI Proposal')
             await preview.wait_for(timeout=20000)
             assert await document(page) == before
-            prefix = '00-before' if args.baseline else 'live' if args.live else 'after'
+            prefix = f'horizontal-{args.horizontal}' if args.horizontal else '00-before' if args.baseline else 'live' if args.live else 'after'
             await capture(page, f'{prefix}-preview-dark.png')
             await preview.get_by_role('button', name='Insert into Canvas').click()
             await preview.wait_for(state='hidden')
             await page.wait_for_function('(key) => JSON.parse(localStorage.getItem(key)).architectureScene.elements.length > 0', arg=DRAFT)
             after = await document(page)
             report.update(scene_checks(after['architectureScene'], args.baseline))
+            if args.horizontal:
+                arrows = [item for item in after['architectureScene']['elements'] if item['type'] == 'arrow' and item.get('startBinding') and item.get('endBinding')]
+                offsets = [item['points'][-1][1] - item['points'][0][1] for item in arrows]
+                report['arrow_vertical_offsets'] = offsets
+                assert arrows and all(len(item['points']) == 2 for item in arrows)
+                if args.horizontal == 'before':
+                    assert any(abs(offset) > 0.001 for offset in offsets), offsets
+                else:
+                    assert all(abs(offset) < 0.000001 for offset in offsets), offsets
+                    assert all(item['points'][-1][0] > item['points'][0][0] for item in arrows)
+                    report['checks'].append('every connected row arrow is a straight horizontal left-to-right segment')
             report['checks'].extend(['preview leaves document unchanged', 'bound labels fit their rectangular hosts', 'insert creates editable native Draw records'])
             if args.live:
                 assert len(report['arrow_lengths']) >= 4, report
                 assert min(report['arrow_lengths']) >= 96, report
                 assert min(report['connected_shape_gaps']) >= 96, report
                 report['checks'].append('live model leaves at least 96 world pixels for every connected card gap and arrow')
-            elif not args.baseline:
+            elif not args.baseline and not args.proposal:
                 by_source = {item.get('originalText'): item for item in after['architectureScene']['elements'] if item['type'] == 'text'}
                 assert all('\n\n' in by_source[label]['text'] for label in labels)
                 report['checks'].append('fixture keeps complete words and explicit blank paragraphs')
@@ -164,7 +179,7 @@ async def run():
             await context.close()
         finally:
             await browser.close()
-    report_file = args.output / ('verification-before.json' if args.baseline else 'verification-live.json' if args.live else 'verification-after.json')
+    report_file = args.output / (f'verification-horizontal-{args.horizontal}.json' if args.horizontal else 'verification-before.json' if args.baseline else 'verification-live.json' if args.live else 'verification-after.json')
     report_file.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, indent=2))
 

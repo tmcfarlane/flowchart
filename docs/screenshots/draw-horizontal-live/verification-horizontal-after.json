@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:3056/",
+  "baseline": false,
+  "live": true,
+  "horizontal": "after",
+  "checks": [
+    "every connected row arrow is a straight horizontal left-to-right segment",
+    "preview leaves document unchanged",
+    "bound labels fit their rectangular hosts",
+    "insert creates editable native Draw records",
+    "live model leaves at least 96 world pixels for every connected card gap and arrow",
+    "one undo, redo, reload, and JSON export preserve the inserted scene",
+    "no browser page errors"
+  ],
+  "http_status": 200,
+  "request_id": "2a1df0d4-b59b-4a88-bf95-7313bcce7f83",
+  "broken_labels": [],
+  "fitted_label_count": 5,
+  "arrow_lengths": [
+    100.0,
+    100.0,
+    100.0,
+    100.0
+  ],
+  "connected_shape_gaps": [
+    100.0,
+    100.0,
+    100.0,
+    100.0
+  ],
+  "arrow_vertical_offsets": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "provider": {}
+}

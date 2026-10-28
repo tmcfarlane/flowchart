@@ -1,0 +1,151 @@
+{
+  "outputMode": "draw",
+  "summary": "A pastel left-to-right habit flow titled 'A gentler way to wake up' with five connected rectangular cards and a helpful note underneath.",
+  "elements": [
+    {
+      "id": "title_text",
+      "type": "text",
+      "x": 120,
+      "y": 60,
+      "text": "A gentler way to wake up",
+      "fontSize": 32,
+      "strokeColor": "#333333"
+    },
+    {
+      "id": "card_prepare",
+      "type": "rectangle",
+      "x": 80,
+      "y": 180,
+      "width": 240,
+      "height": 150,
+      "label": "Prepare tonight\nKeep a bedtime that you can follow most nights. Set out clothes, water, and anything you need before sleep.",
+      "strokeColor": "#7A6F5A",
+      "backgroundColor": "#F8E1E7"
+    },
+    {
+      "id": "card_steady",
+      "type": "rectangle",
+      "x": 420,
+      "y": 180,
+      "width": 240,
+      "height": 150,
+      "label": "Keep a steady time\nWake up at about the same time every day. A steady rhythm helps your body expect the morning.",
+      "strokeColor": "#6D6A75",
+      "backgroundColor": "#E6E4FA"
+    },
+    {
+      "id": "card_bed",
+      "type": "rectangle",
+      "x": 760,
+      "y": 180,
+      "width": 240,
+      "height": 150,
+      "label": "Get out of bed\nPlace your alarm across the room if needed. Stand up soon after waking so you do not drift back to sleep.",
+      "strokeColor": "#6A7A6F",
+      "backgroundColor": "#E4F6E8"
+    },
+    {
+      "id": "card_light",
+      "type": "rectangle",
+      "x": 1100,
+      "y": 180,
+      "width": 240,
+      "height": 150,
+      "label": "Find bright light\nOpen the curtains as early as you can. Bright morning light helps signal that the day has started.",
+      "strokeColor": "#8A7A55",
+      "backgroundColor": "#FFF2CC"
+    },
+    {
+      "id": "card_move",
+      "type": "rectangle",
+      "x": 1440,
+      "y": 180,
+      "width": 240,
+      "height": 150,
+      "label": "Move then begin\nStretch, walk, or do a few easy movements first. Start your first task after your body feels awake.",
+      "strokeColor": "#7A5F7A",
+      "backgroundColor": "#F3E3F8"
+    },
+    {
+      "id": "arrow_prepare_steady",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 320,
+          "y": 255
+        },
+        {
+          "x": 420,
+          "y": 255
+        }
+      ],
+      "sourceId": "card_prepare",
+      "targetId": "card_steady",
+      "label": "",
+      "strokeColor": "#666666"
+    },
+    {
+      "id": "arrow_steady_bed",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 660,
+          "y": 255
+        },
+        {
+          "x": 760,
+          "y": 255
+        }
+      ],
+      "sourceId": "card_steady",
+      "targetId": "card_bed",
+      "label": "",
+      "strokeColor": "#666666"
+    },
+    {
+      "id": "arrow_bed_light",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1000,
+          "y": 255
+        },
+        {
+          "x": 1100,
+          "y": 255
+        }
+      ],
+      "sourceId": "card_bed",
+      "targetId": "card_light",
+      "label": "",
+      "strokeColor": "#666666"
+    },
+    {
+      "id": "arrow_light_move",
+      "type": "arrow",
+      "points": [
+        {
+          "x": 1340,
+          "y": 255
+        },
+        {
+          "x": 1440,
+          "y": 255
+        }
+      ],
+      "sourceId": "card_light",
+      "targetId": "card_move",
+      "label": "",
+      "strokeColor": "#666666"
+    },
+    {
+      "id": "helpful_note",
+      "type": "text",
+      "x": 540,
+      "y": 420,
+      "text": "Helpful note: Small routines work better when they feel realistic. Adjust the steps slowly and keep the parts that make mornings calmer.",
+      "fontSize": 20,
+      "strokeColor": "#444444"
+    }
+  ]
+}
