@@ -1,6 +1,6 @@
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { DRAW_GENERATION_LIMITS, DrawProposalSchema, type DrawGenerationContext, type DrawProposal } from '../shared/drawGeneration'
-import { createElement, rerouteBindings, type DrawElement } from './drawScene'
+import { createElement, rerouteBindings, type DrawBinding, type DrawElement } from './drawScene'
 import { drawingTextSize } from './drawText'
 
 const shapeTypes = new Set(['rectangle', 'ellipse', 'diamond'])
@@ -48,6 +48,14 @@ function boundLabel(id: string, host: DrawElement, value: string, fontSize: numb
   })
 }
 
+function horizontalBinding(host: DrawElement, side: -1 | 1, y: number): DrawBinding {
+  const fraction = (y - host.y) / host.height
+  const offset = 2 * fraction - 1
+  const reach = host.type === 'ellipse' ? Math.sqrt(Math.max(0, 1 - offset * offset))
+    : host.type === 'diamond' ? 1 - Math.abs(offset) : 1
+  return { elementId: host.id, focus: 0, gap: 0, fixedPoint: [(1 + side * reach) / 2, fraction] }
+}
+
 export function drawProposalToScene(proposal: DrawProposal): ArchitectureScene {
   const parsed = DrawProposalSchema.parse(proposal)
   const occupied = new Set(parsed.elements.map(element => element.id))
@@ -89,6 +97,17 @@ export function drawProposalToScene(proposal: DrawProposal): ArchitectureScene {
     })
     elements.push(path)
     if (item.label) elements.push(boundLabel(nextLabelId(), path, item.label, 14, item.strokeColor))
+  }
+  const byId = new Map(elements.map(element => [element.id, element]))
+  for (const path of elements) {
+    if (path.type !== 'arrow' || path.points?.length !== 2 || !path.startBinding || !path.endBinding) continue
+    const [start, end] = path.points
+    if (start[1] !== end[1] || end[0] <= start[0]) continue
+    const source = byId.get(path.startBinding.elementId)!, target = byId.get(path.endBinding.elementId)!
+    const y = path.y + start[1]
+    if (source.x + source.width >= target.x || y < source.y || y > source.y + source.height || y < target.y || y > target.y + target.height) continue
+    path.startBinding = horizontalBinding(source, 1, y)
+    path.endBinding = horizontalBinding(target, -1, y)
   }
   return validateArchitectureScene(rerouteBindings({ version: 1, elements, files: {} }))
 }
