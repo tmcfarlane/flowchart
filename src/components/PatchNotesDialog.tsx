@@ -1,18 +1,23 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react'
+import { useLayoutEffect, useRef, type KeyboardEvent } from 'react'
 import { PATCH_NOTES } from '../patchNotes'
 import './PatchNotesDialog.css'
 
 export default function PatchNotesDialog({ onDismiss }: { onDismiss: () => void }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDialogElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const dialog = dialogRef.current
+    dialog?.showModal()
     closeRef.current?.focus()
-    return () => { if (previous?.isConnected) previous.focus() }
+    return () => {
+      dialog?.close()
+      if (previous?.isConnected) previous.focus()
+    }
   }, [])
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLDialogElement>) => {
     event.stopPropagation()
     if (event.key === 'Escape') {
       event.preventDefault()
@@ -21,13 +26,13 @@ export default function PatchNotesDialog({ onDismiss }: { onDismiss: () => void 
     if (event.key !== 'Tab') return
     const buttons = [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
     const first = buttons[0], last = buttons[buttons.length - 1]
-    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
-    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus() }
+    else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first?.focus() }
   }
 
   return (
-    <div className="patch-notes-overlay" onMouseDown={(event) => { if (event.target === event.currentTarget) onDismiss() }}>
-      <div ref={dialogRef} className="patch-notes-dialog" role="dialog" aria-modal="true" aria-labelledby="patch-notes-title" onKeyDown={handleKeyDown}>
+    <dialog ref={dialogRef} className="patch-notes-overlay" aria-modal="true" aria-labelledby="patch-notes-title" onKeyDown={handleKeyDown} onCancel={(event) => { event.preventDefault(); onDismiss() }} onMouseDown={(event) => { if (event.target === event.currentTarget) onDismiss() }}>
+      <div className="patch-notes-dialog">
         <div className="patch-notes-header">
           <div>
             <span className="patch-notes-eyebrow">FLOWCHART UPDATES</span>
@@ -54,6 +59,6 @@ export default function PatchNotesDialog({ onDismiss }: { onDismiss: () => void 
           <button className="patch-notes-done" onClick={onDismiss}>Got it</button>
         </div>
       </div>
-    </div>
+    </dialog>
   )
 }

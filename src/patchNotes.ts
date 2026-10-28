@@ -13,7 +13,7 @@ export const PATCH_NOTES: readonly [PatchNote, ...PatchNote[]] = [
     highlights: [
       'Text wraps naturally, keeping words together and labels easy to read.',
       'Clean connectors and clearer arrows keep your drawings readable in dark mode.',
-      'Organize your drawing with native, editable frames.',
+      'Organize your drawing with editable frames.',
       'Download the current board as an editable Excalidraw file.',
     ],
   },

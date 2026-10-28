@@ -6,6 +6,17 @@ import { PATCH_NOTES } from '../patchNotes'
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 describe('patch notes dialog', () => {
+  it('opens a native modal boundary and closes it before returning focus', () => {
+    const showModal = vi.spyOn(HTMLDialogElement.prototype, 'showModal')
+    const close = vi.spyOn(HTMLDialogElement.prototype, 'close')
+    const { unmount } = render(<PatchNotesDialog onDismiss={() => {}} />)
+    expect(screen.getByRole('dialog', { name: "What's new" })).toBeInstanceOf(HTMLDialogElement)
+    expect(showModal).toHaveBeenCalledOnce()
+    expect(screen.getByRole('dialog')).toHaveAttribute('open')
+    unmount()
+    expect(close).toHaveBeenCalledOnce()
+  })
+
   it('names the modal and shows the latest release with its date and highlights', () => {
     render(<PatchNotesDialog onDismiss={() => {}} />)
     const dialog = screen.getByRole('dialog', { name: "What's new" })
@@ -32,6 +43,38 @@ describe('patch notes dialog', () => {
     render(<PatchNotesDialog onDismiss={dismiss} />)
     fireEvent.mouseDown(screen.getByRole('heading', { name: PATCH_NOTES[0].title }))
     expect(dismiss).not.toHaveBeenCalled()
+  })
+
+  it('routes native cancellation through explicit dismissal', () => {
+    const dismiss = vi.fn()
+    render(<PatchNotesDialog onDismiss={dismiss} />)
+    const cancel = new Event('cancel', { cancelable: true })
+    fireEvent(screen.getByRole('dialog'), cancel)
+    expect(cancel.defaultPrevented).toBe(true)
+    expect(dismiss).toHaveBeenCalledOnce()
+  })
+
+  it('contains keyboard input and Tab navigation when the native modal itself has focus', () => {
+    const background = vi.fn()
+    window.addEventListener('keydown', background)
+    const dismiss = vi.fn()
+    render(<PatchNotesDialog onDismiss={dismiss} />)
+    const dialog = screen.getByRole('dialog')
+    dialog.tabIndex = -1
+    dialog.focus()
+    expect(dialog).toHaveFocus()
+    fireEvent.keyDown(dialog, { key: 'z', ctrlKey: true })
+    expect(background).not.toHaveBeenCalled()
+    fireEvent.keyDown(dialog, { key: 'Tab' })
+    expect(screen.getByRole('button', { name: 'Close patch notes' })).toHaveFocus()
+    dialog.focus()
+    fireEvent.keyDown(dialog, { key: 'Tab', shiftKey: true })
+    expect(screen.getByRole('button', { name: 'Got it' })).toHaveFocus()
+    dialog.focus()
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+    expect(dismiss).toHaveBeenCalledOnce()
+    expect(background).not.toHaveBeenCalled()
+    window.removeEventListener('keydown', background)
   })
 
   it('focuses close, traps both Tab directions, and restores a connected opener', () => {
