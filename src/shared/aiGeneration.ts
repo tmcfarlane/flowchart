@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { NODE_TYPES, EDGE_STYLES, HANDLE_POSITIONS, CONTAINER_KINDS, EDGE_PROTOCOLS, COMM_STYLES, type DiagramMode } from './flowTypes.js'
 import { DrawProposalSchema, type DrawProposal } from './drawGeneration.js'
+import { parseDrawDocument, type ExcalidrawDrawing } from './drawDocument.js'
 
 const id = z.string().min(1).max(100).regex(/^[^\u0000-\u001f\u007f]+$/)
 const contextEdgeId = z.string().min(1).max(200).regex(/^[^\u0000-\u001f\u007f]+$/)
@@ -81,12 +82,22 @@ export type GraphGenerationProposal = {
   nodes: WithoutNull<GraphWireProposal['nodes'][number]>[]
   edges: WithoutNull<GraphWireProposal['edges'][number]>[]
 }
-export type AIGenerationProposal = GraphGenerationProposal | DrawProposal
+export type AuthoringGenerationProposal = GraphGenerationProposal | DrawProposal
+export type FinalizedDrawProposal = {
+  outputMode: 'draw'
+  summary: string
+  proposal: DrawProposal
+  drawing: ExcalidrawDrawing
+}
+export type AIGenerationProposal = GraphGenerationProposal | FinalizedDrawProposal
 export type AIGenerationContext =
   | { flowContext: FlowGenerationContext; drawContext?: never }
   | { drawContext: import('./drawGeneration.js').DrawGenerationContext; flowContext?: never }
 
-export function normalizeGenerationProposal(value: unknown, outputMode: DiagramMode): AIGenerationProposal {
+export function normalizeGenerationProposal(value: unknown, outputMode: 'draw'): DrawProposal
+export function normalizeGenerationProposal(value: unknown, outputMode: 'flowchart' | 'architecture'): GraphGenerationProposal
+export function normalizeGenerationProposal(value: unknown, outputMode: DiagramMode): AuthoringGenerationProposal
+export function normalizeGenerationProposal(value: unknown, outputMode: DiagramMode): AuthoringGenerationProposal {
   const proposal = AIGenerationProposalSchema.parse(value)
   if (proposal.outputMode !== outputMode) throw new Error('AI proposal output mode does not match the requested mode.')
   if (proposal.outputMode === 'draw') return proposal
@@ -97,7 +108,16 @@ export function normalizeGenerationProposal(value: unknown, outputMode: DiagramM
   }
 }
 
-export function parseGenerationProposal(content: string, outputMode: DiagramMode, finishReason?: string): AIGenerationProposal {
+export function parseGenerationProposal(content: string, outputMode: DiagramMode, finishReason?: string): AuthoringGenerationProposal {
   if (finishReason === 'length') throw new Error('AI reached its response limit. Try a simpler diagram.')
   return normalizeGenerationProposal(JSON.parse(content), outputMode)
+}
+
+/** Validate the finalized API boundary without changing any drawing geometry. */
+export function parseGenerationResponse(value: unknown, outputMode: DiagramMode): AIGenerationProposal {
+  const response = z.object({ message: z.string(), finishReason: z.string().optional(), drawing: z.unknown().optional(), drawOverlaps: z.unknown().optional() }).parse(value)
+  const proposal = parseGenerationProposal(response.message, outputMode, response.finishReason)
+  if (proposal.outputMode !== 'draw') return proposal
+  const source = response.drawOverlaps === undefined ? proposal : DrawProposalSchema.parse({ ...proposal, overlaps: response.drawOverlaps })
+  return { outputMode: 'draw', summary: source.summary, proposal: source, drawing: parseDrawDocument(response.drawing) }
 }

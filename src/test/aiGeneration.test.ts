@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DrawGenerationContextSchema, DrawProposalSchema, DRAW_PROPOSAL_RESPONSE_FORMAT } from '../shared/drawGeneration'
-import { normalizeGenerationProposal, parseGenerationProposal } from '../shared/aiGeneration'
+import { drawingFromScene } from '../shared/drawDocument'
+import { normalizeGenerationProposal, parseGenerationProposal, parseGenerationResponse } from '../shared/aiGeneration'
 
 const shape = { id: 'box', type: 'rectangle', x: 0, y: 0, width: 180, height: 80, label: 'Plan', strokeColor: '#123', backgroundColor: 'transparent' }
 const arrow = { id: 'arrow', type: 'arrow', points: [{ x: 180, y: 40 }, { x: 300, y: 40 }], sourceId: 'box', targetId: null, label: 'Next', strokeColor: '#123456' }
@@ -116,5 +117,33 @@ describe('shared generation boundary', () => {
     expect(result).toMatchObject({ ...proposal, nodes: [proposal.nodes[0], { ...proposal.nodes[1], height: undefined }], edges: [{ ...proposal.edges[0], label: undefined }] })
     expect(() => normalizeGenerationProposal(proposal, 'flowchart')).toThrow()
     expect(() => normalizeGenerationProposal({ ...proposal, edges: [{ source: 'service', target: 'missing' }] }, 'architecture')).toThrow()
+  })
+})
+
+describe('finalized generation responses', () => {
+  const file = drawingFromScene({ version: 1, files: {}, elements: [
+    { id: 'box', type: 'rectangle', x: 18, y: 25, width: 240, height: 110, angle: 0, customData: { finalized: true } },
+    { id: 'arrow', type: 'arrow', x: 258, y: 80, width: 210, height: 75, angle: 0, points: [[0, 0], [80, 0], [80, 75], [210, 75]] },
+  ] })
+
+  it('requires a canonical Draw file and preserves its exact finalized geometry', () => {
+    const response = parseGenerationResponse({ message: JSON.stringify(drawing), drawing: file, finishReason: 'stop' }, 'draw')
+    expect(response).toEqual({ outputMode: 'draw', summary: drawing.summary, proposal: drawing, drawing: file })
+    expect(() => parseGenerationResponse({ message: JSON.stringify(drawing) }, 'draw')).toThrow()
+    expect(() => parseGenerationResponse({ message: JSON.stringify(drawing), drawing: { ...file, version: 1 } }, 'draw')).toThrow()
+    expect(() => parseGenerationResponse({ message: JSON.stringify(drawing), drawing: file, finishReason: 'length' }, 'draw')).toThrow('response limit')
+  })
+
+  it('reattaches only validated bounded overlap permissions from the additive wire field', () => {
+    const overlaps = [{ firstId: 'box', secondId: 'arrow', reason: 'overlay' }]
+    expect(parseGenerationResponse({ message: JSON.stringify(drawing), drawing: file, drawOverlaps: overlaps }, 'draw')).toMatchObject({ proposal: { ...drawing, overlaps } })
+    expect(() => parseGenerationResponse({ message: JSON.stringify(drawing), drawing: file, drawOverlaps: [{ ...overlaps[0], secondId: 'missing' }] }, 'draw')).toThrow()
+    expect(() => parseGenerationResponse({ message: JSON.stringify(drawing), drawing: file, drawOverlaps: Array(101).fill(overlaps[0]) }, 'draw')).toThrow()
+  })
+
+  it('retains the graph response contract', () => {
+    const graph = { outputMode: 'flowchart', summary: 'Simple', nodes: [], edges: [] }
+    expect(parseGenerationResponse({ message: JSON.stringify(graph), finishReason: 'stop' }, 'flowchart')).toEqual(graph)
+    expect(() => parseGenerationResponse({ message: JSON.stringify(graph) }, 'draw')).toThrow('output mode')
   })
 })
