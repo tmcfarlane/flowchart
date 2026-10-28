@@ -13,6 +13,31 @@ const graphShape = (snapshot: Record<string, unknown>) => ({
 const image = (container: HTMLElement) => container.querySelector<SVGImageElement>('image[data-semantic-icon]')
 const renderScene = (elements: Array<Record<string, unknown>>) => render(<svg><DrawSceneSvg elements={elements} files={{}} /></svg>)
 
+describe('custom Draw arrowheads', () => {
+  it('keeps thin open and filled tips distinct and large enough to see at reduced zoom', () => {
+    const elements = [
+      { id: 'thin', type: 'arrow', x: 0, y: 0, width: 120, height: 0, angle: 0, points: [[0, 0], [120, 0]], strokeWidth: 1, strokeColor: '#0f766e', startArrowhead: 'arrow', endArrowhead: 'triangle' },
+      { id: 'regular', type: 'arrow', x: 0, y: 50, width: 120, height: 0, angle: 0, points: [[0, 0], [120, 0]], strokeWidth: 2, strokeColor: '#0f766e', endArrowhead: 'arrow' },
+      { id: 'wide', type: 'arrow', x: 0, y: 100, width: 120, height: 0, angle: 0, points: [[0, 0], [120, 0]], strokeWidth: 4, strokeColor: '#0f766e', endArrowhead: 'arrow' },
+    ]
+    const before = JSON.stringify(elements)
+    const { container } = renderScene(elements)
+    const thin = container.querySelector('[data-element-id="thin"]')!
+    const regular = container.querySelector('[data-element-id="regular"]')!
+    const wide = container.querySelector('[data-element-id="wide"]')!
+    const [open, filled] = thin.querySelectorAll('marker path')
+    expect(open).toHaveAttribute('d', 'M -16 -8 L 0 0 L -16 8')
+    expect(open).toHaveAttribute('fill', 'none')
+    expect(filled).toHaveAttribute('d', 'M -16 -8 L 0 0 L -16 8 Z')
+    expect(filled).toHaveAttribute('fill', '#0f766e')
+    expect(regular.querySelector('marker path')).toHaveAttribute('d', 'M -16 -8 L 0 0 L -16 8')
+    expect(wide.querySelector('marker path')).toHaveAttribute('d', 'M -16 -8 L 0 0 L -16 8')
+    expect(thin.querySelector('marker')).toHaveAttribute('orient', 'auto-start-reverse')
+    expect(thin.querySelector('path[marker-start][marker-end]')).toBeInTheDocument()
+    expect(JSON.stringify(elements)).toBe(before)
+  })
+})
+
 describe('custom Draw semantic icons', () => {
   it('shows a stable Azure icon on the original projected shape without adding scene objects', () => {
     const element = graphShape({ icon: 'azure-app-services', imageUrl: 'https://example.com/fallback.png' })
