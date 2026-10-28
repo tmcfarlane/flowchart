@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { validateArchitectureScene, type ArchitectureScene } from '../shared/architectureScene'
 import { DrawGenerationContextSchema, type DrawProposal } from '../shared/drawGeneration'
 import { captureDrawGenerationContext, drawProposalToScene } from '../utils/drawGeneration'
-import { getWorldPoints, moveElements, type DrawElement } from '../utils/drawScene'
+import { getWorldPoints, moveElements, rerouteBindings, type DrawElement } from '../utils/drawScene'
 import { prepareSceneInsertion } from '../utils/excalidrawImport'
 import { drawingTextSize } from '../utils/drawText'
 
@@ -18,6 +18,14 @@ const proposal: DrawProposal = {
 }
 
 const element = (scene: ArchitectureScene, id: string) => scene.elements.find(item => item.id === id) as DrawElement
+
+const horizontalProposal: DrawProposal = {
+  outputMode: 'draw', summary: '', elements: [
+    { id: 'arrow', type: 'arrow', points: [{ x: 320, y: 265 }, { x: 900, y: 265 }], sourceId: 'left', targetId: 'right', label: 'Next', strokeColor: '#123456' },
+    { id: 'left', type: 'rectangle', x: 80, y: 180, width: 240, height: 170, label: 'Prepare tonight\nSet out clothes, water, and anything you need for the morning. Keep a bedtime that gives you enough time to sleep.', strokeColor: '#123456', backgroundColor: '#ffffff' },
+    { id: 'right', type: 'rectangle', x: 900, y: 180, width: 240, height: 170, label: 'Keep a steady time', strokeColor: '#123456', backgroundColor: '#ffffff' },
+  ],
+}
 
 describe('native Draw generation', () => {
   it('materializes editable shapes, independent objects, measured text, and bound arrows', () => {
@@ -56,6 +64,65 @@ describe('native Draw generation', () => {
     expect(getWorldPoints(element(moved, arrow.id))[0]).not.toEqual(before)
     expect(element(moved, label.id)).toMatchObject({ containerId: left.id })
     expect(validateArchitectureScene(moved)).toBe(moved)
+  })
+
+  it('keeps a horizontal arrow straight after unequal label growth, insertion and rerouting', () => {
+    const drawing = drawProposalToScene(horizontalProposal)
+    expect(element(drawing, 'left').height).toBeGreaterThan(170)
+    expect(element(drawing, 'right').height).toBe(170)
+    const points = getWorldPoints(element(drawing, 'arrow'))
+    expect(points[0]).toEqual({ x: 320, y: 265 })
+    expect(points[1]).toEqual({ x: 900, y: 265 })
+    expect(rerouteBindings(rerouteBindings(drawing))).toEqual(drawing)
+    expect(element(drawing, 'arrow').startBinding?.elementId).toBe('left')
+    expect(element(drawing, 'arrow').endBinding?.elementId).toBe('right')
+    expect(element(drawing, 'left').boundElements).toContainEqual({ id: 'arrow', type: 'arrow' })
+
+    const inserted = prepareSceneInsertion(drawing, undefined, { x: 600, y: 400 })
+    const arrow = inserted.elements.find(item => item.type === 'arrow') as DrawElement
+    const before = getWorldPoints(arrow)
+    const moved = moveElements(inserted, [arrow.startBinding!.elementId], { x: 30, y: 0 })
+    const after = getWorldPoints(element(moved, arrow.id))
+    expect(after[0].x).toBeCloseTo(before[0].x + 30)
+    expect(after[0].y).toBeCloseTo(before[0].y)
+    expect(after[1]).toEqual(before[1])
+    expect(after[0].y).toBeCloseTo(after[1].y)
+  })
+
+  it.each(['ellipse', 'diamond'] as const)('attaches horizontal arrows to the fitted %s contour', type => {
+    const drawing = drawProposalToScene({ ...horizontalProposal, elements: horizontalProposal.elements.map(item => item.type === 'rectangle' ? { ...item, type } : item) })
+    const points = getWorldPoints(element(drawing, 'arrow'))
+    for (const [index, id] of ['left', 'right'].entries()) {
+      const host = element(drawing, id), point = points[index]
+      const dx = (point.x - host.x - host.width / 2) / (host.width / 2)
+      const dy = (point.y - host.y - host.height / 2) / (host.height / 2)
+      expect(point.y).toBeCloseTo(265)
+      expect(type === 'ellipse' ? dx * dx + dy * dy : Math.abs(dx) + Math.abs(dy)).toBeCloseTo(1)
+      expect(index === 0 ? dx : -dx).toBeGreaterThan(0)
+    }
+    expect(rerouteBindings(rerouteBindings(drawing))).toEqual(drawing)
+  })
+
+  it('accepts horizontal proposal points inside their bound hosts', () => {
+    const drawing = drawProposalToScene({ ...horizontalProposal, elements: horizontalProposal.elements.map(item => item.type === 'arrow' ? { ...item, points: [{ x: 200, y: 265 }, { x: 1020, y: 265 }] } : item) })
+    expect(getWorldPoints(element(drawing, 'arrow'))).toEqual([{ x: 320, y: 265 }, { x: 900, y: 265 }])
+  })
+
+  it.each([
+    { name: 'diagonal', points: [{ x: 320, y: 265 }, { x: 900, y: 270 }] },
+    { name: 'small deliberate diagonal', points: [{ x: 320, y: 265 }, { x: 900, y: 265.00000001 }] },
+    { name: 'bent', points: [{ x: 320, y: 265 }, { x: 600, y: 300 }, { x: 900, y: 265 }] },
+    { name: 'vertical', points: [{ x: 320, y: 265 }, { x: 320, y: 400 }] },
+    { name: 'reversed', points: [{ x: 900, y: 265 }, { x: 320, y: 265 }], sourceId: 'right', targetId: 'left' },
+    { name: 'unbound', points: [{ x: 320, y: 265 }, { x: 900, y: 265 }], sourceId: null, targetId: null },
+    { name: 'single-bound', points: [{ x: 320, y: 265 }, { x: 900, y: 265 }], targetId: null },
+    { name: 'outside the common lane', points: [{ x: 320, y: 100 }, { x: 900, y: 100 }] },
+  ])('preserves existing routing for a $name arrow', ({ name: _name, ...changes }) => {
+    const drawing = drawProposalToScene({ ...horizontalProposal, elements: horizontalProposal.elements.map(item => item.type === 'arrow' ? { ...item, ...changes } : item) })
+    const arrow = element(drawing, 'arrow')
+    expect(arrow.startBinding?.fixedPoint).toBeUndefined()
+    expect(arrow.endBinding?.fixedPoint).toBeUndefined()
+    if (changes.points.length > 2) expect(getWorldPoints(arrow)[1]).toEqual(changes.points[1])
   })
 
   it.each(['diamond', 'ellipse'] as const)('fits wrapped text inside a %s outline', type => {
