@@ -257,11 +257,14 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     return { x: (point.x - (rect?.left ?? 0) - view.x) / view.zoom, y: (point.y - (rect?.top ?? 0) - view.y) / view.zoom }
   }, [])
   const fitScene = useCallback(() => {
-    const rect = surface.current?.getBoundingClientRect()
-    if (!rect || !rect.width || !rect.height) return
+    const canvas = surface.current
+    if (!canvas) return
+    const rect = canvas.getBoundingClientRect()
+    if (!rect.width || !rect.height) return
     const bounds = getSceneBounds(draftRef.current.elements)
     if (!bounds.width && !bounds.height) { setViewport({ x: 0, y: 0, zoom: 1 }); return }
-    const zoom = Math.max(0.1, Math.min(1.4, (rect.width - 340) / Math.max(1, bounds.width), (rect.height - 170) / Math.max(1, bounds.height)))
+    const inlineReserve = Number(getComputedStyle(canvas).getPropertyValue('--draw-fit-inline-reserve'))
+    const zoom = Math.max(0.1, Math.min(1.4, (rect.width - inlineReserve) / Math.max(1, bounds.width), (rect.height - 170) / Math.max(1, bounds.height)))
     setViewport({ x: (rect.width - bounds.width * zoom) / 2 - bounds.x * zoom, y: (rect.height - bounds.height * zoom) / 2 - bounds.y * zoom + 18, zoom })
   }, [])
 

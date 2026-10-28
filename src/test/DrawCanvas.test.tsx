@@ -51,6 +51,21 @@ function drawRectangle(surface: HTMLElement) {
 }
 
 describe('custom Draw canvas', () => {
+  it('fits within the current layout reserve without changing the drawing or its history', () => {
+    vi.spyOn(SVGElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 390, 720))
+    const initial = { ...empty(), elements: [{ ...rectangle('box', 100), width: 500 }] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    surface.style.setProperty('--draw-fit-inline-reserve', '40')
+    fireEvent.click(screen.getByRole('button', { name: 'Fit drawing' }))
+    expect(surface.querySelector('[data-draw-viewport]')).toHaveAttribute('transform', 'translate(-50 273) scale(0.7)')
+    surface.style.setProperty('--draw-fit-inline-reserve', '140')
+    fireEvent.click(screen.getByRole('button', { name: 'Fit drawing' }))
+    expect(surface.querySelector('[data-draw-viewport]')).toHaveAttribute('transform', 'translate(20 303) scale(0.5)')
+    expect(scene()).toEqual(initial)
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Undo drawing' })).toBeDisabled()
+  })
+
   it('switches inspectors without losing selection, edits, or history', () => {
     const { surface, scene, onCommit } = renderDrawing({ ...empty(), elements: [rectangle('box', 100)] })
     fireEvent.pointerDown(surface.querySelector('[data-element-id="box"]')!, pointer(160, 150))

@@ -1,4 +1,4 @@
-.draw-canvas { position: absolute; inset: 88px 0 0; overflow: hidden; outline: none; --draw-panel: #fff; --draw-text: #263f36; --draw-muted: #6b7f77; --draw-border: #dbe8e2; --draw-accent: #087f67; --draw-hover: #e5f8ef; background: #fff; color: var(--draw-text); font-family: inherit; }
+.draw-canvas { position: absolute; inset: 88px 0 0; overflow: hidden; outline: none; --draw-fit-inline-reserve: 340; --draw-panel: #fff; --draw-text: #263f36; --draw-muted: #6b7f77; --draw-border: #dbe8e2; --draw-accent: #087f67; --draw-hover: #e5f8ef; background: #fff; color: var(--draw-text); font-family: inherit; }
 .draw-canvas.draw-dark { --draw-panel: #19231f; --draw-text: #e7eceb; --draw-muted: #9dafab; --draw-border: #34463e; --draw-accent: #78fcd6; --draw-hover: #27483d; background: #0f1211; }
 .draw-surface { display: block; touch-action: none; user-select: none; }
 .draw-surface.is-panning, .draw-surface.is-panning * { cursor: grabbing !important; }
@@ -74,7 +74,7 @@
 .draw-locked-selection button { min-height: 34px; border: 1px solid var(--draw-accent); border-radius: 6px; background: var(--draw-hover); color: var(--draw-text); font-size: 12px; font-weight: 600; }
 
 @media (max-width: 900px), (max-height: 500px) and (pointer: coarse) {
-  .draw-canvas { inset-block-start: var(--chrome-bottom); }
+  .draw-canvas { inset-block-start: var(--chrome-bottom); --draw-fit-inline-reserve: 32; }
   .draw-canvas.draw-presentation, .draw-local-view .draw-canvas { inset: 0; }
   .draw-tools-shell {
     top: 0;
@@ -86,6 +86,7 @@
     gap: 4px;
     height: var(--navigation-block);
   }
+  .draw-tools-shell:has(.draw-extra-menu) { z-index: 10; }
   .draw-tools-scroll { flex: 1; gap: 2px; height: 44px; }
   .draw-tools button { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
   .draw-tools button small { display: none; }
