@@ -3,6 +3,8 @@ import { createServer, type Server } from 'node:http'
 import { readFileSync } from 'node:fs'
 import { parseGenerationResponse } from '../../shared/aiGeneration'
 import { parseDrawDocument } from '../../shared/drawDocument'
+import { compileDrawProposal } from '../../shared/drawCompiler'
+import { DrawProposalSchema } from '../../shared/drawGeneration'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleChat, type ChatContext, type AiEvent } from '../../shared/server/chat'
@@ -273,6 +275,19 @@ describe('native Draw generation', () => {
     expect(body.messages[0].content).not.toContain('Create an architecture diagram')
   })
 
+  it('keeps the maintained clean examples complete and compilable', () => {
+    const guide = readFileSync('api/draw-generation-skill.md', 'utf8')
+    const examples = [...guide.matchAll(/```json\n([\s\S]*?)\n```/g)].map(match => DrawProposalSchema.parse(JSON.parse(match[1])))
+    expect(examples).toHaveLength(2)
+    for (const example of examples) {
+      const result = compileDrawProposal(example)
+      expect(result.ok ? [] : result.issues).toEqual([])
+    }
+    expect(examples[0].elements.filter(element => element.type === 'arrow')).toMatchObject([{ points: [{ x: 200, y: 50 }, { x: 360, y: 50 }] }])
+    expect(examples[1].elements.some(element => element.type === 'diamond')).toBe(true)
+    expect(examples[1].elements.filter(element => element.type === 'arrow').map(element => element.label)).toEqual(['Yes', 'No'])
+  })
+
   it('keeps legacy source JSON compatible and transports overlap permissions separately', async () => {
     const plan = { outputMode: 'draw', summary: 'Venn circles', elements: [
       { id: 'left', type: 'ellipse', x: 0, y: 0, width: 240, height: 180, label: 'A', strokeColor: '#123', backgroundColor: 'transparent' },
@@ -287,12 +302,12 @@ describe('native Draw generation', () => {
     expect(parseGenerationResponse(result, 'draw')).toMatchObject({ proposal: plan })
   })
 
-  it('repairs invalid geometry once and returns only the finalized repaired file', async () => {
+  it('repairs layout once, accepting reordered elements and a paraphrased summary', async () => {
     const crowded = { outputMode: 'draw', summary: 'Two cards', elements: [
       { id: 'left', type: 'rectangle', x: 0, y: 0, width: 200, height: 100, label: 'Plan', strokeColor: '#123', backgroundColor: 'transparent' },
       { id: 'right', type: 'rectangle', x: 80, y: 0, width: 200, height: 100, label: 'Result', strokeColor: '#123', backgroundColor: 'transparent' },
     ], overlaps: [] }
-    const repaired = { ...crowded, elements: crowded.elements.map(element => element.id === 'right' ? { ...element, x: 400 } : element) }
+    const repaired = { ...crowded, summary: 'Two well-spaced cards', elements: crowded.elements.map(element => element.id === 'right' ? { ...element, x: 400 } : element).reverse() }
     const fetcher = vi.fn().mockResolvedValueOnce(upstream(crowded)).mockResolvedValueOnce(upstream(repaired))
     const ctx = context(ENV, fetcher)
     const result = await post(await server(ctx), DRAW_REQUEST)
@@ -303,8 +318,31 @@ describe('native Draw generation', () => {
     expect(JSON.parse(retryMessages.at(-2).content)).toEqual(crowded)
     const body = await result.json()
     expect(body.drawing.elements.find((element: { id: string }) => element.id === 'right').x).toBe(400)
+    expect(JSON.parse(body.message).summary).toBe('Two well-spaced cards')
     expect(body.drawOverlaps).toBeUndefined()
     expect(ctx.dependencies.report).toHaveBeenCalledWith(expect.objectContaining({ attempts: 2, inputTokens: 200, outputTokens: 100 }))
+  })
+
+  it.each(['drop', 'add', 'type', 'label', 'color'] as const)('rejects a quality repair that changes drawing intent: %s', async mutation => {
+    const crowded = DrawProposalSchema.parse({ outputMode: 'draw', summary: 'Prepare and publish', elements: [
+      { id: 'prepare', type: 'rectangle', x: 0, y: 0, width: 200, height: 100, label: 'Prepare', strokeColor: '#123', backgroundColor: 'transparent' },
+      { id: 'publish', type: 'rectangle', x: 80, y: 0, width: 200, height: 100, label: 'Publish', strokeColor: '#123', backgroundColor: 'transparent' },
+    ] })
+    const moved = { ...crowded, elements: crowded.elements.map(element => element.id === 'publish' ? { ...element, x: 400 } : element) }
+    const repaired = mutation === 'drop' ? { ...moved, elements: [moved.elements[0]] }
+      : mutation === 'add' ? { ...moved, elements: [...moved.elements, { ...moved.elements[0], id: 'extra', x: 800 }] }
+      : { ...moved, elements: moved.elements.map(element => element.id !== 'publish' ? element
+        : mutation === 'type' ? { ...element, type: 'ellipse' }
+          : mutation === 'label' ? { ...element, label: 'Delete' }
+            : { ...element, strokeColor: '#ff0000' }) }
+    expect(compileDrawProposal(DrawProposalSchema.parse(repaired)).ok).toBe(true)
+    const fetcher = vi.fn().mockResolvedValueOnce(upstream(crowded)).mockResolvedValueOnce(upstream(repaired))
+    const result = await post(await server(context(ENV, fetcher)), DRAW_REQUEST)
+    expect(result.status).toBe(502)
+    const body = await result.json()
+    expect(body).toMatchObject({ code: 'invalid_layout', error: expect.stringContaining('preserving its content') })
+    expect(body.drawing).toBeUndefined()
+    expect(fetcher).toHaveBeenCalledTimes(2)
   })
 
   it('rejects expanded overlap permissions during repair and never makes a third provider request', async () => {

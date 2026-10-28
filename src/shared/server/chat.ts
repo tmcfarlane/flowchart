@@ -104,6 +104,12 @@ The user will preview and apply these operations atomically. If the requested ch
   return [{ role: 'system', content: system }, ...request.messages]
 }
 
+function drawRepairIntent(plan: DrawProposal): string {
+  const layoutFields = new Set(['x', 'y', 'width', 'height', 'points'])
+  return JSON.stringify([...plan.elements].sort((first, second) => first.id.localeCompare(second.id))
+    .map(element => Object.fromEntries(Object.entries(element).filter(([field]) => !layoutFields.has(field)))))
+}
+
 function defaultAdmission(env: AiEnv, config: AiConfig): AiAdmission {
   const key = JSON.stringify([config.environment, config.admissionStore, config.clientPerMinute, config.globalPerMinute, config.dailyBudgetMicros, config.concurrency, env.KV_REST_API_URL, env.KV_REST_API_TOKEN, env.UPSTASH_REDIS_REST_URL, env.UPSTASH_REDIS_REST_TOKEN])
   let admission = defaultAdmissions.get(key)
@@ -221,6 +227,7 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
     const endpoint = providerEndpoint(route)
     let responseFormat: unknown = (request.mode === 'edit' || request.mode === 'draw-edit') ? { type: 'json_object' } : request.diagramMode === 'draw' ? DRAW_PROPOSAL_RESPONSE_FORMAT : PROPOSAL_RESPONSE_FORMAT
     let originalOverlapScope: Set<string> | undefined
+    let originalDrawIntent: string | undefined
     const overlapKey = (pair: NonNullable<DrawProposal['overlaps']>[number]) => JSON.stringify([[pair.firstId, pair.secondId].sort(), pair.reason])
     for (let attempt = 0; attempt < 2; attempt++) {
       if (!aiEnabled(context.env)) throw new ChatFailure(503, 'disabled', 'AI is currently disabled. You can still edit the canvas.')
@@ -291,6 +298,9 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
           const validated = DrawProposalSchema.safeParse(proposal)
           if (!validated.success) throw new ChatFailure(502, 'invalid_diagram', 'AI returned an invalid drawing. Please try again.')
           const plan = validated.data
+          if (originalDrawIntent !== undefined && drawRepairIntent(plan) !== originalDrawIntent) {
+            throw new ChatFailure(502, 'invalid_layout', 'AI could not produce a clear drawing while preserving its content. Try a simpler layout.')
+          }
           const allowedOverlaps = originalOverlapScope
           if (allowedOverlaps && (plan.overlaps ?? []).some(pair => !allowedOverlaps.has(overlapKey(pair)))) {
             throw new ChatFailure(502, 'invalid_layout', 'AI could not produce a clear drawing. Try a simpler layout.')
@@ -299,8 +309,9 @@ export async function handleChat(req: ApiRequest, res: ServerResponse, context: 
           if (!compiled.ok) {
             if (attempt === 0) {
               originalOverlapScope = new Set((plan.overlaps ?? []).map(overlapKey))
+              originalDrawIntent = drawRepairIntent(plan)
               const issues = compiled.issues.slice(0, 20).map(issue => ({ code: issue.code, elementIds: issue.elementIds.slice(0, 10), detail: issue.detail.slice(0, 300) }))
-              messages.push({ role: 'assistant', content: JSON.stringify(plan) }, { role: 'user', content: `Repair this drawing plan's layout. Return the complete authoring JSON, preserving the requested content and existing IDs. Do not add any overlap permission. Fix these bounded quality findings: ${JSON.stringify(issues)}` })
+              messages.push({ role: 'assistant', content: JSON.stringify(plan) }, { role: 'user', content: `Repair this drawing plan's layout. Return the complete authoring JSON. Preserve the complete ID/type set, labels, text, names, colors, font sizes, endpoint bindings, and frame children verbatim. Change only x/y, width/height, or path points, and optionally remove existing overlap permissions. Do not add or remove elements or add any overlap permission. Fix these bounded quality findings: ${JSON.stringify(issues)}` })
               continue
             }
             throw new ChatFailure(502, 'invalid_layout', 'AI could not produce a clear drawing. Try a simpler layout.')
