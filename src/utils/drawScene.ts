@@ -126,6 +126,15 @@ export function expandSelection(scene: ArchitectureScene, ids: Iterable<string>,
   return [...selected]
 }
 
+export function lockedElementIds(scene: ArchitectureScene): Set<string> {
+  return new Set(expandSelection(scene, sceneElements(scene).filter(element => element.locked && !element.isDeleted).map(element => element.id), true))
+}
+
+export function editableSelection(scene: ArchitectureScene, ids: Iterable<string>, deep = true): string[] {
+  const locked = lockedElementIds(scene)
+  return expandSelection(scene, ids, deep).filter(id => !locked.has(id))
+}
+
 /** Reconstruct local path coordinates after endpoint edits without discarding
  * its rotation, intermediate points, freehand pressures or unknown fields. */
 function withWorldPoints(element: DrawElement, world: Point[]): DrawElement {
@@ -196,9 +205,10 @@ export function positionBoundText(element: DrawElement, container: DrawElement):
 /** Update bindings after transforms and rebuild reciprocal references. */
 export function rerouteBindings(scene: ArchitectureScene, changedIds?: Iterable<string>): ArchitectureScene {
   const changed = changedIds ? new Set(changedIds) : null
+  const locked = lockedElementIds(scene)
   const original = sceneElements(scene), alive = new Map(original.filter(element => !element.isDeleted).map(element => [element.id, element]))
   let elements = original.map(element => {
-    if (element.isDeleted || element.type !== 'arrow' || !element.points || element.points.length < 2) return element
+    if (locked.has(element.id) || element.isDeleted || element.type !== 'arrow' || !element.points || element.points.length < 2) return element
     const relevant = !changed || changed.has(element.id) || (element.startBinding && changed.has(element.startBinding.elementId)) || (element.endBinding && changed.has(element.endBinding.elementId))
     if (!relevant) return element
     let next = element
@@ -216,7 +226,7 @@ export function rerouteBindings(scene: ArchitectureScene, changedIds?: Iterable<
   })
   const byId = new Map(elements.filter(element => !element.isDeleted).map(element => [element.id, element]))
   elements = elements.map(element => {
-    if (element.isDeleted || element.type !== 'text' || !element.containerId) return element
+    if (locked.has(element.id) || element.isDeleted || element.type !== 'text' || !element.containerId) return element
     const container = byId.get(element.containerId)
     if (!container) return { ...element, containerId: null }
     if (changed && !changed.has(container.id) && !changed.has(element.id) && !(container.startBinding && changed.has(container.startBinding.elementId)) && !(container.endBinding && changed.has(container.endBinding.elementId))) return element
@@ -233,11 +243,12 @@ export function rerouteBindings(scene: ArchitectureScene, changedIds?: Iterable<
     if (element.type === 'text' && element.containerId) addBound(element.containerId, { id: element.id, type: 'text' })
     if (element.type === 'arrow') for (const binding of [element.startBinding, element.endBinding]) if (binding) addBound(binding.elementId, { id: element.id, type: 'arrow' })
   }
-  return { ...scene, elements: elements.map(element => ({ ...element, boundElements: bound.get(element.id) ?? null })) }
+  return { ...scene, elements: elements.map(element => locked.has(element.id) ? element : ({ ...element, boundElements: bound.get(element.id) ?? null })) }
 }
 
 export function moveElements(scene: ArchitectureScene, ids: Iterable<string>, delta: Point, deep = false): ArchitectureScene {
-  const selected = new Set(expandSelection(scene, ids, deep)), moved = new Set<string>()
+  const selected = new Set(editableSelection(scene, ids, deep)), moved = new Set<string>()
+  if (!selected.size) return scene
   const elements = sceneElements(scene).map(element => {
     if (!selected.has(element.id) || element.isDeleted || element.locked) return element
     moved.add(element.id)
@@ -248,7 +259,7 @@ export function moveElements(scene: ArchitectureScene, ids: Iterable<string>, de
 
 export function resizeElement(scene: ArchitectureScene, id: string, bounds: Bounds): ArchitectureScene {
   const selected = sceneElements(scene).find(element => element.id === id)
-  if (!selected || selected.locked || selected.isDeleted) return scene
+  if (!selected || lockedElementIds(scene).has(id) || selected.isDeleted) return scene
   const width = Math.max(0, finite(bounds.width)), height = Math.max(0, finite(bounds.height))
   const elements = sceneElements(scene).map(element => {
     if (element.id !== id) return element
@@ -268,7 +279,7 @@ export function resizeElement(scene: ArchitectureScene, id: string, bounds: Boun
 }
 
 export function rotateElements(scene: ArchitectureScene, ids: Iterable<string>, angleDelta: number, pivot?: Point, deep = false): ArchitectureScene {
-  const selected = new Set(expandSelection(scene, ids, deep)), candidates = sceneElements(scene).filter(element => selected.has(element.id) && !element.isDeleted && !element.locked)
+  const selected = new Set(editableSelection(scene, ids, deep)), candidates = sceneElements(scene).filter(element => selected.has(element.id) && !element.isDeleted && !element.locked)
   if (!candidates.length) return scene
   const bounds = getSceneBounds(candidates), center = pivot ?? { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
   const elements = sceneElements(scene).map(element => {
@@ -280,7 +291,8 @@ export function rotateElements(scene: ArchitectureScene, ids: Iterable<string>, 
 }
 
 export function deleteElements(scene: ArchitectureScene, ids: Iterable<string>, deep = false): ArchitectureScene {
-  const selected = new Set(expandSelection(scene, ids, deep))
+  const selected = new Set(editableSelection(scene, ids, deep))
+  if (!selected.size) return scene
   const deleted = new Set(sceneElements(scene).filter(element => selected.has(element.id) && !element.locked).map(element => element.id))
   const elements = sceneElements(scene).map(element => deleted.has(element.id) ? { ...element, isDeleted: true } : {
     ...element, ...(element.frameId && deleted.has(element.frameId) ? { frameId: null } : {}),
@@ -292,15 +304,24 @@ export function deleteElements(scene: ArchitectureScene, ids: Iterable<string>, 
 }
 
 export function setElementProperties(scene: ArchitectureScene, ids: Iterable<string>, properties: Partial<DrawElement>): ArchitectureScene {
-  const selected = new Set(ids)
+  const lockOnly = typeof properties.locked === 'boolean' && Object.keys(properties).length === 1
+  const selected = new Set(lockOnly ? ids : editableSelection(scene, ids))
+  if (lockOnly && properties.locked === false) {
+    const byId = new Map(sceneElements(scene).map(element => [element.id, element])), locked = lockedElementIds(scene)
+    for (const id of selected) {
+      const element = byId.get(id)
+      for (const owner of [element?.containerId, element?.frameId]) if (owner && locked.has(owner)) selected.add(owner)
+    }
+  }
+  if (!selected.size) return scene
   const elements = sceneElements(scene).map(element => selected.has(element.id) && !element.isDeleted ? { ...element, ...properties, id: element.id, type: element.type } : element)
-  return rerouteBindings({ ...scene, elements }, selected)
+  return lockOnly ? { ...scene, elements } : rerouteBindings({ ...scene, elements }, selected)
 }
 
 /** Duplicate complete relationships, including semantic graph IDs and images.
  * External bindings stay attached to their existing targets. */
-export function duplicateSelection(scene: ArchitectureScene, ids: Iterable<string>, offset: Point = { x: 24, y: 24 }, deep = false): { scene: ArchitectureScene; selectedIds: string[] } {
-  const selected = new Set(expandSelection(scene, ids, deep)), originals = sceneElements(scene).filter(element => selected.has(element.id) && !element.isDeleted)
+export function duplicateSelection(scene: ArchitectureScene, ids: Iterable<string>, offset: Point = { x: 24, y: 24 }, deep = false, editableOnly = false): { scene: ArchitectureScene; selectedIds: string[] } {
+  const selected = new Set(editableOnly ? editableSelection(scene, ids, deep) : expandSelection(scene, ids, deep)), originals = sceneElements(scene).filter(element => selected.has(element.id) && !element.isDeleted)
   const idMap = new Map(originals.map(element => [element.id, newDrawId()])), groupMap = new Map<string, string>(), graphMap = new Map<string, string>(), fileMap = new Map<string, string>()
   for (const element of originals) {
     for (const group of element.groupIds ?? []) if (!groupMap.has(group)) groupMap.set(group, newDrawId('group'))

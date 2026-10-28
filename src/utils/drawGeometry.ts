@@ -1,5 +1,5 @@
 import type { ArchitectureScene } from '../shared/architectureScene'
-import { createElement, expandSelection, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, newDrawId, rerouteBindings, rotatePoint, sceneElements, type DrawBinding, type DrawElement, type Point } from './drawScene'
+import { createElement, editableSelection, expandSelection, lockedElementIds, getElementBounds, getElementCenter, getSceneBounds, getWorldPoints, newDrawId, rerouteBindings, rotatePoint, sceneElements, type DrawBinding, type DrawElement, type Point } from './drawScene'
 
 export type Direction = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown'
 export const directions: Record<Direction, Point> = {
@@ -7,12 +7,13 @@ export const directions: Record<Direction, Point> = {
 }
 
 function keepLocked(before: ArchitectureScene, after: ArchitectureScene): ArchitectureScene {
-  const locked = new Map(sceneElements(before).filter(element => element.locked).map(element => [element.id, element]))
+  const lockedIds = lockedElementIds(before)
+  const locked = new Map(sceneElements(before).filter(element => lockedIds.has(element.id)).map(element => [element.id, element]))
   return { ...after, elements: after.elements.map(element => locked.get(String(element.id)) ?? element) }
 }
 
 export function flipSelection(scene: ArchitectureScene, ids: Iterable<string>, axis: 'horizontal' | 'vertical'): ArchitectureScene {
-  const selected = new Set(expandSelection(scene, ids, true))
+  const selected = new Set(editableSelection(scene, ids, true)), locked = lockedElementIds(scene)
   const eligible = sceneElements(scene).filter(element => selected.has(element.id) && !element.locked && !element.isDeleted)
   const eligibleIds = new Set(eligible.map(element => element.id))
   const targets = eligible.filter(element => !element.containerId || eligibleIds.has(element.containerId))
@@ -26,7 +27,7 @@ export function flipSelection(scene: ArchitectureScene, ids: Iterable<string>, a
     ...(typeof value.focus === 'number' ? { focus: -value.focus } : {}),
   } : value
   const elements = sceneElements(scene).map(element => {
-    if (element.locked || element.isDeleted) return element
+    if (locked.has(element.id) || element.isDeleted) return element
     let next = element
     if (changed.has(element.id)) {
       const oldCenter = getElementCenter(element), newCenter = reflect(oldCenter)
@@ -50,7 +51,7 @@ export function flipSelection(scene: ArchitectureScene, ids: Iterable<string>, a
 export function createConnectedShape(scene: ArchitectureScene, ids: Iterable<string>, direction: Direction): { scene: ArchitectureScene; selectedIds: string[] } | null {
   const selected = new Set(ids), elements = sceneElements(scene).filter(element => !element.isDeleted)
   const shapes = elements.filter(element => selected.has(element.id) && !element.containerId)
-  if (shapes.length !== 1 || shapes[0].locked || !['rectangle', 'ellipse', 'diamond'].includes(shapes[0].type)) return null
+  if (shapes.length !== 1 || lockedElementIds(scene).has(shapes[0].id) || !['rectangle', 'ellipse', 'diamond'].includes(shapes[0].type)) return null
   const source = shapes[0], vector = directions[direction], bounds = getElementBounds(source)
   const delta = { x: vector.x * (bounds.width + 80), y: vector.y * (bounds.height + 80) }
   const clone: DrawElement = { ...structuredClone(source), id: newDrawId(), x: source.x + delta.x, y: source.y + delta.y, groupIds: [], frameId: null, boundElements: null }

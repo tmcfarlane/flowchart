@@ -68,3 +68,7 @@
 .draw-ai-action { width: 100%; margin-bottom: 10px; color: var(--draw-text); }
 .draw-ai-action:hover:not(:disabled) { background: var(--draw-hover); }
 .draw-ai-action:disabled { opacity: .45; cursor: default; }
+
+.draw-locked-selection { display: grid; gap: 10px; margin-bottom: 12px; }
+.draw-locked-selection p { margin: 0; color: inherit; font-size: 12px; line-height: 1.5; }
+.draw-locked-selection button { min-height: 34px; border: 1px solid var(--draw-accent); border-radius: 6px; background: var(--draw-hover); color: var(--draw-text); font-size: 12px; font-weight: 600; }

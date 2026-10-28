@@ -83,6 +83,84 @@ describe('custom Draw canvas', () => {
     expect(onCommit).toHaveBeenCalledTimes(3)
   })
 
+  it.each([false, true])('selects locked groups without moving or Alt-duplicating them (deep: %s)', deep => {
+    const initial = { ...empty(), elements: [
+      { ...rectangle('a', 100), locked: true, groupIds: ['pair'] },
+      { ...rectangle('b', 320), locked: true, groupIds: ['pair'] },
+    ] }
+    const { surface, scene, onCommit } = renderDrawing(initial)
+    fireEvent.pointerDown(surface.querySelector('[data-element-id="a"]')!, { ...pointer(160, 150), altKey: true, ctrlKey: deep })
+    fireEvent.pointerMove(surface, pointer(220, 180))
+    fireEvent.pointerUp(surface, pointer(220, 180))
+    expect(surface.querySelectorAll('[data-selected="true"]')).toHaveLength(deep ? 1 : 2)
+    fireEvent.keyDown(surface, { key: 'd', ctrlKey: true })
+    fireEvent.keyDown(surface, { key: 'Delete' })
+    expect(scene()).toEqual(initial)
+    expect(onCommit).not.toHaveBeenCalled()
+  })
+
+  it('edits only unlocked objects in a Shift-click mixed selection', () => {
+    const label: DrawElement = { id: 'label', type: 'text', x: 120, y: 130, width: 100, height: 26, angle: 0, text: 'Keep me', containerId: 'a', boundElements: null }
+    const initial = { ...empty(), elements: [
+      { ...rectangle('a', 100), locked: true, boundElements: [{ id: 'label', type: 'text' }] }, label,
+      rectangle('b', 320), rectangle('c', 560),
+    ] }
+    const { surface, scene } = renderDrawing(initial)
+    const click = (id: string, shiftKey = false) => {
+      fireEvent.pointerDown(surface.querySelector(`[data-element-id="${id}"]`)!, { ...pointer(160, 150), shiftKey })
+      fireEvent.pointerUp(surface, pointer(160, 150))
+    }
+    click('a'); click('b', true); click('c', true)
+    expect(surface.querySelectorAll('[data-selected="true"]')).toHaveLength(4)
+    expect(screen.getByRole('button', { name: 'Unlock', exact: true })).toBeEnabled()
+    expect(surface.querySelector('[data-resize], [data-rotate]')).toBeNull()
+    fireEvent.change(screen.getByLabelText('Stroke color'), { target: { value: '#ff0000' } })
+    fireEvent.keyDown(surface, { key: 'g', ctrlKey: true })
+    fireEvent.keyDown(surface, { key: 'ArrowRight', ctrlKey: true, shiftKey: true })
+    fireEvent.keyDown(surface, { key: 'ArrowDown' })
+    fireEvent.keyUp(surface, { key: 'ArrowDown' })
+    expect(scene().elements.find(element => element.id === 'a')).toEqual(initial.elements[0])
+    expect(scene().elements.find(element => element.id === 'label')).toEqual(label)
+    expect(scene().elements.find(element => element.id === 'b')).toMatchObject({ strokeColor: '#ff0000', y: 101, x: 560 })
+    fireEvent.keyDown(surface, { key: 'Delete' })
+    expect(scene().elements.find(element => element.id === 'a')).toEqual(initial.elements[0])
+    expect(scene().elements.find(element => element.id === 'label')).toEqual(label)
+    expect(scene().elements.find(element => element.id === 'b')?.isDeleted).toBe(true)
+  })
+
+  it('keeps a locked frame and its contents unchanged through direct child selection', () => {
+    const frame = { ...rectangle('frame', 80), type: 'frame', width: 400, height: 250, locked: true }
+    const child = { ...rectangle('child', 100), frameId: 'frame' }
+    const { surface, scene, onCommit } = renderDrawing({ ...empty(), elements: [frame, child] })
+    fireEvent.pointerDown(surface.querySelector('[data-element-id="child"]')!, pointer(160, 150))
+    fireEvent.pointerUp(surface, pointer(160, 150))
+    fireEvent.keyDown(surface, { key: 'ArrowRight' })
+    fireEvent.keyUp(surface, { key: 'ArrowRight' })
+    fireEvent.keyDown(surface, { key: 'g', ctrlKey: true })
+    fireEvent.keyDown(surface, { key: 'h', shiftKey: true })
+    fireEvent.doubleClick(surface.querySelector('[data-element-id="child"]')!, pointer(160, 150))
+    fireEvent.keyDown(surface, { key: 'Delete' })
+    expect(scene().elements).toEqual([frame, child])
+    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.pointerDown(surface.querySelector('[data-element-id="child"]')!, pointer(160, 150))
+    fireEvent.pointerUp(surface, pointer(160, 150))
+    fireEvent.click(screen.getByRole('button', { name: 'Unlock', exact: true }))
+    expect(scene().elements.find(element => element.id === 'frame')?.locked).toBe(false)
+    expect(onCommit).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not attach a locked shape to a frame drawn around it', () => {
+    const original = { ...rectangle('box', 100), locked: true }
+    const { surface, scene } = renderDrawing({ ...empty(), elements: [original] })
+    fireEvent.keyDown(surface, { key: 'f' })
+    fireEvent.pointerDown(surface, pointer(50, 80))
+    fireEvent.pointerMove(surface, pointer(300, 240))
+    fireEvent.pointerUp(surface, pointer(300, 240))
+    expect(scene().elements).toHaveLength(2)
+    expect(scene().elements.find(element => element.id === 'box')).toMatchObject(original)
+    expect(scene().elements.find(element => element.id === 'box')?.frameId).toBeUndefined()
+  })
+
   it('keeps laser marks transient and fills only an unlocked closed shape', () => {
     const initial = { ...empty(), elements: [rectangle('open', 100), { ...rectangle('locked', 320), locked: true }] }
     const { surface, scene, onCommit } = renderDrawing(initial)

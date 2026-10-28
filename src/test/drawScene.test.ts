@@ -17,6 +17,32 @@ const bindArrow = () => createElement('arrow', { x: 100, y: 40 }, { x: 300, y: 4
 })
 
 describe('custom Draw creation and geometry', () => {
+  it('rejects edits to locked shapes and bound labels but permits a lock-only unlock', () => {
+    const host = rectangle('host', 0, 0, 100, 80, { locked: true })
+    const label = createElement('text', { x: 25, y: 30 }, undefined, { id: 'label', text: 'Fixed', containerId: 'host' })
+    const original = scene(host, label)
+    const ids = ['host', 'label']
+    expect(setElementProperties(original, ids, { strokeColor: '#ff0000' })).toBe(original)
+    expect(setElementProperties(original, ids, { locked: false, x: 700 })).toBe(original)
+    expect(moveElements(original, ids, { x: 10, y: 20 })).toBe(original)
+    expect(deleteElements(original, ids)).toBe(original)
+    expect(rotateElements(original, ids, Math.PI)).toBe(original)
+    expect(resizeElement(original, 'label', { x: 1, y: 2, width: 3, height: 4 })).toBe(original)
+    const unlocked = setElementProperties(original, ids, { locked: false })
+    expect(element(unlocked, 'host')).toEqual({ ...host, locked: false })
+    expect(element(unlocked, 'label')).toEqual({ ...label, locked: false })
+  })
+
+  it('preserves locked connector geometry and labels when an unlocked bound shape moves', () => {
+    const arrow = { ...bindArrow(), locked: true }
+    const label = createElement('text', { x: 180, y: 50 }, undefined, { id: 'label', text: 'Fixed', containerId: 'arrow' })
+    const original = scene(rectangle('left'), rectangle('right', 300), arrow, label)
+    const moved = moveElements(original, ['left'], { x: 20, y: 30 })
+    expect(element(moved, 'left')).toMatchObject({ x: 20, y: 30 })
+    expect(element(moved, 'arrow')).toEqual(arrow)
+    expect(element(moved, 'label')).toEqual(label)
+  })
+
   it('creates shapes at dragged bounds and retains reverse path directions', () => {
     expect(createElement('ellipse', { x: 70, y: 80 }, { x: -20, y: 10 })).toMatchObject({ type: 'ellipse', x: -20, y: 10, width: 90, height: 70, angle: 0 })
     const path = createElement('line', { x: 70, y: 80 }, { x: -20, y: 10 })

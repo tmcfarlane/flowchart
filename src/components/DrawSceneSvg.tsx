@@ -404,7 +404,7 @@ function DrawSceneSvg({ elements, files, darkMode = false, backgroundColor, sele
     {live.map((element, index) => {
       if (element.type === 'frame' && !showFrames) return null
       const id = string(element.id), center = drawElementCenter(element)
-      const style: CSSProperties = { cursor: element.locked ? 'not-allowed' : undefined }
+      const style: CSSProperties = { cursor: element.locked ? 'pointer' : undefined }
       const host = element.type === 'text' && typeof element.containerId === 'string' ? byId.get(element.containerId) : undefined
       const textBackdrop = host?.type === 'arrow' || host?.type === 'line' ? labelBackdrop : undefined
       const textColor = element.type === 'text' ? readableTextColor(element.strokeColor, textSurface(element, index, host)) : undefined
