@@ -1,3 +1,4 @@
+import { seedReturningVisitor } from './helpers/returningVisitor'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { Edge } from 'reactflow'
@@ -105,6 +106,7 @@ describe('App on a shared link', () => {
 
   beforeEach(() => {
     window.localStorage.clear()
+    seedReturningVisitor()
     fetchMock = vi.fn((input: RequestInfo | URL, init: RequestInit = {}) => Promise.resolve(routes(String(input), init)))
     global.fetch = fetchMock as unknown as typeof fetch
   })
@@ -296,6 +298,7 @@ describe('Share button', () => {
 
   beforeEach(() => {
     window.localStorage.clear()
+    seedReturningVisitor()
     window.history.replaceState(null, '', '/')
   })
   afterEach(() => {

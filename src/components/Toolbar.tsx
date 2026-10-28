@@ -34,6 +34,7 @@ interface ToolbarProps {
   onExportDraw?: (format: 'png' | 'svg' | 'gif', duration?: number) => Promise<void>
   onExportExcalidraw?: () => void | Promise<void>
   onImportFile?: (file: File) => void
+  onOpenPatchNotes?: () => void
   share?: ShareMenuProps
 }
 
@@ -64,6 +65,7 @@ function Toolbar({
   onExportDraw,
   onExportExcalidraw,
   onImportFile,
+  onOpenPatchNotes,
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
@@ -634,6 +636,13 @@ function Toolbar({
           )}
 
           <div className="toolbar-separator" />
+
+          {onOpenPatchNotes && (
+            <button className="toolbar-news-button" onClick={onOpenPatchNotes} title="What's new" aria-label="What's new">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z" /></svg>
+              <span>What's new</span>
+            </button>
+          )}
 
           <a
             href="https://github.com/tmcfarlane/flowchart"

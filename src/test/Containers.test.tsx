@@ -1,3 +1,4 @@
+import { seedReturningVisitor } from './helpers/returningVisitor'
 import { beforeEach, describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import App from '../App'
@@ -7,6 +8,7 @@ import type { Node as FlowNode, Edge } from 'reactflow'
 
 beforeEach(() => {
   localStorage.clear()
+  seedReturningVisitor()
   window.history.replaceState(null, '', '/')
 })
 

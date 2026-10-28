@@ -1,7 +1,10 @@
+import { seedReturningVisitor } from './helpers/returningVisitor'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import App from '../App'
 import { resolveAzureIcons } from '../utils/azureIconRegistry'
+
+beforeEach(() => seedReturningVisitor())
 
 describe('FlowChart Designer', () => {
   it('renders the app with toolbar', () => {

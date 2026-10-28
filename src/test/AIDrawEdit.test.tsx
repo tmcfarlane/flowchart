@@ -1,3 +1,4 @@
+import { seedReturningVisitor } from './helpers/returningVisitor'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from '../App'
@@ -13,6 +14,7 @@ const response = (proposal: unknown = edit) => ({ ok: true, json: async () => ({
 let fetcher: ReturnType<typeof vi.fn>
 beforeEach(() => {
   localStorage.clear(); window.history.replaceState(null, '', '/')
+  seedReturningVisitor()
   localStorage.setItem(DRAFT, serializeFlow([], [], 'draw', original))
   fetcher = vi.fn(async () => response())
   vi.stubGlobal('fetch', fetcher)
@@ -98,6 +100,7 @@ describe('App selected Draw AI', () => {
   })
   it('rejects an old preview after a shared document replacement with reused element IDs', async () => {
     localStorage.clear()
+    seedReturningVisitor()
     window.history.replaceState(null, '', '/f/Ab3dE5fG7h#edit=test-edit-token-1234567890')
     const chart = { id: 'Ab3dE5fG7h', version: 1, title: 'Shared drawing', mode: 'draw', architectureScene: original,
       nodes: [], edges: [], createdAt: '2026-10-27T00:00:00.000Z', updatedAt: '2026-10-27T00:00:00.000Z' }
@@ -113,6 +116,7 @@ describe('App selected Draw AI', () => {
 
   it('saves one applied Draw transaction through the existing shared chart endpoint', async () => {
     localStorage.clear()
+    seedReturningVisitor()
     window.history.replaceState(null, '', '/f/Ab3dE5fG7h#edit=test-edit-token-1234567890')
     const chart = { id: 'Ab3dE5fG7h', version: 3, title: 'Shared drawing', mode: 'draw', architectureScene: original,
       nodes: [], edges: [], createdAt: '2026-10-27T00:00:00.000Z', updatedAt: '2026-10-27T00:00:00.000Z' }

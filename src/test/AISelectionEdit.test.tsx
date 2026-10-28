@@ -1,3 +1,4 @@
+import { seedReturningVisitor } from './helpers/returningVisitor'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { Edge, Node } from 'reactflow'
@@ -36,6 +37,7 @@ async function prompt(text = 'Shorten these labels') {
 
 beforeEach(() => {
   localStorage.clear()
+  seedReturningVisitor()
   window.history.replaceState(null, '', '/')
   fetchMock = vi.fn(async () => response())
   global.fetch = fetchMock as unknown as typeof fetch
@@ -227,6 +229,7 @@ describe('selected-node AI editing in the app', () => {
       createdAt: '2026-10-27T00:00:00.000Z', updatedAt: '2026-10-27T00:00:00.000Z',
     }
     localStorage.clear()
+    seedReturningVisitor()
     window.history.replaceState(null, '', '/f/Ab3dE5fG7h#edit=test-edit-token-1234567890')
     fetchMock.mockImplementation(async (url: string, init: RequestInit = {}) => {
       if (url === '/api/chat') return response([{ op: 'update_node', id: 'a', changes: { label: 'Receive order' } }])
