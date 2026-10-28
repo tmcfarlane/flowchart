@@ -3,6 +3,7 @@ import { PATCH_NOTES } from '../patchNotes'
 
 const SEEN_REVISION_KEY = 'flowchart-patch-notes-seen-revision'
 type PatchNotesVisibility = 'automatic' | 'manual' | 'closed'
+type PatchNotesState = { seenRevision: number; visibility: PatchNotesVisibility }
 
 function readSeenRevision(): number {
   try {
@@ -16,20 +17,22 @@ function readSeenRevision(): number {
 }
 
 export function usePatchNotes(canAutomaticallyOpen: boolean) {
-  const [visibility, setVisibility] = useState<PatchNotesVisibility>(() =>
-    readSeenRevision() < PATCH_NOTES[0].revision ? 'automatic' : 'closed',
-  )
+  const [state, setState] = useState<PatchNotesState>(() => {
+    const seenRevision = readSeenRevision()
+    return { seenRevision, visibility: seenRevision < PATCH_NOTES[0].revision ? 'automatic' : 'closed' }
+  })
 
   const dismiss = () => {
+    const seenRevision = Math.max(state.seenRevision, readSeenRevision(), PATCH_NOTES[0].revision)
     try {
-      localStorage.setItem(SEEN_REVISION_KEY, String(PATCH_NOTES[0].revision))
+      localStorage.setItem(SEEN_REVISION_KEY, String(seenRevision))
     } catch {}
-    setVisibility('closed')
+    setState({ seenRevision, visibility: 'closed' })
   }
 
   return {
-    isOpen: visibility === 'manual' || (visibility === 'automatic' && canAutomaticallyOpen),
-    open: () => setVisibility('manual'),
+    isOpen: state.visibility === 'manual' || (state.visibility === 'automatic' && canAutomaticallyOpen),
+    open: () => setState(current => ({ ...current, visibility: 'manual' })),
     dismiss,
   }
 }

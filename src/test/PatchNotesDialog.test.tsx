@@ -1,17 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import PatchNotesDialog from '../components/PatchNotesDialog'
+import { PATCH_NOTES } from '../patchNotes'
 
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 describe('patch notes dialog', () => {
   it('names the modal and shows the latest release with its date and highlights', () => {
     render(<PatchNotesDialog onDismiss={() => {}} />)
     const dialog = screen.getByRole('dialog', { name: "What's new" })
     expect(dialog).toHaveAttribute('aria-modal', 'true')
-    expect(within(dialog).getByRole('heading', { name: 'Draw with more clarity' })).toBeInTheDocument()
-    expect(within(dialog).getByText('October 28, 2026')).toHaveAttribute('dateTime', '2026-10-28')
-    expect(within(dialog).getAllByRole('listitem')).toHaveLength(4)
+    expect(within(dialog).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(PATCH_NOTES.map(note => note.title))
+    for (const note of PATCH_NOTES) {
+      expect(dialog.querySelector(`time[datetime="${note.publishedOn}"]`)).toBeInTheDocument()
+      for (const highlight of note.highlights) expect(within(dialog).getByText(highlight)).toBeInTheDocument()
+    }
+    expect(within(dialog).getAllByText('Latest')).toHaveLength(1)
   })
 
   it.each(['Close patch notes', 'Got it', 'Escape', 'backdrop'])('dismisses through %s', (method) => {
@@ -26,7 +30,7 @@ describe('patch notes dialog', () => {
   it('keeps clicks within the card open', () => {
     const dismiss = vi.fn()
     render(<PatchNotesDialog onDismiss={dismiss} />)
-    fireEvent.mouseDown(screen.getByRole('heading', { name: 'Draw with more clarity' }))
+    fireEvent.mouseDown(screen.getByRole('heading', { name: PATCH_NOTES[0].title }))
     expect(dismiss).not.toHaveBeenCalled()
   })
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, renderHook } from '@testing-library/react'
+import { act, cleanup, renderHook } from '@testing-library/react'
 import { usePatchNotes } from '../hooks/usePatchNotes'
 import { PATCH_NOTES } from '../patchNotes'
 
@@ -7,10 +7,10 @@ const key = 'flowchart-patch-notes-seen-revision'
 const latest = PATCH_NOTES[0].revision
 
 beforeEach(() => localStorage.clear())
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 describe('patch note acknowledgement', () => {
-  it.each([null, '0', '-1', 'broken', '1.5', 'Infinity', '9007199254740992', '1e0', ' 1 '])('opens unseen or malformed revision %s without marking it seen', (saved) => {
+  it.each([null, '0', '-1', 'broken', `${latest}.5`, 'Infinity', '9007199254740992', `${latest}e0`, ` ${latest} `])('opens unseen or malformed revision %s without marking it seen', (saved) => {
     if (saved !== null) localStorage.setItem(key, saved)
     const { result } = renderHook(() => usePatchNotes(true))
     expect(result.current.isOpen).toBe(true)
@@ -36,6 +36,28 @@ describe('patch note acknowledgement', () => {
     expect(localStorage.getItem(key)).toBeNull()
     act(() => result.current.open())
     expect(result.current.isOpen).toBe(true)
+  })
+
+  it('preserves a newer acknowledgement when manually dismissing an older deployment', () => {
+    localStorage.setItem(key, String(latest + 1))
+    const { result, unmount } = renderHook(() => usePatchNotes(true))
+    act(() => result.current.open())
+    act(() => result.current.dismiss())
+    expect(localStorage.getItem(key)).toBe(String(latest + 1))
+    unmount()
+    expect(renderHook(() => usePatchNotes(true)).result.current.isOpen).toBe(false)
+  })
+
+  it('preserves a newer acknowledgement from another tab even when later storage reads fail', () => {
+    const { result } = renderHook(() => usePatchNotes(true))
+    localStorage.setItem(key, String(latest + 2))
+    act(() => result.current.dismiss())
+    expect(localStorage.getItem(key)).toBe(String(latest + 2))
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Blocked') })
+    act(() => result.current.open())
+    act(() => result.current.dismiss())
+    vi.restoreAllMocks()
+    expect(localStorage.getItem(key)).toBe(String(latest + 2))
   })
 
   it('acknowledges only on dismissal and stays closed across readiness changes and reload', () => {
