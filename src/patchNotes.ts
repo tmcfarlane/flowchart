@@ -7,6 +7,16 @@ export type PatchNote = Readonly<{
 
 export const PATCH_NOTES: readonly [PatchNote, ...PatchNote[]] = [
   {
+    revision: 3,
+    publishedOn: '2026-10-29',
+    title: 'Edit text right on your drawings',
+    highlights: [
+      'Double-click a shape or its outline to add a centered label that stays attached.',
+      'Reopen existing text without creating another text box.',
+      'Add labels to arrows and lines without selection controls blocking the click.',
+    ],
+  },
+  {
     revision: 2,
     publishedOn: '2026-10-28',
     title: 'More room to draw on your phone',

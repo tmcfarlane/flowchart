@@ -1195,8 +1195,9 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       if (readOnly || event.button !== 0) return
       if (pendingConnector.current) { pendingConnector.current.preventBinding = event.ctrlKey || event.metaKey; finishConnector(); return }
       if (pointEditRef.current) { finishPointEditing(); return }
-      const target = event.target as Element
-      if (tool !== 'selection' || target.closest('[data-resize], [data-rotate], [data-point-index]')) return
+      if (tool !== 'selection') return
+      const target = event.currentTarget.ownerDocument.elementFromPoint(event.clientX, event.clientY) ?? event.target as Element
+      if (target.closest('[data-resize], [data-rotate], [data-point-index]')) return
       const point = worldPoint({ x: event.clientX, y: event.clientY })
       const id = target.closest('[data-element-id]')?.getAttribute('data-element-id') ?? shapeAt(point)?.id
       const element = live(draftRef.current).find(item => item.id === id)
@@ -1209,7 +1210,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         <g data-draw-content="true"><DrawSceneSvg elements={draft.elements} files={draft.files} darkMode={darkMode} backgroundColor={canvasBackground} selectedIds={selectedIds} editingTextId={textEdit?.id} /></g>
         {!readOnly && selectionBounds && <g className="draw-selection" fill="none" stroke="#17b895" strokeWidth={1.5 / viewport.zoom}>
           <rect x={selectionBounds.x - 3 / viewport.zoom} y={selectionBounds.y - 3 / viewport.zoom} width={selectionBounds.width + 6 / viewport.zoom} height={selectionBounds.height + 6 / viewport.zoom} strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`} pointerEvents="none" />
-          {!hasLocked && !pointEdit && !creatingConnector && <><line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} />
+          {!hasLocked && !pointEdit && !creatingConnector && <><line x1={selectionBounds.x + selectionBounds.width / 2} y1={selectionBounds.y} x2={selectionBounds.x + selectionBounds.width / 2} y2={selectionBounds.y - 26 / viewport.zoom} pointerEvents="none" />
             <circle data-rotate="true" aria-label="Rotate selection" cx={selectionBounds.x + selectionBounds.width / 2} cy={selectionBounds.y - 30 / viewport.zoom} r={5 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />
             {(['nw', 'ne', 'sw', 'se'] as const).map(corner => <rect key={corner} data-resize={corner} aria-label={`Resize ${corner}`} x={(corner.includes('w') ? selectionBounds.x : selectionBounds.x + selectionBounds.width) - 4 / viewport.zoom} y={(corner.includes('n') ? selectionBounds.y : selectionBounds.y + selectionBounds.height) - 4 / viewport.zoom} width={8 / viewport.zoom} height={8 / viewport.zoom} fill={darkMode ? '#123f34' : '#ffffff'} />)}</>}
           {!creatingConnector && editablePath && getWorldPoints(editablePath).map((point, index) => <circle key={index} data-point-index={index} data-element-handle={editablePath.id} aria-label={`Edit path point ${index + 1}`} role={pointEdit ? 'button' : undefined} tabIndex={pointEdit ? 0 : undefined} aria-pressed={pointEdit ? pointEdit.index === index : undefined} onFocus={() => { if (pointEdit) { const next = { id: editablePath.id, index }; pointEditRef.current = next; setPointEdit(next) } }} onClick={() => { if (pointEdit) focusPathPoint(editablePath.id, index) }} cx={point.x} cy={point.y} r={(pointEdit?.index === index ? 7 : 5) / viewport.zoom} fill={pointEdit?.index === index ? '#17b895' : '#d7fff1'} />)}
