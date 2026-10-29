@@ -1,0 +1,222 @@
+{
+  "sourceRevision": "c3c37856b40293bf515ddb02fff044c34e17a075",
+  "url": "http://127.0.0.1:3107/",
+  "verifiedAt": "2026-10-29T00:00:55.445789+00:00",
+  "cases": [
+    {
+      "case": "outline",
+      "observation": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 543,
+          "y": 538,
+          "width": 292,
+          "height": 82.78125
+        },
+        "centerError": {
+          "x": -30.99999475479126,
+          "y": 37.390629291534424
+        },
+        "savedText": [
+          {
+            "id": "draw-7629c284-7c52-43c6-8aba-90197a5a0b47",
+            "text": "Orders service",
+            "containerId": null
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "path",
+          "id": "host",
+          "actualHitId": "host"
+        },
+        {
+          "type": "pointerup",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "click",
+          "pointerType": "mouse",
+          "detail": 1,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "pointerdown",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "path",
+          "id": "host",
+          "actualHitId": "host"
+        },
+        {
+          "type": "pointerup",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "click",
+          "pointerType": "mouse",
+          "detail": 2,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "dblclick",
+          "pointerType": null,
+          "detail": 2,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        }
+      ]
+    },
+    {
+      "case": "existing-text",
+      "observation": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 660,
+          "y": 538,
+          "width": 292,
+          "height": 82.78125
+        },
+        "savedText": [
+          {
+            "id": "host",
+            "text": "Existing text",
+            "containerId": null
+          },
+          {
+            "id": "draw-ee89a828-ec27-42cc-a979-cc7467dc9807",
+            "text": "Orders service",
+            "containerId": null
+          }
+        ]
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "tspan",
+          "id": "host",
+          "actualHitId": "host"
+        },
+        {
+          "type": "pointerup",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "click",
+          "pointerType": "mouse",
+          "detail": 1,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "pointerdown",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "tspan",
+          "id": "host",
+          "actualHitId": "host"
+        },
+        {
+          "type": "pointerup",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "click",
+          "pointerType": "mouse",
+          "detail": 2,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        },
+        {
+          "type": "dblclick",
+          "pointerType": null,
+          "detail": 2,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        }
+      ]
+    },
+    {
+      "case": "arrow-midpoint",
+      "observation": {
+        "opened": false
+      },
+      "events": [
+        {
+          "type": "pointerdown",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "path",
+          "id": "host",
+          "actualHitId": "host"
+        },
+        {
+          "type": "pointerup",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "svg",
+          "id": null,
+          "actualHitId": null
+        },
+        {
+          "type": "click",
+          "pointerType": "mouse",
+          "detail": 1,
+          "target": "svg",
+          "id": null,
+          "actualHitId": null
+        },
+        {
+          "type": "pointerdown",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "line",
+          "id": null,
+          "actualHitId": null
+        },
+        {
+          "type": "pointerup",
+          "pointerType": "mouse",
+          "detail": 0,
+          "target": "svg",
+          "id": null,
+          "actualHitId": "host"
+        }
+      ]
+    }
+  ]
+}
