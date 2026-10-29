@@ -1,0 +1,193 @@
+{
+  "source_revision": "bb189326408478482d334f513c47c4b9e525cbbb",
+  "captured_at_utc": "2026-10-29T01:20:43.081174+00:00",
+  "playwright_version": "1.62.0",
+  "api_policy": "Only browser-routed public /api/chat response fixtures. All other API requests fail. External requests abort.",
+  "captures": [
+    {
+      "file": "draw-workspace-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    },
+    {
+      "file": "draw-workspace-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    },
+    {
+      "file": "shape-text-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    },
+    {
+      "file": "components-frames-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    },
+    {
+      "file": "ai-draw-preview-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [
+        {
+          "path": "/api/chat",
+          "method": "POST",
+          "response_fixture": "recorded-draw-response.json"
+        }
+      ],
+      "browser_errors": []
+    },
+    {
+      "file": "ai-selection-preview-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [
+        {
+          "path": "/api/chat",
+          "method": "POST",
+          "response_fixture": "selection-response.json"
+        }
+      ],
+      "browser_errors": []
+    },
+    {
+      "file": "mobile-draw-light.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    },
+    {
+      "file": "architecture-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    },
+    {
+      "file": "flowchart-light.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    },
+    {
+      "file": "excalidraw-import-dark.png",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "device_scale_factor": 1,
+      "api_calls": [],
+      "browser_errors": []
+    }
+  ],
+  "browser_version": "154.0.8037.57",
+  "fixtures": {
+    "community-library.excalidraw": "1dff1b42a60eff1192759e299bcfc479bca57a590206bea305cfefa372fd59b7",
+    "garden-draw.json": "bb191be5bb4f1de6c61019f626664e57c1e5ffd2490480bc0da597704c04a2fc",
+    "garden-flowchart.json": "ea8aff0808b5fdb569e511cd0ddc8abeca29f547fc2eebdeadfe75d114d6b474",
+    "garden-mobile.json": "9e0371c5ff62100cb44febce347b0caab0a6ec1054c9f749e581f9eecbd5b2b5",
+    "garden-selection.json": "c3a200442e3b200cc6f986dfe693b9ab885b58266fbd685c8f251092975acd60",
+    "library-architecture.json": "ba6e01d06071dbea86a76948df6833f544db488d58b64d1b59fd07c0cbc636de",
+    "recorded-draw-response.json": "d390b933e8745901a62a107fe0c0fcd6369ae313f69a20c22f6437d02cf40aca",
+    "selection-response.json": "c3f29a3a5e7dab30fc502da7ea28cdb2ea422d259c4edf2f859063cf3807a08f"
+  },
+  "files": {
+    "draw-workspace-dark.png": {
+      "sha256": "73b8cbe0e41b53324944f9b95b58be4372a92c05912309a360a4eb461816d78e",
+      "bytes": 113931,
+      "width": 1440,
+      "height": 960
+    },
+    "draw-workspace-light.png": {
+      "sha256": "beddc0a1ccfa1d6a92deb4233a0894cc10e54116942a6d08dfbff9c3045ecc74",
+      "bytes": 108121,
+      "width": 1440,
+      "height": 960
+    },
+    "ai-draw-preview-dark.png": {
+      "sha256": "aa6e48ae02ff2f7fa8f10d4e1ebc32643220290ef155a1aeec3e5a0fc538fce4",
+      "bytes": 119288,
+      "width": 1440,
+      "height": 960
+    },
+    "ai-selection-preview-dark.png": {
+      "sha256": "ee1dd55778617e94202cd19fd84a6bd7de2ded7ded2ab4e9661014d62d4acc8f",
+      "bytes": 88639,
+      "width": 1440,
+      "height": 960
+    },
+    "shape-text-dark.png": {
+      "sha256": "96e4b9dcc7e9e40eb9eee8a8b0895b845542b724e727ac3bb82cca2b68e4d47d",
+      "bytes": 122100,
+      "width": 1440,
+      "height": 960
+    },
+    "components-frames-light.png": {
+      "sha256": "5f28628fe336b6d3827d83dcafffa2efd248fdbfb90b57c80dfff4c69eaafb0d",
+      "bytes": 130673,
+      "width": 1440,
+      "height": 960
+    },
+    "mobile-draw-light.png": {
+      "sha256": "dbdad3f73db98f48a5a0192ff4a79263f51570cf352b5f437f2a918cfef6e2ce",
+      "bytes": 36375,
+      "width": 390,
+      "height": 844
+    },
+    "architecture-light.png": {
+      "sha256": "0579896aa0bedd1428ded11a6caf0f8477ec235050490e5b56d8edb7bbcf6ba2",
+      "bytes": 120685,
+      "width": 1440,
+      "height": 960
+    },
+    "excalidraw-import-dark.png": {
+      "sha256": "26b86eeb1290dcc554e2b20d4124d8869995cde20a3fc91b2acf939dc3323ab3",
+      "bytes": 131458,
+      "width": 1440,
+      "height": 960
+    },
+    "flowchart-light.png": {
+      "sha256": "c46eddbda1458d892217c4120f53dd37ca732ee48a9c3951e337d16d290d17b4",
+      "bytes": 129402,
+      "width": 1440,
+      "height": 960
+    }
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "version": 4,
+  "mode": "flowchart",
+  "nodes": [
+    {
+      "id": "collect",
+      "type": "step",
+      "position": {
+        "x": 0,
+        "y": 160
+      },
+      "data": {
+        "label": "Collect ideas"
+      },
+      "style": {
+        "width": 180,
+        "height": 90
+      }
+    },
+    {
+      "id": "review",
+      "type": "step",
+      "position": {
+        "x": 300,
+        "y": 160
+      },
+      "data": {
+        "label": "Review proposal"
+      },
+      "style": {
+        "width": 180,
+        "height": 90
+      }
+    },
+    {
+      "id": "ready",
+      "type": "decision",
+      "position": {
+        "x": 620,
+        "y": 120
+      },
+      "data": {
+        "label": "Ready?"
+      },
+      "style": {
+        "width": 170,
+        "height": 170
+      }
+    },
+    {
+      "id": "publish",
+      "type": "step",
+      "position": {
+        "x": 920,
+        "y": 160
+      },
+      "data": {
+        "label": "Publish plan"
+      },
+      "style": {
+        "width": 180,
+        "height": 90
+      }
+    },
+    {
+      "id": "revise",
+      "type": "step",
+      "position": {
+        "x": 620,
+        "y": 430
+      },
+      "data": {
+        "label": "Revise draft"
+      },
+      "style": {
+        "width": 180,
+        "height": 90
+      }
+    },
+    {
+      "id": "note",
+      "type": "note",
+      "position": {
+        "x": 0,
+        "y": -70
+      },
+      "data": {
+        "label": "Community garden planning\nOne shared plan, clear next steps."
+      },
+      "style": {
+        "width": 370,
+        "height": 110
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "first",
+      "type": "smoothstep",
+      "source": "collect",
+      "target": "review",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Gather feedback",
+      "data": {},
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    },
+    {
+      "id": "second",
+      "type": "smoothstep",
+      "source": "review",
+      "target": "ready",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Check details",
+      "data": {},
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    },
+    {
+      "id": "yes",
+      "type": "smoothstep",
+      "source": "ready",
+      "target": "publish",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Yes",
+      "data": {},
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    },
+    {
+      "id": "no",
+      "type": "smoothstep",
+      "source": "ready",
+      "target": "revise",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "label": "Needs work",
+      "data": {},
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    },
+    {
+      "id": "again",
+      "type": "smoothstep",
+      "source": "revise",
+      "target": "review",
+      "sourceHandle": "left",
+      "targetHandle": "bottom",
+      "label": "Review again",
+      "data": {},
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    }
+  ]
+}
