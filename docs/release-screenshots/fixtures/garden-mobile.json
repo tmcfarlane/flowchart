@@ -1,0 +1,303 @@
+{
+  "version": 4,
+  "mode": "draw",
+  "nodes": [],
+  "edges": [],
+  "architectureScene": {
+    "version": 1,
+    "elements": [
+      {
+        "id": "title",
+        "type": "text",
+        "x": 20,
+        "y": 0,
+        "width": 300,
+        "height": 42,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Garden day",
+        "originalText": "Garden day",
+        "fontSize": 28,
+        "fontFamily": 2,
+        "textAlign": "left",
+        "lineHeight": 1.5,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "card0",
+        "type": "rectangle",
+        "x": 35,
+        "y": 100,
+        "width": 250,
+        "height": 90,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#dbeafe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "card0-text",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "card0-text",
+        "type": "text",
+        "x": 45,
+        "y": 127,
+        "width": 230,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Plan together",
+        "originalText": "Plan together",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "card0",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "arrow0",
+        "type": "arrow",
+        "x": 160,
+        "y": 190,
+        "width": 0,
+        "height": 80,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            80
+          ]
+        ],
+        "endArrowhead": "arrow",
+        "startBinding": {
+          "elementId": "card0",
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "card1",
+          "gap": 0
+        }
+      },
+      {
+        "id": "card1",
+        "type": "rectangle",
+        "x": 35,
+        "y": 270,
+        "width": 250,
+        "height": 90,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#d1fae5",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "card1-text",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "card1-text",
+        "type": "text",
+        "x": 45,
+        "y": 297,
+        "width": 230,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Invite neighbors",
+        "originalText": "Invite neighbors",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "card1",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "arrow1",
+        "type": "arrow",
+        "x": 160,
+        "y": 360,
+        "width": 0,
+        "height": 80,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            80
+          ]
+        ],
+        "endArrowhead": "arrow",
+        "startBinding": {
+          "elementId": "card1",
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "card2",
+          "gap": 0
+        }
+      },
+      {
+        "id": "card2",
+        "type": "rectangle",
+        "x": 35,
+        "y": 440,
+        "width": 250,
+        "height": 90,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#fce7f3",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "card2-text",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "card2-text",
+        "type": "text",
+        "x": 45,
+        "y": 467,
+        "width": 230,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Plant together",
+        "originalText": "Plant together",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "card2",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      }
+    ],
+    "files": {},
+    "appState": {
+      "viewBackgroundColor": "#ffffff",
+      "gridSize": 20
+    }
+  }
+}

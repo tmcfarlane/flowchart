@@ -1,0 +1,176 @@
+{
+  "version": 4,
+  "mode": "architecture",
+  "nodes": [
+    {
+      "id": "library",
+      "type": "container",
+      "position": {
+        "x": 240,
+        "y": 80
+      },
+      "data": {
+        "label": "Library platform",
+        "containerKind": "group"
+      },
+      "style": {
+        "width": 800,
+        "height": 530
+      }
+    },
+    {
+      "id": "reader",
+      "type": "externalActor",
+      "position": {
+        "x": 30,
+        "y": 190
+      },
+      "data": {
+        "label": "Reader"
+      },
+      "style": {
+        "width": 140,
+        "height": 90
+      }
+    },
+    {
+      "id": "catalog",
+      "type": "service",
+      "position": {
+        "x": 70,
+        "y": 100
+      },
+      "data": {
+        "label": "Catalog API",
+        "imageUrl": "/assets/icons/Azure_Public_Service_Icons/Icons/web/10035-icon-service-App-Services.svg"
+      },
+      "style": {
+        "width": 200,
+        "height": 100
+      },
+      "parentNode": "library"
+    },
+    {
+      "id": "books",
+      "type": "database",
+      "position": {
+        "x": 500,
+        "y": 100
+      },
+      "data": {
+        "label": "Book catalog",
+        "imageUrl": "/assets/icons/Azure_Public_Service_Icons/Icons/databases/10130-icon-service-SQL-Database.svg"
+      },
+      "style": {
+        "width": 200,
+        "height": 100
+      },
+      "parentNode": "library"
+    },
+    {
+      "id": "events",
+      "type": "queue",
+      "position": {
+        "x": 70,
+        "y": 340
+      },
+      "data": {
+        "label": "Reading events",
+        "imageUrl": "/assets/icons/Azure_Public_Service_Icons/Icons/integration/10836-icon-service-Azure-Service-Bus.svg"
+      },
+      "style": {
+        "width": 200,
+        "height": 90
+      },
+      "parentNode": "library"
+    },
+    {
+      "id": "worker",
+      "type": "service",
+      "position": {
+        "x": 500,
+        "y": 340
+      },
+      "data": {
+        "label": "Reading worker"
+      },
+      "style": {
+        "width": 200,
+        "height": 90
+      },
+      "parentNode": "library"
+    }
+  ],
+  "edges": [
+    {
+      "id": "read",
+      "type": "smoothstep",
+      "source": "reader",
+      "target": "catalog",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Browse books",
+      "data": {
+        "protocol": "HTTPS"
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    },
+    {
+      "id": "query",
+      "type": "smoothstep",
+      "source": "catalog",
+      "target": "books",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Find titles",
+      "data": {
+        "protocol": "SQL"
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    },
+    {
+      "id": "publish",
+      "type": "smoothstep",
+      "source": "catalog",
+      "target": "events",
+      "sourceHandle": "bottom",
+      "targetHandle": "top",
+      "label": "Book reserved",
+      "data": {
+        "protocol": "event"
+      },
+      "style": {
+        "strokeDasharray": "5 5"
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    },
+    {
+      "id": "deliver",
+      "type": "smoothstep",
+      "source": "events",
+      "target": "worker",
+      "sourceHandle": "right",
+      "targetHandle": "left",
+      "label": "Update reading list",
+      "data": {
+        "protocol": "event"
+      },
+      "style": {
+        "strokeDasharray": "5 5"
+      },
+      "markerEnd": {
+        "type": "arrowclosed",
+        "color": "#64748b"
+      }
+    }
+  ]
+}

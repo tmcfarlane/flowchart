@@ -124,6 +124,51 @@
   color: #32815e;
 }
 
+.patch-notes-gallery-intro {
+  margin: 20px 0 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #52675e;
+}
+
+.patch-notes-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 12px;
+}
+
+.patch-notes-screenshot {
+  min-width: 0;
+  margin: 0;
+}
+
+.patch-notes-screenshot a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #d4e1dc;
+  border-radius: 8px;
+  background: #e9f4ee;
+}
+
+.patch-notes-screenshot img {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 240px;
+  object-fit: contain;
+}
+
+.patch-notes-screenshot figcaption {
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #435b50;
+}
+
 .patch-notes-footer {
   display: flex;
   align-items: center;
@@ -162,7 +207,8 @@
   background: #105333;
 }
 
-.patch-notes-dialog button:focus-visible {
+.patch-notes-dialog button:focus-visible,
+.patch-notes-dialog a:focus-visible {
   outline: 2px solid #147a4e;
   outline-offset: 4px;
 }
@@ -179,11 +225,13 @@
 }
 
 .app.dark-mode .patch-notes-release-meta,
+.app.dark-mode .patch-notes-gallery-intro,
 .app.dark-mode .patch-notes-footer span {
   color: #a8bfb3;
 }
 
-.app.dark-mode .patch-notes-release ul {
+.app.dark-mode .patch-notes-release ul,
+.app.dark-mode .patch-notes-screenshot figcaption {
   color: #cadbd1;
 }
 
@@ -193,6 +241,7 @@
 }
 
 .app.dark-mode .patch-notes-close,
+.app.dark-mode .patch-notes-screenshot a,
 .app.dark-mode .patch-notes-footer,
 .app.dark-mode .patch-notes-release + .patch-notes-release {
   border-color: #355047;
@@ -200,6 +249,10 @@
 
 .app.dark-mode .patch-notes-close:hover {
   background: #254335;
+}
+
+.app.dark-mode .patch-notes-screenshot a {
+  background: #102019;
 }
 
 .app.dark-mode .patch-notes-done {
@@ -212,7 +265,8 @@
   background: #a1f4ca;
 }
 
-.app.dark-mode .patch-notes-dialog button:focus-visible {
+.app.dark-mode .patch-notes-dialog button:focus-visible,
+.app.dark-mode .patch-notes-dialog a:focus-visible {
   outline-color: #87e8b9;
 }
 
@@ -221,6 +275,7 @@
   .patch-notes-dialog { max-height: calc(100dvh - 24px); border-radius: 16px; }
   .patch-notes-header { padding: 22px 20px 18px; }
   .patch-notes-body { padding: 0 20px 22px; }
+  .patch-notes-gallery { grid-template-columns: minmax(0, 1fr); }
   .patch-notes-footer { padding: 16px 20px; }
 }
 

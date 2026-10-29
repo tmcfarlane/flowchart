@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import PatchNotesDialog from '../components/PatchNotesDialog'
 import { PATCH_NOTES } from '../patchNotes'
+import { V3_SCREENSHOTS } from '../releaseScreenshots'
 
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
@@ -24,7 +25,7 @@ describe('patch notes dialog', () => {
     expect(within(dialog).getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(PATCH_NOTES.map(note => note.title))
     for (const note of PATCH_NOTES) {
       expect(dialog.querySelector(`time[datetime="${note.publishedOn}"]`)).toBeInTheDocument()
-      for (const highlight of note.highlights) expect(within(dialog).getByText(highlight)).toBeInTheDocument()
+      for (const highlight of note.highlights) expect(within(dialog).getByText(highlight, { selector: 'li' })).toBeInTheDocument()
     }
     expect(within(dialog).getAllByText('Latest')).toHaveLength(1)
   })
@@ -36,6 +37,54 @@ describe('patch notes dialog', () => {
     else if (method === 'backdrop') fireEvent.mouseDown(container.querySelector('.patch-notes-overlay')!)
     else fireEvent.click(screen.getByRole('button', { name: method }))
     expect(dismiss).toHaveBeenCalledOnce()
+  })
+
+  it('shows captioned screenshots linked to full-size images without dismissing', () => {
+    const dismiss = vi.fn()
+    render(<PatchNotesDialog onDismiss={dismiss} />)
+    const release = screen.getByRole('region', { name: 'Flowchart v3.0.0' })
+    const links = within(release).getAllByRole('link')
+    expect(links).toHaveLength(V3_SCREENSHOTS.length)
+    expect(within(release).getByText('Select a screenshot to open the full-size image in a new tab.')).toBeInTheDocument()
+    for (const [index, image] of V3_SCREENSHOTS.entries()) {
+      const link = links[index]
+      expect(link).toHaveAttribute('href', image.src)
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+      expect(link).toHaveAccessibleName(`Open full-size image: ${image.caption} (opens in a new tab)`)
+      const screenshot = within(link).getByRole('img', { name: image.alt })
+      expect(screenshot).toHaveAttribute('src', image.src)
+      expect(screenshot).toHaveAttribute('width', String(image.width))
+      expect(screenshot).toHaveAttribute('height', String(image.height))
+      expect(screenshot).toHaveAttribute('loading', 'lazy')
+      expect(screenshot).toHaveAttribute('decoding', 'async')
+      expect(within(release).getByText(image.caption, { selector: 'figcaption' })).toBeInTheDocument()
+      fireEvent.click(link)
+    }
+    expect(dismiss).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog')).toHaveAttribute('open')
+  })
+
+  it('keeps screenshot links between dismissal buttons in the keyboard order', () => {
+    const background = vi.fn()
+    window.addEventListener('keydown', background)
+    const dismiss = vi.fn()
+    render(<PatchNotesDialog onDismiss={dismiss} />)
+    const controls = [...screen.getByRole('dialog').querySelectorAll('button, a[href]')]
+    expect(controls).toEqual([
+      screen.getByRole('button', { name: 'Close patch notes' }),
+      ...screen.getAllByRole('link'),
+      screen.getByRole('button', { name: 'Got it' }),
+    ])
+    for (const link of screen.getAllByRole('link')) {
+      link.focus()
+      expect(link).toHaveFocus()
+      expect(fireEvent.keyDown(link, { key: 'Tab' })).toBe(true)
+      expect(fireEvent.keyDown(link, { key: 'Tab', shiftKey: true })).toBe(true)
+    }
+    expect(dismiss).not.toHaveBeenCalled()
+    expect(background).not.toHaveBeenCalled()
+    window.removeEventListener('keydown', background)
   })
 
   it('keeps clicks within the card open', () => {

@@ -1,0 +1,75 @@
+{
+  "version": 4,
+  "mode": "draw",
+  "nodes": [],
+  "edges": [],
+  "architectureScene": {
+    "version": 1,
+    "elements": [
+      {
+        "id": "projects",
+        "type": "rectangle",
+        "x": 300,
+        "y": 220,
+        "width": 260,
+        "height": 150,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#d1fae5",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "projects-text",
+            "type": "text"
+          }
+        ]
+      },
+      {
+        "id": "projects-text",
+        "type": "text",
+        "x": 316,
+        "y": 277,
+        "width": 228,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Pick a project",
+        "originalText": "Pick a project",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "projects",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      }
+    ],
+    "files": {},
+    "appState": {
+      "viewBackgroundColor": "#ffffff",
+      "gridSize": 20
+    }
+  }
+}

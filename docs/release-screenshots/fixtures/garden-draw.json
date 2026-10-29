@@ -1,0 +1,846 @@
+{
+  "version": 4,
+  "mode": "draw",
+  "nodes": [],
+  "edges": [],
+  "architectureScene": {
+    "version": 1,
+    "elements": [
+      {
+        "id": "title",
+        "type": "text",
+        "x": 0,
+        "y": -20,
+        "width": 700,
+        "height": 55,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Community garden day",
+        "originalText": "Community garden day",
+        "fontSize": 36,
+        "fontFamily": 2,
+        "textAlign": "left",
+        "verticalAlign": "middle",
+        "containerId": null,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "plan",
+        "type": "frame",
+        "x": 0,
+        "y": 90,
+        "width": 450,
+        "height": 450,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "name": "Plan together",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "grow",
+        "type": "frame",
+        "x": 550,
+        "y": 90,
+        "width": 450,
+        "height": 450,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "name": "Make it happen",
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "ideas",
+        "type": "ellipse",
+        "x": 30,
+        "y": 160,
+        "width": 170,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#dbeafe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "plan",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "ideas-text",
+            "type": "text"
+          },
+          {
+            "id": "ideas-projects",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "ideas-text",
+        "type": "text",
+        "x": 38,
+        "y": 192.0,
+        "width": 154,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "plan",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Gather ideas",
+        "originalText": "Gather ideas",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "ideas",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "projects",
+        "type": "rectangle",
+        "x": 250,
+        "y": 160,
+        "width": 170,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#d1fae5",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "plan",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "projects-text",
+            "type": "text"
+          },
+          {
+            "id": "ideas-projects",
+            "type": "arrow"
+          },
+          {
+            "id": "projects-ready",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "projects-text",
+        "type": "text",
+        "x": 258,
+        "y": 192.0,
+        "width": 154,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "plan",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Pick a project",
+        "originalText": "Pick a project",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "projects",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "ready",
+        "type": "diamond",
+        "x": 145,
+        "y": 340,
+        "width": 170,
+        "height": 120,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#fef3c7",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "plan",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "ready-text",
+            "type": "text"
+          },
+          {
+            "id": "projects-ready",
+            "type": "arrow"
+          },
+          {
+            "id": "ready-tools",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "ready-text",
+        "type": "text",
+        "x": 153,
+        "y": 382.0,
+        "width": 154,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "plan",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Ready?",
+        "originalText": "Ready?",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "ready",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "tools",
+        "type": "rectangle",
+        "x": 580,
+        "y": 160,
+        "width": 170,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#d1fae5",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "grow",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "tools-text",
+            "type": "text"
+          },
+          {
+            "id": "ready-tools",
+            "type": "arrow"
+          },
+          {
+            "id": "tools-invite",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "tools-text",
+        "type": "text",
+        "x": 588,
+        "y": 192.0,
+        "width": 154,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "grow",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Prepare tools",
+        "originalText": "Prepare tools",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "tools",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "invite",
+        "type": "ellipse",
+        "x": 800,
+        "y": 160,
+        "width": 170,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#dbeafe",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "grow",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "invite-text",
+            "type": "text"
+          },
+          {
+            "id": "tools-invite",
+            "type": "arrow"
+          },
+          {
+            "id": "invite-plant",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "invite-text",
+        "type": "text",
+        "x": 808,
+        "y": 177,
+        "width": 154,
+        "height": 66,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "grow",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Invite\nneighbors",
+        "originalText": "Invite\nneighbors",
+        "fontSize": 22,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "invite",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "plant",
+        "type": "rectangle",
+        "x": 690,
+        "y": 360,
+        "width": 180,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "#fce7f3",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "grow",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "plant-text",
+            "type": "text"
+          },
+          {
+            "id": "invite-plant",
+            "type": "arrow"
+          }
+        ]
+      },
+      {
+        "id": "plant-text",
+        "type": "text",
+        "x": 698,
+        "y": 392.0,
+        "width": 164,
+        "height": 36,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": "grow",
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "Plant together",
+        "originalText": "Plant together",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "plant",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "ideas-projects",
+        "type": "arrow",
+        "x": 200,
+        "y": 210,
+        "width": 50,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            50,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "ideas",
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "projects",
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "projects-ready",
+        "type": "arrow",
+        "x": 335,
+        "y": 260,
+        "width": 105,
+        "height": 80,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            40
+          ],
+          [
+            -105,
+            40
+          ],
+          [
+            -105,
+            80
+          ]
+        ],
+        "startBinding": {
+          "elementId": "projects",
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "ready",
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "ready-tools",
+        "type": "arrow",
+        "x": 315,
+        "y": 400,
+        "width": 265,
+        "height": 190,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": [
+          {
+            "id": "ready-tools-text",
+            "type": "text"
+          }
+        ],
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            185,
+            0
+          ],
+          [
+            185,
+            -190
+          ],
+          [
+            265,
+            -190
+          ]
+        ],
+        "startBinding": {
+          "elementId": "ready",
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "tools",
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "ready-tools-text",
+        "type": "text",
+        "x": 460,
+        "y": 285,
+        "width": 40,
+        "height": 30,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "yes",
+        "originalText": "yes",
+        "fontSize": 18,
+        "fontFamily": 2,
+        "textAlign": "center",
+        "verticalAlign": "middle",
+        "containerId": "ready-tools",
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "tools-invite",
+        "type": "arrow",
+        "x": 750,
+        "y": 210,
+        "width": 50,
+        "height": 0,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            50,
+            0
+          ]
+        ],
+        "startBinding": {
+          "elementId": "tools",
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "invite",
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "invite-plant",
+        "type": "arrow",
+        "x": 885,
+        "y": 260,
+        "width": 105,
+        "height": 100,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            50
+          ],
+          [
+            -105,
+            50
+          ],
+          [
+            -105,
+            100
+          ]
+        ],
+        "startBinding": {
+          "elementId": "invite",
+          "gap": 0
+        },
+        "endBinding": {
+          "elementId": "plant",
+          "gap": 0
+        },
+        "startArrowhead": null,
+        "endArrowhead": "arrow"
+      },
+      {
+        "id": "note",
+        "type": "text",
+        "x": 70,
+        "y": 590,
+        "width": 850,
+        "height": 38,
+        "angle": 0,
+        "strokeColor": "#334155",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "text": "A shared plan for a greener neighborhood.",
+        "originalText": "A shared plan for a greener neighborhood.",
+        "fontSize": 24,
+        "fontFamily": 2,
+        "textAlign": "left",
+        "verticalAlign": "middle",
+        "containerId": null,
+        "lineHeight": 1.5,
+        "autoResize": true,
+        "customData": {
+          "flowchartFont": "noto-sans-v1"
+        }
+      },
+      {
+        "id": "underline",
+        "type": "freedraw",
+        "x": 72,
+        "y": 638,
+        "width": 385,
+        "height": 9,
+        "angle": 0,
+        "strokeColor": "#0f766e",
+        "backgroundColor": "transparent",
+        "strokeWidth": 2,
+        "strokeStyle": "solid",
+        "fillStyle": "solid",
+        "roughness": 0,
+        "opacity": 100,
+        "groupIds": [],
+        "frameId": null,
+        "isDeleted": false,
+        "locked": false,
+        "boundElements": null,
+        "points": [
+          [
+            0,
+            2
+          ],
+          [
+            65,
+            0
+          ],
+          [
+            130,
+            4
+          ],
+          [
+            195,
+            1
+          ],
+          [
+            260,
+            5
+          ],
+          [
+            325,
+            3
+          ],
+          [
+            385,
+            9
+          ]
+        ],
+        "pressures": [],
+        "simulatePressure": true
+      }
+    ],
+    "files": {},
+    "appState": {
+      "viewBackgroundColor": "#ffffff",
+      "gridSize": 20
+    }
+  }
+}

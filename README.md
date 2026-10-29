@@ -1,159 +1,193 @@
-<div align="center">
+# Flowchart AI
 
-<p>
-  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer">
-    <img src="docs/screenshots/trailer-teaser.gif" alt="Flowchart AI trailer: an AI agent adds a step to a flowchart over MCP, and the chart open in the browser updates live" width="720" />
-  </a>
-</p>
+Flowchart AI is an MIT-licensed, open-source diagram editor with Flowchart, Architecture, and Draw modes. Build diagrams by hand, preview AI proposals, or edit a shared chart with an MCP agent. The canvas works without AI credentials.
 
-<p>
-  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer"><strong>▶ Watch the trailer</strong></a> (0:56, sound on)
-</p>
-
-<div style="font-size: 2.5em; font-weight: 800; letter-spacing: 0.08em; line-height: 1.1;">
-  <strong>FLOWCHART AI</strong>
-</div>
-
-<div style="font-size: 1.1em; margin: 8px 0;">
-  <strong>Describe your idea. Get a flowchart.</strong>
-</div>
-
-The open-source flowchart designer that turns plain-English prompts into polished diagrams in seconds.<br>
-AI generation &nbsp;|&nbsp; 663+ Azure icons &nbsp;|&nbsp; Presentation mode &nbsp;|&nbsp; Export to PNG, SVG & GIF
-
-<br>
-
-[![Try it Live](https://img.shields.io/badge/Try_it_Live-00c896?style=for-the-badge&logo=vercel&logoColor=white)](https://flowchart.zeroclickdev.ai/)
+[Open the app](https://flowchart.zeroclickdev.ai/) · [Source](https://github.com/tmcfarlane/flowchart) · [Fork](https://github.com/tmcfarlane/flowchart/fork) · [Contribute](CONTRIBUTING.md) · [Self-host](#run-locally-or-self-host) · [v3.0.0 release notes](docs/releases/v3.0.0.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![GitHub Stars](https://img.shields.io/github/stars/tmcfarlane/flowchart)](https://github.com/tmcfarlane/flowchart/stargazers)
+[![GitHub stars](https://img.shields.io/github/stars/tmcfarlane/flowchart)](https://github.com/tmcfarlane/flowchart/stargazers)
 [![Issues](https://img.shields.io/github/issues/tmcfarlane/flowchart)](https://github.com/tmcfarlane/flowchart/issues)
-[![Free](https://img.shields.io/badge/Price-Free-brightgreen)](https://flowchart.zeroclickdev.ai/)
-<br>
 
-Created by <a href="https://zeroclickdev.ai/">ZeroClickDev</a>
+Created by [ZeroClickDev](https://zeroclickdev.ai/).
 
-</div>
+![A community garden planning diagram in the dark Draw workspace](public/releases/v3.0.0/draw-workspace-dark.png)
 
-> [!TIP]
-> **New: the Flowchart AI MCP server.** Connect Claude, ChatGPT, VS Code, Cursor or OpenCode to `https://flowchart.zeroclickdev.ai/api/mcp`, and your agent can draw a flowchart, hand you a link, and keep editing it with you. Free, no account or API key. [Launch page and setup](https://flowchart.zeroclickdev.ai/mcp) · [Docs](docs/mcp.md)
+Draw mode with native shapes, bound arrows, labels, and frames.
 
----
+<p align="center">
+  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer">
+    <img src="docs/screenshots/trailer-teaser.gif" alt="An MCP agent adds a step to a flowchart, and the open browser chart updates" width="720" />
+  </a>
+  <br />
+  <a href="https://flowchart.zeroclickdev.ai/mcp#trailer">Watch the trailer</a> · 56 seconds, sound on
+</p>
+
+## Choose your canvas
+
+Each document retains its selected mode, graph, and drawing data.
+
+| Mode | Use it for |
+| --- | --- |
+| Flowchart | Process steps, decisions, notes, images, and connected workflows. |
+| Architecture | Services, databases, queues, containers, protocol-aware connections, and bundled official Azure icons. |
+| Draw | Freeform diagrams and annotations in our first-party SVG editor, with editable shapes, paths, labels, images, and frames. |
+
+Draw is implemented in this repository. Excalidraw file support does not require the Excalidraw editor or hosted service. See the [Draw guide](docs/draw-mode.md).
 
 ## Features
 
-- **AI-powered generation** — describe what you want in plain English, get a structured flowchart in seconds
-- **Edit selected nodes with AI** — preview scoped changes and update the same nodes in Flowchart or Architecture mode, with undo/redo. [Guide](docs/selected-node-ai.md)
-- **Works with your AI agent (MCP)** — Claude, Copilot, Cursor, OpenCode or ChatGPT can create a chart, hand you a link, and keep editing it with you
-- **Share links with live sync** — share a chart in one click; edits from you and your agent appear live
-- **Free to use** — no sign-up, no paywall, no limits on the canvas
-- **Export to PNG, SVG & animated GIF** — share diagrams in docs, slides, or README files
-- **Presentation mode** — step through your flowchart with arrow keys, perfect for walkthroughs
-- **663+ Azure icons** — official [Azure icon library](https://learn.microsoft.com/en-us/azure/architecture/icons/) built in, auto-applied by AI
-- **Dark mode** — charcoal UI with teal/cyan accents, toggleable in one click
-- **Custom Draw mode** — our own freeform SVG tools, annotations, styling, keyboard shortcuts and scene sharing, alongside the existing Flowchart and Architecture canvases ([guide](docs/draw-mode.md))
-- **Polished canvas UX** — snap-to-grid, undo/redo, copy/paste, minimap, multi-select
-- **Multiple node & edge types** — step, decision, note, image nodes with editable labels and animated edges
-- **AI proposal preview** — review, regenerate, and tweak AI suggestions before inserting
-- **Deploy anywhere** — one-click Vercel deploy, serverless API keeps credentials safe
+### Generate and edit with AI
+
+- Choose Flowchart, Architecture, or Draw as the output mode. Review a proposal, refine or regenerate it, then insert it into its chosen canvas.
+- AI Draw uses native shapes, text, arrows, lines, pen paths, and frames. The backend measures text, fits shapes, resolves attachments, routes connectors, and validates the finished drawing before preview. Preview and insertion use that same finalized file. See [AI Draw generation](docs/ai-draw-generation.md).
+- Preview selected-node edits in Flowchart and Architecture, then apply them as one undoable change. See [selected-node AI edits](docs/selected-node-ai.md).
+- Preview scoped text and style edits to existing unlocked Draw objects. Geometry changes are limited to standalone, unassociated rectangles, diamonds, and ellipses. See [selected Draw AI edits](docs/draw-selection-ai.md) for the exact scope.
+
+### Draw and arrange
+
+- Use rectangles, diamonds, ellipses, arrows, lines, pen, text, images, eraser, and frames. Change strokes, fills, hatching, sketch texture, corners, opacity, typography, and arrowheads.
+- Resize, rotate, duplicate, copy, paste, group, lock, align, stack, and flip objects. Use box or lasso selection, connected-shape shortcuts, and keyboard editing for connector points.
+- Keep labels centered and attached to shapes through movement, resizing, and rotation. Double-click shapes, existing text, or connectors to edit their labels. Readable text colors and visible arrowheads adapt to dark and light canvases.
+- Clip and move frame contents together. Save reusable selections in the browser-local Components panel.
+- Find objects with drawing search and a command palette. Add element links, inspect statistics, or use view and zen modes. Pan with Hand, Space-drag, or a held right mouse button.
+- Use the fading laser, eyedropper, fill, shape recognition, and static HTTPS embed cards. Import the [supported Mermaid flowchart subset](docs/draw-extra-tools.md#mermaid-syntax) as editable objects.
+- Upload or paste images, crop from their original pixels, and paste clipboard text as editable text. AI Draw generation does not create image assets.
+
+The [Draw guide](docs/draw-mode.md), [keyboard reference](docs/excalidraw-hotkeys.md), [media guide](docs/draw-media.md), and [extra tools guide](docs/draw-extra-tools.md) cover these controls.
+
+### Save, share, and present
+
+- Autosave standalone documents locally. Import or export editable native JSON with the selected mode and complete drawing, and use shared Undo and Redo across edits, imports, and mode changes.
+- Open or insert validated `.excalidraw` files as editable objects in Draw. Export the current Draw board as `.excalidraw`. See [file compatibility and limits](docs/excalidraw-import.md).
+- Export PNG, SVG, or GIF. Draw GIF export records one still frame for the chosen duration. Draw presentation shows the whole board with pan and zoom. Flowchart and Architecture retain their graph walkthroughs.
+- Share editable chart links. Browser and MCP updates sync within a few seconds, including drawing and mode changes. See the [sharing limits and access model](docs/mcp.md#privacy-and-security).
+- Connect Claude, ChatGPT, VS Code, Cursor, or OpenCode through the remote MCP server. The hosted MCP service needs no account or API key.
+- Use dark or light themes and compact controls that fit 390px phone viewports, with scrolling palettes and collapsible Draw panels.
+- Read release updates in **What's new**, including the v3.0.0 screenshot gallery.
+
+## Screenshots
+
+These v3.0.0 screenshots use public sample diagrams. Open any image to view it at full size. See the [capture guide and provenance](docs/release-screenshots/README.md) to reproduce them.
 
 <details>
-<summary><strong>Screenshots</strong></summary>
+<summary>View 9 more screenshots</summary>
 
-### Demo
+### Draw workspace in light mode
 
-![FlowChart AI — Free AI-powered flowchart designer](docs/screenshots/flow.gif)
+The same editable drawing with a light canvas.
 
-### AI Generation
+![The community garden planning diagram in the light Draw workspace](public/releases/v3.0.0/draw-workspace-light.png)
 
-Tell Flowchart what you want to make and watch it magically jump start you.
+### AI Draw preview
 
-![Tell Flowchart what you want to make and watch it magically jump start you](docs/screenshots/vibes.png)
+Review a backend-finalized native drawing before insertion. This capture replays a recorded response.
 
-### Azure Icons
+![An AI-generated drawing in the dark proposal preview with controls to refine or insert it](public/releases/v3.0.0/ai-draw-preview-dark.png)
 
-Official Azure icons are automatically applied to AI-generated nodes.
+### Selected-object AI preview
 
-![Default support for official Azure icons library](docs/screenshots/azureicons.png)
+Review a scoped edit before applying it. This capture uses a public response fixture.
 
-### AI Proposal Preview
+![A selected Draw object's proposed AI changes in the dark preview](public/releases/v3.0.0/ai-selection-preview-dark.png)
 
-Review, regenerate, and modify AI suggestions before adding them to the canvas.
+### Shape labels and arrows
 
-![AI proposal view to review, regenerate, and modify prior to adding your new flowchart to the canvas](docs/screenshots/ai-proposal.png)
+Centered labels remain attached to editable shapes.
 
-### Presentation Mode
+![Draw shapes with centered bound labels and visible connecting arrows](public/releases/v3.0.0/shape-text-dark.png)
 
-Walk through your flowchart step by step with arrow keys — great for meetings and demos.
+### Components and frames
 
-![Presentation Mode will walk you through your flowchart from start to finish](docs/screenshots/presentation.png)
+Reuse saved selections and arrange objects inside native frames.
 
-### Export & Save
+![The Components panel and framed drawing objects on a light canvas](public/releases/v3.0.0/components-frames-light.png)
 
-Export to PNG, SVG, animated GIF, or JSON. Import JSON to pick up where you left off.
+### Draw on a phone viewport
 
-![Export to GIF, SVG, PNG | Import/Export JSON](docs/screenshots/export.png)
+Compact controls, scrolling tools, and collapsible panels fit a 390px-wide viewport.
+
+<a href="public/releases/v3.0.0/mobile-draw-light.png"><img src="public/releases/v3.0.0/mobile-draw-light.png" alt="The light Draw workspace at a 390px phone viewport with compact controls" width="390" /></a>
+
+### Architecture mode
+
+Model services, data stores, and their connections on the graph canvas.
+
+![A library platform architecture with services, data stores, and connections in light mode](public/releases/v3.0.0/architecture-light.png)
+
+### Editable Excalidraw import
+
+Imported objects remain editable in the first-party Draw editor.
+
+![An imported Excalidraw sample with separate editable objects on the dark Draw canvas](public/releases/v3.0.0/excalidraw-import-dark.png)
+
+### Flowchart mode
+
+Connect process steps and decisions on the original graph canvas.
+
+![A process diagram with connected steps and decisions in the light Flowchart workspace](public/releases/v3.0.0/flowchart-light.png)
 
 </details>
 
-## Quickstart
+## Run locally or self-host
 
-```bash
-# Prerequisites: Node.js 20+, pnpm 10.x
-pnpm install
-pnpm dev          # http://localhost:3004
-pnpm test         # run tests
-pnpm build        # production build
+Use Node.js 20 or newer and npm. The repository tracks `package-lock.json`.
+
+```sh
+git clone https://github.com/tmcfarlane/flowchart.git
+cd flowchart
+npm ci
+npm run dev
 ```
 
-## Use it from your AI agent (MCP)
+Open `http://localhost:3004`. The development server serves the canvas and the local API handlers. No environment file or AI credentials are needed for canvas editing. Local shared charts use a file-backed development store when Redis is absent.
 
-Flowchart AI is also a remote MCP server. Connect it to your agent, ask for a chart, and you get a link to an editable flowchart. Keep editing in the browser while the agent keeps editing the same chart; each side sees the other's changes.
+Run the automated checks and build the production bundle:
 
+```sh
+npm test -- --run
+npm run build
 ```
+
+Self-host the frontend and the `api/` handlers. Production sharing and MCP require your own Redis configuration. Optional AI requires your own server-side provider settings. See the [API deployment guide](api/README.md) and [MCP self-hosting guide](docs/mcp.md#self-hosting).
+
+## Use an MCP agent
+
+Connect your client to the hosted Streamable HTTP endpoint:
+
+```text
 https://flowchart.zeroclickdev.ai/api/mcp
 ```
 
+For Claude Code:
+
 ```sh
-# Claude Code
 claude mcp add --transport http flowchart https://flowchart.zeroclickdev.ai/api/mcp
 ```
 
-Tools: `create_flowchart`, `get_flowchart`, `update_flowchart`, `list_node_types`, `search_azure_icons`. No account or API key is needed. The dev server also serves the MCP endpoint at `http://localhost:3004/api/mcp`. Setup steps for each client are on the **[launch page](https://flowchart.zeroclickdev.ai/mcp)**, and **[docs/mcp.md](docs/mcp.md)** has the same setup plus the tool reference, privacy notes, and self-hosting with Upstash Redis.
+The tools are `create_flowchart`, `get_flowchart`, `update_flowchart`, `list_node_types`, and `search_azure_icons`. The agent can create a chart, return an editable link, and keep updating the same chart while you edit in the browser. MCP itself does not call an LLM.
 
-![An AI agent's edit appearing live in a shared chart](docs/screenshots/mcp-agent-update.png)
+The local endpoint is `http://localhost:3004/api/mcp`. The [MCP launch page](https://flowchart.zeroclickdev.ai/mcp) has client setup, and the [MCP reference](docs/mcp.md) covers tools, REST access, privacy, and limits.
 
-## AI setup (optional)
+## Configure optional AI
 
-The canvas runs without AI credentials. Website generation and refinement use your own Azure deployment through `/api/chat`. AI is disabled until you select a routing mode.
+Website generation and refinement use your own Azure deployment through `/api/chat`. AI defaults to disabled.
 
-```bash
+```sh
 cp .env.example .env
 ```
 
-Set `AI_ROUTING_MODE=direct` to use Azure without Cloudflare. Set `AI_ROUTING_MODE=gateway` to use your own authenticated Cloudflare AI Gateway. Supply your Azure resource, deployment, key, and verified input/output prices in either mode. Gateway mode also requires your account ID, gateway ID, and Run token. Keep every credential server-side without a `VITE_` prefix.
+Set `AI_ROUTING_MODE=direct` for Azure or `AI_ROUTING_MODE=gateway` for your authenticated Cloudflare AI Gateway. Both need `AZURE_RESOURCE_NAME`, `AZURE_DEPLOYMENT_NAME`, `AZURE_API_KEY`, and verified `AI_INPUT_PRICE_PER_MILLION` and `AI_OUTPUT_PRICE_PER_MILLION` values. Gateway mode also needs the `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_GATEWAY_ID`, and `CLOUDFLARE_AI_GATEWAY_TOKEN` settings.
 
-Issue #17 targets Azure's `gpt-6-luna` model, version `2026-09-22`. Deployment names are aliases, so confirm the actual model in Azure. The compatible API version is `2024-10-21`; requests omit temperature by default.
+Keep credentials server-side. Never give them a `VITE_` prefix. Production AI requires Redis-backed admission controls. The official website requires gateway routing with `AI_REQUIRE_GATEWAY=true`. `AI_ENABLED=false` stops inference while canvas editing remains available.
 
-Both modes enforce request/context/output limits, client/global rates, concurrency, and a conservative daily allowance. Production requires shared Redis. The official website requires gateway routing with `AI_REQUIRE_GATEWAY=true`, gateway rate/spend policies, and separate environment budgets. Gateway failure never bypasses those policies. `AI_ENABLED=false` disables inference while canvas editing remains available.
+Use [`.env.example`](.env.example) and the [AI configuration guide](api/README.md#apichat) for supported model settings, request limits, budgets, privacy, and deployment checks.
 
-See [AI configuration and operations](api/README.md#apichat) for every setting, direct and gateway setup, payload privacy, Luna pricing, spend-limit margins, and rollout checks.
+## Contribute
 
-## Tech Stack
+Fork the [source repository](https://github.com/tmcfarlane/flowchart), follow [CONTRIBUTING.md](CONTRIBUTING.md), and open a focused pull request. Report vulnerabilities through [SECURITY.md](SECURITY.md).
 
-![React](https://img.shields.io/badge/React-61DAFB?style=flat-square&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
-
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`SECURITY.md`](SECURITY.md).
-
-## Built With
-
-This app was built 100% with AI assistance using Cursor, OpenCode, and [Oh My Cursor](https://github.com/tmcfarlane/oh-my-cursor).
+The app uses React, TypeScript, Vite, and Vercel-compatible API handlers. It was built with AI assistance using Cursor, OpenCode, and [Oh My Cursor](https://github.com/tmcfarlane/oh-my-cursor).
 
 ## License
 
-MIT. See [`LICENSE`](LICENSE).
+[MIT](LICENSE). You can use, modify, redistribute, and self-host the project under that license.

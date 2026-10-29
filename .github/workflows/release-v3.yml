@@ -1,0 +1,32 @@
+name: Publish v3.0.0
+
+on:
+  push:
+    tags:
+      - v3.0.0
+
+permissions: {}
+
+concurrency:
+  group: official-v3.0.0
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'tmcfarlane/flowchart' && github.ref_type == 'tag' && github.ref_name == 'v3.0.0' && github.event.created == true && github.event.deleted == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate committed release
+        run: python3 scripts/release-v3.py validate
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release-v3.py publish
