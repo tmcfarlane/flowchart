@@ -1,0 +1,1354 @@
+{
+  "sourceRevision": "e73def4b186d25ba0429cfc846abd464c7fbe1cc",
+  "url": "http://127.0.0.1:3108/",
+  "verifiedAt": "2026-10-29T00:06:46.959230+00:00",
+  "chromium": "154.0.8037.57",
+  "playwright": "1.62.0",
+  "negativeControl": {
+    "sourceRevision": "c3c37856b40293bf515ddb02fff044c34e17a075",
+    "url": "http://127.0.0.1:3107/",
+    "verifiedAt": "2026-10-29T00:00:55.445789+00:00",
+    "cases": [
+      {
+        "case": "outline",
+        "observation": {
+          "opened": true,
+          "focused": true,
+          "value": "",
+          "box": {
+            "x": 543,
+            "y": 538,
+            "width": 292,
+            "height": 82.78125
+          },
+          "centerError": {
+            "x": -30.99999475479126,
+            "y": 37.390629291534424
+          },
+          "savedText": [
+            {
+              "id": "draw-7629c284-7c52-43c6-8aba-90197a5a0b47",
+              "text": "Orders service",
+              "containerId": null
+            }
+          ]
+        },
+        "events": [
+          {
+            "type": "pointerdown",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "path",
+            "id": "host",
+            "actualHitId": "host"
+          },
+          {
+            "type": "pointerup",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "click",
+            "pointerType": "mouse",
+            "detail": 1,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "pointerdown",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "path",
+            "id": "host",
+            "actualHitId": "host"
+          },
+          {
+            "type": "pointerup",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "click",
+            "pointerType": "mouse",
+            "detail": 2,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "dblclick",
+            "pointerType": null,
+            "detail": 2,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          }
+        ]
+      },
+      {
+        "case": "existing-text",
+        "observation": {
+          "opened": true,
+          "focused": true,
+          "value": "",
+          "box": {
+            "x": 660,
+            "y": 538,
+            "width": 292,
+            "height": 82.78125
+          },
+          "savedText": [
+            {
+              "id": "host",
+              "text": "Existing text",
+              "containerId": null
+            },
+            {
+              "id": "draw-ee89a828-ec27-42cc-a979-cc7467dc9807",
+              "text": "Orders service",
+              "containerId": null
+            }
+          ]
+        },
+        "events": [
+          {
+            "type": "pointerdown",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "tspan",
+            "id": "host",
+            "actualHitId": "host"
+          },
+          {
+            "type": "pointerup",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "click",
+            "pointerType": "mouse",
+            "detail": 1,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "pointerdown",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "tspan",
+            "id": "host",
+            "actualHitId": "host"
+          },
+          {
+            "type": "pointerup",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "click",
+            "pointerType": "mouse",
+            "detail": 2,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          },
+          {
+            "type": "dblclick",
+            "pointerType": null,
+            "detail": 2,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          }
+        ]
+      },
+      {
+        "case": "arrow-midpoint",
+        "observation": {
+          "opened": false
+        },
+        "events": [
+          {
+            "type": "pointerdown",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "path",
+            "id": "host",
+            "actualHitId": "host"
+          },
+          {
+            "type": "pointerup",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "svg",
+            "id": null,
+            "actualHitId": null
+          },
+          {
+            "type": "click",
+            "pointerType": "mouse",
+            "detail": 1,
+            "target": "svg",
+            "id": null,
+            "actualHitId": null
+          },
+          {
+            "type": "pointerdown",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "line",
+            "id": null,
+            "actualHitId": null
+          },
+          {
+            "type": "pointerup",
+            "pointerType": "mouse",
+            "detail": 0,
+            "target": "svg",
+            "id": null,
+            "actualHitId": "host"
+          }
+        ]
+      }
+    ]
+  },
+  "cases": [
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "rectangle-interior",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-80eaf5d4-2167-4b85-b9a6-6617d6170cf1",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "rectangle-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-c6e3be7e-47e6-4346-af75-d3ab4618f340",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "ellipse-outline-filled",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-2f25bbff-8287-4b7d-9902-ccca346a2443",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "diamond-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-595c8b4d-cf66-4e47-b6b6-2837192065cf",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "arrow-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 584,
+          "y": 514.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-8022ee1c-09e3-4a9b-93f3-9ad42959b60a",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "line-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 584,
+          "y": 514.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-361b535a-e0b6-44c5-a46c-81e29ebfd418",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "existing-text",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "Existing text",
+        "box": {
+          "x": 548,
+          "y": 517,
+          "width": 376,
+          "height": 82.78125
+        }
+      },
+      "textId": "host",
+      "containerId": null,
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "rectangle-filled",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-3fa8c7a7-6dfa-4542-bf24-4167228eb1a1",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "ellipse-interior",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-880e255b-068d-4339-8827-d7e972098295",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "ellipse-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-eee72be2-a129-442e-a6d8-b0fd87116593",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "diamond-filled",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-c8f6b760-00f6-4734-b8ac-ecce968b4045",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "diamond-outline-filled",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-1e61bb81-3fcf-4556-91ef-4654fc623961",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-dark",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "dark",
+      "case": "rotated-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 607.2999877929688,
+          "y": 469.5635681152344,
+          "width": 262.1812744140625,
+          "height": 134.06033325195312
+        },
+        "centerError": {
+          "x": -0.009376049041748047,
+          "y": -0.006266117095947266
+        }
+      },
+      "textId": "draw-05507dd5-ebeb-4280-a9b1-4f8063facd98",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": true
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "rectangle-interior",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-eb4c8e20-53e1-4dae-a9df-5c29015a4da9",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "rectangle-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-0f7d30fc-1760-4938-878e-9dda1353c77e",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "ellipse-outline-filled",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-91b5dfeb-f190-4a34-98a7-33869c4838c7",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "diamond-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 558.8046875,
+          "y": 514.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-9295ac40-60e6-4202-a097-0fdec149b13b",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "arrow-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 584,
+          "y": 514.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-101b28af-f45e-4708-a58a-94cacd28bdbc",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "line-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 584,
+          "y": 514.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-03250a65-d863-4faa-afb6-e774423121ad",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "existing-text",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "Existing text",
+        "box": {
+          "x": 548,
+          "y": 517,
+          "width": 376,
+          "height": 82.78125
+        }
+      },
+      "textId": "host",
+      "containerId": null,
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "dark",
+      "case": "rectangle-interior",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-69cffe2f-966e-4b84-a538-dc23947b185b",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "dark",
+      "case": "rectangle-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-e013f6c9-0a95-4207-8ba1-9b40b6b48e58",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "dark",
+      "case": "ellipse-outline-filled",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-bef8bceb-47cb-4f66-87ee-f34483f20acb",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "dark",
+      "case": "diamond-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-566ad3a0-b0a8-4cc6-b1fa-e1153a680172",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "dark",
+      "case": "arrow-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 59,
+          "y": 474.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-253786b2-22a0-4f7a-baf1-59fc84d12fc9",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "dark",
+      "case": "line-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 59,
+          "y": 474.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-7e56172f-7bb9-44e5-bc55-aabb9189fe2e",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-dark",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "dark",
+      "case": "existing-text",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "Existing text",
+        "box": {
+          "x": 23,
+          "y": 477,
+          "width": 376,
+          "height": 82.78125
+        }
+      },
+      "textId": "host",
+      "containerId": null,
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "rectangle-interior",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-b8439367-a968-4d7f-b506-aef8e185413a",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "rectangle-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-6a0a5ce4-8002-4303-bf7b-3398cb7c0321",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "ellipse-outline-filled",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-56235ed1-b475-487c-8b0e-360f4b695708",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "diamond-outline",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 33.8046875,
+          "y": 474.8046875,
+          "width": 322.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 4.291534423828125e-06
+        }
+      },
+      "textId": "draw-8adfd91d-ff69-4c1c-9d59-6f105408eb6e",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "arrow-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 59,
+          "y": 474.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-d855389c-6451-4d11-b230-351460a89426",
+      "containerId": "host",
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "line-midpoint",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 59,
+          "y": 474.8046875,
+          "width": 272,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 2.384185791015625e-06
+        }
+      },
+      "textId": "draw-fa9521ed-6174-434a-9e9d-c3c75db82e55",
+      "containerId": "host",
+      "historyChecked": false,
+      "reloadChecked": false,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "existing-text",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "Existing text",
+        "box": {
+          "x": 23,
+          "y": 477,
+          "width": 376,
+          "height": 82.78125
+        }
+      },
+      "textId": "host",
+      "containerId": null,
+      "historyChecked": true,
+      "reloadChecked": true,
+      "panZoomRotation": false
+    },
+    {
+      "screen": "desktop-light",
+      "viewport": {
+        "width": 1440,
+        "height": 960
+      },
+      "touch": false,
+      "theme": "light",
+      "case": "native-draw",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 636.8046875,
+          "y": 255.8046875,
+          "width": 166.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": -1.1920928955078125e-07
+        }
+      },
+      "textId": "draw-d71c589c-5572-4bf5-bf78-6e2518f73851",
+      "containerId": "draw-e8a067ec-67d5-4d1d-bac2-52db04f75361",
+      "historyChecked": true,
+      "reloadChecked": false
+    },
+    {
+      "screen": "phone-light",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "touch": true,
+      "theme": "light",
+      "case": "native-draw",
+      "editor": {
+        "opened": true,
+        "focused": true,
+        "value": "",
+        "box": {
+          "x": 111.8046875,
+          "y": 291.8046875,
+          "width": 166.390625,
+          "height": 54.390625
+        },
+        "centerError": {
+          "x": 5.245208740234375e-06,
+          "y": 1.1750630051210464e-06
+        }
+      },
+      "textId": "draw-e62f5e52-e993-4ecd-a357-c0dd8708473c",
+      "containerId": "draw-d4446ada-4ad2-4faa-bf2b-61b1dfa51db6",
+      "historyChecked": true,
+      "reloadChecked": false
+    }
+  ],
+  "limits": [
+    "Chromium mouse and touch emulation only. Physical Safari and native WebKit are unverified.",
+    "Screenshot device scale is 1, and viewport sizes are CSS pixels.",
+    "All API requests are blocked. No AI or shared-backend writes are sent."
+  ],
+  "guards": [
+    {
+      "guard": "locked",
+      "passed": true
+    },
+    {
+      "guard": "view-mode",
+      "passed": true
+    },
+    {
+      "guard": "resize",
+      "passed": true
+    },
+    {
+      "guard": "rotate",
+      "passed": true
+    },
+    {
+      "guard": "path-point",
+      "passed": true
+    },
+    {
+      "guard": "blank-canvas",
+      "passed": true
+    },
+    {
+      "guard": "empty-label",
+      "passed": true
+    },
+    {
+      "guard": "image-crop",
+      "passed": true
+    }
+  ],
+  "patchNotes": {
+    "revision": 3,
+    "headings": [
+      "Edit text right on your drawings",
+      "More room to draw on your phone",
+      "Draw with more clarity"
+    ],
+    "futureMarkerPreserved": true,
+    "documentPreserved": true
+  },
+  "entryAssets": [
+    {
+      "url": "http://127.0.0.1:3108/@vite/client",
+      "status": 200,
+      "sha256": "2f3339525356b5006e8c24157fc15617ab8dbbae35f0a594b066bcde3edd4d71"
+    },
+    {
+      "url": "http://127.0.0.1:3108/src/main.tsx",
+      "status": 200,
+      "sha256": "f085b05e7b6024f2c05028d80dd8e0c83abcab394868d20f68e0a6a31557e03d"
+    }
+  ]
+}
