@@ -57,10 +57,12 @@ Describe the problem, the resulting behavior, and the checks you ran. Use a clea
 
 Prepend a release to `PATCH_NOTES` in `src/patchNotes.ts`. Give it a positive safe integer `revision` higher than every published revision, an ISO date, a title, and user-facing highlights. Never reuse a revision, even for another release on the same date. Keep older entries below the latest release.
 
+For a screenshot gallery, attach typed media from `src/releaseScreenshots.ts` to its release record. Store public-safe captures under `public/releases/<version>/` with descriptive alt text, captions, and their actual dimensions. The [capture guide](docs/release-screenshots/README.md) documents the v3.0.0 samples and recorded AI fixtures. Keep README image paths repository-relative and GitHub release image URLs pinned to the release tag.
+
 Run the patch-note checks:
 
 ```sh
-npx vitest run src/test/patchNotes.test.ts src/test/usePatchNotes.test.tsx src/test/PatchNotesDialog.test.tsx src/test/PatchNotesApp.test.tsx src/test/PatchNotesReleaseUpdate.test.tsx
+npx vitest run src/test/patchNotes.test.ts src/test/usePatchNotes.test.tsx src/test/PatchNotesDialog.test.tsx src/test/PatchNotesApp.test.tsx src/test/PatchNotesReleaseUpdate.test.tsx src/test/releaseScreenshots.test.ts
 ```
 
 In a fresh browser, confirm that the notes open before the AI welcome. Dismiss them, reload, and reopen them with **What's new**. Check both themes and a compact viewport.

@@ -67,7 +67,7 @@ The [Draw guide](docs/draw-mode.md), [keyboard reference](docs/excalidraw-hotkey
 
 ## Screenshots
 
-These v3.0.0 screenshots use public sample diagrams. Open any image to view it at full size.
+These v3.0.0 screenshots use public sample diagrams. Open any image to view it at full size. See the [capture guide and provenance](docs/release-screenshots/README.md) to reproduce them.
 
 <details>
 <summary>View 9 more screenshots</summary>
