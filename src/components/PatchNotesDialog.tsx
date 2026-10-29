@@ -24,8 +24,8 @@ export default function PatchNotesDialog({ onDismiss }: { onDismiss: () => void 
       onDismiss()
     }
     if (event.key !== 'Tab') return
-    const buttons = [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])]
-    const first = buttons[0], last = buttons[buttons.length - 1]
+    const focusable = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href]') ?? [])]
+    const first = focusable[0], last = focusable[focusable.length - 1]
     if (event.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) { event.preventDefault(); last?.focus() }
     else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialogRef.current)) { event.preventDefault(); first?.focus() }
   }
@@ -51,6 +51,21 @@ export default function PatchNotesDialog({ onDismiss }: { onDismiss: () => void 
               </div>
               <h3 id={`patch-notes-release-${note.revision}`}>{note.title}</h3>
               <ul>{note.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul>
+              {note.media && note.media.length > 0 && (
+                <>
+                  <p className="patch-notes-gallery-intro">Select a screenshot to open the full-size image in a new tab.</p>
+                  <div className="patch-notes-gallery">
+                    {note.media.map((image) => (
+                      <figure key={image.src} className="patch-notes-screenshot">
+                        <a href={image.src} target="_blank" rel="noopener noreferrer" aria-label={`Open full-size image: ${image.caption} (opens in a new tab)`}>
+                          <img src={image.src} alt={image.alt} width={image.width} height={image.height} loading="lazy" decoding="async" />
+                        </a>
+                        <figcaption>{image.caption}</figcaption>
+                      </figure>
+                    ))}
+                  </div>
+                </>
+              )}
             </section>
           ))}
         </div>
