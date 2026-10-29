@@ -1,0 +1,32 @@
+name: Recover v3.0.0 draft 427372503
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/recover-v3.yml
+
+permissions: {}
+
+concurrency:
+  group: official-v3.0.0
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: github.repository == 'tmcfarlane/flowchart' && github.ref == 'refs/heads/main' && github.event.deleted == false && github.event.forced == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Recover the verified empty draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/release-v3.py recover

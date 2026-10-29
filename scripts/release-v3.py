@@ -9,6 +9,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 from urllib.parse import quote
 
 
@@ -18,6 +19,12 @@ VERSION = "3.0.0"
 MEDIA = f"public/releases/{TAG}"
 NOTES = f"docs/releases/{TAG}.md"
 RAW = f"https://raw.githubusercontent.com/{REPO}/{TAG}/{MEDIA}/"
+RECOVERY = {
+    "id": 427372503,
+    "commit": "d9304ff2b509c7d96eb01bed26a3845ba7d504fd",
+    "tag_object": "c1d9a9f8dc7413c67749d5e03688bd38715f7f3a",
+    "notes_sha256": "c42119aa6875424fd70a2579c11d0a3618893fbb00adce9f6cc71993fb5f7cae",
+}
 IMAGES = {
     "draw-workspace-dark.png": (1440, 960),
     "draw-workspace-light.png": (1440, 960),
@@ -45,8 +52,8 @@ def git(*args):
     return run("git", *args).decode().strip()
 
 
-def committed(path):
-    return run("git", "show", f"HEAD:{path}")
+def committed(path, sha):
+    return run("git", "show", f"{sha}:{path}")
 
 
 class Images(HTMLParser):
@@ -60,34 +67,42 @@ class Images(HTMLParser):
             self.images.append((attrs.get("alt", ""), attrs.get("src", "")))
 
 
-def validate():
+def validate(recovery=False):
     expected = {
         "GITHUB_REPOSITORY": REPO,
-        "GITHUB_REF": f"refs/tags/{TAG}",
-        "GITHUB_REF_TYPE": "tag",
-        "GITHUB_REF_NAME": TAG,
+        "GITHUB_REF": "refs/heads/main" if recovery else f"refs/tags/{TAG}",
+        "GITHUB_REF_TYPE": "branch" if recovery else "tag",
+        "GITHUB_REF_NAME": "main" if recovery else TAG,
         "GITHUB_EVENT_NAME": "push",
     }
     for name, value in expected.items():
         require(os.environ.get(name) == value, f"Expected {name}={value}")
     event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text())
-    require(event.get("created") is True and event.get("deleted") is False,
-            "Only a newly created, undeleted tag can publish")
-    require(event.get("ref") == f"refs/tags/{TAG}", "Event tag differs")
+    require(event.get("deleted") is False, "Deleted refs cannot publish")
+    if recovery:
+        require(event.get("forced") is False, "Forced main pushes cannot recover")
+    else:
+        require(event.get("created") is True, "Only a newly created tag can publish")
+    require(event.get("ref") == expected["GITHUB_REF"], "Event ref differs")
     sha = os.environ.get("GITHUB_SHA", "")
     require(re.fullmatch(r"[0-9a-f]{40}", sha), "Expected a full commit SHA")
     require(git("rev-parse", "HEAD") == sha, "HEAD differs from event commit")
+    if recovery:
+        run("git", "merge-base", "--is-ancestor", RECOVERY["commit"], sha)
+        sha = RECOVERY["commit"]
+        require(git("rev-parse", f"refs/tags/{TAG}") == RECOVERY["tag_object"],
+                "Recovery tag object differs")
     require(git("rev-parse", f"{TAG}^{{commit}}") == sha, "Tag differs from event commit")
     run("git", "merge-base", "--is-ancestor", sha, "origin/main")
-    package = json.loads(committed("package.json"))
-    lock = json.loads(committed("package-lock.json"))
+    package = json.loads(committed("package.json", sha))
+    lock = json.loads(committed("package-lock.json", sha))
     require(package.get("version") == lock.get("version") ==
             lock.get("packages", {}).get("", {}).get("version") == VERSION,
             "Package and lock versions must all be 3.0.0")
-    paths = git("ls-tree", "-r", "--name-only", "HEAD", "--", MEDIA).splitlines()
+    paths = git("ls-tree", "-r", "--name-only", sha, "--", MEDIA).splitlines()
     pngs = {path for path in paths if path.lower().endswith(".png")}
     require(pngs == {f"{MEDIA}/{name}" for name in IMAGES}, "Screenshot set differs")
-    manifest = committed(f"{MEDIA}/SHA256SUMS").decode()
+    manifest = committed(f"{MEDIA}/SHA256SUMS", sha).decode()
     hashes = {}
     for line in manifest.splitlines():
         match = re.fullmatch(r"([0-9a-f]{64})  ([a-z0-9-]+\.png)", line)
@@ -97,12 +112,16 @@ def validate():
         hashes[name] = digest
     require(hashes.keys() == IMAGES.keys(), "SHA256SUMS screenshot set differs")
     for name, dimensions in IMAGES.items():
-        image = committed(f"{MEDIA}/{name}")
+        image = committed(f"{MEDIA}/{name}", sha)
         require(image[:16] == b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR" and len(image) >= 33,
                 f"Invalid PNG signature or header for {name}")
         require(struct.unpack(">II", image[16:24]) == dimensions, f"Wrong dimensions for {name}")
         require(hashlib.sha256(image).hexdigest() == hashes[name], f"Checksum differs for {name}")
-    notes = committed(NOTES).decode("utf-8")
+    notes_bytes = committed(NOTES, sha)
+    if recovery:
+        require(hashlib.sha256(notes_bytes).hexdigest() == RECOVERY["notes_sha256"],
+                "Recovery notes checksum differs")
+    notes = notes_bytes.decode("utf-8")
     require(notes.strip(), "Release notes are empty")
     require(f"https://github.com/{REPO}/blob/{TAG}/LICENSE" in notes and "MIT" in notes,
             "Release notes must link the MIT license")
@@ -129,10 +148,10 @@ def validate():
     return sha, notes
 
 
-def api(endpoint, payload=None, binary=False):
+def api(endpoint, payload=None, binary=False, method="PATCH"):
     args = ["gh", "api", "--hostname", "github.com", endpoint]
     if payload is not None:
-        args.extend(["--method", "PATCH", "--input", "-"])
+        args.extend(["--method", method, "--input", "-"])
     if binary:
         args.extend(["--header", "Accept: application/octet-stream"])
     response = run(*args, data=None if payload is None else json.dumps(payload).encode())
@@ -173,9 +192,12 @@ def verify_release(release, release_id, notes, assets, draft):
     require(release.get("body") == notes, "Release body differs from committed notes")
     require(release.get("draft") is draft and release.get("prerelease") is False,
             "Release draft or prerelease state differs")
-    if not draft:
+    if draft:
+        require(release.get("published_at") is None, "Draft already has a publication date")
+    else:
         require(release.get("published_at"), "Release has no publication date")
-    remote_assets = release.get("assets", [])
+    remote_assets = release.get("assets")
+    require(isinstance(remote_assets, list), "Invalid release asset list")
     require(len(remote_assets) == len(assets), "Release asset count differs")
     require({asset.get("name") for asset in remote_assets} == assets.keys(),
             "Release asset names differ")
@@ -187,10 +209,9 @@ def verify_release(release, release_id, notes, assets, draft):
     return {asset["name"]: asset["id"] for asset in remote_assets}
 
 
-def publish(sha, notes):
-    require(os.environ.get("GH_TOKEN"), "GH_TOKEN is required")
-    require(not releases(), "An existing release or draft already uses v3.0.0; left untouched")
-    tag_object = remote_tag(sha)
+def finish_draft(sha, notes, release_id, tag_object):
+    endpoint = f"repos/{REPO}/releases/{release_id}"
+    verify_release(api(endpoint), release_id, notes, {}, True)
     with tempfile.TemporaryDirectory(prefix="flowchart-release-") as directory:
         directory = Path(directory)
         archive = directory / f"flowchart-{TAG}-screenshots.zip"
@@ -198,16 +219,7 @@ def publish(sha, notes):
         digest = hashlib.sha256(archive.read_bytes()).hexdigest()
         checksum = archive.with_suffix(".zip.sha256")
         checksum.write_text(f"{digest}  {archive.name}\n")
-        notes_file = directory / "notes.md"
-        notes_file.write_bytes(notes.encode())
-        run("gh", "release", "create", TAG, "--repo", f"github.com/{REPO}", "--verify-tag", "--draft",
-            "--title", TAG, "--notes-file", str(notes_file))
-        matches = releases()
-        require(len(matches) == 1, "Expected exactly one newly created release draft")
-        release_id = matches[0].get("id")
-        require(type(release_id) is int and release_id > 0, "Invalid draft release ID")
-        endpoint = f"repos/{REPO}/releases/{release_id}"
-        print(f"Created draft release {release_id}; failures leave it unpublished", flush=True)
+        require(remote_tag(sha) == tag_object, "Remote tag object changed before upload")
         verify_release(api(endpoint), release_id, notes, {}, True)
         assets = {path.name: path.read_bytes() for path in (archive, checksum)}
         for path in (archive, checksum):
@@ -229,21 +241,62 @@ def publish(sha, notes):
         published = api(endpoint, {"draft": False, "prerelease": False, "make_latest": "true"})
         require(verify_release(published, release_id, notes, assets, False) == asset_ids,
                 "Published asset IDs changed")
-        for path in (f"tags/{TAG}", "latest"):
-            require(verify_release(api(f"repos/{REPO}/releases/{path}"),
-                                   release_id, notes, assets, False) == asset_ids,
-                    "Published asset IDs changed")
+        require(verify_release(api(f"repos/{REPO}/releases/tags/{TAG}"),
+                               release_id, notes, assets, False) == asset_ids,
+                "Published asset IDs changed")
+        for attempt in range(5):
+            latest = api(f"repos/{REPO}/releases/latest")
+            latest_id = latest.get("id")
+            older_stable = (type(latest_id) is int and 0 < latest_id < release_id and
+                            latest.get("tag_name") != TAG and latest.get("draft") is False and
+                            latest.get("prerelease") is False and latest.get("published_at"))
+            if not older_stable or attempt == 4:
+                break
+            time.sleep(2)
+        require(verify_release(latest, release_id, notes, assets, False) == asset_ids,
+                "Published asset IDs changed")
         require(remote_tag(sha) == tag_object, "Remote tag object changed after publication")
         print(f"Published https://github.com/{REPO}/releases/tag/{TAG}")
         print(f"Commit {sha}; tag object {tag_object}; release ID {release_id}; archive SHA256 {digest}")
 
 
+def publish(sha, notes):
+    require(os.environ.get("GH_TOKEN"), "GH_TOKEN is required")
+    require(not releases(), "An existing release or draft already uses v3.0.0; left untouched")
+    tag_object = remote_tag(sha)
+    created = api(f"repos/{REPO}/releases", {
+        "tag_name": TAG,
+        "target_commitish": sha,
+        "name": TAG,
+        "body": notes,
+        "draft": True,
+        "prerelease": False,
+        "make_latest": "false",
+    }, method="POST")
+    release_id = created.get("id")
+    verify_release(created, release_id, notes, {}, True)
+    print(f"Created draft release {release_id}; failures leave it unpublished", flush=True)
+    finish_draft(sha, notes, release_id, tag_object)
+
+
+def recover(sha, notes):
+    require(os.environ.get("GH_TOKEN"), "GH_TOKEN is required")
+    require(sha == RECOVERY["commit"], "Recovery source commit differs")
+    tag_object = remote_tag(sha)
+    require(tag_object == RECOVERY["tag_object"], "Remote recovery tag object differs")
+    print(f"Recovering existing draft {RECOVERY['id']}; failures leave it unpublished", flush=True)
+    finish_draft(sha, notes, RECOVERY["id"], tag_object)
+
+
 if __name__ == "__main__":
     try:
-        require(sys.argv[1:] in (["validate"], ["publish"]), "Usage: release-v3.py validate|publish")
-        sha, notes = validate()
+        require(sys.argv[1:] in (["validate"], ["publish"], ["recover"]),
+                "Usage: release-v3.py validate|publish|recover")
+        sha, notes = validate(recovery=sys.argv[1] == "recover")
         if sys.argv[1] == "publish":
             publish(sha, notes)
+        elif sys.argv[1] == "recover":
+            recover(sha, notes)
     except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
         print(f"Release stopped: {error}", file=sys.stderr)
         sys.exit(1)
