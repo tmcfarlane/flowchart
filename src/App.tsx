@@ -55,6 +55,7 @@ import type { DrawEditResult } from './components/AIDrawEditDialog'
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
+import { getClipboardImage, imageFileToDataUrl } from './utils/imagePaste'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
 import type { SelectionEditPreview } from './components/AISelectionEditDialog'
@@ -1197,9 +1198,6 @@ function FlowChartEditor() {
       if (isMod && e.key === 'c') {
         e.preventDefault()
         copySelection()
-      } else if (isMod && e.key === 'v') {
-        e.preventDefault()
-        pasteSelection()
       } else if (isMod && e.key === 'x') {
         e.preventDefault()
         cutSelection()
@@ -1220,7 +1218,32 @@ function FlowChartEditor() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [copySelection, pasteSelection, cutSelection, undo, redo, diagramMode])
+  }, [copySelection, cutSelection, undo, redo, diagramMode])
+
+  // Paste is handled on the paste event, not on Cmd/Ctrl+V keydown: cancelling
+  // the keydown would stop the browser from exposing the system clipboard.
+  // A system clipboard image becomes an image node; otherwise copied nodes paste.
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (diagramMode === 'draw') return
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      // Modal dialogs block canvas shortcuts by stopping keydown; paste needs its own guard
+      if (document.querySelector('[aria-modal="true"]')) return
+      const file = e.clipboardData && getClipboardImage(e.clipboardData)
+      e.preventDefault()
+      if (!file) {
+        pasteSelection()
+        return
+      }
+      // Shared charts cap imageUrl length, so the pasted image must fit that budget
+      imageFileToDataUrl(file, { maxBytes: LIMITS.maxImageUrlLength, keepOriginal: true })
+        .then((dataUrl) => addImageNode(dataUrl, 'Image'))
+        .catch((err) => console.error('Could not paste image', err))
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [pasteSelection, addImageNode, diagramMode])
 
   // Control + Scroll to Zoom
   useEffect(() => {
