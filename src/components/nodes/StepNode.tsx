@@ -3,6 +3,7 @@ import { Handle, Position, NodeProps } from 'reactflow'
 import { NodeResizer } from '@reactflow/node-resizer'
 import '@reactflow/node-resizer/dist/style.css'
 import './NodeStyles.css'
+import NodeLabelEditor from './NodeLabelEditor'
 
 function StepNode({ data, id, selected }: NodeProps) {
   const [isEditing, setIsEditing] = useState(false)
@@ -26,17 +27,6 @@ function StepNode({ data, id, selected }: NodeProps) {
     }
   }, [data, id, label])
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        setIsEditing(false)
-        if (data.onLabelChange) {
-          data.onLabelChange(id, label)
-        }
-      }
-    },
-    [data, id, label]
-  )
 
   return (
     <>
@@ -58,13 +48,10 @@ function StepNode({ data, id, selected }: NodeProps) {
         <Handle type="source" position={Position.Left} id="left" />
 
         {isEditing ? (
-          <input
-            type="text"
+          <NodeLabelEditor
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            autoFocus
+            onChange={setLabel}
+            onCommit={handleBlur}
             className="node-input"
           />
         ) : (

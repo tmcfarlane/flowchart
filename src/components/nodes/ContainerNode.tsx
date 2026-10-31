@@ -3,6 +3,7 @@ import { Handle, Position, NodeProps } from 'reactflow'
 import { NodeResizer } from '@reactflow/node-resizer'
 import '@reactflow/node-resizer/dist/style.css'
 import './NodeStyles.css'
+import NodeLabelEditor from './NodeLabelEditor'
 
 type ContainerKind = 'vpc' | 'cluster' | 'region' | 'zone' | 'trustBoundary' | 'group'
 
@@ -40,17 +41,6 @@ function ContainerNode({ data, id, selected }: NodeProps) {
     }
   }, [data, id, label])
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        setIsEditing(false)
-        if (data.onLabelChange) {
-          data.onLabelChange(id, label)
-        }
-      }
-    },
-    [data, id, label]
-  )
 
   return (
     <>
@@ -74,13 +64,10 @@ function ContainerNode({ data, id, selected }: NodeProps) {
         <div className="container-node-header">
           <span className="container-kind-badge">{KIND_LABEL[kind]}</span>
           {isEditing ? (
-            <input
-              type="text"
+            <NodeLabelEditor
               value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              onBlur={handleBlur}
-              onKeyDown={handleKeyDown}
-              autoFocus
+              onChange={setLabel}
+              onCommit={handleBlur}
               className="node-input container-label-input"
             />
           ) : (

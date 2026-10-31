@@ -95,6 +95,8 @@ export const CONTAINER_KINDS: { value: ContainerKind; label: string }[] = [
 ]
 
 const CONTAINER_DEFAULT_SIZE = { width: 420, height: 300 }
+const MIN_CANVAS_ZOOM = 0.1
+const MAX_CANVAS_ZOOM = 2
 
 export interface FlowProposal {
   summary?: string
@@ -190,7 +192,7 @@ const DEFAULT_NODE_LABELS: Record<PaletteNodeType, string> = {
 
 function FlowChartEditor() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const { screenToFlowPosition, zoomIn, zoomOut, setCenter, fitView, getViewport, setViewport } = useReactFlow()
+  const { screenToFlowPosition, setCenter, fitView, getViewport, setViewport } = useReactFlow()
 
   const getNodeDimensions = useCallback((nodeType?: string, style?: FlowNode['style']) => {
     const width = typeof style?.width === 'number' ? style.width : undefined
@@ -1244,7 +1246,8 @@ function FlowChartEditor() {
     return () => window.removeEventListener('paste', handlePaste)
   }, [pasteSelection, addImageNode, diagramMode])
 
-  // Control + Scroll to Zoom
+  // Cmd (Mac) or Ctrl + scroll zooms around the cursor, matching the Draw
+  // canvas. Trackpad pinches arrive as Ctrl + wheel and zoom the same way.
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (diagramMode === 'draw') return
@@ -1253,15 +1256,16 @@ function FlowChartEditor() {
         return
       }
 
-      if (e.ctrlKey) {
+      if (e.ctrlKey || e.metaKey) {
         e.preventDefault()
         e.stopPropagation()
 
-        if (e.deltaY < 0) {
-          zoomIn({ duration: 100 })
-        } else if (e.deltaY > 0) {
-          zoomOut({ duration: 100 })
-        }
+        const viewport = getViewport()
+        const zoom = Math.max(MIN_CANVAS_ZOOM, Math.min(MAX_CANVAS_ZOOM, viewport.zoom * Math.exp(-e.deltaY * 0.002)))
+        const rect = wrapper.getBoundingClientRect()
+        const cursor = { x: e.clientX - rect.left, y: e.clientY - rect.top }
+        const scale = zoom / viewport.zoom
+        setViewport({ zoom, x: cursor.x - (cursor.x - viewport.x) * scale, y: cursor.y - (cursor.y - viewport.y) * scale })
       }
     }
 
@@ -1269,7 +1273,7 @@ function FlowChartEditor() {
     return () => {
       document.removeEventListener('wheel', handleWheel, { capture: true })
     }
-  }, [zoomIn, zoomOut, diagramMode])
+  }, [getViewport, setViewport, diagramMode])
 
   // Toggle preview mode
   const togglePreview = useCallback(() => {
@@ -1969,8 +1973,8 @@ function FlowChartEditor() {
           deleteKeyCode="Delete"
           snapToGrid={showGrid}
           snapGrid={[15, 15]}
-          minZoom={0.1}
-          maxZoom={2}
+          minZoom={MIN_CANVAS_ZOOM}
+          maxZoom={MAX_CANVAS_ZOOM}
           translateExtent={translateExtent}
           defaultViewport={{ x: 0, y: 0, zoom: 1 }}
           panOnScroll={toolMode !== 'arrow'}
