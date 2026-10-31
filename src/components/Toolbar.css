@@ -869,6 +869,72 @@
   .confirm-dialog button { min-height: 44px; min-width: 44px; }
 }
 
+/* Desktop compact levels, chosen in Toolbar.tsx by measuring the fit. */
+@media (min-width: 901px) and (not ((max-height: 500px) and (pointer: coarse))) {
+  .floating-toolbar[data-compact="1"] .toolbar-news-button > span,
+  .floating-toolbar[data-compact="1"] .toolbar-github-link > span,
+  .floating-toolbar[data-compact="2"] .toolbar-news-button > span,
+  .floating-toolbar[data-compact="2"] .toolbar-github-link > span,
+  .floating-toolbar[data-compact="2"] .mode-option-label,
+  .floating-toolbar[data-compact="2"] .share-button-label,
+  .floating-toolbar[data-compact="3"] .mode-option-label,
+  .floating-toolbar[data-compact="3"] .share-button-label {
+    display: none;
+  }
+
+  .floating-toolbar[data-compact="3"] .toolbar-more {
+    display: flex;
+    width: auto;
+    gap: 6px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .floating-toolbar[data-compact="3"] .utility-divider,
+  .floating-toolbar[data-compact="3"] .share-divider,
+  .floating-toolbar[data-compact="3"] .news-divider {
+    display: none;
+  }
+
+  .floating-toolbar[data-compact="3"] .toolbar-utilities { display: none; }
+
+  .floating-toolbar[data-compact="3"] .toolbar-utilities[data-open="true"] {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 220px;
+    padding: 6px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px #0002;
+  }
+
+  .app.dark-mode .floating-toolbar[data-compact="3"] .toolbar-utilities[data-open="true"] {
+    background: #1e2120;
+    border-color: #78fcd633;
+  }
+
+  .floating-toolbar[data-compact="3"] .toolbar-utilities > .toolbar-button,
+  .floating-toolbar[data-compact="3"] .toolbar-utilities .export-wrapper > .toolbar-button,
+  .floating-toolbar[data-compact="3"] .toolbar-utilities .toolbar-news-button,
+  .floating-toolbar[data-compact="3"] .toolbar-utilities .toolbar-github-link {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 38px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .floating-toolbar[data-compact="3"] .toolbar-utilities > .toolbar-button::after { content: attr(aria-label); font-size: 13px; }
+  .floating-toolbar[data-compact="3"] .toolbar-utilities .export-wrapper > .toolbar-button::after { content: 'Export'; font-size: 13px; }
+}
+
 /* Mode switch transitions. .mode-transition is set briefly by App after the
    diagram mode changes, so none of this runs on the first page load. The bar's
    width change is animated in Toolbar.tsx. `translate` is used instead of

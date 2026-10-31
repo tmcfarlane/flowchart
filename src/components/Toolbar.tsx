@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { Fragment, useCallback, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode, DiagramMode, PaletteNodeType } from '../App'
 import ImagePicker from './ImagePicker'
@@ -37,6 +37,10 @@ interface ToolbarProps {
   onOpenPatchNotes?: () => void
   share?: ShareMenuProps
 }
+
+// Must match the desktop media queries in Toolbar.css
+const DESKTOP_TOOLBAR_QUERY = '(min-width: 901px) and (not ((max-height: 500px) and (pointer: coarse)))'
+const TOOLBAR_VIEWPORT_MARGIN = 16
 
 function Toolbar({
   onAddNode,
@@ -257,6 +261,33 @@ function Toolbar({
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isClearConfirmOpen, isExportOpen, exportError])
+
+  // On desktop the bar's natural width depends on the mode (Architecture has
+  // the most tools), so step through compact levels until it fits the window:
+  // 1 hides the What's new / Open-Source labels, 2 also the mode and Share
+  // labels, 3 folds the utilities into the More menu. Runs before the width
+  // animation below so that measures the final size.
+  const fitToolbar = useCallback(() => {
+    const bar = barRef.current
+    if (!bar) return
+    if (!window.matchMedia(DESKTOP_TOOLBAR_QUERY).matches) {
+      delete bar.dataset.compact
+      return
+    }
+    bar.getAnimations().forEach(animation => animation.cancel())
+    const available = window.innerWidth - TOOLBAR_VIEWPORT_MARGIN * 2
+    for (const level of ['0', '1', '2', '3']) {
+      bar.dataset.compact = level
+      if (bar.getBoundingClientRect().width <= available) break
+    }
+  }, [])
+
+  useLayoutEffect(fitToolbar, [fitToolbar, diagramMode, share?.isShared])
+
+  useEffect(() => {
+    window.addEventListener('resize', fitToolbar)
+    return () => window.removeEventListener('resize', fitToolbar)
+  }, [fitToolbar])
 
   // Each mode shows different tools, so the bar's auto width jumps. Animate
   // from the previous width to the new one; CSS cannot transition auto widths.

@@ -2171,9 +2171,9 @@ function FlowChartEditor() {
                 {selectedNodes.length > 0 && <button
                   className="selection-toolbar-button selection-ai-action"
                   onClick={openSelectionEdit}
-                  title={`Edit ${selectedNodes.length} selected node${selectedNodes.length === 1 ? '' : 's'} with AI`}
+                  title={`Edit with AI: describe a change and AI rewrites the ${selectedNodes.length === 1 ? 'selected node' : `${selectedNodes.length} selected nodes`}`}
                   aria-label="Edit with AI"
-                >✦ <span>Edit with AI</span><span className="selection-ai-count">{selectedNodes.length} node{selectedNodes.length === 1 ? '' : 's'}</span></button>}
+                ><span aria-hidden="true">✦</span></button>}
                 <button
                   className="selection-toolbar-button delete"
                   onClick={deleteSelected}
