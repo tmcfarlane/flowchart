@@ -30,6 +30,36 @@
   display: none;
 }
 
+/* On desktop the Draw tool strip hangs from the bottom of the main toolbar as
+   one attached unit. The canvas starts at the toolbar's lower edge so the
+   strip can sit at its top without being clipped. */
+@media (min-width: 901px) and (not ((max-height: 500px) and (pointer: coarse))) {
+  .app.draw-mode:not(.draw-local-view) {
+    --toolbar-height: 58px;
+  }
+
+  .app.draw-mode:not(.draw-local-view) .draw-canvas:not(.draw-presentation) {
+    inset-block-start: calc(var(--chrome-top) + var(--toolbar-height) - 1px);
+  }
+
+  .app.draw-mode:not(.draw-local-view) .draw-canvas:not(.draw-presentation) .draw-tools {
+    top: 0;
+    padding-top: 5px;
+    border-top: none;
+    border-radius: 0 0 15px 15px;
+    background: rgba(255, 255, 255, 0.95);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(8px);
+  }
+
+  .app.dark-mode.draw-mode:not(.draw-local-view) .draw-canvas:not(.draw-presentation) .draw-tools {
+    background: rgba(30, 33, 32, 0.95);
+    border-color: rgba(120, 252, 214, 0.12);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
 .draw-loading {
   position: absolute;
   inset: 120px 0 0;
