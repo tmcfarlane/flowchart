@@ -868,3 +868,43 @@
   .confirm-dialog { max-height: calc(100dvh - 16px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
   .confirm-dialog button { min-height: 44px; min-width: 44px; }
 }
+
+/* Mode switch transitions. .mode-transition is set briefly by App after the
+   diagram mode changes, so none of this runs on the first page load. The bar's
+   width change is animated in Toolbar.tsx. `translate` is used instead of
+   `transform` so these compose with the elements' centring transforms. */
+@keyframes mode-tool-in {
+  from { opacity: 0; translate: 0 6px; scale: 0.85; }
+}
+
+@keyframes mode-strip-in {
+  from { opacity: 0; translate: 0 -100%; }
+}
+
+@keyframes mode-canvas-in {
+  from { opacity: 0; }
+}
+
+.app.mode-transition .floating-toolbar .graph-tools > *,
+.app.mode-transition .floating-toolbar .graph-palette > * {
+  animation: mode-tool-in 0.24s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.app.mode-transition .draw-tools {
+  animation: mode-strip-in 0.28s cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+.app.mode-transition .draw-canvas,
+.app.mode-transition .react-flow {
+  animation: mode-canvas-in 0.22s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app.mode-transition .floating-toolbar .graph-tools > *,
+  .app.mode-transition .floating-toolbar .graph-palette > *,
+  .app.mode-transition .draw-tools,
+  .app.mode-transition .draw-canvas,
+  .app.mode-transition .react-flow {
+    animation: none;
+  }
+}

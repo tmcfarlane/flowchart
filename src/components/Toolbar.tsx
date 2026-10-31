@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { Fragment, useState, useEffect, useLayoutEffect, useRef } from 'react'
 import './Toolbar.css'
 import { SidebarMode, ToolMode, DiagramMode, PaletteNodeType } from '../App'
 import ImagePicker from './ImagePicker'
@@ -70,6 +70,8 @@ function Toolbar({
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
   const clearDialogRef = useRef<HTMLDivElement>(null)
+  const barRef = useRef<HTMLDivElement>(null)
+  const barWidth = useRef<number | null>(null)
   useEffect(() => {
     if (!isClearConfirmOpen) return
     const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
@@ -256,9 +258,36 @@ function Toolbar({
     return () => window.removeEventListener('keydown', handleEscape)
   }, [isClearConfirmOpen, isExportOpen, exportError])
 
+  // Each mode shows different tools, so the bar's auto width jumps. Animate
+  // from the previous width to the new one; CSS cannot transition auto widths.
+  useLayoutEffect(() => {
+    const bar = barRef.current
+    if (!bar) return
+    const to = bar.getBoundingClientRect().width
+    const from = barWidth.current
+    barWidth.current = to
+    if (from === null || Math.abs(from - to) < 1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    bar.animate(
+      [{ width: `${from}px`, overflow: 'hidden' }, { width: `${to}px`, overflow: 'hidden' }],
+      { duration: 280, easing: 'cubic-bezier(0.2, 0, 0, 1)' },
+    )
+  }, [diagramMode])
+
+  // Track width changes from anything else (share state, window size) so the
+  // next mode switch starts from the real width, not a stale one.
+  useEffect(() => {
+    const bar = barRef.current
+    if (!bar) return
+    const observer = new ResizeObserver(() => {
+      if (!bar.getAnimations().length) barWidth.current = bar.getBoundingClientRect().width
+    })
+    observer.observe(bar)
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <>
-      <div className="floating-toolbar">
+      <div className="floating-toolbar" ref={barRef}>
         <div className="toolbar-row toolbar-primary">
           <div className="toolbar-group mode-switcher" role="group" aria-label="Diagram mode">
             <button
@@ -345,7 +374,8 @@ function Toolbar({
 
           <div className="toolbar-group graph-palette">
             {diagramMode === 'flowchart' ? (
-              <>
+              // Keyed so switching palettes mounts fresh buttons that animate in
+              <Fragment key="flowchart">
                 <button
                   className="toolbar-button add-node"
                   onClick={() => onAddNode('step')}
@@ -377,9 +407,9 @@ function Toolbar({
                     <path d="M10 11v3l3-3h-3z" fill="currentColor" />
                   </svg>
                 </button>
-              </>
+              </Fragment>
             ) : (
-              <>
+              <Fragment key="architecture">
                 <button
                   className="toolbar-button add-node"
                   onClick={() => onAddNode('service')}
@@ -459,7 +489,7 @@ function Toolbar({
                     <rect x="9" y="6.5" width="3" height="3" rx="0.5" />
                   </svg>
                 </button>
-              </>
+              </Fragment>
             )}
             <button
               className="toolbar-button add-image"
