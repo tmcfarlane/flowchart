@@ -1,18 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { browserStoreDelete, browserStoreGet, browserStorePut } from '../utils/browserStore'
 
 // File System Access API (Chromium). Not in TypeScript's DOM lib yet.
 interface WritableFile { write(data: string): Promise<void>; close(): Promise<void> }
-interface SaveFileHandle {
+export interface SaveFileHandle {
   name: string
+  getFile(): Promise<File>
   createWritable(): Promise<WritableFile>
   queryPermission?(options: { mode: 'readwrite' }): Promise<PermissionState>
   requestPermission?(options: { mode: 'readwrite' }): Promise<PermissionState>
 }
-type SaveFilePicker = (options: { suggestedName: string; types: { description: string; accept: Record<string, string[]> }[] }) => Promise<SaveFileHandle>
+type FileTypes = { description: string; accept: Record<string, string[]> }[]
+type SaveFilePicker = (options: { suggestedName: string; types: FileTypes }) => Promise<SaveFileHandle>
+type OpenFilePicker = (options: { types: FileTypes; multiple: false }) => Promise<SaveFileHandle[]>
 
 const SUGGESTED_NAME = 'flowchart.json'
-const DB_NAME = 'flowchart-file-save'
-const STORE = 'handles'
 const HANDLE_KEY = 'current'
 
 export type FileSaveStatus = { kind: 'saved' | 'downloaded'; name: string } | { kind: 'error'; message: string }
@@ -26,24 +28,11 @@ function picker(): SaveFilePicker | undefined {
   return (window as unknown as { showSaveFilePicker?: SaveFilePicker }).showSaveFilePicker
 }
 
-// File handles are structured-cloneable, so IndexedDB can keep the chosen file
-// across visits. Failures only cost the remembered location, never a save.
-function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>): Promise<T | undefined> {
-  return new Promise(resolve => {
-    try {
-      const open = indexedDB.open(DB_NAME, 1)
-      open.onupgradeneeded = () => open.result.createObjectStore(STORE)
-      open.onerror = () => resolve(undefined)
-      open.onsuccess = () => {
-        try {
-          const request = run(open.result.transaction(STORE, mode).objectStore(STORE))
-          request.onsuccess = () => resolve(request.result)
-          request.onerror = () => resolve(undefined)
-        } catch { resolve(undefined) }
-      }
-    } catch { resolve(undefined) }
-  })
+function openPicker(): OpenFilePicker | undefined {
+  return (window as unknown as { showOpenFilePicker?: OpenFilePicker }).showOpenFilePicker
 }
+
+const isAbort = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
 
 function download(contents: string, name: string) {
   const url = URL.createObjectURL(new Blob([contents], { type: 'application/json' }))
@@ -65,12 +54,21 @@ export function useFileSave(getContents: () => string) {
   const [fileName, setFileName] = useState<string | null>(null)
   const [status, setStatus] = useState<FileSaveStatus | null>(null)
 
+  // File handles are structured-cloneable, so IndexedDB keeps the chosen file
+  // across visits. Failures only cost the remembered location, never a save.
   useEffect(() => {
     if (!supported) return
-    void withStore<SaveFileHandle>('readonly', store => store.get(HANDLE_KEY)).then(saved => {
+    void browserStoreGet<SaveFileHandle>('handles', HANDLE_KEY).then(saved => {
       if (saved && !handle.current) { handle.current = saved; setFileName(saved.name) }
     })
   }, [supported])
+
+  /** The file Save writes to; null forgets it so the next Save asks again. */
+  const setKnownFile = useCallback((next: SaveFileHandle | null) => {
+    handle.current = next
+    setFileName(next?.name ?? null)
+    void (next ? browserStorePut('handles', HANDLE_KEY, next) : browserStoreDelete('handles', HANDLE_KEY))
+  }, [])
 
   useEffect(() => {
     if (!status) return
@@ -94,9 +92,7 @@ export function useFileSave(getContents: () => string) {
         && await target.requestPermission?.({ mode: 'readwrite' }) !== 'granted') target = null
       if (!target) {
         target = await showPicker({ suggestedName: handle.current?.name ?? SUGGESTED_NAME, types: [{ description: 'Flowchart', accept: { 'application/json': ['.json'] } }] })
-        handle.current = target
-        setFileName(target.name)
-        void withStore('readwrite', store => store.put(target, HANDLE_KEY))
+        setKnownFile(target)
       }
       const writable = await target.createWritable()
       await writable.write(contents)
@@ -104,10 +100,28 @@ export function useFileSave(getContents: () => string) {
       setStatus({ kind: 'saved', name: target.name })
     } catch (error) {
       // Dismissing the file picker is not an error
-      if (error instanceof DOMException && error.name === 'AbortError') return
+      if (isAbort(error)) return
       setStatus({ kind: 'error', message: error instanceof Error ? error.message : 'The file could not be saved.' })
     }
-  }, [getContents])
+  }, [getContents, setKnownFile])
 
-  return { supported, fileName, status, save: () => save(false), saveAs: () => save(true) }
+  /**
+   * Pick a file to open, keeping its handle so a Flowchart file can become the
+   * Save target. Undefined where the API is missing or the picker is dismissed.
+   */
+  const open = useCallback(async (): Promise<{ file: File; handle: SaveFileHandle } | undefined> => {
+    const showOpen = openPicker()
+    if (!showOpen) return undefined
+    try {
+      const [picked] = await showOpen({ types: [{ description: 'Flowchart or Excalidraw drawing', accept: { 'application/json': ['.json', '.excalidraw'] } }], multiple: false })
+      return { file: await picked.getFile(), handle: picked }
+    } catch (error) {
+      if (isAbort(error)) return undefined
+      throw error
+    }
+  }, [])
+
+  const saveCurrent = useCallback(() => save(false), [save])
+  const saveAs = useCallback(() => save(true), [save])
+  return { supported, canOpen: supported && !!openPicker(), fileName, status, save: saveCurrent, saveAs, open, setKnownFile }
 }

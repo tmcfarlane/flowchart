@@ -55,7 +55,8 @@ import type { DrawEditResult } from './components/AIDrawEditDialog'
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
-import { fileSaveMessage, useFileSave } from './hooks/useFileSave'
+import { fileSaveMessage, useFileSave, type SaveFileHandle } from './hooks/useFileSave'
+import { readDraft, writeDraft } from './utils/draftStore'
 import { getClipboardImage, imageFileToDataUrl } from './utils/imagePaste'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
@@ -65,11 +66,10 @@ import { authoredGraphSignature, captureSelectionEditSnapshot, mergeSelectionEdi
 const AIDrawEditDialog = lazy(() => import('./components/AIDrawEditDialog'))
 const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
 const AISelectionEditDialog = lazy(() => import('./components/AISelectionEditDialog'))
-const EDITOR_DRAFT_KEY = 'flowchart-editor-draft-v3'
 function readEditorDraft() {
   if (parseSharedLocation(window.location)) return undefined
   try {
-    const saved = localStorage.getItem(EDITOR_DRAFT_KEY)
+    const saved = readDraft()
     return saved ? parseFlowJson(saved) : undefined
   } catch { return undefined }
 }
@@ -555,7 +555,29 @@ function FlowChartEditor() {
     setIsImporting(false)
   }, [])
 
-  const readImportFile = useCallback(async (file: File, point?: { x: number; y: number }) => {
+  // Cmd/Ctrl+S saves to the file chosen on first save; Shift picks a new one.
+  const saveTarget = useRef({ nodes, edges, diagramMode, architectureScene })
+  saveTarget.current = { nodes, edges, diagramMode, architectureScene }
+  const fileSave = useFileSave(useCallback(() => {
+    const doc = saveTarget.current
+    return serializeFlow(doc.nodes, doc.edges, doc.diagramMode, doc.architectureScene)
+  }, []))
+  const { save: saveFile, saveAs: saveFileAs, setKnownFile, open: openFile } = fileSave
+  useEffect(() => {
+    const handleSaveKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.code !== 'KeyS') return
+      // Capture phase: beat the browser's own "Save page" and the canvases' key handlers
+      e.preventDefault()
+      e.stopPropagation()
+      void (e.shiftKey ? saveFileAs() : saveFile())
+    }
+    window.addEventListener('keydown', handleSaveKey, { capture: true })
+    return () => window.removeEventListener('keydown', handleSaveKey, { capture: true })
+  }, [saveFile, saveFileAs])
+
+  // Opening a document makes its file the Save target, or forgets the old one
+  // when it came without a handle, so Save never overwrites a different board.
+  const readImportFile = useCallback(async (file: File, point?: { x: number; y: number }, handle?: SaveFileHandle) => {
     const request = ++importRequest.current
     setIsImporting(true)
     setImportError(null)
@@ -568,6 +590,7 @@ function FlowChartEditor() {
       } else {
         const document = imported.document
         importTarget.current.commitDocument({ nodes: document.nodes, edges: document.edges, diagramMode: document.mode, architectureScene: document.architectureScene })
+        setKnownFile(handle ?? null)
       }
     } catch (error) {
       if (request === importRequest.current) {
@@ -577,7 +600,16 @@ function FlowChartEditor() {
     } finally {
       if (request === importRequest.current) setIsImporting(false)
     }
-  }, [])
+  }, [setKnownFile])
+
+  const openFileForEditing = useCallback(async () => {
+    try {
+      const opened = await openFile()
+      if (opened) await readImportFile(opened.file, undefined, opened.handle)
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : 'Could not open this file.')
+    }
+  }, [openFile, readImportFile])
 
   const applyExcalidrawImport = useCallback(async (destination: 'open' | 'insert') => {
     if (!pendingImport || isImporting) return
@@ -610,6 +642,8 @@ function FlowChartEditor() {
       }
       if (request !== importRequest.current) return
       before.commitDocument({ nodes: nextNodes, edges: nextEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: destination === 'open' })
+      // An Excalidraw file is not Flowchart JSON, so opening one has no Save target
+      if (destination === 'open') setKnownFile(null)
       setPendingImport(null)
     } catch (error) {
       if (request === importRequest.current) setImportError(error instanceof Error ? error.message : 'Could not import this drawing.')
@@ -1779,36 +1813,24 @@ function FlowChartEditor() {
     commitDocument({ nodes: drawingNodes, edges: drawingEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: false })
   }, [commitDocument])
 
-  // Cmd/Ctrl+S saves to the file chosen on first save; Shift picks a new one.
-  const saveTarget = useRef({ nodes, edges, diagramMode, architectureScene })
-  saveTarget.current = { nodes, edges, diagramMode, architectureScene }
-  const fileSave = useFileSave(useCallback(() => {
-    const doc = saveTarget.current
-    return serializeFlow(doc.nodes, doc.edges, doc.diagramMode, doc.architectureScene)
-  }, []))
-  const { save: saveFile, saveAs: saveFileAs } = fileSave
-  useEffect(() => {
-    const handleSaveKey = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.code !== 'KeyS') return
-      // Capture phase: beat the browser's own "Save page" and the canvases' key handlers
-      e.preventDefault()
-      e.stopPropagation()
-      void (e.shiftKey ? saveFileAs() : saveFile())
-    }
-    window.addEventListener('keydown', handleSaveKey, { capture: true })
-    return () => window.removeEventListener('keydown', handleSaveKey, { capture: true })
-  }, [saveFile, saveFileAs])
-
-  // Standalone diagrams autosave the complete document, including image assets.
+  // Standalone diagrams autosave the complete document, including image assets,
+  // shortly after each change, and immediately if the tab is hidden or closed.
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
-    const timer = window.setTimeout(() => {
-      try {
-        localStorage.setItem(EDITOR_DRAFT_KEY, serializeFlow(nodes, edges, diagramMode, architectureScene))
-        setDraftError(null)
-      } catch { setDraftError('Browser storage is full. Export JSON or share the diagram to save your latest changes.') }
-    }, 500)
-    return () => window.clearTimeout(timer)
+    const save = () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('pagehide', save)
+      writeDraft(serializeFlow(nodes, edges, diagramMode, architectureScene)).then(
+        () => setDraftError(null),
+        () => setDraftError('Browser storage is full. Save to a file or share the diagram to keep your latest changes.'),
+      )
+    }
+    const timer = window.setTimeout(save, 500)
+    window.addEventListener('pagehide', save)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('pagehide', save)
+    }
   }, [nodes, edges, diagramMode, architectureScene])
 
   // Compute canvas pan boundaries so the minimap stays locked to the node area.
@@ -1954,6 +1976,7 @@ function FlowChartEditor() {
         onImportFile={readImportFile}
         onOpenPatchNotes={() => { setIsAIBubbleOpen(false); patchNotes.open() }}
         fileSave={{ supported: fileSave.supported, fileName: fileSave.fileName, onSave: saveFile, onSaveAs: saveFileAs }}
+        onOpenFile={fileSave.canOpen ? openFileForEditing : undefined}
         share={{
           isShared: !!shared.state.id,
           canEdit: shared.state.canEdit,

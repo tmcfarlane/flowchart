@@ -36,6 +36,8 @@ interface ToolbarProps {
   onImportFile?: (file: File) => void
   onOpenPatchNotes?: () => void
   fileSave?: { supported: boolean; fileName: string | null; onSave: () => void; onSaveAs: () => void }
+  /** Opens a file through the system picker so its location can become the Save target */
+  onOpenFile?: () => void
   share?: ShareMenuProps
 }
 
@@ -73,6 +75,7 @@ function Toolbar({
   onImportFile,
   onOpenPatchNotes,
   fileSave,
+  onOpenFile,
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
@@ -182,6 +185,11 @@ function Toolbar({
 
   const handleImportJson = () => {
     setExportError(null)
+    if (onOpenFile) {
+      setIsExportOpen(false)
+      onOpenFile()
+      return
+    }
     fileInputRef.current?.click()
   }
 

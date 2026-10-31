@@ -1,5 +1,5 @@
 import { parseFlowJson } from './exportUtils'
-import { EXCALIDRAW_IMPORT_LIMITS, parseExcalidrawScene } from './excalidrawImport'
+import { parseExcalidrawScene } from './excalidrawImport'
 import type { ArchitectureScene } from '../shared/architectureScene'
 
 export type DiagramImport =
@@ -33,10 +33,15 @@ async function checkEmbeddedImages(scene: ArchitectureScene): Promise<void> {
   })))
 }
 
+const MAX_FLOWCHART_FILE_BYTES = 64 * 1024 * 1024
+
 /** All picker and drop routes use the same validation, including actual image decoding. */
 export async function readDiagramFile(file: File): Promise<DiagramImport> {
   if (!file.size) throw new Error('This file is empty. Choose a saved .json or .excalidraw drawing.')
-  if (file.size > EXCALIDRAW_IMPORT_LIMITS.maxBytes) throw new Error('This file exceeds the 4 MiB import limit. Use smaller images or split the drawing.')
+  // Excalidraw scenes keep their own 4 MiB limit, enforced by parseExcalidrawScene.
+  // Flowchart JSON may be as large as a board the browser autosaves, so a board
+  // saved to a file can always be opened again.
+  if (file.size > MAX_FLOWCHART_FILE_BYTES) throw new Error('This file exceeds the 64 MiB import limit. Use smaller images or split the drawing.')
   const text = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onload = () => resolve(String(reader.result ?? ''))

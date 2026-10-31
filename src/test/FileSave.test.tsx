@@ -8,7 +8,7 @@ beforeEach(() => {
   seedReturningVisitor()
   localStorage.setItem('flowchart-editor-draft-v3', serializeFlow([{ id: 'a', type: 'step', position: { x: 0, y: 0 }, data: { label: 'Keep me' } }], [], 'flowchart'))
 })
-afterEach(() => { delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker; vi.restoreAllMocks() })
+afterEach(() => { delete (window as { showSaveFilePicker?: unknown; showOpenFilePicker?: unknown }).showSaveFilePicker; delete (window as { showOpenFilePicker?: unknown }).showOpenFilePicker; vi.restoreAllMocks() })
 
 function fakeFileSystem() {
   const writes: { file: string; contents: string }[] = []
@@ -73,5 +73,41 @@ describe('Save to file', () => {
     // The menu is still open and now names the file
     expect(screen.getByRole('button', { name: /Save to board\.json/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Save as…/ })).toBeInTheDocument()
+  })
+
+  it('opens a file through Import and saves back to it with Cmd+S', async () => {
+    const { picker, writes } = fakeFileSystem()
+    const opened = serializeFlow([{ id: 'x', type: 'step', position: { x: 0, y: 0 }, data: { label: 'From disk' } }], [], 'flowchart')
+    const handle = {
+      name: 'opened.json',
+      getFile: async () => new File([opened], 'opened.json', { type: 'application/json' }),
+      queryPermission: async () => 'granted' as const,
+      createWritable: async () => { let contents = ''; return { write: async (data: string) => { contents = data }, close: async () => { writes.push({ file: 'opened.json', contents }) } } },
+    }
+    Object.assign(window, { showOpenFilePicker: vi.fn(async () => [handle]) })
+    render(<App />)
+    fireEvent.click(screen.getByLabelText(/Export/))
+    fireEvent.click(screen.getByRole('button', { name: 'Import from JSON' }))
+    expect(await screen.findByText('From disk')).toBeInTheDocument()
+    pressSave()
+    await waitFor(() => expect(writes).toHaveLength(1))
+    expect(writes[0].file).toBe('opened.json')
+    expect(parseFlowJson(writes[0].contents).nodes[0].data.label).toBe('From disk')
+    expect(picker).not.toHaveBeenCalled()
+  })
+
+  it('forgets the Save target when a document is opened without a file handle', async () => {
+    const { writes } = fakeFileSystem()
+    const { container } = render(<App />)
+    pressSave()
+    await waitFor(() => expect(writes).toHaveLength(1))
+    // No showOpenFilePicker: Import falls back to the plain file input in the menu
+    fireEvent.click(screen.getByLabelText(/Export/))
+    const input = container.querySelector('input[type="file"][accept*="json"]') as HTMLInputElement
+    const other = serializeFlow([{ id: 'y', type: 'step', position: { x: 0, y: 0 }, data: { label: 'Other board' } }], [], 'flowchart')
+    fireEvent.change(input, { target: { files: [new File([other], 'other.json', { type: 'application/json' })] } })
+    expect(await screen.findByText('Other board')).toBeInTheDocument()
+    if (!screen.queryByRole('button', { name: /^Save/ })) fireEvent.click(screen.getByLabelText(/Export/))
+    expect(screen.getByRole('button', { name: /^Save…/ })).toBeInTheDocument()
   })
 })
