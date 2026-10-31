@@ -2013,6 +2013,9 @@ function FlowChartEditor() {
         </ReactFlow>}
       </div>
       {(() => {
+        // Draw has its own selection; a graph selection carried over from
+        // another mode is invisible there and must not drive this toolbar.
+        if (diagramMode === 'draw') return null
         const { selectedNodes, selectedEdges } = getSelectedItems()
         const totalSelected = selectedNodes.length + selectedEdges.length
         if (totalSelected > 0) {
@@ -2150,7 +2153,7 @@ function FlowChartEditor() {
                 )
               })()}
               <div className="selection-toolbar-actions">
-                {diagramMode !== 'draw' && selectedNodes.length > 0 && <button
+                {selectedNodes.length > 0 && <button
                   className="selection-toolbar-button selection-ai-action"
                   onClick={openSelectionEdit}
                   title={`Edit ${selectedNodes.length} selected node${selectedNodes.length === 1 ? '' : 's'} with AI`}
