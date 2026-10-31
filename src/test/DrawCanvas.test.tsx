@@ -259,6 +259,26 @@ describe('custom Draw canvas', () => {
     } finally { vi.useRealTimers() }
   })
 
+  it('fades the laser trail behind a held pointer, keeping a dot at the cursor', () => {
+    // The trail ages by performance.now() and redraws on animation frames
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'performance', 'requestAnimationFrame', 'cancelAnimationFrame'] })
+    try {
+      const { surface } = renderDrawing(empty())
+      fireEvent.keyDown(surface, { key: 'k' })
+      fireEvent.pointerDown(surface, pointer(100, 100))
+      fireEvent.pointerMove(surface, pointer(140, 100))
+      fireEvent.pointerMove(surface, pointer(180, 100))
+      act(() => vi.advanceTimersByTime(100))
+      expect(surface.querySelectorAll('.draw-laser-trace line')).toHaveLength(2)
+      // Still holding: after the decay time the old segments are gone
+      act(() => vi.advanceTimersByTime(1200))
+      fireEvent.pointerMove(surface, pointer(181, 100))
+      act(() => vi.advanceTimersByTime(16))
+      expect(surface.querySelectorAll('.draw-laser-trace line')).toHaveLength(1)
+      expect(surface.querySelector('.draw-laser-trace circle')).toBeInTheDocument()
+    } finally { vi.useRealTimers() }
+  })
+
   it('resets ordinary eyedropper activation to stroke after explicit fill sampling', () => {
     const initial = { ...empty(), elements: [{ ...rectangle('source', 100), strokeColor: '#ab1234', backgroundColor: '#00aaff' }, rectangle('target', 320)] }
     const { surface, scene } = renderDrawing(initial)
