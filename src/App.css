@@ -126,7 +126,9 @@
   align-items: center;
   z-index: 100;
   animation: slideInRight 0.2s ease;
-  width: 52px;
+  /* Icon column by default; widens when the Edit with AI button is present */
+  width: max-content;
+  min-width: 52px;
   backdrop-filter: blur(8px);
 }
 
@@ -1004,6 +1006,7 @@
 }
 .selection-toolbar-button.selection-ai-action {
   width: auto;
+  white-space: nowrap;
   gap: 7px;
   padding: 8px 11px;
   font: inherit;
