@@ -1005,19 +1005,9 @@
   border: 1px solid rgba(120, 252, 214, 0.15);
 }
 .selection-toolbar-button.selection-ai-action {
-  width: auto;
-  white-space: nowrap;
-  gap: 7px;
-  padding: 8px 11px;
-  font: inherit;
+  font-size: 16px;
+  line-height: 1;
   color: #087f5b;
-}
-.selection-ai-count {
-  padding: 2px 6px;
-  border-radius: 12px;
-  background: rgba(16, 185, 129, 0.12);
-  font-size: 11px;
-  white-space: nowrap;
 }
 .app.dark-mode .selection-toolbar-button.selection-ai-action { color: #78fcd6; }
 
