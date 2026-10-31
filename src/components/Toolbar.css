@@ -93,6 +93,50 @@
   color: #522e00;
 }
 
+.file-save-status {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 101;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: #10241e;
+  color: #b5f5df;
+  font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: file-save-status-in 0.18s ease-out;
+}
+
+.file-save-status.is-error {
+  background: #fff3bf;
+  color: #522e00;
+}
+
+@keyframes file-save-status-in {
+  from { opacity: 0; translate: -50% 6px; }
+}
+
+.export-option.export-save-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.export-option.export-save-option > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.export-option.export-save-option kbd {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 11px;
+  opacity: 0.6;
+}
+
 .app.dark-mode .floating-toolbar {
   background: rgba(30, 33, 32, 0.95);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 40px rgba(120, 252, 214, 0.08);

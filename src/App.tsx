@@ -55,6 +55,7 @@ import type { DrawEditResult } from './components/AIDrawEditDialog'
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
+import { fileSaveMessage, useFileSave } from './hooks/useFileSave'
 import { getClipboardImage, imageFileToDataUrl } from './utils/imagePaste'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
@@ -1778,6 +1779,26 @@ function FlowChartEditor() {
     commitDocument({ nodes: drawingNodes, edges: drawingEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: false })
   }, [commitDocument])
 
+  // Cmd/Ctrl+S saves to the file chosen on first save; Shift picks a new one.
+  const saveTarget = useRef({ nodes, edges, diagramMode, architectureScene })
+  saveTarget.current = { nodes, edges, diagramMode, architectureScene }
+  const fileSave = useFileSave(useCallback(() => {
+    const doc = saveTarget.current
+    return serializeFlow(doc.nodes, doc.edges, doc.diagramMode, doc.architectureScene)
+  }, []))
+  const { save: saveFile, saveAs: saveFileAs } = fileSave
+  useEffect(() => {
+    const handleSaveKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.code !== 'KeyS') return
+      // Capture phase: beat the browser's own "Save page" and the canvases' key handlers
+      e.preventDefault()
+      e.stopPropagation()
+      void (e.shiftKey ? saveFileAs() : saveFile())
+    }
+    window.addEventListener('keydown', handleSaveKey, { capture: true })
+    return () => window.removeEventListener('keydown', handleSaveKey, { capture: true })
+  }, [saveFile, saveFileAs])
+
   // Standalone diagrams autosave the complete document, including image assets.
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
@@ -1932,6 +1953,7 @@ function FlowChartEditor() {
         }}
         onImportFile={readImportFile}
         onOpenPatchNotes={() => { setIsAIBubbleOpen(false); patchNotes.open() }}
+        fileSave={{ supported: fileSave.supported, fileName: fileSave.fileName, onSave: saveFile, onSaveAs: saveFileAs }}
         share={{
           isShared: !!shared.state.id,
           canEdit: shared.state.canEdit,
@@ -1944,6 +1966,11 @@ function FlowChartEditor() {
       />}
       {!drawLocalView && <ShareStatus shared={shared} />}
       {draftError && <div className="draw-draft-error" role="alert">{draftError}</div>}
+      {fileSave.status && (
+        <div className={`file-save-status ${fileSave.status.kind === 'error' ? 'is-error' : ''}`} role={fileSave.status.kind === 'error' ? 'alert' : 'status'}>
+          {fileSaveMessage(fileSave.status)}
+        </div>
+      )}
       <div
         ref={reactFlowWrapper}
         className="react-flow-wrapper"
