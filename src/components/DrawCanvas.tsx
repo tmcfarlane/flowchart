@@ -3,6 +3,7 @@ import type { Node, Edge } from 'reactflow'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import { SUPPORTED_ARCHITECTURE_IMAGE_MIME_TYPES, validateArchitectureScene } from '../shared/architectureScene'
 import { graphFromElements, graphSignature, mergeGraphScene } from '../utils/architectureBridge'
+import DrawLaser, { LASER_DECAY_MS, pruneLaserPoints, type LaserTrace } from './DrawLaser'
 import { drawingFontFamily, drawingTextSize } from '../utils/drawText'
 import { DRAW_FONT_FAMILY, DRAW_LINE_HEIGHT, isGeneratedDrawFont } from '../shared/drawFont'
 import { cropImageElement, validImageCrop, type ImageCrop } from '../utils/drawMedia'
@@ -66,7 +67,6 @@ type Gesture = GestureBase & (
   | { kind: 'lasso'; polygon: Point[]; additive: boolean }
   | { kind: 'create' | 'move' | 'pan' | 'marquee' | 'resize' | 'rotate' | 'point' | 'erase' | 'connector-click' | 'laser' }
 )
-interface LaserTrace { id: number; points: Point[]; finished: boolean }
 interface TextEdit { id: string; value: string; before: ArchitectureScene }
 interface PendingConnector { id: string; before: ArchitectureScene; fixed: Point[]; hover: Point; preventBinding: boolean }
 interface PointEdit { id: string; index: number }
@@ -914,7 +914,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     else if (tool === 'lasso') { gesture.current = { ...base, kind: 'lasso', polygon: [point], additive: event.shiftKey, deep: event.ctrlKey || event.metaKey }; setLasso([point]); if (!event.shiftKey) select([]) }
     else if (tool === 'laser') {
       const id = ++laserCounter.current
-      setLaserTraces(traces => [...traces, { id, points: [point], finished: false }])
+      setLaserTraces(traces => [...traces, { id, points: [{ ...point, t: performance.now() }], finished: false }])
       gesture.current = { ...base, kind: 'laser', elementId: String(id) }
     }
     else if (tool === 'eyedropper') {
@@ -984,7 +984,8 @@ export default function DrawCanvas(props: DrawCanvasProps) {
     if (active.kind === 'lasso') { active.polygon = [...(active.polygon), point]; setLasso(active.polygon); return }
     if (active.kind === 'laser') {
       const id = Number(active.elementId)
-      setLaserTraces(traces => traces.map(trace => trace.id === id ? { ...trace, points: [...trace.points, point] } : trace))
+      const now = performance.now()
+      setLaserTraces(traces => traces.map(trace => trace.id === id ? { ...trace, points: pruneLaserPoints([...trace.points, { ...point, t: now }], now) } : trace))
       return
     }
     if (active.kind === 'marquee') { setMarquee({ x: Math.min(active.start.x, point.x), y: Math.min(active.start.y, point.y), width: Math.abs(point.x - active.start.x), height: Math.abs(point.y - active.start.y) }); return }
@@ -1061,7 +1062,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
       laserTimers.current.set(id, window.setTimeout(() => {
         laserTimers.current.delete(id)
         setLaserTraces(traces => traces.filter(trace => trace.id !== id))
-      }, 900))
+      }, LASER_DECAY_MS))
       return
     }
     if (active.kind === 'connector-click') {
@@ -1219,7 +1220,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
         {snapGuides.y !== undefined && <line y1={snapGuides.y} y2={snapGuides.y} x1={-100000} x2={100000} stroke="#14b895" strokeWidth={1 / viewport.zoom} strokeDasharray="4 4" pointerEvents="none" />}
         {lasso && <polygon data-testid="draw-lasso" points={lasso.map(point => `${point.x},${point.y}`).join(' ')} fill="#17b89520" stroke="#17b895" strokeWidth={1 / viewport.zoom} strokeDasharray={`${4 / viewport.zoom} ${3 / viewport.zoom}`} pointerEvents="none" />}
         {marquee && <rect {...marquee} fill="#17b89520" stroke="#17b895" strokeWidth={1 / viewport.zoom} pointerEvents="none" />}
-        {laserTraces.map(trace => <polyline key={trace.id} points={trace.points.map(point => `${point.x},${point.y}`).join(' ')} fill="none" stroke="#ff5555" strokeWidth={4 / viewport.zoom} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" className={trace.finished ? 'draw-laser-trace is-fading' : 'draw-laser-trace'} />)}
+        <DrawLaser traces={laserTraces} zoom={viewport.zoom} />
       </g>
     </svg>
     {activeEmbed && activeEmbedUrl && !viewMode && <div className="draw-live-embed" style={{ left: viewport.x + activeEmbed.x * viewport.zoom, top: viewport.y + activeEmbed.y * viewport.zoom, width: activeEmbed.width * viewport.zoom, height: activeEmbed.height * viewport.zoom }}><button type="button" aria-label="Close live embed" onClick={() => setLiveEmbed(null)}>Close preview</button><iframe title="Live web embed" src={activeEmbedUrl} sandbox="allow-scripts" referrerPolicy="no-referrer" loading="lazy" /></div>}
