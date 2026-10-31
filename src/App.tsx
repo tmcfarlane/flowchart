@@ -36,7 +36,7 @@ import AIInsertPreviewDialog, { NativeProposalPreview } from './components/AIIns
 import { FlowGenerationContextSchema, normalizeGenerationProposal, parseGenerationResponse, type AIGenerationContext, type AIGenerationProposal } from './shared/aiGeneration'
 import { captureDrawGenerationContext } from './utils/drawGeneration'
 import { sceneFromDrawing, drawingFromScene } from './shared/drawDocument'
-import { mergeGraphElements } from './utils/architectureBridge'
+import { mergeGraphScene } from './utils/architectureBridge'
 import ExcalidrawImportDialog from './components/ExcalidrawImportDialog'
 import PatchNotesDialog from './components/PatchNotesDialog'
 import { usePatchNotes } from './hooks/usePatchNotes'
@@ -575,15 +575,14 @@ function FlowChartEditor() {
       let scene = destination === 'open' ? prepareSceneOpen(pendingImport.scene) : pendingImport.scene
       if (destination === 'insert') {
         const signature = JSON.stringify(flowToChart(before.nodes, before.edges, before.architectureScene, before.diagramMode))
-        const { mergeGraphElements } = await import('./utils/architectureBridge')
+        const { mergeGraphScene } = await import('./utils/architectureBridge')
         if (request !== importRequest.current) return
         const current = importTarget.current
         if (current.diagramMode !== before.diagramMode || JSON.stringify(flowToChart(current.nodes, current.edges, current.architectureScene, current.diagramMode)) !== signature) {
           throw new Error('The diagram changed while preparing the import. Try inserting again to use its latest contents.')
         }
         const existing = before.diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : before.architectureScene
-        const drawingElements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], before.nodes, before.edges, before.darkMode)
-        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(drawingElements)), files: existing?.files ?? {}, ...(existing?.appState ? { appState: existing.appState } : {}) }
+        const baseScene: ArchitectureScene = JSON.parse(JSON.stringify(mergeGraphScene(existing ?? undefined, before.nodes, before.edges, before.darkMode)))
         const rect = reactFlowWrapper.current?.getBoundingClientRect()
         const point = pendingImport.point ?? before.canvasPoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
         scene = prepareSceneInsertion(scene, baseScene, point)
@@ -1395,8 +1394,7 @@ function FlowChartEditor() {
     try {
       if (aiProposal.outputMode === 'draw') {
         const existing = diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : architectureScene
-        const elements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], nodes, edges, darkMode)
-        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(elements)), files: existing?.files ?? {}, ...(existing?.appState ? { appState: existing.appState } : {}) }
+        const baseScene: ArchitectureScene = JSON.parse(JSON.stringify(mergeGraphScene(existing ?? undefined, nodes, edges, darkMode)))
         const rect = reactFlowWrapper.current?.getBoundingClientRect()
         const point = drawApi.current
           ? drawApi.current.viewportToScenePoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
@@ -1912,8 +1910,7 @@ function FlowChartEditor() {
         onExportExcalidraw={() => {
           if (!drawApi.current) throw new Error('Drawing editor is still loading.')
           const current = drawApi.current.getScene()
-          const elements = mergeGraphElements(current.elements as unknown as Parameters<typeof mergeGraphElements>[0], nodes, edges, darkMode)
-          exportExcalidrawDrawing(drawingFromScene({ ...current, elements: JSON.parse(JSON.stringify(elements)) }))
+          exportExcalidrawDrawing(drawingFromScene(JSON.parse(JSON.stringify(mergeGraphScene(current, nodes, edges, darkMode)))))
         }}
         onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
           commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })

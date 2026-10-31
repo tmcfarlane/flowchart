@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import type { Node, Edge } from 'reactflow'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import { SUPPORTED_ARCHITECTURE_IMAGE_MIME_TYPES, validateArchitectureScene } from '../shared/architectureScene'
-import { graphFromElements, graphSignature, mergeGraphElements } from '../utils/architectureBridge'
+import { graphFromElements, graphSignature, mergeGraphScene } from '../utils/architectureBridge'
 import { drawingFontFamily, drawingTextSize } from '../utils/drawText'
 import { DRAW_FONT_FAMILY, DRAW_LINE_HEIGHT, isGeneratedDrawFont } from '../shared/drawFont'
 import { cropImageElement, validImageCrop, type ImageCrop } from '../utils/drawMedia'
@@ -145,7 +145,7 @@ const download = (blob: Blob, name: string) => {
 export default function DrawCanvas(props: DrawCanvasProps) {
   const { nodes, edges, scene, darkMode, onReady, viewMode = false } = props
   const latest = useRef(props); latest.current = props
-  const [seeded] = useState<ArchitectureScene>(() => ({ ...(scene ?? empty()), elements: mergeGraphElements((scene?.elements ?? []) as DrawElement[], nodes, edges, darkMode) }))
+  const [seeded] = useState<ArchitectureScene>(() => mergeGraphScene(scene ?? empty(), nodes, edges, darkMode))
   const [draft, setDraft] = useState(seeded)
   const draftRef = useRef(draft)
   const committed = useRef(seeded)
@@ -312,7 +312,7 @@ export default function DrawCanvas(props: DrawCanvasProps) {
   useEffect(() => {
     const serialized = scene ? JSON.stringify(scene) : '', signature = graphSignature(nodes, edges)
     if (serialized === lastEmitted.current && signature === lastGraph.current) return
-    const next = { ...(scene ?? empty()), elements: mergeGraphElements((scene?.elements ?? []) as DrawElement[], nodes, edges, darkMode) }
+    const next = mergeGraphScene(scene ?? empty(), nodes, edges, darkMode)
     sceneEpoch.current++
     committed.current = copy(next); lastEmitted.current = serialized; lastGraph.current = signature
     cancelLaser(); gesture.current = null; setLasso(null); setCropEdit(null); pendingConnector.current = null; setCreatingConnector(false); setPointEdit(null); nudgeBefore.current = null; setIsPanning(false); setLiveEmbed(null); preview(next)

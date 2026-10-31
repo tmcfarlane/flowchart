@@ -185,6 +185,8 @@ function preserveElbows(before: Point[], after: Point[], angle: number): Point[]
   return next.map(point => rotatePoint(point, origin, angle))
 }
 
+const BOTTOM_LABEL_INSET = 6
+
 export function positionBoundText(element: DrawElement, container: DrawElement): DrawElement {
   let center = getElementCenter(container)
   if (container.type === 'arrow') {
@@ -199,7 +201,9 @@ export function positionBoundText(element: DrawElement, container: DrawElement):
       remaining -= lengths[i]
     }
   }
-  return { ...element, x: center.x - element.width / 2, y: center.y - element.height / 2, ...(container.type === 'arrow' ? {} : { angle: container.angle }) }
+  // Bottom-aligned labels (image captions) sit inside the container's lower edge
+  const y = element.verticalAlign === 'bottom' && container.type !== 'arrow' ? container.y + container.height - element.height - BOTTOM_LABEL_INSET : center.y - element.height / 2
+  return { ...element, x: center.x - element.width / 2, y, ...(container.type === 'arrow' ? {} : { angle: container.angle }) }
 }
 
 /** Update bindings after transforms and rebuild reciprocal references. */
