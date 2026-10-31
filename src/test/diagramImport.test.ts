@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parseDiagramFile, readDiagramFile } from '../utils/diagramImport'
+import { serializeFlow } from '../utils/exportUtils'
 
 const sceneFile = readFileSync(`${process.cwd()}/src/test/fixtures/excalidraw/architecture-complete.excalidraw`, 'utf8')
 
@@ -40,5 +41,16 @@ describe('shared file-picker and canvas-drop import route', () => {
 
   it('rejects malformed JSON without relying on its extension', () => {
     expect(() => parseDiagramFile('{broken')).toThrow(/valid JSON/i)
+  })
+})
+
+describe('file size limits', () => {
+  it('opens Flowchart JSON larger than the Excalidraw limit', async () => {
+    const image = 'data:image/png;base64,' + 'A'.repeat(95000)
+    const nodes = Array.from({ length: 50 }, (_, i) => ({ id: String(i + 1), type: 'image', position: { x: i * 10, y: 0 }, data: { label: `Image ${i}`, imageUrl: image } }))
+    const text = serializeFlow(nodes, [], 'flowchart')
+    expect(text.length).toBeGreaterThan(4 * 1024 * 1024)
+    const opened = await readDiagramFile(new File([text], 'big.json', { type: 'application/json' }))
+    expect(opened.kind === 'flowchart' && opened.document.nodes).toHaveLength(50)
   })
 })
