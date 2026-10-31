@@ -35,12 +35,14 @@ interface ToolbarProps {
   onExportExcalidraw?: () => void | Promise<void>
   onImportFile?: (file: File) => void
   onOpenPatchNotes?: () => void
+  fileSave?: { supported: boolean; fileName: string | null; onSave: () => void; onSaveAs: () => void }
   share?: ShareMenuProps
 }
 
 // Must match the desktop media queries in Toolbar.css
 const DESKTOP_TOOLBAR_QUERY = '(min-width: 901px) and (not ((max-height: 500px) and (pointer: coarse)))'
 const TOOLBAR_VIEWPORT_MARGIN = 16
+const SHORTCUT_MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl+'
 
 function Toolbar({
   onAddNode,
@@ -70,6 +72,7 @@ function Toolbar({
   onExportExcalidraw,
   onImportFile,
   onOpenPatchNotes,
+  fileSave,
   share,
 }: ToolbarProps) {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false)
@@ -662,6 +665,20 @@ function Toolbar({
                     </div>
                   ) : (
                     <>
+                      {fileSave && <>
+                        {/* Save writes back to the chosen file; the first save asks where */}
+                        <button className="export-option export-save-option" onClick={() => { setIsExportOpen(false); fileSave.onSave() }}>
+                          <span>{!fileSave.supported ? 'Save (download .json)' : fileSave.fileName ? `Save to ${fileSave.fileName}` : 'Save…'}</span>
+                          <kbd>{SHORTCUT_MOD}S</kbd>
+                        </button>
+                        {fileSave.supported && (
+                          <button className="export-option export-save-option" onClick={() => { setIsExportOpen(false); fileSave.onSaveAs() }}>
+                            <span>Save as…</span>
+                            <kbd>⇧{SHORTCUT_MOD}S</kbd>
+                          </button>
+                        )}
+                        <div className="export-divider" />
+                      </>}
                       <button className="export-option export-import-btn" onClick={handleImportJson}>
                         Import from JSON
                       </button>
