@@ -36,7 +36,7 @@ import AIInsertPreviewDialog, { NativeProposalPreview } from './components/AIIns
 import { FlowGenerationContextSchema, normalizeGenerationProposal, parseGenerationResponse, type AIGenerationContext, type AIGenerationProposal } from './shared/aiGeneration'
 import { captureDrawGenerationContext } from './utils/drawGeneration'
 import { sceneFromDrawing, drawingFromScene } from './shared/drawDocument'
-import { mergeGraphElements } from './utils/architectureBridge'
+import { mergeGraphScene } from './utils/architectureBridge'
 import ExcalidrawImportDialog from './components/ExcalidrawImportDialog'
 import PatchNotesDialog from './components/PatchNotesDialog'
 import { usePatchNotes } from './hooks/usePatchNotes'
@@ -55,6 +55,7 @@ import type { DrawEditResult } from './components/AIDrawEditDialog'
 import type { DrawCanvasApi } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
+import { getClipboardImage, imageFileToDataUrl } from './utils/imagePaste'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
 import type { SelectionEditPreview } from './components/AISelectionEditDialog'
@@ -574,15 +575,14 @@ function FlowChartEditor() {
       let scene = destination === 'open' ? prepareSceneOpen(pendingImport.scene) : pendingImport.scene
       if (destination === 'insert') {
         const signature = JSON.stringify(flowToChart(before.nodes, before.edges, before.architectureScene, before.diagramMode))
-        const { mergeGraphElements } = await import('./utils/architectureBridge')
+        const { mergeGraphScene } = await import('./utils/architectureBridge')
         if (request !== importRequest.current) return
         const current = importTarget.current
         if (current.diagramMode !== before.diagramMode || JSON.stringify(flowToChart(current.nodes, current.edges, current.architectureScene, current.diagramMode)) !== signature) {
           throw new Error('The diagram changed while preparing the import. Try inserting again to use its latest contents.')
         }
         const existing = before.diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : before.architectureScene
-        const drawingElements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], before.nodes, before.edges, before.darkMode)
-        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(drawingElements)), files: existing?.files ?? {}, ...(existing?.appState ? { appState: existing.appState } : {}) }
+        const baseScene: ArchitectureScene = JSON.parse(JSON.stringify(mergeGraphScene(existing ?? undefined, before.nodes, before.edges, before.darkMode)))
         const rect = reactFlowWrapper.current?.getBoundingClientRect()
         const point = pendingImport.point ?? before.canvasPoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
         scene = prepareSceneInsertion(scene, baseScene, point)
@@ -1197,9 +1197,6 @@ function FlowChartEditor() {
       if (isMod && e.key === 'c') {
         e.preventDefault()
         copySelection()
-      } else if (isMod && e.key === 'v') {
-        e.preventDefault()
-        pasteSelection()
       } else if (isMod && e.key === 'x') {
         e.preventDefault()
         cutSelection()
@@ -1220,7 +1217,32 @@ function FlowChartEditor() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [copySelection, pasteSelection, cutSelection, undo, redo, diagramMode])
+  }, [copySelection, cutSelection, undo, redo, diagramMode])
+
+  // Paste is handled on the paste event, not on Cmd/Ctrl+V keydown: cancelling
+  // the keydown would stop the browser from exposing the system clipboard.
+  // A system clipboard image becomes an image node; otherwise copied nodes paste.
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      if (diagramMode === 'draw') return
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return
+      // Modal dialogs block canvas shortcuts by stopping keydown; paste needs its own guard
+      if (document.querySelector('[aria-modal="true"]')) return
+      const file = e.clipboardData && getClipboardImage(e.clipboardData)
+      e.preventDefault()
+      if (!file) {
+        pasteSelection()
+        return
+      }
+      // Shared charts cap imageUrl length, so the pasted image must fit that budget
+      imageFileToDataUrl(file, { maxBytes: LIMITS.maxImageUrlLength, keepOriginal: true })
+        .then((dataUrl) => addImageNode(dataUrl, 'Image'))
+        .catch((err) => console.error('Could not paste image', err))
+    }
+    window.addEventListener('paste', handlePaste)
+    return () => window.removeEventListener('paste', handlePaste)
+  }, [pasteSelection, addImageNode, diagramMode])
 
   // Control + Scroll to Zoom
   useEffect(() => {
@@ -1372,8 +1394,7 @@ function FlowChartEditor() {
     try {
       if (aiProposal.outputMode === 'draw') {
         const existing = diagramMode === 'draw' && drawApi.current ? drawApi.current.getScene() : architectureScene
-        const elements = mergeGraphElements((existing?.elements ?? []) as unknown as Parameters<typeof mergeGraphElements>[0], nodes, edges, darkMode)
-        const baseScene: ArchitectureScene = { version: 1, elements: JSON.parse(JSON.stringify(elements)), files: existing?.files ?? {}, ...(existing?.appState ? { appState: existing.appState } : {}) }
+        const baseScene: ArchitectureScene = JSON.parse(JSON.stringify(mergeGraphScene(existing ?? undefined, nodes, edges, darkMode)))
         const rect = reactFlowWrapper.current?.getBoundingClientRect()
         const point = drawApi.current
           ? drawApi.current.viewportToScenePoint({ x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2, y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2 })
@@ -1889,8 +1910,7 @@ function FlowChartEditor() {
         onExportExcalidraw={() => {
           if (!drawApi.current) throw new Error('Drawing editor is still loading.')
           const current = drawApi.current.getScene()
-          const elements = mergeGraphElements(current.elements as unknown as Parameters<typeof mergeGraphElements>[0], nodes, edges, darkMode)
-          exportExcalidrawDrawing(drawingFromScene({ ...current, elements: JSON.parse(JSON.stringify(elements)) }))
+          exportExcalidrawDrawing(drawingFromScene(JSON.parse(JSON.stringify(mergeGraphScene(current, nodes, edges, darkMode)))))
         }}
         onImportJson={(importedNodes, importedEdges, importedMode, importedScene) => {
           commitDocument({ nodes: importedNodes, edges: importedEdges, diagramMode: importedMode, architectureScene: importedScene })

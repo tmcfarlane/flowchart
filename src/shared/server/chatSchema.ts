@@ -6,6 +6,7 @@ import { edgeFromInput, nodeFromInput } from '../flowSchema.js'
 import { DrawGenerationContextSchema, DrawProposalSchema } from '../drawGeneration.js'
 import { DrawEditContextSchema } from '../drawSelectionEdit.js'
 import { SelectionEditScopeSchema, selectionScopeError } from '../selectionEdit.js'
+import { AiImageDataUrlSchema } from '../aiImage.js'
 
 const GenerationAndGraphEditRequestSchema = z.strictObject({
   messages: z.array(z.strictObject({ role: z.enum(['user', 'assistant']), content: z.string().trim().min(1).max(12000) })).min(1).max(20),
@@ -15,7 +16,10 @@ const GenerationAndGraphEditRequestSchema = z.strictObject({
   mode: z.enum(['generate', 'refine', 'edit']).default('generate'),
   diagramMode: z.enum(['flowchart', 'architecture', 'draw']).default('flowchart'),
   selection: SelectionEditScopeSchema.optional(),
+  // Attached to the latest user message only; earlier turns are text.
+  image: AiImageDataUrlSchema.optional(),
 }).superRefine((value, ctx) => {
+  if (value.image && value.mode !== 'generate') ctx.addIssue({ code: 'custom', message: 'Images are only accepted for new generations.' })
   if (value.flowContext && value.drawContext) ctx.addIssue({ code: 'custom', message: 'Use only one source context.' })
   if (value.mode === 'refine') {
     if (value.diagramMode === 'draw') {

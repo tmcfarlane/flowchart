@@ -1,6 +1,8 @@
 // Pure bridge between the existing semantic graph and our Draw scene.
 // No editor package is loaded: raw drawing fields stay lossless for imports.
-import { createElement, getElementCenter, type DrawElement } from './drawScene'
+import { createElement, getElementCenter, positionBoundText, type DrawElement } from './drawScene'
+import { imageDataUrlSize } from './imageDimensions'
+import type { ArchitectureScene } from '../shared/architectureScene'
 import type { Node, Edge } from 'reactflow'
 import { flowToChart } from './sharedFlow'
 import { getAbsolutePosition } from './nesting'
@@ -41,6 +43,51 @@ interface BridgeData { kind: 'node' | 'edge' | 'icon'; id: string; snapshot?: Ch
 export const bridgeData = (element: Record<string, unknown>): BridgeData | undefined => (element.customData as Record<string, unknown> | undefined)?.flowchart as BridgeData | undefined
 const shapeId = (id: string) => `fc-node-${id}`
 const edgeId = (id: string) => `fc-edge-${id}`
+const iconId = (id: string) => `fc-icon-${id}`
+// Groups an image node's frame with its picture so they select and move together
+const imageGroupId = (id: string) => `fc-image-${id}`
+const IMAGE_FILE_PREFIX = 'fc-image-file-'
+const IMAGE_PADDING = 10
+const IMAGE_CAPTION_SPACE = 28
+
+/** Only embedded images can live in a drawing's files; library icon URLs stay graph-only. */
+const nodeImageDataUrl = (node: ChartNode) => node.imageUrl && /^data:image\//i.test(node.imageUrl) ? node.imageUrl : undefined
+
+function hashString(value: string): string {
+  let hash = 5381
+  for (let i = 0; i < value.length; i++) hash = ((hash << 5) + hash + value.charCodeAt(i)) | 0
+  return (hash >>> 0).toString(36)
+}
+// Content-addressed, so replacing a node's image swaps its file
+const imageFileId = (nodeId: string, dataUrl: string) => `${IMAGE_FILE_PREFIX}${nodeId}-${hashString(dataUrl)}`
+
+/** Fit the picture inside the node frame above its caption, keeping its aspect ratio. */
+function imageGeometry(shape: DrawElement, dataUrl: string, hasCaption: boolean) {
+  const boxWidth = Math.max(1, shape.width - IMAGE_PADDING * 2)
+  const boxHeight = Math.max(1, shape.height - IMAGE_PADDING * 2 - (hasCaption ? IMAGE_CAPTION_SPACE : 0))
+  const natural = imageDataUrlSize(dataUrl)
+  const scale = natural ? Math.min(boxWidth / natural.width, boxHeight / natural.height) : 1
+  const width = natural ? natural.width * scale : boxWidth, height = natural ? natural.height * scale : boxHeight
+  return { x: shape.x + IMAGE_PADDING + (boxWidth - width) / 2, y: shape.y + IMAGE_PADDING + (boxHeight - height) / 2, width, height }
+}
+
+/** Embed the pictures of image nodes into the drawing's files, dropping stale ones. */
+export function mergeGraphFiles(files: ArchitectureScene['files'], nodes: Node[], edges: Edge[]): ArchitectureScene['files'] {
+  const next: ArchitectureScene['files'] = Object.fromEntries(Object.entries(files).filter(([id]) => !id.startsWith(IMAGE_FILE_PREFIX)))
+  for (const node of flowToChart(nodes, edges).nodes) {
+    const dataUrl = nodeImageDataUrl(node)
+    if (!dataUrl) continue
+    const id = imageFileId(node.id, dataUrl)
+    next[id] = files[id] ?? { id, mimeType: dataUrl.slice(5, dataUrl.indexOf(';')), dataURL: dataUrl, created: 0 }
+  }
+  return next
+}
+
+/** Project the graph into a drawing: semantic shapes, connectors and node images. */
+export function mergeGraphScene(scene: ArchitectureScene | undefined, nodes: Node[], edges: Edge[], darkMode: boolean): ArchitectureScene {
+  const base = scene ?? { version: 1 as const, elements: [], files: {} }
+  return { ...base, elements: mergeGraphElements(base.elements as unknown as DrawElement[], nodes, edges, darkMode) as unknown as ArchitectureScene['elements'], files: mergeGraphFiles(base.files, nodes, edges) }
+}
 export const graphSignature = (nodes: Node[], edges: Edge[]) => JSON.stringify(flowToChart(nodes, edges))
 
 function endpoint(shape: DrawElement, handle: ChartEdge['sourceHandle'], fallback: 'top' | 'bottom') {
@@ -186,6 +233,23 @@ export function mergeGraphElements(elements: readonly DrawElement[], nodes: Node
       output[index] = updateElement(previous, { ...(reroute ? arrowGeometry(source, target, edge) : {}), strokeStyle, customData: { ...previous.customData, flowchart: metadata }, isDeleted: false })
       setBoundLabel(output, output[index], label, 14)
     }
+  }
+  for (const node of chart.nodes) {
+    const shape = shapes.get(node.id)
+    const dataUrl = nodeImageDataUrl(node)
+    const iconIndex = output.findIndex(e => e.id === iconId(node.id))
+    if (!shape || !dataUrl) {
+      if (iconIndex >= 0 && !output[iconIndex].isDeleted) output[iconIndex] = updateElement(output[iconIndex], { isDeleted: true })
+      continue
+    }
+    const shapeIndex = output.findIndex(e => e.id === shape.id)
+    const group = imageGroupId(node.id)
+    if (!shape.groupIds?.includes(group)) output[shapeIndex] = updateElement(shape, { groupIds: [...(shape.groupIds ?? []), group] })
+    const labelIndex = output.findIndex(e => e.type === 'text' && !e.isDeleted && e.containerId === shape.id)
+    if (labelIndex >= 0) output[labelIndex] = positionBoundText({ ...output[labelIndex], verticalAlign: 'bottom' }, output[shapeIndex])
+    const icon = { ...imageGeometry(shape, dataUrl, !!node.label), angle: shape.angle, fileId: imageFileId(node.id, dataUrl), status: 'saved', scale: [1, 1] as [number, number], strokeColor: 'transparent', groupIds: [group], isDeleted: false, customData: { flowchart: { kind: 'icon', id: node.id } satisfies BridgeData } }
+    if (iconIndex >= 0) output[iconIndex] = updateElement(output[iconIndex], icon)
+    else output.push(createElement('image', { x: icon.x, y: icon.y }, { x: icon.x + icon.width, y: icon.y + icon.height }, { ...icon, id: iconId(node.id) }))
   }
   // Conversion restores reciprocal boundElements for newly created connectors.
   const bound = new Map<string, Array<{ id: string; type: 'arrow' | 'text' }>>()

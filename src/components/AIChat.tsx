@@ -8,6 +8,8 @@ import { createThread, getMessages, addMessage as addThreadMessage } from '../ut
 import { parseFlowJson } from '../utils/exportUtils'
 import type { ArchitectureScene } from '../shared/architectureScene'
 import { DRAW_TOOL_CAPABILITIES } from '../shared/drawGeneration'
+import { AI_IMAGE_ONLY_PROMPT } from '../shared/aiImage'
+import { getClipboardImage, imageFileToDataUrl } from '../utils/imagePaste'
 
 const FLOW_STARTER_PROMPTS = [
   { emoji: '\u{1F96A}', text: 'Make a PB&J sandwich' },
@@ -110,6 +112,7 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
   const [importError, setImportError] = useState<string | null>(null)
   const welcomeFileInputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const [pastedImage, setPastedImage] = useState<string | null>(null)
   const [flowStarterPrompts] = useState(() => pickRandomPrompts(4))
 
   const [loadingProgress, setLoadingProgress] = useState(0)
@@ -161,8 +164,22 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
     return () => clearInterval(interval)
   }, [isLoading])
 
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const file = getClipboardImage(e.clipboardData)
+    if (!file) return
+    e.preventDefault()
+    try {
+      setPastedImage(await imageFileToDataUrl(file))
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not read the pasted image.')
+    }
+  }
+
   const sendMessage = useCallback(async (overrideText?: string) => {
-    const userPrompt = (overrideText ?? inputValue).trim()
+    // Starter chips pass overrideText and should not pick up a pasted image
+    const image = overrideText === undefined ? pastedImage : null
+    const userPrompt = (overrideText ?? inputValue).trim() || (image ? AI_IMAGE_ONLY_PROMPT : '')
     if (!userPrompt || requestRef.current || !isOpen) return
 
     const outputMode = generationMode
@@ -185,6 +202,7 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
           diagramMode: outputMode,
           messages: [...messages.map((message) => ({ role: message.role, content: message.content })), { role: 'user', content: userPrompt }],
           ...(context ?? {}),
+          ...(image ? { image } : {}),
         }),
       })
       if (requestRef.current !== request || targetRef.current !== outputMode || revisionRef.current !== revision || !openRef.current) return
@@ -202,6 +220,7 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
           proposal = normalizeGenerationProposal({ ...proposal, nodes: resolveAzureIcons(proposal).nodes }, proposal.outputMode)
         }
       } catch (parseError) {
+        console.error('AI proposal failed client validation', parseError, data)
         if (data.finishReason === 'length') throw parseError
         throw new Error('Could not parse AI response. Please try again or rephrase your request.')
       }
@@ -209,9 +228,11 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
 
       const currentThreadId = existingThread ?? createThread()
       threadRef.current = { mode: outputMode, id: currentThreadId }
+      // The image stays out of the thread (sessionStorage quota); follow-ups are text only.
       addThreadMessage(currentThreadId, { role: 'user', content: userPrompt })
       addThreadMessage(currentThreadId, { role: 'assistant', content: proposal.summary || MODE_COPY[outputMode].button })
       setInputValue('')
+      if (image) setPastedImage(null)
       onProposalReady(proposal, currentThreadId)
       onClose()
     } catch (err) {
@@ -224,7 +245,7 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
         setIsLoading(false)
       }
     }
-  }, [inputValue, isOpen, onProposalReady, onClose, generationMode, generationRevision, getGenerationContext, setInputValue])
+  }, [inputValue, pastedImage, isOpen, onProposalReady, onClose, generationMode, generationRevision, getGenerationContext, setInputValue])
 
   const handleClose = useCallback(() => {
     cancelRequest()
@@ -294,6 +315,41 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
   }
 
   if (!isOpen) return null
+
+  const promptInput = (
+    <>
+      <textarea
+        className="ai-bubble-input"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
+        placeholder={copy.placeholder}
+        rows={2}
+        autoFocus
+      />
+      {pastedImage && (
+        <div className="ai-pasted-image">
+          <img src={pastedImage} alt="Pasted image" />
+          <button className="ai-pasted-image-remove" onClick={() => setPastedImage(null)} title="Remove image" aria-label="Remove image">
+            <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M1 1l12 12M13 1L1 13" />
+            </svg>
+          </button>
+        </div>
+      )}
+      <button
+        className="ai-bubble-send"
+        onClick={() => sendMessage()}
+        disabled={!inputValue.trim() && !pastedImage}
+      >
+        {copy.button}
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
+        </svg>
+      </button>
+    </>
+  )
 
   if (variant === 'welcome') {
     return (
@@ -373,28 +429,10 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
               </div>
 
               <div className="ai-prompt-divider">
-                <span>or describe your own</span>
+                <span>or describe your own, or paste an image</span>
               </div>
 
-              <textarea
-                className="ai-bubble-input"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={copy.placeholder}
-                rows={2}
-                autoFocus
-              />
-              <button
-                className="ai-bubble-send"
-                onClick={() => sendMessage()}
-                disabled={!inputValue.trim()}
-              >
-                {copy.button}
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
-                </svg>
-              </button>
+              {promptInput}
             </>
           )}
 
@@ -488,28 +526,10 @@ function AIChat({ onProposalReady, isOpen, onClose, variant = 'full', onDismiss,
               </div>
 
               <div className="ai-prompt-divider">
-                <span>or describe your own</span>
+                <span>or describe your own, or paste an image</span>
               </div>
 
-              <textarea
-                className="ai-bubble-input"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={copy.placeholder}
-                rows={2}
-                autoFocus
-              />
-              <button
-                className="ai-bubble-send"
-                onClick={() => sendMessage()}
-                disabled={!inputValue.trim()}
-              >
-                {copy.button}
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                  <path d="M1 8l6-6v4h8v4H7v4L1 8z" />
-                </svg>
-              </button>
+              {promptInput}
             </>
           )}
 

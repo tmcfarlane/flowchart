@@ -1093,3 +1093,10 @@
     transform: none;
   }
 }
+.image-node-input {
+  flex-shrink: 0;
+  min-width: 0;
+  font-size: 11px;
+  padding: 2px 6px;
+  text-align: center;
+}

@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { Edge, Node } from 'reactflow'
 import type { DrawElement } from '../utils/drawScene'
 
-import { bridgeData, graphFromElements, mergeGraphElements } from '../utils/architectureBridge'
+import { bridgeData, graphFromElements, mergeGraphElements, mergeGraphScene } from '../utils/architectureBridge'
+import { validateArchitectureScene } from '../shared/architectureScene'
 
 const node = (id: string, x: number, y: number, extra: Partial<Node> = {}): Node => ({ id, type: 'service', position: { x, y }, data: { label: id }, style: { width: 180, height: 90 }, ...extra })
 const arrow = (id: string, source: string, target: string, extra: Partial<Edge> = {}): Edge => ({ id, source, target, animated: false, data: { protocol: 'HTTPS', commStyle: 'sync' }, ...extra })
@@ -146,4 +147,47 @@ describe('semantic graph/custom Draw bridge', () => {
     expect(graphFromElements(dark, nodes, edges).edges[0].label).toBe('SQL')
   })
 
+})
+
+describe('image nodes in Draw', () => {
+  // A 200×100 PNG header is enough for layout; the renderer receives the same data URL
+  const png = (width: number, height: number) => `data:image/png;base64,${Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, width >> 8, width & 255, 0, 0, height >> 8, height & 255]).toString('base64')}`
+  const imageNode = (url: string, label = 'Sketch') => node('img', 0, 0, { type: 'image', data: { label, imageUrl: url }, style: { width: 240, height: 168 } })
+
+  it('embeds the picture in the frame, grouped with it, above a bottom caption', () => {
+    const scene = validateArchitectureScene(mergeGraphScene(undefined, [imageNode(png(200, 100))], [], false))
+    const elements = scene.elements as unknown as DrawElement[]
+    const frame = elements.find(e => bridgeData(e)?.kind === 'node')!
+    const picture = elements.find(e => e.type === 'image')!
+    const caption = elements.find(e => e.type === 'text' && e.containerId === frame.id)!
+    expect(scene.files[picture.fileId as string]).toMatchObject({ mimeType: 'image/png', dataURL: png(200, 100) })
+    expect(bridgeData(picture)).toEqual({ kind: 'icon', id: 'img' })
+    expect(picture.groupIds).toEqual(frame.groupIds)
+    // 220×120 box above a 28px caption strip; 2:1 keeps the full width
+    expect(picture.x).toBeCloseTo(10)
+    expect(picture.width).toBeCloseTo(220)
+    expect(picture.height).toBeCloseTo(110)
+    expect(caption.verticalAlign).toBe('bottom')
+    expect(caption.y + caption.height).toBeLessThanOrEqual(frame.y + frame.height)
+    expect(caption.y).toBeGreaterThanOrEqual(picture.y + picture.height)
+  })
+
+  it('swaps the embedded file when the image changes and removes it with the node', () => {
+    const first = mergeGraphScene(undefined, [imageNode(png(200, 100))], [], false)
+    const replaced = mergeGraphScene(first, [imageNode(png(100, 100))], [], false)
+    const picture = (replaced.elements as unknown as DrawElement[]).find(e => e.type === 'image')!
+    expect(Object.keys(replaced.files)).toEqual([picture.fileId])
+    expect(picture.height).toBeCloseTo(picture.width)
+    const removed = mergeGraphScene(replaced, [], [], false)
+    expect(removed.files).toEqual({})
+    expect((removed.elements as unknown as DrawElement[]).find(e => e.type === 'image')?.isDeleted).toBe(true)
+    expect(() => validateArchitectureScene(removed)).not.toThrow()
+  })
+
+  it('keeps library icon URLs out of the drawing files and preserves the node on the way back', () => {
+    const scene = mergeGraphScene(undefined, [imageNode('/assets/icons/vm.svg')], [], false)
+    expect(scene.files).toEqual({})
+    const back = graphFromElements(scene.elements as unknown as DrawElement[], [imageNode(png(200, 100))], [])
+    expect(back.nodes).toHaveLength(1)
+  })
 })
