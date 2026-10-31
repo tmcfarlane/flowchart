@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useMemo, lazy, Suspense, type DragEvent } from 'react'
+import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo, lazy, Suspense, type DragEvent } from 'react'
 import ReactFlow, {
   Node as FlowNode,
   Edge,
@@ -307,6 +307,17 @@ function FlowChartEditor() {
   const [previewMode, setPreviewMode] = useState(false)
   const [nodeIdCounter, setNodeIdCounter] = useState(() => Math.max(2, nextNumericNodeId(initialNodes)))
   const [diagramMode, setDiagramMode] = useState<DiagramMode>(initialDraft?.mode ?? 'flowchart')
+  // Briefly true after a mode switch; scopes the enter animations in CSS so
+  // the first page load renders without motion.
+  const [modeTransition, setModeTransition] = useState(false)
+  const previousMode = useRef(diagramMode)
+  useLayoutEffect(() => {
+    if (previousMode.current === diagramMode) return
+    previousMode.current = diagramMode
+    setModeTransition(true)
+    const timer = window.setTimeout(() => setModeTransition(false), 450)
+    return () => window.clearTimeout(timer)
+  }, [diagramMode])
   const [defaultEdgeStyle, setDefaultEdgeStyle] = useState<EdgeStyle>('animated')
   const [sidebarMode, setSidebarMode] = useState<SidebarMode>('none')
   const showGrid = true
@@ -1883,7 +1894,7 @@ function FlowChartEditor() {
   }
 
   return (
-    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'} ${diagramMode === 'draw' ? 'draw-mode' : ''} ${drawLocalView ? 'draw-local-view' : ''}`}>
+    <div className={`app ${darkMode ? 'dark-mode' : 'light-mode'} ${diagramMode === 'draw' ? 'draw-mode' : ''} ${drawLocalView ? 'draw-local-view' : ''} ${modeTransition ? 'mode-transition' : ''}`}>
       {!drawLocalView && <Toolbar
         onAddNode={addNode}
         onAddContainer={addContainer}
