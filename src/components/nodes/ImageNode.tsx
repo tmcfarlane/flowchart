@@ -3,6 +3,7 @@ import { Handle, Position, NodeProps } from 'reactflow'
 import { NodeResizer } from '@reactflow/node-resizer'
 import '@reactflow/node-resizer/dist/style.css'
 import './NodeStyles.css'
+import NodeLabelEditor from './NodeLabelEditor'
 
 function ImageNode({ data, id, selected }: NodeProps) {
   const imageUrl = data.imageUrl || ''
@@ -50,13 +51,10 @@ function ImageNode({ data, id, selected }: NodeProps) {
           <div className="image-node-placeholder">No image</div>
         )}
         {isEditing ? (
-          <input
-            type="text"
+          <NodeLabelEditor
             value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
-            autoFocus
+            onChange={setLabel}
+            onCommit={commit}
             className="node-input image-node-input"
             aria-label="Image label"
           />
