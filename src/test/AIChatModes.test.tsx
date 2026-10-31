@@ -7,6 +7,12 @@ import { compileDrawProposal } from '../shared/drawCompiler'
 import { DrawProposalSchema } from '../shared/drawGeneration'
 import type { AIGenerationProposal } from '../shared/aiGeneration'
 
+// jsdom has no canvas or createImageBitmap, so stub the re-encoding step
+vi.mock('../utils/imagePaste', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../utils/imagePaste')>()),
+  imageFileToDataUrl: async () => 'data:image/jpeg;base64,AAAA',
+}))
+
 const drawing = {
   outputMode: 'draw', summary: 'Workshop plan',
   elements: [{ id: 'desk', type: 'rectangle', x: 0, y: 0, width: 160, height: 80, label: 'Desk', strokeColor: '#000000', backgroundColor: '#ffffff' }],
@@ -192,5 +198,22 @@ describe('AIChat generation modes', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Service unavailable')
     expect(screen.getByPlaceholderText('Describe any process, workflow, or plan...')).toHaveValue('Map the handoff')
     expect(onReady).not.toHaveBeenCalled()
+  })
+
+  it('sends a pasted image with the prompt and enables generation without text', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse(flowchart))
+    vi.stubGlobal('fetch', fetchMock)
+    const onReady = vi.fn()
+    render(<ChatHarness onReady={onReady} />)
+    const input = screen.getByPlaceholderText('Describe any process, workflow, or plan...')
+    const file = new File(['x'], 'sketch.png', { type: 'image/png' })
+    fireEvent.paste(input, { clipboardData: { files: [file] } })
+    expect(await screen.findByAltText('Pasted image')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Generate flowchart/i }))
+    await waitFor(() => expect(onReady).toHaveBeenCalled())
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body)
+    expect(body.image).toBe('data:image/jpeg;base64,AAAA')
+    expect(body.messages.at(-1)).toEqual({ role: 'user', content: 'Create a diagram from this image.' })
   })
 })

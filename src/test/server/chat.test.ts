@@ -146,6 +146,33 @@ describe('chat admission and validation', () => {
     expect(ctx.dependencies.fetch).not.toHaveBeenCalled()
   })
 
+  it('sends a pasted image with the latest user message and bounds it apart from the context', async () => {
+    const image = `data:image/jpeg;base64,${'A'.repeat(3000)}`
+    const ctx = context({ ...ENV, AI_MAX_BODY_BYTES: '2048' } as typeof ENV)
+    const response = await post(await server(ctx), { messages: [{ role: 'user', content: 'Recreate this' }], image })
+    expect(response.status).toBe(200)
+    const [, init] = ctx.dependencies.fetch.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(String(init.body)).messages.at(-1)).toEqual({ role: 'user', content: [
+      { type: 'text', text: 'Recreate this' },
+      { type: 'image_url', image_url: { url: image } },
+    ] })
+
+    const textOnly = await post(await server(ctx), { messages: [{ role: 'user', content: 'x'.repeat(3000) }] })
+    expect(textOnly.status).toBe(413)
+  })
+
+  it.each([
+    { ...REQUEST, image: 'https://example.com/a.png' },
+    { ...REQUEST, image: 'data:image/svg+xml;base64,AAAA' },
+    { ...REQUEST, image: `data:image/jpeg;base64,${'A'.repeat(210 * 1024)}` },
+    { ...REQUEST, mode: 'refine', flowContext: { nodes: [], edges: [] }, image: 'data:image/png;base64,AAAA' },
+  ])('rejects remote, non-raster, oversized, or refinement images %#', async body => {
+    const ctx = context()
+    const response = await post(await server(ctx), body)
+    expect([400, 413]).toContain(response.status)
+    expect(ctx.dependencies.fetch).not.toHaveBeenCalled()
+  })
+
   it('enforces the kill switch in both modes', async () => {
     const ctx = context({ ...ENV, AI_ENABLED: 'false' } as typeof ENV)
     const response = await post(await server(ctx))
