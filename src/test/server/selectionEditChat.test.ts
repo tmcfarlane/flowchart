@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { handleChat, type AiEvent, type ChatContext } from '../../shared/server/chat'
 import { prepareVercelStyleRequest } from '../../shared/server/nodeAdapter'
+import type { AiAdmission } from '../../shared/server/aiAdmission'
 
 const ENV = {
   AI_ROUTING_MODE: 'gateway', AZURE_RESOURCE_NAME: 'test-resource', AZURE_DEPLOYMENT_NAME: 'test-deployment',
@@ -153,12 +154,12 @@ describe('selected-node edit chat gateway', () => {
 
   it('retains gateway admission failures and never falls back to direct Azure', async () => {
     const fetcher = vi.fn(async () => upstream()), ctx = context(fetcher)
-    ctx.dependencies.admission.acquire = vi.fn(async () => ({ allowed: false as const, reason: 'budget' as const, retryAfterSeconds: 120 })) as typeof ctx.dependencies.admission.acquire
+    ctx.dependencies.admission.acquire = vi.fn<AiAdmission['acquire']>(async () => ({ allowed: false, reason: 'budget', retryAfterSeconds: 120 }))
     const denied = await post(await server(ctx))
     expect(denied.status).toBe(429)
     expect(denied.headers.get('retry-after')).toBe('120')
     expect(fetcher).not.toHaveBeenCalled()
-    const rejected = vi.fn(async () => new Response(JSON.stringify({ error: { message: 'provider-secret' } }), { status: 503 }))
+    const rejected = vi.fn(async (_input: RequestInfo | URL) => new Response(JSON.stringify({ error: { message: 'provider-secret' } }), { status: 503 }))
     const response = await post(await server(context(rejected)))
     expect(response.status).toBe(503)
     expect(await response.text()).not.toContain('provider-secret')

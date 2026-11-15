@@ -176,10 +176,10 @@ describe('Draw clipboard and crop', () => {
     vi.stubGlobal('Image', class { src = ''; naturalWidth = 320; naturalHeight = 200; decode() { return new Promise<void>(resolve => { resolveDecode = resolve }) } })
     const initial = { ...scene(), elements: [rect('original')] }
     const commit = vi.fn()
-    let current = initial
+    let current: ArchitectureScene = initial
     let api: DrawCanvasApi | null = null
     function Harness() {
-      const [value, setValue] = useState(initial)
+      const [value, setValue] = useState<ArchitectureScene>(initial)
       return <DrawCanvas scene={value} nodes={[]} edges={[]} darkMode={false} onReady={ready => { api = ready }} onChange={next => { current = next; commit(next); setValue(next) }} />
     }
     render(<Harness />)

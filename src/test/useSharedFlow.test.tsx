@@ -61,7 +61,7 @@ async function mount(options: { token?: boolean; architectureScene?: Architectur
   window.history.replaceState(null, '', `/f/${ID}${options.token ? '#edit=secret-token' : ''}`)
   const applyChart = vi.fn()
   const hook = renderHook((props: { nodes: Node[]; architectureScene?: ArchitectureScene; mode?: DiagramMode }) => useSharedFlow({ nodes: props.nodes, edges: [], architectureScene: props.architectureScene, mode: props.mode, applyChart }), {
-    initialProps: { nodes: NO_NODES, architectureScene: options.architectureScene, mode: options.mode },
+    initialProps: { nodes: NO_NODES, architectureScene: options.architectureScene, mode: options.mode } as { nodes: Node[]; architectureScene?: ArchitectureScene; mode?: DiagramMode },
   })
   await advance(0)
   expect(hook.result.current.state.status).toBe('synced')

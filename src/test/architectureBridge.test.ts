@@ -37,7 +37,7 @@ describe('semantic graph/custom Draw bridge', () => {
     expect(semantic(native, 'api').groupIds).toEqual(['fc-container-cluster', 'fc-container-vpc'])
     expect(semantic(native, 'internal').groupIds).toEqual(['fc-container-cluster', 'fc-container-vpc'])
     expect(semantic(native, 'external').groupIds).toEqual([])
-    const withUserGroup = native.map(element => bridgeData(element)?.id === 'api' ? { ...element, groupIds: ['user-group', ...element.groupIds] } : element)
+    const withUserGroup = native.map(element => bridgeData(element)?.id === 'api' ? { ...element, groupIds: ['user-group', ...element.groupIds!] } : element)
     const detachedNodes = nodes.map(n => n.id === 'api' ? { ...n, parentNode: undefined } : n)
     const detached = mergeGraphElements(withUserGroup, detachedNodes, edges, false)
     expect(semantic(detached, 'api').groupIds).toEqual(['user-group'])

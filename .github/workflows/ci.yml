@@ -27,7 +27,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Typecheck
-        run: npx tsc -p tsconfig.json && npx tsc -p tsconfig.node.json --noEmit && npm run typecheck:api
+        run: npx tsc -p tsconfig.json && npx tsc -p tsconfig.node.json --noEmit && npm run typecheck:api && npm run typecheck:test
       - name: Test
         run: npm test -- --run
       - name: Build

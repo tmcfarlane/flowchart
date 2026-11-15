@@ -153,7 +153,7 @@ describe('native Draw generation', () => {
     const moved = moveElements(twice, [frames[1].id], { x: 30, y: 20 })
     expect(element(moved, frames[1].id).x).toBeCloseTo(frames[1].x + 30)
     expect(moved.elements.filter(item => item.frameId === frames[1].id).map(item => item.x)).toEqual(
-      twice.elements.filter(item => item.frameId === frames[1].id).map(item => item.x + 30),
+      twice.elements.filter(item => item.frameId === frames[1].id).map(item => (item.x as number) + 30),
     )
   })
   it('materializes editable shapes, independent objects, measured text, and bound arrows', () => {

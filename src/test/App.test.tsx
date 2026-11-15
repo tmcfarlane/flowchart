@@ -139,7 +139,7 @@ describe('FlowChart Designer', () => {
     render(<App />)
     fireEvent.click(screen.getByLabelText('Add Step Node'))
     fireEvent.click(screen.getByLabelText('Clear All'))
-    fireEvent.click(screen.getByRole('button', { name: 'Clear board', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear board' }))
     expect(screen.queryByText('Step')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByLabelText('Undo'))

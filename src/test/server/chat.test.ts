@@ -98,7 +98,7 @@ describe('chat routing and configuration', () => {
   })
 
   it.each([401, 403, 429, 500, 503])('never bypasses gateway rejection %i or reveals provider secrets', async status => {
-    const fetcher = vi.fn(async () => new Response(JSON.stringify({ error: { message: 'provider-secret gateway-secret prompt text' } }), { status }))
+    const fetcher = vi.fn(async (_input: RequestInfo | URL) => new Response(JSON.stringify({ error: { message: 'provider-secret gateway-secret prompt text' } }), { status }))
     const ctx = context({ ...ENV, AI_ROUTING_MODE: 'gateway', CLOUDFLARE_ACCOUNT_ID: 'own', CLOUDFLARE_AI_GATEWAY_ID: 'gateway', CLOUDFLARE_AI_GATEWAY_TOKEN: 'gateway-secret' } as typeof ENV, fetcher)
     const response = await post(await server(ctx))
     expect(response.status).toBe(status === 429 ? 429 : 503)
@@ -312,7 +312,7 @@ describe('native Draw generation', () => {
     }
     expect(examples[0].elements.filter(element => element.type === 'arrow')).toMatchObject([{ points: [{ x: 200, y: 50 }, { x: 360, y: 50 }] }])
     expect(examples[1].elements.some(element => element.type === 'diamond')).toBe(true)
-    expect(examples[1].elements.filter(element => element.type === 'arrow').map(element => element.label)).toEqual(['Yes', 'No'])
+    expect(examples[1].elements.flatMap(element => element.type === 'arrow' ? [element.label] : [])).toEqual(['Yes', 'No'])
   })
 
   it('keeps legacy source JSON compatible and transports overlap permissions separately', async () => {
