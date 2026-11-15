@@ -20,7 +20,7 @@ npm test -- --run
 npm run build
 ```
 
-Use `npm test` for watch mode. Use `npm run typecheck:api` to check the API separately.
+Use `npm test` for watch mode. Use `npm run typecheck:api` to check the API separately, and `npm run typecheck:test` to check the tests, which Vitest runs without type checking.
 
 ## Configure optional AI
 

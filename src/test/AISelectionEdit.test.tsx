@@ -28,10 +28,10 @@ function response(operations: unknown[] = [
 }
 const canvasNode = (container: HTMLElement, id: string) => container.querySelector(`.react-flow-wrapper .react-flow__node[data-id="${id}"]`) as HTMLElement
 async function prompt(text = 'Shorten these labels') {
-  fireEvent.click(screen.getByRole('button', { name: 'Edit with AI', exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: 'Edit with AI' }))
   const dialog = await screen.findByRole('dialog', { name: 'Edit with AI' })
   fireEvent.change(within(dialog).getByRole('textbox', { name: 'What should change?' }), { target: { value: text } })
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Preview changes', exact: true }))
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Preview changes' }))
   return dialog
 }
 
@@ -85,7 +85,7 @@ describe('selected-node AI editing in the app', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Edit with AI' })
     expect(within(dialog).getByText('1 node')).toBeInTheDocument()
     fireEvent.change(within(dialog).getByRole('textbox'), { target: { value: 'Shorten this label' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Preview changes', exact: true }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Preview changes' }))
     const apply = await within(dialog).findByRole('button', { name: 'Apply changes' })
     await waitFor(() => expect(apply).toBeEnabled())
     fireEvent.click(apply)
@@ -106,7 +106,7 @@ describe('selected-node AI editing in the app', () => {
     expect(boundary).not.toBeChecked()
     fireEvent.click(boundary)
     fetchMock.mockResolvedValueOnce(response([{ op: 'remove_node', id: 'a' }]))
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Preview changes', exact: true }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Preview changes' }))
     const apply = await within(dialog).findByRole('button', { name: 'Apply changes' })
     expect(JSON.parse(fetchMock.mock.calls[1][1].body).selection.edgeIds).toEqual(['ab', 'ac'])
     expect(within(dialog).getAllByText('Audit').length).toBeGreaterThan(0)
@@ -214,7 +214,7 @@ describe('selected-node AI editing in the app', () => {
     const fixture = seed()
     localStorage.setItem(DRAFT, serializeFlow(fixture.nodes.map(node => ({ ...node, selected: false })), fixture.edges, 'flowchart'))
     render(<App />)
-    expect(screen.queryByRole('button', { name: 'Edit with AI', exact: true })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit with AI' })).not.toBeInTheDocument()
     fireEvent.click(screen.getByLabelText('Open AI Assistant'))
     expect(screen.getByRole('button', { name: /Edit selected nodes/ })).toBeDisabled()
     expect(fetchMock).not.toHaveBeenCalled()

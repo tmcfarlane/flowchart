@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest",
     "typecheck:api": "tsc -p tsconfig.api.json",
+    "typecheck:test": "tsc -p tsconfig.test.json",
     "icons:index": "node scripts/generate-azure-icon-index.mjs"
   },
   "dependencies": {

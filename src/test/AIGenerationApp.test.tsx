@@ -279,7 +279,7 @@ describe('AI proposal document transactions', () => {
     fireEvent.change(screen.getByPlaceholderText(/Describe how to refine/), { target: { value: 'Another stage' } })
     fireEvent.click(screen.getByText('Regenerate'))
     fireEvent.click(screen.getByLabelText('Clear All'))
-    fireEvent.click(screen.getByRole('button', { name: 'Clear board', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Clear board' }))
     await act(async () => { complete(response({ ...proposal, summary: 'Obsolete replacement' })) })
     expect(screen.queryByText('Preview AI Proposal')).not.toBeInTheDocument()
     expect(screen.queryByText('Obsolete replacement')).not.toBeInTheDocument()
