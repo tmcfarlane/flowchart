@@ -570,15 +570,6 @@ function FlowChartEditor() {
     return serializeFlow(doc.nodes, doc.edges, doc.diagramMode, doc.architectureScene)
   }, []))
   const { save: saveFile, saveAs: saveFileAs, setKnownFile, open: openFile } = fileSave
-  // The Save target belongs to one document. Undo or Redo onto another one,
-  // such as the board before a file was opened, forgets it, so Save asks
-  // where to write instead of overwriting the opened file with that board.
-  const fileDocument = useRef(currentDocument)
-  useEffect(() => {
-    if (fileDocument.current === currentDocument) return
-    fileDocument.current = currentDocument
-    setKnownFile(null)
-  }, [currentDocument, setKnownFile])
   useEffect(() => {
     const handleSaveKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.code !== 'KeyS') return
@@ -590,6 +581,16 @@ function FlowChartEditor() {
     window.addEventListener('keydown', handleSaveKey, { capture: true })
     return () => window.removeEventListener('keydown', handleSaveKey, { capture: true })
   }, [saveFile, saveFileAs])
+
+  // The Save target belongs to one document. Undo or Redo onto another one,
+  // such as the board before a file was opened, forgets it, so Save asks
+  // where to write instead of overwriting the opened file with that board.
+  const fileDocument = useRef(currentDocument)
+  useEffect(() => {
+    if (fileDocument.current === currentDocument) return
+    fileDocument.current = currentDocument
+    setKnownFile(null)
+  }, [currentDocument, setKnownFile])
 
   // Opening a document makes its file the Save target, or forgets the old one
   // when it came without a handle, so Save never overwrites a different board.
