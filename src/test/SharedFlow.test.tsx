@@ -119,6 +119,34 @@ describe('App on a shared link', () => {
   const calls = (method: string) =>
     fetchMock.mock.calls.filter(([, init]) => ((init as RequestInit | undefined)?.method ?? 'GET') === method)
 
+  it('does not save a shared chart into a file chosen before it loaded', async () => {
+    window.history.replaceState(null, '', `/f/${ID}#edit=${TOKEN}`)
+    let respond!: () => void
+    routes = (url) => (url.startsWith(`/api/flows/${ID}`)
+      ? new Promise<Response>(resolve => { respond = () => resolve(json(makeChart())) }) as unknown as Response
+      : json({}, 404))
+    const writes: string[] = []
+    const picker = vi.fn(async () => ({
+      name: `file-${picker.mock.calls.length}.json`,
+      queryPermission: async () => 'granted' as const,
+      createWritable: async () => ({ write: async () => {}, close: async () => { writes.push(`file-${picker.mock.calls.length}.json`) } }),
+    }))
+    Object.assign(window, { showSaveFilePicker: picker })
+    try {
+      render(<App />)
+      fireEvent.keyDown(window, { key: 's', code: 'KeyS', metaKey: true })
+      await waitFor(() => expect(writes).toEqual(['file-1.json']))
+
+      await act(async () => respond())
+      expect(await screen.findByText('Visitor signs up')).toBeInTheDocument()
+      fireEvent.keyDown(window, { key: 's', code: 'KeyS', metaKey: true })
+      await waitFor(() => expect(writes).toHaveLength(2))
+      expect(picker).toHaveBeenCalledTimes(2)
+    } finally {
+      delete (window as { showSaveFilePicker?: unknown }).showSaveFilePicker
+    }
+  })
+
   it('loads the chart, remembers the edit token and hides it from the address bar', async () => {
     window.history.replaceState(null, '', `/f/${ID}#edit=${TOKEN}`)
     routes = (url) => (url.startsWith(`/api/flows/${ID}`) ? json(makeChart()) : json({}, 404))
