@@ -152,6 +152,8 @@ interface HistoryState {
   edges: Edge[]
   architectureScene?: ArchitectureScene
   diagramMode?: DiagramMode
+  /** Opening a file or clearing the board starts a new document; edits keep the id. */
+  document?: number
 }
 
 function validateAIInsertion(nodes: FlowNode[], edges: Edge[], scene: ArchitectureScene | undefined, mode: DiagramMode) {
@@ -469,10 +471,12 @@ function FlowChartEditor() {
   )
 
   // Undo/Redo history management
-  const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: initialDraft?.edges ?? [], architectureScene: initialDraft?.architectureScene, diagramMode: initialDraft?.mode }])
+  const [history, setHistory] = useState<HistoryState[]>([{ nodes: initialNodes, edges: initialDraft?.edges ?? [], architectureScene: initialDraft?.architectureScene, diagramMode: initialDraft?.mode, document: 0 }])
   const [historyIndex, setHistoryIndex] = useState(0)
   const isRestoringHistory = useRef(false)
   const MAX_HISTORY = 50
+  const documentCounter = useRef(0)
+  const currentDocument = history[historyIndex]?.document ?? 0
 
   // Save current state to history
   const saveToHistory = useCallback(() => {
@@ -482,7 +486,7 @@ function FlowChartEditor() {
       // Remove any future states if we're not at the end
       const newHistory = prev.slice(0, historyIndex + 1)
       // Add new state
-      newHistory.push({ nodes: [...nodes], edges: [...edges], architectureScene, diagramMode })
+      newHistory.push({ nodes: [...nodes], edges: [...edges], architectureScene, diagramMode, document: prev[historyIndex]?.document ?? 0 })
       // Keep only last MAX_HISTORY states
       if (newHistory.length > MAX_HISTORY) {
         newHistory.shift()
@@ -534,11 +538,13 @@ function FlowChartEditor() {
 
   // Opening another document is a single transaction, including the scene and
   // mode. Keep both sides so diagram Undo/Redo works across renderer switches.
-  const commitDocument = useCallback((next: HistoryState, options: { fit?: boolean } = {}) => {
-    if (drawLocalViewRef.current) return
+  // Returns the document the board now shows, or undefined when nothing changed.
+  const commitDocument = useCallback((next: HistoryState, options: { fit?: boolean; newDocument?: boolean } = {}) => {
+    if (drawLocalViewRef.current) return undefined
     documentEpoch.current++
-    const previous: HistoryState = { nodes, edges, architectureScene, diagramMode }
-    const complete = { ...next, diagramMode: next.diagramMode ?? diagramMode }
+    const previous: HistoryState = { nodes, edges, architectureScene, diagramMode, document: currentDocument }
+    const document = options.newDocument ? ++documentCounter.current : currentDocument
+    const complete = { ...next, diagramMode: next.diagramMode ?? diagramMode, document }
     setHistory(current => {
       const past = current.slice(0, historyIndex + 1)
       if (JSON.stringify(past[past.length - 1]) !== JSON.stringify(previous)) past.push(previous)
@@ -561,7 +567,8 @@ function FlowChartEditor() {
       if (complete.diagramMode === 'draw' && drawApi.current) { pendingDrawFit.current = false; drawApi.current.fitScene() }
       else if (complete.diagramMode !== 'draw') fitView({ padding: 0.2 })
     }, 100)
-  }, [nodes, edges, architectureScene, diagramMode, historyIndex, setNodes, setEdges, updateNodeLabel, updateEdgeLabel, fitView])
+    return document
+  }, [nodes, edges, architectureScene, diagramMode, historyIndex, currentDocument, setNodes, setEdges, updateNodeLabel, updateEdgeLabel, fitView])
 
   // Async file reads must apply to the current document, even when an older
   // callback began decoding while the user was still editing.
@@ -594,6 +601,16 @@ function FlowChartEditor() {
     return () => window.removeEventListener('keydown', handleSaveKey, { capture: true })
   }, [saveFile, saveFileAs])
 
+  // The Save target belongs to one document. Undo or Redo onto another one,
+  // such as the board before a file was opened, forgets it, so Save asks
+  // where to write instead of overwriting the opened file with that board.
+  const fileDocument = useRef(currentDocument)
+  useEffect(() => {
+    if (fileDocument.current === currentDocument) return
+    fileDocument.current = currentDocument
+    setKnownFile(null)
+  }, [currentDocument, setKnownFile])
+
   // Opening a document makes its file the Save target, or forgets the old one
   // when it came without a handle, so Save never overwrites a different board.
   const readImportFile = useCallback(async (file: File, point?: { x: number; y: number }, handle?: SaveFileHandle) => {
@@ -608,7 +625,9 @@ function FlowChartEditor() {
         setPendingImport({ filename: file.name, scene: imported.scene, point })
       } else {
         const document = imported.document
-        importTarget.current.commitDocument({ nodes: document.nodes, edges: document.edges, diagramMode: document.mode, architectureScene: document.architectureScene })
+        const opened = importTarget.current.commitDocument({ nodes: document.nodes, edges: document.edges, diagramMode: document.mode, architectureScene: document.architectureScene }, { newDocument: true })
+        if (opened === undefined) return
+        fileDocument.current = opened
         setKnownFile(handle ?? null)
       }
     } catch (error) {
@@ -660,7 +679,8 @@ function FlowChartEditor() {
         throw new Error('The combined diagram exceeds the 4 MiB document limit. Open this drawing as a new diagram or use smaller images.')
       }
       if (request !== importRequest.current) return
-      before.commitDocument({ nodes: nextNodes, edges: nextEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: destination === 'open' })
+      const committed = before.commitDocument({ nodes: nextNodes, edges: nextEdges, architectureScene: scene, diagramMode: 'draw' }, { fit: destination === 'open', newDocument: destination === 'open' })
+      if (committed === undefined) return
       // An Excalidraw file is not Flowchart JSON, so opening one has no Save target
       if (destination === 'open') setKnownFile(null)
       setPendingImport(null)
@@ -990,7 +1010,7 @@ function FlowChartEditor() {
 
   // Clear all nodes and edges
   const clearAll = useCallback(() => {
-    commitDocument({ nodes: [], edges: [], architectureScene: undefined, diagramMode }, { fit: false })
+    commitDocument({ nodes: [], edges: [], architectureScene: undefined, diagramMode }, { fit: false, newDocument: true })
   }, [commitDocument, diagramMode])
 
   // Get selected nodes and edges
@@ -1768,7 +1788,9 @@ function FlowChartEditor() {
       setShowWelcomeAI(false)
       setDiagramMode(inferDiagramMode(chart))
       // Undo should not step back to the empty canvas that existed before loading.
-      setHistory([{ nodes: flow.nodes, edges: flow.edges, architectureScene: chart.architectureScene, diagramMode: inferDiagramMode(chart) }])
+      // A shared chart is its own document, so a file remembered from an
+      // earlier visit is not its Save target.
+      setHistory([{ nodes: flow.nodes, edges: flow.edges, architectureScene: chart.architectureScene, diagramMode: inferDiagramMode(chart), document: ++documentCounter.current }])
       setHistoryIndex(0)
       fitAfterLoadRef.current = true
       return
