@@ -70,6 +70,12 @@ export function useFileSave(getContents: () => string) {
     void (next ? browserStorePut('handles', HANDLE_KEY, next) : browserStoreDelete('handles', HANDLE_KEY))
   }, [])
 
+  /** Forgets the Save target in this tab only, keeping the file other tabs remember. */
+  const forgetFileInThisTab = useCallback(() => {
+    handle.current = null
+    setFileName(null)
+  }, [])
+
   useEffect(() => {
     if (!status) return
     const timer = window.setTimeout(() => setStatus(null), 2500)
@@ -123,5 +129,5 @@ export function useFileSave(getContents: () => string) {
 
   const saveCurrent = useCallback(() => save(false), [save])
   const saveAs = useCallback(() => save(true), [save])
-  return { supported, canOpen: supported && !!openPicker(), fileName, status, save: saveCurrent, saveAs, open, setKnownFile }
+  return { supported, canOpen: supported && !!openPicker(), fileName, status, save: saveCurrent, saveAs, open, setKnownFile, forgetFileInThisTab }
 }
