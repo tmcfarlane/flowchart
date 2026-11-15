@@ -87,7 +87,7 @@ describe('Save to file', () => {
     Object.assign(window, { showOpenFilePicker: vi.fn(async () => [handle]) })
     render(<App />)
     fireEvent.click(screen.getByLabelText(/Export/))
-    fireEvent.click(screen.getByRole('button', { name: 'Import from JSON' }))
+    fireEvent.click(screen.getByRole('button', { name: /^Import from JSON/ }))
     expect(await screen.findByText('From disk')).toBeInTheDocument()
     pressSave()
     await waitFor(() => expect(writes).toHaveLength(1))
@@ -109,5 +109,51 @@ describe('Save to file', () => {
     expect(await screen.findByText('Other board')).toBeInTheDocument()
     if (!screen.queryByRole('button', { name: /^Save/ })) fireEvent.click(screen.getByLabelText(/Export/))
     expect(screen.getByRole('button', { name: /^Save…/ })).toBeInTheDocument()
+  })
+
+  it('opens a file with Cmd+O and saves back to it', async () => {
+    const { writes } = fakeFileSystem()
+    const opened = serializeFlow([{ id: 'x', type: 'step', position: { x: 0, y: 0 }, data: { label: 'Opened by shortcut' } }], [], 'flowchart')
+    const handle = {
+      name: 'shortcut.json',
+      getFile: async () => new File([opened], 'shortcut.json', { type: 'application/json' }),
+      queryPermission: async () => 'granted' as const,
+      createWritable: async () => { let contents = ''; return { write: async (data: string) => { contents = data }, close: async () => { writes.push({ file: 'shortcut.json', contents }) } } },
+    }
+    Object.assign(window, { showOpenFilePicker: vi.fn(async () => [handle]) })
+    render(<App />)
+    const event = new KeyboardEvent('keydown', { key: 'o', code: 'KeyO', metaKey: true, bubbles: true, cancelable: true })
+    window.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(await screen.findByText('Opened by shortcut')).toBeInTheDocument()
+    pressSave()
+    await waitFor(() => expect(writes).toHaveLength(1))
+    expect(writes[0].file).toBe('shortcut.json')
+  })
+
+  it('opens a file with Ctrl+O where the browser has no file picker API', async () => {
+    const other = serializeFlow([{ id: 'y', type: 'step', position: { x: 0, y: 0 }, data: { label: 'Picked from input' } }], [], 'flowchart')
+    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function (this: HTMLInputElement) {
+      Object.defineProperty(this, 'files', { value: [new File([other], 'other.json', { type: 'application/json' })] })
+      this.dispatchEvent(new Event('change'))
+    })
+    render(<App />)
+    fireEvent.keyDown(window, { key: 'o', code: 'KeyO', ctrlKey: true })
+    expect(click).toHaveBeenCalled()
+    expect(await screen.findByText('Picked from input')).toBeInTheDocument()
+  })
+
+  it('ignores Cmd+O in Draw view mode, so Save cannot write the old board into the picked file', async () => {
+    localStorage.setItem('flowchart-editor-draft-v3', serializeFlow([{ id: 'a', type: 'step', position: { x: 0, y: 0 }, data: { label: 'Old board' } }], [], 'draw'))
+    const open = vi.fn(async () => [])
+    Object.assign(window, { showSaveFilePicker: vi.fn(), showOpenFilePicker: open })
+    const { container } = render(<App />)
+    const canvas = await waitFor(() => { const element = container.querySelector('.draw-canvas'); if (!element) throw new Error('Draw canvas not ready'); return element })
+    fireEvent.keyDown(canvas, { key: 'r', code: 'KeyR', altKey: true })
+    expect(await screen.findByText(/View mode/)).toBeInTheDocument()
+    const event = new KeyboardEvent('keydown', { key: 'o', code: 'KeyO', metaKey: true, bubbles: true, cancelable: true })
+    window.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    expect(open).not.toHaveBeenCalled()
   })
 })

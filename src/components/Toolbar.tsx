@@ -687,8 +687,9 @@ function Toolbar({
                         )}
                         <div className="export-divider" />
                       </>}
-                      <button className="export-option export-import-btn" onClick={handleImportJson}>
-                        Import from JSON
+                      <button className="export-option export-import-btn export-save-option" onClick={handleImportJson}>
+                        <span>Import from JSON</span>
+                        <kbd>{SHORTCUT_MOD}O</kbd>
                       </button>
                       <button className="export-option export-import-btn" onClick={handleImportJson}>
                         Import Excalidraw

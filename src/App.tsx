@@ -611,6 +611,29 @@ function FlowChartEditor() {
     }
   }, [openFile, readImportFile])
 
+  // Cmd/Ctrl+O opens a board here, instead of the browser opening the file in
+  // place of the app. Without the file picker API, a file input stands in.
+  // Presenting, previewing a proposal and Draw's view mode cannot take a new
+  // document, so the shortcut only stops the browser's own Open there.
+  const canOpenFile = fileSave.canOpen
+  const canReplaceDocument = !previewMode && !proposalPreview
+  useEffect(() => {
+    const handleOpenKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || e.code !== 'KeyO') return
+      e.preventDefault()
+      e.stopPropagation()
+      if (e.repeat || !canReplaceDocument || drawLocalViewRef.current) return
+      if (canOpenFile) { void openFileForEditing(); return }
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.accept = '.json,.excalidraw,application/json'
+      input.addEventListener('change', () => { const file = input.files?.[0]; if (file) void readImportFile(file) })
+      input.click()
+    }
+    window.addEventListener('keydown', handleOpenKey, { capture: true })
+    return () => window.removeEventListener('keydown', handleOpenKey, { capture: true })
+  }, [canOpenFile, canReplaceDocument, openFileForEditing, readImportFile])
+
   const applyExcalidrawImport = useCallback(async (destination: 'open' | 'insert') => {
     if (!pendingImport || isImporting) return
     const request = ++importRequest.current
