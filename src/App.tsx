@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo, lazy, Suspense, type DragEvent } from 'react'
+import { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo, lazy, Suspense, type ComponentType, type DragEvent } from 'react'
 import ReactFlow, {
   Node as FlowNode,
   Edge,
@@ -32,7 +32,6 @@ import { nodeTypes, edgeTypes } from './flow/registry'
 import PreviewMode from './components/PreviewMode'
 import Explorer from './components/Explorer'
 import AIChat from './components/AIChat'
-import AIInsertPreviewDialog, { NativeProposalPreview } from './components/AIInsertPreviewDialog'
 import { FlowGenerationContextSchema, normalizeGenerationProposal, parseGenerationResponse, type AIGenerationContext, type AIGenerationProposal } from './shared/aiGeneration'
 import { captureDrawGenerationContext } from './utils/drawGeneration'
 import { sceneFromDrawing, drawingFromScene } from './shared/drawDocument'
@@ -52,7 +51,7 @@ import { validateArchitectureScene, serializedByteLength, MAX_ARCHITECTURE_DOCUM
 import { applyDrawEdit, captureDrawEdit, drawEditIsCurrent, type DrawEditSnapshot } from './utils/drawSelectionEdit'
 import { validateDrawEdit } from './shared/drawSelectionEdit'
 import type { DrawEditResult } from './components/AIDrawEditDialog'
-import type { DrawCanvasApi } from './components/DrawCanvas'
+import type { DrawCanvasApi, DrawCanvasProps } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
 import { fileSaveMessage, useFileSave, type SaveFileHandle } from './hooks/useFileSave'
@@ -64,7 +63,20 @@ import type { SelectionEditPreview } from './components/AISelectionEditDialog'
 import { authoredGraphSignature, captureSelectionEditSnapshot, mergeSelectionEditResult, selectionEditChart, selectionEditContext, selectionEditPreview, selectionEditSnapshotIsCurrent, type SelectionEditSnapshot } from './utils/selectionEdit'
 
 const AIDrawEditDialog = lazy(() => import('./components/AIDrawEditDialog'))
-const DrawCanvas = lazy(() => import('./components/DrawCanvas'))
+// Draw rendering embeds its font (about 250 kB gzipped), so it loads apart
+// from the first paint and is fetched once the page is idle.
+let drawCanvasModule: typeof import('./components/DrawCanvas') | undefined
+const loadDrawCanvas = () => import('./components/DrawCanvas').then(module => (drawCanvasModule = module))
+let proposalPreviewModule: typeof import('./components/AIInsertPreviewDialog') | undefined
+const loadProposalPreview = () => import('./components/AIInsertPreviewDialog').then(module => (proposalPreviewModule = module))
+const LazyDrawCanvas = lazy(loadDrawCanvas)
+const AIInsertPreviewDialog = lazy(loadProposalPreview)
+function prefetchDrawChunks() {
+  // A failed prefetch is retried when Draw or the dialog actually renders
+  const load = () => { loadDrawCanvas().catch(() => {}); loadProposalPreview().catch(() => {}) }
+  if ('requestIdleCallback' in window) window.requestIdleCallback(load, { timeout: 3000 })
+  else setTimeout(load, 1000)
+}
 const AISelectionEditDialog = lazy(() => import('./components/AISelectionEditDialog'))
 function readEditorDraft() {
   if (parseSharedLocation(window.location)) return undefined
@@ -329,6 +341,12 @@ function FlowChartEditor() {
   const [drawClearRequest, setDrawClearRequest] = useState(0)
   const [drawLocalView, setDrawLocalView] = useState(false)
   const drawLocalViewRef = useRef(false)
+  // Once prefetched, Draw renders its loaded module directly instead of
+  // suspending for a frame. The choice is fixed at the first Draw render, so
+  // a module that arrives later never remounts the canvas.
+  const drawCanvasView = useRef<ComponentType<DrawCanvasProps>>()
+  if (!drawCanvasView.current && diagramMode === 'draw') drawCanvasView.current = drawCanvasModule?.default ?? LazyDrawCanvas
+  const DrawCanvas = drawCanvasView.current ?? LazyDrawCanvas
   useEffect(() => {
     if (diagramMode !== 'draw' && drawLocalViewRef.current) { drawLocalViewRef.current = false; setDrawLocalView(false) }
   }, [diagramMode])
@@ -370,6 +388,7 @@ function FlowChartEditor() {
   if (authoredSignature !== revision.current.signature) revision.current = { signature: authoredSignature, value: revision.current.value + 1 }
 
   useEffect(() => { setGenerationMode(diagramMode) }, [diagramMode])
+  useEffect(prefetchDrawChunks, [])
   const aiDocumentEpoch = documentEpoch.current
   useEffect(() => {
     cancelRefinement()
@@ -1923,7 +1942,8 @@ function FlowChartEditor() {
   // Preview proposal in presentation mode (returns to proposal dialog on exit)
   if (proposalPreview) {
     if (proposalPreview.outputMode === 'draw') return <div className={`app ai-native-presentation ${darkMode ? 'dark-mode' : 'light-mode'}`}>
-      <NativeProposalPreview scene={proposalPreview.scene} darkMode={darkMode} />
+      {/* Presenting starts from the proposal dialog, so its module is loaded */}
+      {proposalPreviewModule && <proposalPreviewModule.NativeProposalPreview scene={proposalPreview.scene} darkMode={darkMode} />}
       <button className="draw-presentation-exit" onClick={() => setProposalPreview(null)}>Exit presentation</button>
     </div>
     return (
@@ -2334,6 +2354,7 @@ function FlowChartEditor() {
         variant="full"
       />}
       {!drawLocalView && aiProposal && (
+        <Suspense fallback={<div className="draw-loading" role="status">Opening proposal…</div>}>
         <AIInsertPreviewDialog
           proposal={aiProposal}
           onInsert={insertAIProposal}
@@ -2347,6 +2368,7 @@ function FlowChartEditor() {
           error={aiInsertError}
           darkMode={darkMode}
         />
+        </Suspense>
       )}
       {!drawLocalView && pendingImport && <ExcalidrawImportDialog filename={pendingImport.filename} scene={pendingImport.scene} onOpen={() => { void applyExcalidrawImport('open') }} onInsert={() => { void applyExcalidrawImport('insert') }} onCancel={cancelImport} busy={isImporting} error={importError} compatibilityNotes={getExcalidrawCompatibilityNotes(pendingImport.scene)} />}
       {isImporting && !pendingImport && <div className="diagram-import-notice" role="status"><span>Reading and validating your drawing…</span><button onClick={cancelImport}>Cancel</button></div>}
