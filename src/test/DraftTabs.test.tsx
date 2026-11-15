@@ -91,4 +91,27 @@ describe('Autosave across tabs', () => {
     fireEvent.keyDown(window, { key: 's', code: 'KeyS', metaKey: true })
     await waitFor(() => expect(picker).toHaveBeenCalledTimes(2))
   })
+
+  it('takes a board saved during preview once preview ends', async () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText('Enter Preview Mode'))
+    await saveInOtherTab('Other tab')
+    fireEvent.focus(window)
+    await act(() => new Promise(resolve => setTimeout(resolve, 50)))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(await screen.findByText('Other tab')).toBeInTheDocument()
+  })
+
+  it('never takes the local draft into a board that became a shared link', async () => {
+    render(<App />)
+    window.history.replaceState(null, '', '/f/Ab3dE5fG7h')
+    try {
+      await saveInOtherTab('Other tab')
+      fireEvent.focus(window)
+      await act(() => new Promise(resolve => setTimeout(resolve, 50)))
+      expect(screen.queryByText('Other tab')).not.toBeInTheDocument()
+    } finally {
+      window.history.replaceState(null, '', '/')
+    }
+  })
 })

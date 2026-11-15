@@ -74,6 +74,17 @@ function readEditorDraft() {
   } catch { return undefined }
 }
 
+// The board as autosave compares it: selection, drag state and measured sizes
+// change the node objects but not the board.
+function draftBoardKey(nodes: FlowNode[], edges: Edge[], mode: DiagramMode | undefined, scene: ArchitectureScene | undefined) {
+  return JSON.stringify([
+    nodes.map(({ selected: _selected, dragging: _dragging, positionAbsolute: _absolute, width: _width, height: _height, ...node }) => node),
+    edges.map(({ selected: _selected, ...edge }) => edge),
+    mode,
+    scene,
+  ])
+}
+
 export type EdgeStyle = 'default' | 'animated' | 'step'
 export type HandlePosition = 'top' | 'right' | 'bottom' | 'left'
 export type SidebarMode = 'none' | 'explorer'
@@ -606,17 +617,20 @@ function FlowChartEditor() {
   // editing here, take a board another tab saved since: when this tab is
   // focused or shown again, or at once if it is focused and unedited. It is
   // one undoable step. It may come from another file, so Save asks again.
-  const draftSaves = useRef({ elsewhere: 0, taken: 0, editedSinceFocus: false })
-  const canTakeDraft = useRef(true)
-  canTakeDraft.current = !previewMode && !proposalPreview && !pendingImport && !drawLocalView
+  // A take that finds this tab left or edited meanwhile waits for next time.
+  const draftSaves = useRef({ elsewhere: 0, taken: 0, editedSinceFocus: false, away: false })
+  const takeDraft = useRef(() => {})
+  const canTakeDraft = !previewMode && !proposalPreview && !pendingImport && !isImporting && !drawLocalView
+  const canTakeDraftRef = useRef(canTakeDraft)
+  canTakeDraftRef.current = canTakeDraft
   useEffect(() => {
-    if (parseSharedLocation(window.location)) return
     const saves = draftSaves.current
+    const ready = () => !parseSharedLocation(window.location) && !saves.away && document.visibilityState !== 'hidden' && canTakeDraftRef.current
     const take = () => {
       const seen = saves.elsewhere
-      if (seen === saves.taken || document.visibilityState === 'hidden' || !canTakeDraft.current) return
+      if (seen === saves.taken || !ready()) return
       void readStoredDraft().then(text => {
-        if (!text || !canTakeDraft.current) return
+        if (!text || !ready() || saves.editedSinceFocus) return
         const stored = parseFlowJson(text)
         const current = importTarget.current
         saves.taken = seen
@@ -624,26 +638,35 @@ function FlowChartEditor() {
           contentFingerprint(flowToChart(doc.nodes, doc.edges, doc.architectureScene, mode))
         if (fingerprint(stored, stored.mode) === fingerprint(current, current.diagramMode)) return
         current.commitDocument({ nodes: stored.nodes, edges: stored.edges, architectureScene: stored.architectureScene, diagramMode: stored.mode }, { fit: false })
+        // Already in the draft, so autosave does not write it back
+        lastSavedBoard.current = draftBoardKey(stored.nodes, stored.edges, stored.mode, stored.architectureScene)
         forgetFileInThisTab()
       }).catch(() => {})
     }
+    takeDraft.current = take
     const stop = onDraftSavedElsewhere(() => {
       saves.elsewhere++
       if (document.hasFocus() && !saves.editedSinceFocus) take()
     })
     const returned = () => {
-      if (document.visibilityState === 'hidden') return
+      if (document.visibilityState === 'hidden') { saves.away = true; return }
+      saves.away = false
       saves.editedSinceFocus = false
       take()
     }
+    const left = () => { saves.away = true }
     window.addEventListener('focus', returned)
+    window.addEventListener('blur', left)
     document.addEventListener('visibilitychange', returned)
     return () => {
       stop()
       window.removeEventListener('focus', returned)
+      window.removeEventListener('blur', left)
       document.removeEventListener('visibilitychange', returned)
     }
   }, [forgetFileInThisTab])
+  // A take skipped while presenting or reviewing happens once that ends
+  useEffect(() => { if (canTakeDraft) takeDraft.current() }, [canTakeDraft])
 
   const openFileForEditing = useCallback(async () => {
     try {
@@ -1864,12 +1887,7 @@ function FlowChartEditor() {
   const lastSavedBoard = useRef<string | null>(null)
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
-    const board = JSON.stringify([
-      nodes.map(({ selected: _selected, dragging: _dragging, positionAbsolute: _absolute, width: _width, height: _height, ...node }) => node),
-      edges.map(({ selected: _selected, ...edge }) => edge),
-      diagramMode,
-      architectureScene,
-    ])
+    const board = draftBoardKey(nodes, edges, diagramMode, architectureScene)
     if (board === lastSavedBoard.current) return
     draftSaves.current.editedSinceFocus = true
     const text = () => serializeFlow(nodes, edges, diagramMode, architectureScene)

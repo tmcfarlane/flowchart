@@ -57,6 +57,8 @@ export async function readStoredDraft(): Promise<string | null> {
 export function flushDraft(text: string): Promise<void> {
   try {
     localStorage.setItem(LEGACY_DRAFT_KEY, text)
+    // Announce now: the page may be gone before the IndexedDB save resolves
+    channel?.postMessage('saved')
   } catch {
     localStorage.removeItem(LEGACY_DRAFT_KEY)
   }
