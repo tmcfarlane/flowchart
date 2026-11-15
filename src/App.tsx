@@ -1818,16 +1818,19 @@ function FlowChartEditor() {
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
     // An IndexedDB write still open when the page unloads may never commit, so
-    // closing always flushes, even after the timer's write has started.
+    // closing flushes until this board's save has completed, even after the
+    // timer's write has started. A completed save is not repeated, so closing
+    // an idle tab never writes its board over one another tab saved since.
+    let saved = false
     const save = (unloading = false) => {
       window.clearTimeout(timer)
       const text = serializeFlow(nodes, edges, diagramMode, architectureScene)
       ;(unloading ? flushDraft(text) : writeDraft(text)).then(
-        () => setDraftError(null),
+        () => { saved = true; setDraftError(null) },
         () => setDraftError('Browser storage is full. Save to a file or share the diagram to keep your latest changes.'),
       )
     }
-    const flush = () => save(true)
+    const flush = () => { if (!saved) save(true) }
     const timer = window.setTimeout(save, 500)
     window.addEventListener('pagehide', flush)
     return () => {
