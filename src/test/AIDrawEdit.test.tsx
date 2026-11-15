@@ -92,7 +92,7 @@ describe('App selected Draw AI', () => {
     fetcher.mockImplementationOnce(() => new Promise(done => { complete = done }))
     const { dialog } = await open()
     fireEvent.click(within(dialog).getByRole('button', { name: 'Preview changes' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Architecture Mode', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Architecture Mode' }))
     await act(async () => complete(response()))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(fetcher.mock.calls[0][1].signal.aborted).toBe(true)

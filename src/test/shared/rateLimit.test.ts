@@ -17,7 +17,6 @@ import {
   type RedisEval,
 } from '../../shared/server/rateLimit'
 
-const MINUTE = 60_000
 // A time at the start of a UTC day, so fixed windows line up predictably.
 const DAY_START = Date.UTC(2026, 0, 1)
 

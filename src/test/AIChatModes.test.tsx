@@ -98,7 +98,7 @@ describe('AIChat generation modes', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(drawing))
     vi.stubGlobal('fetch', fetchMock)
     const onReady = vi.fn()
-    const getContext = vi.fn(() => ({ drawContext: { elements: [], omittedElementCount: 0 } }))
+    const getContext = vi.fn(() => ({ drawContext: { elements: [] as [], omittedElementCount: 0 } }))
     render(<ChatHarness onReady={onReady} getContext={getContext} />)
     fireEvent.change(screen.getByLabelText('Generate for'), { target: { value: 'draw' } })
     fireEvent.change(screen.getByPlaceholderText('Describe shapes, labels, and lines to draw...'), { target: { value: 'Sketch a workshop' } })

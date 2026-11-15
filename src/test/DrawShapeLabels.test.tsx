@@ -53,7 +53,7 @@ function expectCentered(label: DrawElement, host: DrawElement) {
   expect(label.y + label.height / 2).toBeCloseTo(host.y + host.height / 2)
 }
 function draw(surface: Element, tool = 'Rectangle') {
-  fireEvent.click(screen.getByRole('button', { name: `${tool} tool`, exact: true }))
+  fireEvent.click(screen.getByRole('button', { name: `${tool} tool` }))
   fireEvent.pointerDown(surface, pointer(100, 120))
   fireEvent.pointerMove(surface, pointer(340, 280))
   fireEvent.pointerUp(surface, pointer(340, 280, { buttons: 0 }))
@@ -78,7 +78,7 @@ function capturedDoubleClick(surface: Element, target: Element, x: number, y: nu
   fireEvent.doubleClick(surface, { clientX: x, clientY: y, button: 0, detail: 2 })
 }
 function finish(value: string, method: 'keyboard' | 'blur' = 'keyboard') {
-  const editor = screen.getByRole('textbox', { name: 'Edit drawing text', exact: true })
+  const editor = screen.getByRole('textbox', { name: 'Edit drawing text' })
   fireEvent.change(editor, { target: { value } })
   if (method === 'blur') fireEvent.blur(editor)
   else fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true })
@@ -142,12 +142,12 @@ describe('shape-bound Draw labels', () => {
     const { surface, scene, onCommit } = renderDrawing()
     expect(screen.getByRole('button', { name: 'Keep tool selected' })).toHaveAttribute('aria-pressed', 'false')
     draw(surface, tool)
-    expect(screen.getByRole('button', { name: 'Selection tool', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Selection tool' })).toHaveAttribute('aria-pressed', 'true')
     expect(onCommit).toHaveBeenCalledTimes(1)
     const host = live(scene())[0]
     expect(surface.querySelector('.draw-selection')).toBeInTheDocument()
     doubleClick(surface)
-    const editor = screen.getByRole('textbox', { name: 'Edit drawing text', exact: true })
+    const editor = screen.getByRole('textbox', { name: 'Edit drawing text' })
     expect(editor).toHaveFocus()
     expect(editor).toHaveValue('')
     expect(onCommit).toHaveBeenCalledTimes(1)
@@ -206,7 +206,7 @@ describe('shape-bound Draw labels', () => {
     expect(scene()).toEqual(initial)
     expect(onCommit).not.toHaveBeenCalled()
     expect(surface.querySelector('[data-element-type="text"]')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Undo drawing', exact: true })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Undo drawing' })).toBeDisabled()
   })
 
   it('undoes and redoes the label as a separate transaction from its shape', () => {
@@ -280,16 +280,16 @@ describe('shape-bound Draw labels', () => {
 
   it('retains the explicit Q option while keeping it disabled by default', () => {
     const { surface, scene } = renderDrawing()
-    const keep = screen.getByRole('button', { name: 'Keep tool selected', exact: true })
+    const keep = screen.getByRole('button', { name: 'Keep tool selected' })
     expect(keep).toHaveAttribute('aria-pressed', 'false')
     fireEvent.keyDown(surface, { key: 'q' })
     draw(surface)
     expect(keep).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByRole('button', { name: 'Rectangle tool', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Rectangle tool' })).toHaveAttribute('aria-pressed', 'true')
     fireEvent.keyDown(surface, { key: 'q' })
     draw(surface, 'Ellipse')
     expect(keep).toHaveAttribute('aria-pressed', 'false')
-    expect(screen.getByRole('button', { name: 'Selection tool', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Selection tool' })).toHaveAttribute('aria-pressed', 'true')
     expect(live(scene()).filter(item => item.type !== 'text')).toHaveLength(2)
   })
 })

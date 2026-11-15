@@ -62,7 +62,7 @@ function select(surface: Element, id: string, x: number, y: number) {
 describe('required Draw modifiers and connector keyboard workflows', () => {
   it.each(['Rectangle', 'Diamond', 'Ellipse'])('draws %s from the center with Alt/Option and commits one undoable operation', tool => {
     const { surface, scene, onCommit } = renderDrawing()
-    fireEvent.click(screen.getByRole('button', { name: `${tool} tool`, exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: `${tool} tool` }))
     fireEvent.pointerDown(surface, pointer(300, 300, { altKey: true }))
     fireEvent.pointerMove(surface, pointer(370, 340, { altKey: true }))
     expect(onCommit).not.toHaveBeenCalled()
@@ -113,7 +113,7 @@ describe('required Draw modifiers and connector keyboard workflows', () => {
     fireEvent.pointerDown(surface, pointer(90, 90, { ctrlKey: true }))
     fireEvent.pointerMove(surface, pointer(270, 210, { ctrlKey: true }))
     fireEvent.pointerUp(surface, pointer(270, 210, { ctrlKey: true, buttons: 0 }))
-    fireEvent.click(screen.getByRole('button', { name: 'Snap to objects', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Snap to objects' }))
     const selected = surface.querySelector('[data-element-id="one"]')!
     fireEvent.pointerDown(selected, pointer(110, 110, { ctrlKey: true }))
     fireEvent.pointerMove(surface, pointer(146, 110, { ctrlKey: true }))
@@ -130,7 +130,7 @@ describe('required Draw modifiers and connector keyboard workflows', () => {
     expect(screen.getByText('Editing connector points')).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'Edit drawing text' })).not.toBeInTheDocument()
     expect(onCommit).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Add path point', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add path point' }))
     expect(scene().elements.find(element => element.id === 'connector')).toMatchObject({ points: [[0, 0], [100, 0], [200, 0]] })
     fireEvent.keyDown(surface, { key: 'ArrowUp', shiftKey: true })
     expect(onCommit).toHaveBeenCalledTimes(1)
@@ -148,7 +148,7 @@ describe('required Draw modifiers and connector keyboard workflows', () => {
     const { surface, scene } = renderDrawing({ ...empty(), elements: [connector([[0, 0], [100, -70], [200, 0]]), label] })
     select(surface, 'connector', 150, 300)
     fireEvent.keyDown(surface, { key: 'Enter', ctrlKey: true })
-    fireEvent.click(screen.getByRole('button', { name: 'Edit path point 2', exact: true }))
+    fireEvent.click(screen.getByRole('button', { name: 'Edit path point 2' }))
     fireEvent.keyDown(surface, { key: 'Delete' })
     expect(scene().elements.find(element => element.id === 'connector')).toMatchObject({ points: [[0, 0], [200, 0]] })
     expect(scene().elements.find(element => element.id === 'label')).toMatchObject({ containerId: 'connector', text: 'HTTPS' })
@@ -162,7 +162,7 @@ describe('required Draw modifiers and connector keyboard workflows', () => {
     const { surface, scene, onCommit } = renderDrawing(initial)
     select(surface, 'connector', 150, 300)
     fireEvent.keyDown(surface, { key: 'Enter', ctrlKey: true })
-    const midpoint = screen.getByRole('button', { name: 'Edit path point 2', exact: true })
+    const midpoint = screen.getByRole('button', { name: 'Edit path point 2' })
     fireEvent.pointerDown(midpoint, pointer(200, 230))
     fireEvent.pointerMove(surface, pointer(200, 190))
     expect(onCommit).not.toHaveBeenCalled()
@@ -170,7 +170,7 @@ describe('required Draw modifiers and connector keyboard workflows', () => {
     fireEvent.pointerUp(surface, pointer(200, 190, { buttons: 0 }))
     expect(scene()).toEqual(initial)
     expect(onCommit).not.toHaveBeenCalled()
-    expect(screen.getByRole('button', { name: 'Undo drawing', exact: true })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Undo drawing' })).toBeDisabled()
   })
 
   it('exits connector point mode when another object is selected', () => {
@@ -229,7 +229,7 @@ describe('required Draw modifiers and connector keyboard workflows', () => {
     expect(scene()).toEqual(initial)
     expect(onCommit).not.toHaveBeenCalled()
     expect(surface.querySelector('[data-element-type="arrow"]')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Undo drawing', exact: true })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Undo drawing' })).toBeDisabled()
   })
 
   it('discards an unfinished connector when another tool is chosen', () => {
@@ -263,7 +263,7 @@ describe('required Draw modifiers and connector keyboard workflows', () => {
   it('recognizes the actual macOS Option glyph when toggling object snapping', () => {
     const { surface, onCommit } = renderDrawing()
     fireEvent.keyDown(surface, { key: 'ß', code: 'KeyS', altKey: true })
-    expect(screen.getByRole('button', { name: 'Snap to objects', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByRole('button', { name: 'Snap to objects' })).toHaveAttribute('aria-pressed', 'true')
     expect(onCommit).not.toHaveBeenCalled()
   })
 

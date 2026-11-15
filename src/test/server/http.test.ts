@@ -26,7 +26,8 @@ function startServer(ctx: ApiContext): Promise<{ server: Server; base: string }>
   const handlers = { mcp: handleMcp, flows: handleFlowsCollection, flow: handleFlowItem }
   const server = createServer(async (req, res) => {
     const route = matchApiRoute(new URL(req.url ?? '/', 'http://x').pathname)
-    if (!route) {
+    // This server mounts the flow and MCP handlers only
+    if (!route || route.name === 'chat') {
       res.statusCode = 404
       res.end()
       return

@@ -56,7 +56,7 @@ describe('patch notes in the editor', () => {
     render(<App />)
     fireEvent.click(screen.getByText('No, thank you'))
     for (const mode of ['Flowchart Mode', 'Architecture Mode', 'Draw Mode']) {
-      fireEvent.click(screen.getByRole('button', { name: mode, exact: true }))
+      fireEvent.click(screen.getByRole('button', { name: mode }))
       const opener = screen.getByRole('button', { name: "What's new" })
       opener.focus()
       fireEvent.click(opener)
