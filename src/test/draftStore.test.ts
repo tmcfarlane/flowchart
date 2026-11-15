@@ -39,4 +39,34 @@ describe('draft store', () => {
     expect(localStorage.getItem('flowchart-editor-draft-v3')).toBe('fallback board')
     expect(drafts.readDraft()).toBe('fallback board')
   })
+
+  it('reads a draft flushed on close before an IndexedDB draft that may be older', async () => {
+    store.set('editor', 'older board')
+    const drafts = await load()
+    await drafts.preloadDraft()
+    available.value = false // the unload interrupts the IndexedDB write
+    await drafts.flushDraft('latest board').catch(() => {})
+    available.value = true
+    const reopened = await load()
+    await reopened.preloadDraft()
+    expect(reopened.readDraft()).toBe('latest board')
+  })
+
+  it('drops the flushed copy once an IndexedDB save succeeds', async () => {
+    const drafts = await load()
+    await drafts.flushDraft('closing board')
+    await drafts.writeDraft('next board')
+    expect(localStorage.getItem('flowchart-editor-draft-v3')).toBeNull()
+    expect(drafts.readDraft()).toBe('next board')
+  })
+
+  it('drops the flushed copy when the board is too large for localStorage', async () => {
+    localStorage.setItem('flowchart-editor-draft-v3', 'earlier copy')
+    const drafts = await load()
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new DOMException('full', 'QuotaExceededError') })
+    available.value = false
+    await drafts.flushDraft('large board').catch(() => {})
+    setItem.mockRestore()
+    expect(localStorage.getItem('flowchart-editor-draft-v3')).toBeNull()
+  })
 })
