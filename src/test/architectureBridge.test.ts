@@ -190,4 +190,12 @@ describe('image nodes in Draw', () => {
     const back = graphFromElements(scene.elements as unknown as DrawElement[], [imageNode(png(200, 100))], [])
     expect(back.nodes).toHaveLength(1)
   })
+
+  it('keeps icons that older builds saved as inline SVG data URLs out of the drawing files', () => {
+    // Earlier builds inlined small icons this way, so drafts and saved files still hold them
+    const inlined = "data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2018%2018'%3e%3cpath%20d='M0%200h18v18H0z'/%3e%3c/svg%3e"
+    const scene = mergeGraphScene(undefined, [imageNode(inlined)], [], false)
+    expect(scene.files).toEqual({})
+    expect(() => validateArchitectureScene(scene)).not.toThrow()
+  })
 })

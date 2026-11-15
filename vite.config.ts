@@ -76,6 +76,10 @@ export default defineConfig(({ mode }) => ({
     strictPort: !!process.env.PORT,
   },
   build: {
+    // Vite inlines assets under 4 KiB as data URIs. For the ~650 small Azure
+    // icons that put 1.5 MB into the main chunk, though a page shows a few.
+    // As files, each icon loads when it is shown and is cached on its own.
+    assetsInlineLimit: (filePath: string) => (filePath.includes('/assets/icons/') ? false : undefined),
     rollupOptions: {
       // mcp.html is the /mcp launch page: its own entry, so it ships without the React Flow app bundle.
       // `vite` and `vite preview` serve /mcp from mcp.html; vercel.json rewrites it in production.

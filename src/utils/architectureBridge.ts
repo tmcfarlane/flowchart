@@ -50,8 +50,12 @@ const IMAGE_FILE_PREFIX = 'fc-image-file-'
 const IMAGE_PADDING = 10
 const IMAGE_CAPTION_SPACE = 28
 
-/** Only embedded images can live in a drawing's files; library icon URLs stay graph-only. */
-const nodeImageDataUrl = (node: ChartNode) => node.imageUrl && /^data:image\//i.test(node.imageUrl) ? node.imageUrl : undefined
+/**
+ * Only uploaded and pasted images, which are base64, live in a drawing's files.
+ * Library icons stay graph-only, including the inline SVG data URLs that
+ * earlier builds stored for small icons.
+ */
+const nodeImageDataUrl = (node: ChartNode) => node.imageUrl && /^data:image\/[^;,]+;base64,/i.test(node.imageUrl) ? node.imageUrl : undefined
 
 function hashString(value: string): string {
   let hash = 5381
