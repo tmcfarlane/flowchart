@@ -16,8 +16,10 @@ export async function preloadDraft(): Promise<void> {
   if (typeof saved === 'string') preloaded = saved
 }
 
+// A localStorage draft is never older than the IndexedDB one: every IndexedDB
+// save removes it, so one that remains was written by a flush or a fallback.
 export function readDraft(): string | null {
-  return preloaded ?? localStorage.getItem(LEGACY_DRAFT_KEY)
+  return localStorage.getItem(LEGACY_DRAFT_KEY) ?? preloaded ?? null
 }
 
 /** Rejects only when neither IndexedDB nor localStorage can hold the draft. */
@@ -29,4 +31,18 @@ export async function writeDraft(text: string): Promise<void> {
   }
   localStorage.setItem(LEGACY_DRAFT_KEY, text)
   preloaded = undefined
+}
+
+/**
+ * Save while the page unloads. An IndexedDB write started then may never
+ * commit, so keep a synchronous localStorage copy as well. A board too large
+ * for localStorage drops the copy rather than leave an older one in front.
+ */
+export function flushDraft(text: string): Promise<void> {
+  try {
+    localStorage.setItem(LEGACY_DRAFT_KEY, text)
+  } catch {
+    localStorage.removeItem(LEGACY_DRAFT_KEY)
+  }
+  return writeDraft(text)
 }
