@@ -1814,19 +1814,29 @@ function FlowChartEditor() {
   }, [commitDocument])
 
   // Standalone diagrams autosave the complete document, including image assets,
-  // shortly after each change, and immediately if the tab is hidden or closed.
+  // shortly after each change, and immediately if the tab is closed.
+  // Selecting, dragging state and measured sizes change the node objects but
+  // not the board, so they never save it again.
+  const lastSavedBoard = useRef<string | null>(null)
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
+    const board = JSON.stringify([
+      nodes.map(({ selected: _selected, dragging: _dragging, positionAbsolute: _absolute, width: _width, height: _height, ...node }) => node),
+      edges.map(({ selected: _selected, ...edge }) => edge),
+      diagramMode,
+      architectureScene,
+    ])
+    if (board === lastSavedBoard.current) return
     // An IndexedDB write still open when the page unloads may never commit, so
     // closing flushes until this board's save has completed, even after the
-    // timer's write has started. A completed save is not repeated, so closing
-    // an idle tab never writes its board over one another tab saved since.
+    // timer's write has started. A saved board is not written again, so an
+    // idle tab never writes its board over one another tab saved since.
     let saved = false
     const save = (unloading = false) => {
       window.clearTimeout(timer)
       const text = serializeFlow(nodes, edges, diagramMode, architectureScene)
       ;(unloading ? flushDraft(text) : writeDraft(text)).then(
-        () => { saved = true; setDraftError(null) },
+        () => { saved = true; lastSavedBoard.current = board; setDraftError(null) },
         () => setDraftError('Browser storage is full. Save to a file or share the diagram to keep your latest changes.'),
       )
     }
