@@ -55,7 +55,7 @@ import type { DrawCanvasApi, DrawCanvasProps } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
 import { fileSaveMessage, useFileSave, type SaveFileHandle } from './hooks/useFileSave'
-import { readDraft, writeDraft } from './utils/draftStore'
+import { flushDraft, readDraft, writeDraft } from './utils/draftStore'
 import { getClipboardImage, imageFileToDataUrl } from './utils/imagePaste'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
@@ -1833,22 +1833,38 @@ function FlowChartEditor() {
   }, [commitDocument])
 
   // Standalone diagrams autosave the complete document, including image assets,
-  // shortly after each change, and immediately if the tab is hidden or closed.
+  // shortly after each change, and immediately if the tab is closed.
+  // Selecting, dragging state and measured sizes change the node objects but
+  // not the board, so they never save it again.
+  const lastSavedBoard = useRef<string | null>(null)
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
-    const save = () => {
+    const board = JSON.stringify([
+      nodes.map(({ selected: _selected, dragging: _dragging, positionAbsolute: _absolute, width: _width, height: _height, ...node }) => node),
+      edges.map(({ selected: _selected, ...edge }) => edge),
+      diagramMode,
+      architectureScene,
+    ])
+    if (board === lastSavedBoard.current) return
+    // An IndexedDB write still open when the page unloads may never commit, so
+    // closing flushes until this board's save has completed, even after the
+    // timer's write has started. A saved board is not written again, so an
+    // idle tab never writes its board over one another tab saved since.
+    let saved = false
+    const save = (unloading = false) => {
       window.clearTimeout(timer)
-      window.removeEventListener('pagehide', save)
-      writeDraft(serializeFlow(nodes, edges, diagramMode, architectureScene)).then(
-        () => setDraftError(null),
+      const text = serializeFlow(nodes, edges, diagramMode, architectureScene)
+      ;(unloading ? flushDraft(text) : writeDraft(text)).then(
+        () => { saved = true; lastSavedBoard.current = board; setDraftError(null) },
         () => setDraftError('Browser storage is full. Save to a file or share the diagram to keep your latest changes.'),
       )
     }
+    const flush = () => { if (!saved) save(true) }
     const timer = window.setTimeout(save, 500)
-    window.addEventListener('pagehide', save)
+    window.addEventListener('pagehide', flush)
     return () => {
       window.clearTimeout(timer)
-      window.removeEventListener('pagehide', save)
+      window.removeEventListener('pagehide', flush)
     }
   }, [nodes, edges, diagramMode, architectureScene])
 
