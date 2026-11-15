@@ -87,7 +87,7 @@ describe('Save to file', () => {
     Object.assign(window, { showOpenFilePicker: vi.fn(async () => [handle]) })
     render(<App />)
     fireEvent.click(screen.getByLabelText(/Export/))
-    fireEvent.click(screen.getByRole('button', { name: /^Import from JSON/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Import from JSON' }))
     expect(await screen.findByText('From disk')).toBeInTheDocument()
     pressSave()
     await waitFor(() => expect(writes).toHaveLength(1))
@@ -155,5 +155,11 @@ describe('Save to file', () => {
     window.dispatchEvent(event)
     expect(event.defaultPrevented).toBe(true)
     expect(open).not.toHaveBeenCalled()
+  })
+
+  it('announces the Cmd+O shortcut without changing the Import button name', () => {
+    render(<App />)
+    fireEvent.click(screen.getByLabelText(/Export/))
+    expect(screen.getByRole('button', { name: 'Import from JSON' })).toHaveAttribute('aria-keyshortcuts', 'Meta+O Control+O')
   })
 })

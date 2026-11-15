@@ -687,9 +687,9 @@ function Toolbar({
                         )}
                         <div className="export-divider" />
                       </>}
-                      <button className="export-option export-import-btn export-save-option" onClick={handleImportJson}>
+                      <button className="export-option export-import-btn export-save-option" onClick={handleImportJson} aria-keyshortcuts="Meta+O Control+O">
                         <span>Import from JSON</span>
-                        <kbd>{SHORTCUT_MOD}O</kbd>
+                        <kbd aria-hidden="true">{SHORTCUT_MOD}O</kbd>
                       </button>
                       <button className="export-option export-import-btn" onClick={handleImportJson}>
                         Import Excalidraw
