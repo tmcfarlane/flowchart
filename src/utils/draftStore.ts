@@ -22,15 +22,31 @@ export function readDraft(): string | null {
   return localStorage.getItem(LEGACY_DRAFT_KEY) ?? preloaded ?? null
 }
 
+// Every open tab autosaves the same draft. Announcing each save lets the
+// other tabs take the newer board before an edit there saves over it.
+const channel = typeof BroadcastChannel === 'function' ? new BroadcastChannel('flowchart-draft') : undefined
+
 /** Rejects only when neither IndexedDB nor localStorage can hold the draft. */
 export async function writeDraft(text: string): Promise<void> {
   if (await browserStorePut('drafts', DRAFT_KEY, text)) {
     preloaded = text
     localStorage.removeItem(LEGACY_DRAFT_KEY)
-    return
+  } else {
+    localStorage.setItem(LEGACY_DRAFT_KEY, text)
+    preloaded = undefined
   }
-  localStorage.setItem(LEGACY_DRAFT_KEY, text)
-  preloaded = undefined
+  channel?.postMessage('saved')
+}
+
+export function onDraftSavedElsewhere(listener: () => void): () => void {
+  channel?.addEventListener('message', listener)
+  return () => channel?.removeEventListener('message', listener)
+}
+
+/** The draft as stored now, which another tab may have saved. */
+export async function readStoredDraft(): Promise<string | null> {
+  await preloadDraft()
+  return readDraft()
 }
 
 /**
@@ -41,6 +57,8 @@ export async function writeDraft(text: string): Promise<void> {
 export function flushDraft(text: string): Promise<void> {
   try {
     localStorage.setItem(LEGACY_DRAFT_KEY, text)
+    // Announce now: the page may be gone before the IndexedDB save resolves
+    channel?.postMessage('saved')
   } catch {
     localStorage.removeItem(LEGACY_DRAFT_KEY)
   }

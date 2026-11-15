@@ -1,15 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const store = new Map<string, unknown>()
-const available = { value: true }
+const available = { value: true, hang: false }
 vi.mock('../utils/browserStore', () => ({
   browserStoreGet: async (_: string, key: string) => available.value ? store.get(key) : undefined,
-  browserStorePut: async (_: string, key: string, value: unknown) => { if (!available.value) return false; store.set(key, value); return true },
+  browserStorePut: (_: string, key: string, value: unknown) => available.hang ? new Promise<boolean>(() => {}) : (async () => { if (!available.value) return false; store.set(key, value); return true })(),
 }))
 
 const load = async () => { vi.resetModules(); return import('../utils/draftStore') }
 
-beforeEach(() => { store.clear(); localStorage.clear(); available.value = true })
+beforeEach(() => { store.clear(); localStorage.clear(); available.value = true; available.hang = false })
 
 describe('draft store', () => {
   it('migrates a localStorage draft into IndexedDB on the next save', async () => {
@@ -68,5 +68,15 @@ describe('draft store', () => {
     await drafts.flushDraft('large board').catch(() => {})
     setItem.mockRestore()
     expect(localStorage.getItem('flowchart-editor-draft-v3')).toBeNull()
+  })
+
+  it('tells other tabs about a flush before its IndexedDB write settles', async () => {
+    const drafts = await load()
+    const otherTab = new BroadcastChannel('flowchart-draft')
+    const heard = new Promise<unknown>(resolve => { otherTab.onmessage = event => resolve(event.data) })
+    available.hang = true // the page unloads before the write resolves
+    void drafts.flushDraft('closing board')
+    expect(await heard).toBe('saved')
+    otherTab.close()
   })
 })

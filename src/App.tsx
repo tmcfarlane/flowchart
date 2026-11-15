@@ -44,7 +44,7 @@ import { getMessages, addMessage as addThreadMessage } from './utils/conversatio
 import { sortParentsFirst, getAbsolutePosition, remapPastedNodes } from './utils/nesting'
 import ShareStatus from './components/ShareStatus'
 import { useSharedFlow, type ApplyReason } from './hooks/useSharedFlow'
-import { chartToFlow, changedNodeIds, flowToChart } from './utils/sharedFlow'
+import { chartToFlow, changedNodeIds, contentFingerprint, flowToChart } from './utils/sharedFlow'
 import { parseSharedLocation } from './utils/shareApi'
 import { LIMITS, inferDiagramMode, nextNumericNodeId, type Chart, type DiagramMode } from './shared/flowTypes'
 import { validateArchitectureScene, serializedByteLength, MAX_ARCHITECTURE_DOCUMENT_BYTES, type ArchitectureScene } from './shared/architectureScene'
@@ -55,7 +55,7 @@ import type { DrawCanvasApi, DrawCanvasProps } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
 import { fileSaveMessage, useFileSave, type SaveFileHandle } from './hooks/useFileSave'
-import { flushDraft, readDraft, writeDraft } from './utils/draftStore'
+import { flushDraft, onDraftSavedElsewhere, readDraft, readStoredDraft, writeDraft } from './utils/draftStore'
 import { getClipboardImage, imageFileToDataUrl } from './utils/imagePaste'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
@@ -84,6 +84,17 @@ function readEditorDraft() {
     const saved = readDraft()
     return saved ? parseFlowJson(saved) : undefined
   } catch { return undefined }
+}
+
+// The board as autosave compares it: selection, drag state and measured sizes
+// change the node objects but not the board.
+function draftBoardKey(nodes: FlowNode[], edges: Edge[], mode: DiagramMode | undefined, scene: ArchitectureScene | undefined) {
+  return JSON.stringify([
+    nodes.map(({ selected: _selected, dragging: _dragging, positionAbsolute: _absolute, width: _width, height: _height, ...node }) => node),
+    edges.map(({ selected: _selected, ...edge }) => edge),
+    mode,
+    scene,
+  ])
 }
 
 export type EdgeStyle = 'default' | 'animated' | 'step'
@@ -588,7 +599,7 @@ function FlowChartEditor() {
     const doc = saveTarget.current
     return serializeFlow(doc.nodes, doc.edges, doc.diagramMode, doc.architectureScene)
   }, []))
-  const { save: saveFile, saveAs: saveFileAs, setKnownFile, open: openFile } = fileSave
+  const { save: saveFile, saveAs: saveFileAs, setKnownFile, forgetFileInThisTab, open: openFile } = fileSave
   useEffect(() => {
     const handleSaveKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.code !== 'KeyS') return
@@ -639,6 +650,61 @@ function FlowChartEditor() {
       if (request === importRequest.current) setIsImporting(false)
     }
   }, [setKnownFile])
+
+  // Every tab autosaves the same draft, and the last to save wins. Before
+  // editing here, take a board another tab saved since: when this tab is
+  // focused or shown again, or at once if it is focused and unedited. It is
+  // one undoable step. It may come from another file, so Save asks again.
+  // A take that finds this tab left or edited meanwhile waits for next time.
+  const draftSaves = useRef({ elsewhere: 0, taken: 0, editedSinceFocus: false, away: false })
+  const takeDraft = useRef(() => {})
+  const canTakeDraft = !previewMode && !proposalPreview && !pendingImport && !isImporting && !drawLocalView
+  const canTakeDraftRef = useRef(canTakeDraft)
+  canTakeDraftRef.current = canTakeDraft
+  useEffect(() => {
+    const saves = draftSaves.current
+    const ready = () => !parseSharedLocation(window.location) && !saves.away && document.visibilityState !== 'hidden' && canTakeDraftRef.current
+    const take = () => {
+      const seen = saves.elsewhere
+      if (seen === saves.taken || !ready()) return
+      void readStoredDraft().then(text => {
+        if (!text || !ready() || saves.editedSinceFocus) return
+        const stored = parseFlowJson(text)
+        const current = importTarget.current
+        saves.taken = seen
+        const fingerprint = (doc: { nodes: FlowNode[]; edges: Edge[]; architectureScene?: ArchitectureScene }, mode: DiagramMode) =>
+          contentFingerprint(flowToChart(doc.nodes, doc.edges, doc.architectureScene, mode))
+        if (fingerprint(stored, stored.mode) === fingerprint(current, current.diagramMode)) return
+        current.commitDocument({ nodes: stored.nodes, edges: stored.edges, architectureScene: stored.architectureScene, diagramMode: stored.mode }, { fit: false })
+        // Already in the draft, so autosave does not write it back
+        lastSavedBoard.current = draftBoardKey(stored.nodes, stored.edges, stored.mode, stored.architectureScene)
+        forgetFileInThisTab()
+      }).catch(() => {})
+    }
+    takeDraft.current = take
+    const stop = onDraftSavedElsewhere(() => {
+      saves.elsewhere++
+      if (document.hasFocus() && !saves.editedSinceFocus) take()
+    })
+    const returned = () => {
+      if (document.visibilityState === 'hidden') { saves.away = true; return }
+      saves.away = false
+      saves.editedSinceFocus = false
+      take()
+    }
+    const left = () => { saves.away = true }
+    window.addEventListener('focus', returned)
+    window.addEventListener('blur', left)
+    document.addEventListener('visibilitychange', returned)
+    return () => {
+      stop()
+      window.removeEventListener('focus', returned)
+      window.removeEventListener('blur', left)
+      document.removeEventListener('visibilitychange', returned)
+    }
+  }, [forgetFileInThisTab])
+  // A take skipped while presenting or reviewing happens once that ends
+  useEffect(() => { if (canTakeDraft) takeDraft.current() }, [canTakeDraft])
 
   const openFileForEditing = useCallback(async () => {
     try {
@@ -1878,38 +1944,48 @@ function FlowChartEditor() {
   }, [commitDocument])
 
   // Standalone diagrams autosave the complete document, including image assets,
-  // shortly after each change, and immediately if the tab is closed.
+  // shortly after each change, and immediately if the tab is closed. Leaving
+  // the tab saves at once too, so a tab switched to next takes this edit.
   // Selecting, dragging state and measured sizes change the node objects but
   // not the board, so they never save it again.
   const lastSavedBoard = useRef<string | null>(null)
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
-    const board = JSON.stringify([
-      nodes.map(({ selected: _selected, dragging: _dragging, positionAbsolute: _absolute, width: _width, height: _height, ...node }) => node),
-      edges.map(({ selected: _selected, ...edge }) => edge),
-      diagramMode,
-      architectureScene,
-    ])
+    const board = draftBoardKey(nodes, edges, diagramMode, architectureScene)
     if (board === lastSavedBoard.current) return
+    draftSaves.current.editedSinceFocus = true
+    const text = () => serializeFlow(nodes, edges, diagramMode, architectureScene)
+    let started = false, done = false
+    const report = (write: Promise<void>) => write.then(
+      () => { done = true; lastSavedBoard.current = board; setDraftError(null) },
+      () => setDraftError('Browser storage is full. Save to a file or share the diagram to keep your latest changes.'),
+    )
+    const save = () => {
+      if (started) return
+      started = true
+      window.clearTimeout(timer)
+      void report(writeDraft(text()))
+    }
     // An IndexedDB write still open when the page unloads may never commit, so
     // closing flushes until this board's save has completed, even after the
     // timer's write has started. A saved board is not written again, so an
     // idle tab never writes its board over one another tab saved since.
-    let saved = false
-    const save = (unloading = false) => {
+    const flush = () => {
+      if (done) return
+      started = true
       window.clearTimeout(timer)
-      const text = serializeFlow(nodes, edges, diagramMode, architectureScene)
-      ;(unloading ? flushDraft(text) : writeDraft(text)).then(
-        () => { saved = true; lastSavedBoard.current = board; setDraftError(null) },
-        () => setDraftError('Browser storage is full. Save to a file or share the diagram to keep your latest changes.'),
-      )
+      void report(flushDraft(text()))
     }
-    const flush = () => { if (!saved) save(true) }
+    const saveIfHidden = () => { if (document.visibilityState === 'hidden') save() }
     const timer = window.setTimeout(save, 500)
     window.addEventListener('pagehide', flush)
+    window.addEventListener('blur', save)
+    document.addEventListener('visibilitychange', saveIfHidden)
     return () => {
       window.clearTimeout(timer)
       window.removeEventListener('pagehide', flush)
+      window.removeEventListener('blur', save)
+      document.removeEventListener('visibilitychange', saveIfHidden)
     }
   }, [nodes, edges, diagramMode, architectureScene])
 
