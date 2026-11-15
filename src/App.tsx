@@ -56,7 +56,7 @@ import type { DrawCanvasApi } from './components/DrawCanvas'
 import { exportExcalidrawDrawing, parseFlowJson, serializeFlow } from './utils/exportUtils'
 import { readDiagramFile } from './utils/diagramImport'
 import { fileSaveMessage, useFileSave, type SaveFileHandle } from './hooks/useFileSave'
-import { readDraft, writeDraft } from './utils/draftStore'
+import { flushDraft, readDraft, writeDraft } from './utils/draftStore'
 import { getClipboardImage, imageFileToDataUrl } from './utils/imagePaste'
 import { getExcalidrawCompatibilityNotes, prepareSceneInsertion, prepareSceneOpen } from './utils/excalidrawImport'
 import type { SelectionEditProposal, SelectionEditScope } from './shared/selectionEdit'
@@ -1817,19 +1817,22 @@ function FlowChartEditor() {
   // shortly after each change, and immediately if the tab is hidden or closed.
   useEffect(() => {
     if (parseSharedLocation(window.location)) return
-    const save = () => {
+    // An IndexedDB write still open when the page unloads may never commit, so
+    // closing always flushes, even after the timer's write has started.
+    const save = (unloading = false) => {
       window.clearTimeout(timer)
-      window.removeEventListener('pagehide', save)
-      writeDraft(serializeFlow(nodes, edges, diagramMode, architectureScene)).then(
+      const text = serializeFlow(nodes, edges, diagramMode, architectureScene)
+      ;(unloading ? flushDraft(text) : writeDraft(text)).then(
         () => setDraftError(null),
         () => setDraftError('Browser storage is full. Save to a file or share the diagram to keep your latest changes.'),
       )
     }
+    const flush = () => save(true)
     const timer = window.setTimeout(save, 500)
-    window.addEventListener('pagehide', save)
+    window.addEventListener('pagehide', flush)
     return () => {
       window.clearTimeout(timer)
-      window.removeEventListener('pagehide', save)
+      window.removeEventListener('pagehide', flush)
     }
   }, [nodes, edges, diagramMode, architectureScene])
 
